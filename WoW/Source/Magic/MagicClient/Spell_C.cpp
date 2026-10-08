@@ -1620,7 +1620,7 @@ static void SendCast(SpellCast *cast) {
     }
 
     UINT spellIndex = 0;
-    while (spellIndex < 5 && (stats->m_spellID[spellIndex] != cast->spellID || stats->m_spellTrigger[spellIndex])) {
+    while (spellIndex < 5 && (cast->spellID != stats->m_spellID[spellIndex] || stats->m_spellTrigger[spellIndex])) {
       ++spellIndex;
     }
     if (spellIndex >= 5) {

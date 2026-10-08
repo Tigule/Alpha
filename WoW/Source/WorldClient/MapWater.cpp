@@ -31,7 +31,10 @@ struct LODIndexFix {
   WORD from;
   WORD to;
 
-  void Set(WORD, WORD);
+  void Set(WORD p_from, WORD p_to) {
+    from = p_from;
+    to = p_to;
+  }
 };
 
 struct LODArrays {
@@ -139,24 +142,18 @@ void LODArrays::GenFixes(UINT p_nFixes, UINT vertsPerSide, UINT tilesPerSide) {
 
   UINT index = 0;
   WORD from = 1;
-  UINT i;
-  for (i = 0; i < nFixes; ++i) {
-    fixes[index].from = from;
-    fixes[index].to = from - 1;
-    ++index;
+  UINT lp;
+  for (lp = 0; lp < nFixes; ++lp) {
+    fixes[index++].Set(from, from - 1);
     from += 2;
   }
 
   from = static_cast<WORD>(2 * vertsPerSide - 1);
   WORD to = 0;
   WORD to2 = static_cast<WORD>(4 * vertsPerSide);
-  for (i = 0; i < nFixes / 2; ++i) {
-    fixes[index].from = from;
-    fixes[index].to = to;
-    ++index;
-    fixes[index].from = static_cast<WORD>(from + 2 * vertsPerSide);
-    fixes[index].to = to2;
-    ++index;
+  for (lp = 0; lp < nFixes / 2; ++lp) {
+    fixes[index++].Set(from, to);
+    fixes[index++].Set(static_cast<WORD>(from + 2 * vertsPerSide), to2);
     from = static_cast<WORD>(from + 4 * vertsPerSide);
     to = static_cast<WORD>(to + 4 * vertsPerSide);
     to2 = static_cast<WORD>(to2 + 4 * vertsPerSide);
@@ -164,20 +161,16 @@ void LODArrays::GenFixes(UINT p_nFixes, UINT vertsPerSide, UINT tilesPerSide) {
 
   from = static_cast<WORD>(tilesPerSide * vertsPerSide + 1);
   to = static_cast<WORD>(tilesPerSide * vertsPerSide);
-  for (i = 0; i < nFixes; ++i) {
-    fixes[index].from = from;
-    fixes[index].to = to;
-    ++index;
+  for (lp = 0; lp < nFixes; ++lp) {
+    fixes[index++].Set(from, to);
     from += 2;
     to += 2;
   }
 
   from = static_cast<WORD>(tilesPerSide * tilesPerSide - 1);
   to = static_cast<WORD>(tilesPerSide * tilesPerSide - 2);
-  for (i = 0; i < nFixes; ++i) {
-    fixes[index].from = from;
-    fixes[index].to = to;
-    ++index;
+  for (lp = 0; lp < nFixes; ++lp) {
+    fixes[index++].Set(from, to);
     from = static_cast<WORD>(from - 2 * vertsPerSide);
     to = from - 1;
   }
@@ -189,18 +182,15 @@ void LODArrays::GenVerts(UINT lod) {
   geov.SetCount(vertexCount);
   texv.SetCount(vertexCount);
 
-  UINT  vertex = 0;
-  UINT  y = 0;
-  UINT  x;
-  float ooTiles = 1.0f / static_cast<float>(lod + 1);
+  UINT vertex = 0;
+  UINT y = 0;
+  UINT x;
   while (y < vertsPerSide) {
-    float ty = static_cast<float>(y) * ooTiles;
+    float ty = static_cast<float>(y) / static_cast<float>(lod + 1);
     for (x = 0; x < vertsPerSide; ++x) {
-      float tx = static_cast<float>(x) * ooTiles;
-      geov[vertex].x = tx * -4.1666665f;
-      geov[vertex].y = ty * -4.1666665f;
-      texv[vertex].x = tx;
-      texv[vertex].y = ty;
+      float tx = static_cast<float>(x) / static_cast<float>(lod + 1);
+      geov[vertex].Set(tx * -4.1666665f, ty * -4.1666665f);
+      texv[vertex].Set(tx, ty);
       ++vertex;
     }
 
@@ -209,46 +199,49 @@ void LODArrays::GenVerts(UINT lod) {
       break;
     }
 
-    ty = static_cast<float>(y) * ooTiles;
-    for (x = vertsPerSide; x; --x) {
-      float tx = static_cast<float>(x - 1) * ooTiles;
-      geov[vertex].x = tx * -4.1666665f;
-      geov[vertex].y = ty * -4.1666665f;
-      texv[vertex].x = tx;
-      texv[vertex].y = ty;
+    ty = static_cast<float>(y) / static_cast<float>(lod + 1);
+    do {
+      --x;
+      float tx = static_cast<float>(x) / static_cast<float>(lod + 1);
+      geov[vertex].Set(tx * -4.1666665f, ty * -4.1666665f);
+      texv[vertex].Set(tx, ty);
       ++vertex;
-    }
+    } while (x);
     ++y;
   }
 
   UINT indexCount = 2 * vertsPerSide * (lod + 1) + 2;
   idx.SetCount(indexCount);
   UINT index = 0;
-  WORD low = 0;
-  WORD high = static_cast<WORD>(2 * vertsPerSide - 1);
-  for (UINT row = 0; row < lod + 1; ++row) {
-    for (UINT x = 0; x < vertsPerSide; ++x) {
-      idx[index++] = low++;
-      idx[index++] = high--;
-    }
-    low = high + 1;
-    high = static_cast<WORD>(high + 2 * vertsPerSide);
+  int row1 = 0;
+  int row2 = 2 * vertsPerSide - 1;
+  y = lod + 1;
+  while (y) {
+    x = vertsPerSide;
+    do {
+      idx[index++] = row1++;
+      idx[index++] = row2--;
+      --x;
+    } while (x);
+    row1 = row2 + 1;
+    row2 += 2 * vertsPerSide;
+    --y;
   }
-  idx[index++] = low;
-  idx[index] = (lod + 1) & 1 ? static_cast<WORD>(low + lod + 1) : low;
+  idx[index++] = row1;
+  if ((lod + 1) & 1) {
+    idx[index] = row1 + lod + 1;
+  } else {
+    idx[index] = row1;
+  }
 
   switch (lod) {
     case 1:
       nFixes = 1;
       fixes.SetCount(4);
-      fixes[0].from = 1;
-      fixes[0].to = 0;
-      fixes[1].from = 5;
-      fixes[1].to = 6;
-      fixes[2].from = 7;
-      fixes[2].to = 6;
-      fixes[3].from = 3;
-      fixes[3].to = 8;
+      fixes[0].Set(1, 0);
+      fixes[1].Set(5, 6);
+      fixes[2].Set(7, 6);
+      fixes[3].Set(3, 8);
       break;
     case 3:
     case 7:

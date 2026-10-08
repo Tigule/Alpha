@@ -488,10 +488,10 @@ void SRWLock::SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting) {
 template <class T>
 void CDebugLock<T>::IRepairBadEntry(CDebugLockData *lock, DWORD e, CDebugLockEntry *eptr, LPCSTR fileName, DWORD line) {
   SOutputDebugString("%s(%u) : CDebugLock:%08x: entry has bad next %u\n", fileName, line, lock, e);
-  if (eptr) {
-    eptr->m_next = 0;
-  } else {
+  if (!eptr) {
     lock->m_entries = 0;
+  } else {
+    eptr->m_next = 0;
   }
 }
 
@@ -580,21 +580,21 @@ DWORD CDebugLock<T>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwrit
   CDebugLockEntry *entry;
 
   index = s_freeEntries;
-  if (!index) {
-    SOutputDebugString("%s(%u) : CDebugLock:%08x no free entries\n", fileName, line, lock);
-    IDumpEntries(lock);
-    return 0;
+  if (index) {
+    entry = &s_entries[index];
+    entry->m_time = GetTickCount();
+    entry->m_threadId = threadId;
+    entry->m_fileName = fileName;
+    entry->m_line = (line & 0x3FFFFFFF) | (forwriting ? 0x40000000 : 0);
+    s_freeEntries = entry->m_next;
+    entry->m_next = lock->m_entries;
+    lock->m_entries = index;
+    return index;
   }
 
-  entry = &s_entries[index];
-  entry->m_time = GetTickCount();
-  entry->m_threadId = threadId;
-  entry->m_fileName = fileName;
-  entry->m_line = (line & 0x3FFFFFFF) | (forwriting ? 0x40000000 : 0);
-  s_freeEntries = entry->m_next;
-  entry->m_next = lock->m_entries;
-  lock->m_entries = index;
-  return index;
+  SOutputDebugString("%s(%u) : CDebugLock:%08x no free entries\n", fileName, line, lock);
+  IDumpEntries(lock);
+  return 0;
 }
 
 template <class T>

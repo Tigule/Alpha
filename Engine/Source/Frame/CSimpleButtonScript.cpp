@@ -106,6 +106,7 @@ static int CSimpleButton_SetText(lua_State *L) {
 static int CSimpleButton_SetTextColor(lua_State *L) {
   CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
+  NTempest::CImVector color;
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
   float blue = static_cast<float>(lua_tonumber(L, 4));
@@ -114,7 +115,6 @@ static int CSimpleButton_SetTextColor(lua_State *L) {
     alpha = static_cast<float>(lua_tonumber(L, 5));
   }
 
-  NTempest::CImVector color;
   color.Set(alpha, red, green, blue);
   object->SetTextColor(color);
   return 0;
@@ -123,6 +123,7 @@ static int CSimpleButton_SetTextColor(lua_State *L) {
 static int CSimpleButton_SetDisabledTextColor(lua_State *L) {
   CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
+  NTempest::CImVector color;
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
   float blue = static_cast<float>(lua_tonumber(L, 4));
@@ -131,7 +132,6 @@ static int CSimpleButton_SetDisabledTextColor(lua_State *L) {
     alpha = static_cast<float>(lua_tonumber(L, 5));
   }
 
-  NTempest::CImVector color;
   color.Set(alpha, red, green, blue);
   object->SetDisabledTextColor(color);
   return 0;
@@ -140,6 +140,7 @@ static int CSimpleButton_SetDisabledTextColor(lua_State *L) {
 static int CSimpleButton_SetHighlightTextColor(lua_State *L) {
   CSimpleButton *object = static_cast<CSimpleButton *>(FrameScript_GetObjectThis(L));
 
+  NTempest::CImVector color;
   float red = static_cast<float>(lua_tonumber(L, 2));
   float green = static_cast<float>(lua_tonumber(L, 3));
   float blue = static_cast<float>(lua_tonumber(L, 4));
@@ -148,7 +149,6 @@ static int CSimpleButton_SetHighlightTextColor(lua_State *L) {
     alpha = static_cast<float>(lua_tonumber(L, 5));
   }
 
-  NTempest::CImVector color;
   color.Set(alpha, red, green, blue);
   object->SetHighlightTextColor(color);
   return 0;

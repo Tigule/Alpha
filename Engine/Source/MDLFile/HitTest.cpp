@@ -102,6 +102,7 @@ BOOL MDL::ReadHitTest(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 static void IWriteHitTestSection(const MDLDATA &data, const MDLHITTESTSHAPE &section, int needObjectIds, TSGrowableArray<char> &buffer) {
+  Vector3 top;
   WriteObjectHeader(data, section, 0x116, needObjectIds, buffer);
   switch (section.type) {
     case SHAPE_BOX:
@@ -115,10 +116,9 @@ static void IWriteHitTestSection(const MDLDATA &data, const MDLHITTESTSHAPE &sec
       MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x13C));
       MDL::WriteLine(buffer, "\t%s 2 {\n", MDL::TokenText(0x1D8));
       MDL::WriteLine(buffer, "\t\t{ %g, %g, %g },\n", section.shape.cylinder.base.x, section.shape.cylinder.base.y, section.shape.cylinder.base.z);
-      MDL::WriteLine(
-          buffer, "\t\t{ %g, %g, %g },\n", section.shape.cylinder.base.x, section.shape.cylinder.base.y,
-          section.shape.cylinder.base.z + section.shape.cylinder.height
-      );
+      top = section.shape.cylinder.base;
+      top.z += section.shape.cylinder.height;
+      MDL::WriteLine(buffer, "\t\t{ %g, %g, %g },\n", top.x, top.y, top.z);
       MDL::WriteLine(buffer, "\t}\n");
       MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x134), section.shape.cylinder.radius);
       break;
@@ -147,12 +147,13 @@ BOOL MDL::WriteHitTests(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDL
 }
 
 BOOL MDL::WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
-  if (data.hitTestShapes.Count()) {
+  UINT numHitTestShapes = data.hitTestShapes.Count();
+  if (numHitTestShapes) {
     buffer.AddDword('TSTH');
     UINT totalSize = 4;
-    UINT i;
-    for (i = 0; i < data.hitTestShapes.Count(); ++i) {
-      const MDLHITTESTSHAPE &section = data.hitTestShapes.Ptr()[i];
+    UINT n;
+    for (n = 0; n < numHitTestShapes; ++n) {
+      const MDLHITTESTSHAPE &section = data.hitTestShapes[n];
       UINT                   sectionSize = 5;
       switch (section.type) {
         case SHAPE_BOX:
@@ -171,9 +172,9 @@ BOOL MDL::WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *
       totalSize += GetBinGenObjectSize(section) + sectionSize;
     }
     buffer.AddUint(totalSize);
-    buffer.AddUint(data.hitTestShapes.Count());
-    for (i = 0; i < data.hitTestShapes.Count(); ++i) {
-      const MDLHITTESTSHAPE &section = data.hitTestShapes.Ptr()[i];
+    buffer.AddUint(numHitTestShapes);
+    for (n = 0; n < numHitTestShapes; ++n) {
+      const MDLHITTESTSHAPE &section = data.hitTestShapes[n];
       UINT                   sectionSize = 5;
       switch (section.type) {
         case SHAPE_BOX:
@@ -189,7 +190,8 @@ BOOL MDL::WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *
           sectionSize = 13;
           break;
       }
-      buffer.AddUint(GetBinGenObjectSize(section) + sectionSize);
+      sectionSize += GetBinGenObjectSize(section);
+      buffer.AddUint(sectionSize);
       WriteBinGenObject(section, buffer, status);
       buffer.AddByte(static_cast<BYTE>(section.type));
       switch (section.type) {

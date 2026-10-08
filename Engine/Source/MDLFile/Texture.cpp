@@ -129,9 +129,9 @@ namespace MDL {
     VALIDATE((numTextures > 0) || (data.bones.Count() == 0));
     VALIDATEEND;
     if (numTextures) {
-      WriteLine(buffer, "%s %d {\n", TokenText(0x108), data.textures.Count());
-      for (UINT i = 0; i < data.textures.Count(); ++i) {
-        IWriteTexture(data.textures[i], buffer);
+      WriteLine(buffer, "%s %d {\n", TokenText(0x108), numTextures);
+      for (UINT i = 0; i < numTextures; ++i) {
+        IWriteTexture(data.textures.Ptr()[i], buffer);
       }
       WriteLine(buffer, "}\n");
     }
@@ -143,13 +143,14 @@ namespace MDL {
     VALIDATE(status != 0);
     VALIDATEEND;
     if (length % 268) {
-      status->Add(STATUS_ERROR, "Invalid TEXS section detected in model.\n");
+      status->Add(STATUS_ERROR, "Invalid TXTX section detected in model -- nonintegral number of textures.\n");
       return 0;
     }
 
-    data.textures.SetCount(length / 268);
-    for (UINT i = 0; i < length / 268; ++i) {
-      MDLTEXTURESECTION &texture = data.textures[i];
+    length /= 268;
+    data.textures.SetCount(length);
+    for (UINT i = 0; i < length; ++i) {
+      MDLTEXTURESECTION &texture = data.textures.Ptr()[i];
       texture.replaceableId = buf.GetUint();
       buf.GetTcharArray(texture.image, 260);
       texture.flags = buf.GetUint();
@@ -164,9 +165,9 @@ namespace MDL {
     VALIDATEEND;
     if (numTextures) {
       buf.AddDword('SXET');
-      buf.AddUint(268 * data.textures.Count());
-      for (UINT i = 0; i < data.textures.Count(); ++i) {
-        const MDLTEXTURESECTION &texture = data.textures[i];
+      buf.AddUint(268 * numTextures);
+      for (UINT i = 0; i < numTextures; ++i) {
+        const MDLTEXTURESECTION &texture = data.textures.Ptr()[i];
         buf.AddUint(texture.replaceableId);
         buf.AddTcharArray(texture.image, 260, 1);
         buf.AddUint(texture.flags);

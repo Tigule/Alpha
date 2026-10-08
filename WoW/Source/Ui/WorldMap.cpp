@@ -362,15 +362,14 @@ int CGWorldMap::GetMapAreaFromPos(float x, float y) {
 BOOL CGWorldMap::GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, int &mapID) {
   if (m_currentContinent == -1) {
     for (UINT continent = 0; continent < m_continents.Count(); ++continent) {
-      WorldMapContinentInfo &info = m_continents[continent];
-      if (x < info.hitRect.l || x > info.hitRect.r || y < info.hitRect.t || y > info.hitRect.b) {
+      if (!m_continents[continent].hitRect.Contains(NTempest::C2Vector(x, y))) {
         continue;
       }
 
       UINT numContinents = g_worldMapContinentDB.GetNumRecords();
-      for (UINT index = 0; index < numContinents; ++index) {
-        const WorldMapContinentRec *rec = g_worldMapContinentDB.GetRecordByIndex(index);
-        if (rec->m_mapID == info.continentID) {
+      for (UINT j = 0; j < numContinents; ++j) {
+        const WorldMapContinentRec *rec = g_worldMapContinentDB.GetRecordByIndex(j);
+        if (rec->m_mapID == m_continents[continent].continentID) {
           loc.x = (rec->m_continentOffsetY - (y - 0.5f) * 41.75f) * 533.33331f;
           loc.y = (rec->m_continentOffsetX - (x - 0.5f) * 62.625f) * 533.33331f;
           mapID = rec->m_mapID;
@@ -391,8 +390,10 @@ BOOL CGWorldMap::GetWorldLocFromPos(float x, float y, NTempest::C2Vector &loc, i
     return 0;
   }
 
-  loc.x = (32.0f - ((areaRec->m_bottomBoundary - areaRec->m_topBoundary + 1) * y + areaRec->m_topBoundary)) * 533.33331f;
-  loc.y = (32.0f - ((areaRec->m_rightBoundary - areaRec->m_leftBoundary + 1) * x + areaRec->m_leftBoundary)) * 533.33331f;
+  x = (areaRec->m_rightBoundary - areaRec->m_leftBoundary + 1) * x + areaRec->m_leftBoundary;
+  y = (areaRec->m_bottomBoundary - areaRec->m_topBoundary + 1) * y + areaRec->m_topBoundary;
+  loc.x = (32.0f - y) * 533.33331f;
+  loc.y = (32.0f - x) * 533.33331f;
   mapID = m_continents[m_currentContinent].continentID;
   return 1;
 }

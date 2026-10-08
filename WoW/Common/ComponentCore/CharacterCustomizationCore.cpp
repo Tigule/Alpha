@@ -575,7 +575,16 @@ BOOL CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
 }
 
 void CCharGeoset::EnableHairGeosets(UINT race, UINT sex, UINT hairStyleID) {
-  int geoset = CharCustomizationGetHairGeoset(race, sex, hairStyleID);
+  int geoset;
+
+  FATALASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
+  FATALASSERT(sex < s_characterVariations[race].Count());
+  geoset = s_characterVariations[race][sex].hairGeosets.Count();
+  if (!geoset) {
+    return;
+  }
+  hairStyleID %= geoset;
+  geoset = s_characterVariations[race][sex].hairGeosets[hairStyleID].theInt;
   ShowGeosetSection(CHARGEOSET_HAIR, abs(geoset), 1);
   if (geoset < 0) {
     m_flags |= HASSCALP;
@@ -1128,11 +1137,11 @@ UINT CharCustomizationGetHairGeoset(UINT race, UINT sex, UINT hair) {
   FATALASSERT(race <= (uint)g_chrRacesDB.GetMaxID());
   FATALASSERT(sex < s_characterVariations[race].Count());
 
-  TSGrowableArray<INTDATA> &hairGeosets = s_characterVariations[race][sex].hairGeosets;
-  if (!hairGeosets.Count()) {
+  if (!s_characterVariations[race][sex].hairGeosets.Count()) {
     return 0;
   }
-  return abs(hairGeosets[hair % hairGeosets.Count()].theInt);
+  hair %= s_characterVariations[race][sex].hairGeosets.Count();
+  return abs(s_characterVariations[race][sex].hairGeosets[hair].theInt);
 }
 
 UINT CharCustomizationNumBeardStyles(UINT raceID, UINT sexID) {
@@ -1152,15 +1161,15 @@ BOOL CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, 
   VALIDATE(facialHairStyleData);
   VALIDATEEND;
 
-  TSFixedArray<FACIALGEOSETS> &facialGeosets = s_characterVariations[raceID][sexID].facialVariations.facialGeosets;
-  if (!facialGeosets.Count()) {
+  UINT facialGeosets = CharCustomizationNumBeardStyles(raceID, sexID);
+  if (!facialGeosets) {
     return 0;
   }
 
-  const FACIALGEOSETS &facial = facialGeosets[facialHairID % facialGeosets.Count()];
-  facialHairStyleData->beardGeoset = facial.beardGeoset;
-  facialHairStyleData->sideBurnGeoset = facial.sideBurnGeoset;
-  facialHairStyleData->moustacheGeoset = facial.moustacheGeoset;
+  facialHairID %= facialGeosets;
+  facialHairStyleData->beardGeoset = s_characterVariations[raceID][sexID].facialVariations.facialGeosets[facialHairID].beardGeoset;
+  facialHairStyleData->sideBurnGeoset = s_characterVariations[raceID][sexID].facialVariations.facialGeosets[facialHairID].sideBurnGeoset;
+  facialHairStyleData->moustacheGeoset = s_characterVariations[raceID][sexID].facialVariations.facialGeosets[facialHairID].moustacheGeoset;
   return 1;
 }
 

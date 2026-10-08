@@ -1270,8 +1270,9 @@ static void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodad
 
   UINT count = facetData->facets.Count();
   facetData->gameObjects.SetCount(count);
-  if (count != existing) {
-    memset(&facetData->gameObjects[existing], 0, (count - existing) * sizeof(facetData->gameObjects[0]));
+  count -= existing;
+  if (count) {
+    memset(&facetData->gameObjects[existing], 0, count * sizeof(facetData->gameObjects[0]));
   }
 }
 
@@ -1498,53 +1499,73 @@ bool CMap::GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, const NTempes
   return origFacetCount != facetData->facets.Count();
 }
 
-static void CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vector &normal, NTempest::C3Vector &up, NTempest::C3Vector &right) {
-  NTempest::CFacet *facet = facetData->facets.NewElement();
-  facet->plane.n = normal;
-  facet->plane.d = -NTempest::C3Vector::Dot(normal, corner);
+static inline void CreateFacet(CWFacetData *facetData, NTempest::C3Vector &corner, NTempest::C3Vector &normal, NTempest::C3Vector &up, NTempest::C3Vector &right) {
+  NTempest::CFacet *facet = facetData->facets.New();
+  facet->plane.Set(normal, corner);
   facet->vertices[0] = corner;
   facet->vertices[1] = corner + right;
   facet->vertices[2] = corner + right + up;
 
-  facet = facetData->facets.NewElement();
-  facet->plane.n = normal;
-  facet->plane.d = -NTempest::C3Vector::Dot(normal, corner);
+  facet = facetData->facets.New();
+  facet->plane.Set(normal, corner);
   facet->vertices[0] = corner;
   facet->vertices[1] = corner + right + up;
   facet->vertices[2] = corner + up;
 }
 
 void CMap::CreateImpassableFacets(CMapChunk *chunk, const NTempest::CAaBox &aaBox, CWFacetData *facetData, UINT queryFlags) {
-  NTempest::C3Vector up(0.0f, 0.0f, 10000.0f);
+  NTempest::C3Vector corner;
   NTempest::C3Vector normal;
   NTempest::C3Vector right;
-  NTempest::C3Vector corner;
+  NTempest::C3Vector up(0.0f, 0.0f, 10000.0f);
 
   if (aaBox.b.y < chunk->aaBox.b.y) {
     corner = chunk->aaBox.b;
-    normal = NTempest::C3Vector(0.0f, -1.0f, 0.0f);
-    right = NTempest::C3Vector(chunk->aaBox.t.x - chunk->aaBox.b.x, 0.0f, 0.0f);
+    right.x = chunk->aaBox.t.x - chunk->aaBox.b.x;
+    right.y = 0.0f;
+    right.z = 0.0f;
+    normal.x = 0.0f;
+    normal.y = -1.0f;
+    normal.z = 0.0f;
     CreateFacet(facetData, corner, normal, up, right);
   }
 
   if (aaBox.t.y > chunk->aaBox.t.y) {
-    corner = NTempest::C3Vector(chunk->aaBox.t.x, chunk->aaBox.t.y, chunk->aaBox.b.z);
-    normal = NTempest::C3Vector(0.0f, 1.0f, 0.0f);
-    right = NTempest::C3Vector(chunk->aaBox.b.x - chunk->aaBox.t.x, 0.0f, 0.0f);
+    corner.x = chunk->aaBox.t.x;
+    corner.y = chunk->aaBox.t.y;
+    corner.z = chunk->aaBox.b.z;
+    right.x = chunk->aaBox.b.x - chunk->aaBox.t.x;
+    right.y = 0.0f;
+    right.z = 0.0f;
+    normal.x = 0.0f;
+    normal.y = 1.0f;
+    normal.z = 0.0f;
     CreateFacet(facetData, corner, normal, up, right);
   }
 
   if (aaBox.b.x < chunk->aaBox.b.x) {
-    corner = NTempest::C3Vector(chunk->aaBox.b.x, chunk->aaBox.t.y, chunk->aaBox.b.z);
-    normal = NTempest::C3Vector(-1.0f, 0.0f, 0.0f);
-    right = NTempest::C3Vector(0.0f, chunk->aaBox.b.y - chunk->aaBox.t.y, 0.0f);
+    corner.x = chunk->aaBox.b.x;
+    corner.y = chunk->aaBox.t.y;
+    corner.z = chunk->aaBox.b.z;
+    right.x = 0.0f;
+    right.y = chunk->aaBox.b.y - chunk->aaBox.t.y;
+    right.z = 0.0f;
+    normal.x = -1.0f;
+    normal.y = 0.0f;
+    normal.z = 0.0f;
     CreateFacet(facetData, corner, normal, up, right);
   }
 
   if (aaBox.t.x > chunk->aaBox.t.x) {
-    corner = NTempest::C3Vector(chunk->aaBox.t.x, chunk->aaBox.b.y, chunk->aaBox.b.z);
-    normal = NTempest::C3Vector(1.0f, 0.0f, 0.0f);
-    right = NTempest::C3Vector(0.0f, chunk->aaBox.t.y - chunk->aaBox.b.y, 0.0f);
+    corner.x = chunk->aaBox.t.x;
+    corner.y = chunk->aaBox.b.y;
+    corner.z = chunk->aaBox.b.z;
+    right.x = 0.0f;
+    right.y = chunk->aaBox.t.y - chunk->aaBox.b.y;
+    right.z = 0.0f;
+    normal.x = 1.0f;
+    normal.y = 0.0f;
+    normal.z = 0.0f;
     CreateFacet(facetData, corner, normal, up, right);
   }
 }

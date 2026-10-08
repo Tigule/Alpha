@@ -168,11 +168,37 @@ void SndInterfaceSetProviderPrefs(UINT index, UINT indexUnderwater, UINT transit
   }
 
   if ((g_underWater && !(s_flags & 2)) || (s_flags & 3) != 3) {
-    const _FSOUND_REVERB_PROPERTIES blah = {
-        0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
-                                200, 0.011f, {0.0f, 0.0f, 0.0f},
-        0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
-    };
+    _FSOUND_REVERB_PROPERTIES blah;
+    blah.Room = -10000;
+    blah.RoomHF = -10000;
+    blah.Environment = 0;
+    blah.EnvSize = 7.5f;
+    blah.EnvDiffusion = 1.0f;
+    blah.RoomLF = 0;
+    blah.DecayTime = 1.0f;
+    blah.DecayHFRatio = 1.0f;
+    blah.DecayLFRatio = 1.0f;
+    blah.Reflections = -2602;
+    blah.ReflectionsDelay = 0.007f;
+    blah.ReflectionsPan[0] = 0.0f;
+    blah.ReflectionsPan[1] = 0.0f;
+    blah.ReflectionsPan[2] = 0.0f;
+    blah.Reverb = 200;
+    blah.ReverbDelay = 0.011f;
+    blah.ReverbPan[0] = 0.0f;
+    blah.ReverbPan[1] = 0.0f;
+    blah.ReverbPan[2] = 0.0f;
+    blah.EchoTime = 0.25f;
+    blah.EchoDepth = 0.0f;
+    blah.ModulationTime = 0.25f;
+    blah.ModulationDepth = 0.0f;
+    blah.AirAbsorptionHF = -5.0f;
+    blah.HFReference = 5000.0f;
+    blah.LFReference = 250.0f;
+    blah.RoomRolloffFactor = 0.0f;
+    blah.Diffusion = 0.0f;
+    blah.Density = 0.0f;
+    blah.Flags = 0x33F;
 
     s_currentProviderDesc = blah;
     StopProviderPrefFade();

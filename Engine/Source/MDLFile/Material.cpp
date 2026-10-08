@@ -309,16 +309,18 @@ static void IWriteMaterial(const MDLMATERIALSECTION &material, TSGrowableArray<c
   if (material.priorityPlane) {
     MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(0x1A6), material.priorityPlane);
   }
+  const MDLTEXLAYER *layer = material.texLayers.Ptr();
   int needCoordIds = 0;
-  for (UINT i = 0; i < material.texLayers.Count(); ++i) {
-    const MDLTEXLAYER &layer = material.texLayers.Ptr()[i];
-    if (!(layer.flags & 2) && layer.coordId) {
+  for (UINT i = material.texLayers.Count(); i; ++layer) {
+    --i;
+    if (!(layer->flags & 2) && layer->coordId) {
       needCoordIds = 1;
       break;
     }
   }
-  for (UINT j = 0; j < material.texLayers.Count(); ++j) {
-    IWriteLayer(material.texLayers.Ptr()[j], needCoordIds, buffer);
+  layer = material.texLayers.Ptr();
+  for (UINT j = material.texLayers.Count(); j; --j, ++layer) {
+    IWriteLayer(*layer, needCoordIds, buffer);
   }
   MDL::WriteLine(buffer, "\t}\n");
 }

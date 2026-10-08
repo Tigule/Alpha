@@ -319,8 +319,8 @@ void CWorldScene::RenderAlpha() {
 }
 
 void CWorldScene::AddDoodadDef(CMapDoodadDef *doodadDef) {
-  NTempest::CAaSphere bounds;
   FATALASSERT(doodadDef);
+  NTempest::CAaSphere bounds;
   doodadDef->GetBounds(bounds);
   doodadDef->camDist = camPlaneXY.DistSigned(bounds.c) - bounds.r;
   int sortIndex = Fast_ftol(doodadDef->camDist * 0.03f);
@@ -569,8 +569,8 @@ void CWorldScene::LocateViewer2() {
 
 void CWorldScene::FrustumPush() {
   FATALASSERT(frustumIndex < 15);
-  frustumStack[frustumIndex + 1] = frustumStack[frustumIndex];
   ++frustumIndex;
+  frustumStack[frustumIndex] = frustumStack[frustumIndex - 1];
 }
 
 void CWorldScene::FrustumSet(const NTempest::CRect &sRect) {
@@ -1484,12 +1484,12 @@ void ClipInfo::Set(const NTempest::C3Vector *v) {
   bc[3] = 1.0f - v->y;
   bc[4] = v->z;
   bc[5] = 1.0f - v->z;
-  mask = 0;
-  for (UINT i = 0; i < 6; ++i) {
-    if (bc[i] < 0.0f) {
-      mask |= 0x80000000 >> i;
-    }
-  }
+  mask = (*reinterpret_cast<const DWORD *>(&bc[0]) & 0x80000000) +
+         ((*reinterpret_cast<const DWORD *>(&bc[2]) >> 2) & 0x20000000) +
+         ((*reinterpret_cast<const DWORD *>(&bc[5]) >> 5) & 0x04000000) +
+         ((*reinterpret_cast<const DWORD *>(&bc[3]) >> 3) & 0x10000000) +
+         ((*reinterpret_cast<const DWORD *>(&bc[1]) >> 1) & 0x40000000) +
+         ((*reinterpret_cast<const DWORD *>(&bc[4]) >> 4) & 0x08000000);
 }
 
 struct ClipFrame {

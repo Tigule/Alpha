@@ -105,31 +105,30 @@ BOOL MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMD
 
 BOOL MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
   UINT totalRead = 0;
-  if (!length) {
-    return 1;
+  while (totalRead < length) {
+    if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &data.collision.vertices, &totalRead, status)) {
+      return 0;
+    }
+    if (buf.GetDword() != ' IRT') {
+      status->Add(STATUS_ERROR, "Invalid %s section.\n", "triangle index");
+      return 0;
+    }
+    totalRead += 4;
+    data.collision.triIndices.SetCount(buf.GetUint());
+    totalRead += 4;
+    if (data.collision.triIndices.Count()) {
+      buf.GetWordArray(data.collision.triIndices.Ptr(), data.collision.triIndices.Count());
+      totalRead += 2 * data.collision.triIndices.Count();
+    }
+    if (!ReadBinC3VectorSection(buf, 'SMRN', "facet normal", &data.collision.facetNormals, &totalRead, status)) {
+      return 0;
+    }
+    if (totalRead > length) {
+      status->FatalOverran("Collision section overran read buffer.\n", -1);
+      return 0;
+    }
   }
-  if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &data.collision.vertices, &totalRead, status)) {
-    return 0;
-  }
-  if (buf.GetDword() != ' IRT') {
-    status->Add(STATUS_ERROR, "Invalid %s section.\n", "triangle index");
-    return 0;
-  }
-  UINT count = buf.GetUint();
-  totalRead += 8;
-  data.collision.triIndices.SetCount(count);
-  if (count) {
-    buf.GetWordArray(data.collision.triIndices.Ptr(), count);
-    totalRead += 2 * count;
-  }
-  if (!ReadBinC3VectorSection(buf, 'SMRN', "facet normal", &data.collision.facetNormals, &totalRead, status)) {
-    return 0;
-  }
-  if (totalRead > length) {
-    status->FatalOverran("Collision section overran read buffer.\n", -1);
-    return 0;
-  }
-  return totalRead >= length;
+  return 1;
 }
 
 BOOL MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {

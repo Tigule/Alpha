@@ -64,35 +64,35 @@ BOOL MDL::ReadCamera(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   parse.Expect('{');
   LPCSTR tokentext;
   UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
     }
     switch (token) {
-      case 0x149:
-        camera->farClip = parse.ExpectFloat();
+      case 0x1A5:
+        ReadFloatKeyData(parse, &camera->pivot.x, 3);
         parse.Expect(',');
+        break;
+      case 0x1C7:
+        ReadObjectFloatKeyframes(parse, &camera->transkeys);
+        break;
+      case 0x1AD:
+        ReadObjectFloatKeyframes(parse, &camera->rollkeys);
         break;
       case 0x14A:
         camera->fieldOfView = parse.ExpectFloat();
+        parse.Expect(',');
+        break;
+      case 0x149:
+        camera->farClip = parse.ExpectFloat();
         parse.Expect(',');
         break;
       case 0x176:
         camera->nearClip = parse.ExpectFloat();
         parse.Expect(',');
         break;
-      case 0x1A5:
-        ReadFloatKeyData(parse, &camera->pivot.x, 3);
-        parse.Expect(',');
-        break;
-      case 0x1AD:
-        ReadObjectFloatKeyframes(parse, &camera->rollkeys);
-        break;
       case 0x1C1:
         IReadCameraTarget(parse, &camera->target, status);
-        break;
-      case 0x1C7:
-        ReadObjectFloatKeyframes(parse, &camera->transkeys);
         break;
       case 0x1D9:
         ReadObjectFloatKeyframes(parse, &camera->visibilityKeys);
@@ -161,31 +161,9 @@ static void IWriteBinCamera(const MDLCAMERASECTION &section, CMsgBuffer &buffer)
   buffer.AddFloat(section.farClip);
   buffer.AddFloat(section.nearClip);
   buffer.AddFloatArray(&section.target.pivot.x, 3);
-  if (section.transkeys.keys.Count()) {
-    buffer.AddDword('RTCK');
-    buffer.AddUint(section.transkeys.keys.Count());
-    buffer.AddUint(section.transkeys.type);
-    buffer.AddUint(section.transkeys.globalSeqId);
-    UINT values = section.transkeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < section.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = section.transkeys.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.x, values);
-    }
-  }
+  WriteBinFloatKeyFrames(section.transkeys, 'RTCK', buffer);
   WriteBinFloatKeyFrames(section.rollkeys, 'LRCK', buffer);
-  if (section.target.transkeys.keys.Count()) {
-    buffer.AddDword('RTTK');
-    buffer.AddUint(section.target.transkeys.keys.Count());
-    buffer.AddUint(section.target.transkeys.type);
-    buffer.AddUint(section.target.transkeys.globalSeqId);
-    UINT values = section.target.transkeys.type > TRACK_LINEAR ? 9 : 3;
-    for (UINT i = 0; i < section.target.transkeys.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = section.target.transkeys.keys.Ptr()[i];
-      buffer.AddInt(key.time);
-      buffer.AddFloatArray(&key.value.x, values);
-    }
-  }
+  WriteBinFloatKeyFrames(section.target.transkeys, 'RTTK', buffer);
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buffer);
 }
 

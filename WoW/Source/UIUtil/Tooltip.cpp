@@ -283,7 +283,7 @@ inline int CGItem::GetSpellCharges(int slot) const {
 inline int CGItem::GetEnchantmentID(int slot) const {
   FATALASSERT(slot >= 0);
   FATALASSERT(slot < NUM_ITEM_ENCHANTMENTS);
-  return (m_item->m_staticFlags & ITEM_FLAG_PETITION) ? 0 : m_item->m_enchantment[slot].id;
+  return GetEnchantment(slot)->id;
 }
 
 inline int CGItem::GetNumPetitionSignatures() const {
@@ -3313,8 +3313,8 @@ static int CGTooltip_SetInventoryItem(lua_State *L) {
     CGItem_C *item =
         static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->Inventory()->GetItem(slot), __FILE__, __LINE__));
     if (item) {
-      UINT  duration = 0;
       DWORD startTime = 0;
+      UINT  duration = 0;
       Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
 
       if (duration > 0 && startTime > 0) {
@@ -3569,8 +3569,8 @@ static int CGTooltip_SetBagItem(lua_State *L) {
       if (slot >= 0 && slot < static_cast<int>(bag->NumSlots())) {
         CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__));
         if (item) {
-          DWORD startTime = 0;
           UINT  duration = 0;
+          DWORD startTime = 0;
           Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
 
           int result;
@@ -3637,4 +3637,12 @@ BOOL CGTooltip::LookupScriptMethod(lua_State *L, LPCSTR name) {
     return 1;
   }
   return CSimpleFrame::LookupScriptMethod(L, name);
+}
+
+inline const ItemEnchantment *CGItem::GetEnchantment(int index) const {
+  if (m_item->m_staticFlags & ITEM_FLAG_PETITION) {
+    static ItemEnchantment empty;
+    return &empty;
+  }
+  return &m_item->m_enchantment[index];
 }

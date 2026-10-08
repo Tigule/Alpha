@@ -615,21 +615,24 @@ CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameO
     : CGGameObject_C_Type_MapObj(owner), m_position(), m_facing(0.0f) {
   MovementAddTransport(m_owner);
 
+  FLOAT shipSpeed = m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 37));
   int pathId[2] = {m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 35)), m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 36))};
 
   UINT                             count = g_taxiPathNodeDB.GetNumRecords();
   TSStackArray<NTempest::C3Vector> points(_alloca(count * sizeof(NTempest::C3Vector)), count, 0);
-  for (UINT path = 0; path < 2; ++path) {
+  for (UINT i = 0; i < 2; ++i) {
     for (UINT j = 0; j < count; ++j) {
       const TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(j);
-      if (node && node->m_PathID == pathId[path]) {
-        points.New(NTempest::C3Vector(node->m_LocX, node->m_LocY, node->m_LocZ));
+      if (node && node->m_PathID == pathId[i]) {
+        do {
+          points.New(NTempest::C3Vector(node->m_LocX, node->m_LocY, node->m_LocZ));
+          node = g_taxiPathNodeDB.GetRecordByIndex(++j);
+        } while (node && node->m_PathID == pathId[i]);
+        break;
       }
     }
-    m_path[path].SetPoints(points.Ptr(), points.Count());
-    m_tripTime[path] = static_cast<UINT>(
-        m_path[path].cachedLength / static_cast<float>(m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 37))) * 1000.0f + 0.5f
-    );
+    m_path[i].SetPoints(points.Ptr(), points.Count());
+    m_tripTime[i] = NTempest::CMath::fint_n(m_path[i].Length() * (1.0f / shipSpeed) * 1000.0f);
     points.SetCount(0);
   }
 

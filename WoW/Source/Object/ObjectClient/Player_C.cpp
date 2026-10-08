@@ -2477,8 +2477,8 @@ BOOL CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
   }
 
   msg->Get(rewardItemCount);
-  memset(rewardItemDispID, 0, sizeof(rewardItemDispID));
   memset(rewardItem, 0, sizeof(rewardItem));
+  memset(rewardItemDispID, 0, sizeof(rewardItemDispID));
   for (index = 0; index < rewardItemCount; ++index) {
     msg->Get(rewardItem[index]);
     msg->Get(rewardItemQty[index]);
@@ -6004,7 +6004,8 @@ BOOL CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
     int first = 1;
     for (int coin = 2; coin >= 0; --coin) {
       if (coins[coin]) {
-        LPCSTR text = FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE);
+        LPCSTR text = CurrencyAbbreviation(coin);
+        text = FrameScript_GetText(text, -1, GENDER_NOT_APPLICABLE);
         SStrCopy(coinName, text, sizeof(coinName));
         if (first) {
           SStrPrintf(moneyBuf, sizeof(moneyBuf), "%d %s", coins[coin], coinName);
@@ -6931,7 +6932,8 @@ BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
     int coin;
     for (coin = 2; coin >= 0; --coin) {
       if (totalcoins[coin]) {
-        LPCSTR text = FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE);
+        LPCSTR text = CurrencyAbbreviation(coin);
+        text = FrameScript_GetText(text, -1, GENDER_NOT_APPLICABLE);
         SStrCopy(coinName, text, sizeof(coinName));
         if (first) {
           SStrPrintf(totalMoneyBuf, sizeof(totalMoneyBuf), "%d %s", totalcoins[coin], coinName);
@@ -6947,7 +6949,8 @@ BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
     first = 1;
     for (coin = 2; coin >= 0; --coin) {
       if (sharecoins[coin]) {
-        LPCSTR text = FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE);
+        LPCSTR text = CurrencyAbbreviation(coin);
+        text = FrameScript_GetText(text, -1, GENDER_NOT_APPLICABLE);
         SStrCopy(coinName, text, sizeof(coinName));
         if (first) {
           SStrPrintf(shareMoneyBuf, sizeof(shareMoneyBuf), "%d %s", sharecoins[coin], coinName);

@@ -1018,135 +1018,191 @@ BOOL CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
     return 0;
   }
 
-  if ((evt.key >= KEY_0 && evt.key <= KEY_9) || (evt.key >= KEY_A && evt.key <= KEY_Z)) {
-    SStrPrintf(charBuf, sizeof(charBuf), "%c", evt.key);
-    keyName = charBuf;
-  } else if (evt.key >= KEY_NUMPAD0 && evt.key <= KEY_NUMPAD9) {
-    SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", evt.key - KEY_NUMPAD0);
-    keyName = charBuf;
-  } else if (evt.key >= KEY_F1 && evt.key <= KEY_F12) {
-    SStrPrintf(charBuf, sizeof(charBuf), "F%d", evt.key - KEY_F1 + 1);
-    keyName = charBuf;
-  } else {
-    switch (evt.key) {
-      case KEY_SHIFT:
-        keyName = "SHIFT";
-        break;
-      case KEY_CONTROL:
-        keyName = "CTRL";
-        break;
-      case KEY_ALT:
-        keyName = "ALT";
-        break;
-      case KEY_SPACE:
-        keyName = "SPACE";
-        break;
-      case KEY_TILDE:
-        keyName = "TILDE";
-        break;
-      case KEY_NUMPAD_PLUS:
-        keyName = "NUMPADPLUS";
-        break;
-      case KEY_NUMPAD_MINUS:
-        keyName = "NUMPADMINUS";
-        break;
-      case KEY_NUMPAD_MULTIPLY:
-        keyName = "NUMPADMULTIPLY";
-        break;
-      case KEY_NUMPAD_DIVIDE:
-        keyName = "NUMPADDIVIDE";
-        break;
-      case KEY_PLUS:
-        keyName = "PLUS";
-        break;
-      case KEY_MINUS:
-        keyName = "MINUS";
-        break;
-      case KEY_BRACKET_OPEN:
-        keyName = "LEFTBRACKET";
-        break;
-      case KEY_BRACKET_CLOSE:
-        keyName = "RIGHTBRACKET";
-        break;
-      case KEY_SLASH:
-        keyName = "SLASH";
-        break;
-      case KEY_BACKSLASH:
-        keyName = "BACKSLASH";
-        break;
-      case KEY_SEMICOLON:
-        keyName = "SEMICOLON";
-        break;
-      case KEY_APOSTROPHE:
-        keyName = "APOSTROPHE";
-        break;
-      case KEY_COMMA:
-        keyName = "COMMA";
-        break;
-      case KEY_PERIOD:
-        keyName = "PERIOD";
-        break;
-      case KEY_ESCAPE:
-        keyName = "ESCAPE";
-        break;
-      case KEY_ENTER:
-        keyName = "ENTER";
-        break;
-      case KEY_BACKSPACE:
-        keyName = "BACKSPACE";
-        break;
-      case KEY_TAB:
-        keyName = "TAB";
-        break;
-      case KEY_LEFT:
-        keyName = "LEFT";
-        break;
-      case KEY_UP:
-        keyName = "UP";
-        break;
-      case KEY_RIGHT:
-        keyName = "RIGHT";
-        break;
-      case KEY_DOWN:
-        keyName = "DOWN";
-        break;
-      case KEY_INSERT:
-        keyName = "INSERT";
-        break;
-      case KEY_DELETE:
-        keyName = "DELETE";
-        break;
-      case KEY_HOME:
-        keyName = "HOME";
-        break;
-      case KEY_END:
-        keyName = "END";
-        break;
-      case KEY_PAGEUP:
-        keyName = "PAGEUP";
-        break;
-      case KEY_PAGEDOWN:
-        keyName = "PAGEDOWN";
-        break;
-      case KEY_NUMLOCK:
-        keyName = "NUMLOCK";
-        break;
-      case KEY_CAPSLOCK:
-        keyName = "CAPSLOCK";
-        break;
-      case KEY_SCROLLLOCK:
-        keyName = "SCROLLLOCK";
-        break;
-      case KEY_PAUSE:
-        keyName = "PAUSE";
-        break;
-      case KEY_PRINTSCREEN:
-        keyName = "PRINTSCREEN";
-        break;
-      default:
-        keyName = "UNKNOWN";
-        break;
-    }
+  switch (evt.key) {
+    case KEY_SHIFT:
+      keyName = "SHIFT";
+      break;
+    case KEY_CONTROL:
+      keyName = "CTRL";
+      break;
+    case KEY_ALT:
+      keyName = "ALT";
+      break;
+    case KEY_SPACE:
+      keyName = "SPACE";
+      break;
+    case KEY_0:
+    case KEY_1:
+    case KEY_2:
+    case KEY_3:
+    case KEY_4:
+    case KEY_5:
+    case KEY_6:
+    case KEY_7:
+    case KEY_8:
+    case KEY_9:
+    case KEY_A:
+    case KEY_B:
+    case KEY_C:
+    case KEY_D:
+    case KEY_E:
+    case KEY_F:
+    case KEY_G:
+    case KEY_H:
+    case KEY_I:
+    case KEY_J:
+    case KEY_K:
+    case KEY_L:
+    case KEY_M:
+    case KEY_N:
+    case KEY_O:
+    case KEY_P:
+    case KEY_Q:
+    case KEY_R:
+    case KEY_S:
+    case KEY_T:
+    case KEY_U:
+    case KEY_V:
+    case KEY_W:
+    case KEY_X:
+    case KEY_Y:
+    case KEY_Z:
+      SStrPrintf(charBuf, sizeof(charBuf), "%c", evt.key);
+      keyName = charBuf;
+      break;
+    case KEY_TILDE:
+      keyName = "TILDE";
+      break;
+    case KEY_NUMPAD0:
+    case KEY_NUMPAD1:
+    case KEY_NUMPAD2:
+    case KEY_NUMPAD3:
+    case KEY_NUMPAD4:
+    case KEY_NUMPAD5:
+    case KEY_NUMPAD6:
+    case KEY_NUMPAD7:
+    case KEY_NUMPAD8:
+    case KEY_NUMPAD9:
+      SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", evt.key - KEY_NUMPAD0);
+      keyName = charBuf;
+      break;
+    case KEY_NUMPAD_PLUS:
+      keyName = "NUMPADPLUS";
+      break;
+    case KEY_NUMPAD_MINUS:
+      keyName = "NUMPADMINUS";
+      break;
+    case KEY_NUMPAD_MULTIPLY:
+      keyName = "NUMPADMULTIPLY";
+      break;
+    case KEY_NUMPAD_DIVIDE:
+      keyName = "NUMPADDIVIDE";
+      break;
+    case KEY_PLUS:
+      keyName = "PLUS";
+      break;
+    case KEY_MINUS:
+      keyName = "MINUS";
+      break;
+    case KEY_BRACKET_OPEN:
+      keyName = "LEFTBRACKET";
+      break;
+    case KEY_BRACKET_CLOSE:
+      keyName = "RIGHTBRACKET";
+      break;
+    case KEY_SLASH:
+      keyName = "SLASH";
+      break;
+    case KEY_BACKSLASH:
+      keyName = "BACKSLASH";
+      break;
+    case KEY_SEMICOLON:
+      keyName = "SEMICOLON";
+      break;
+    case KEY_APOSTROPHE:
+      keyName = "APOSTROPHE";
+      break;
+    case KEY_COMMA:
+      keyName = "COMMA";
+      break;
+    case KEY_PERIOD:
+      keyName = "PERIOD";
+      break;
+    case KEY_ESCAPE:
+      keyName = "ESCAPE";
+      break;
+    case KEY_ENTER:
+      keyName = "ENTER";
+      break;
+    case KEY_BACKSPACE:
+      keyName = "BACKSPACE";
+      break;
+    case KEY_TAB:
+      keyName = "TAB";
+      break;
+    case KEY_LEFT:
+      keyName = "LEFT";
+      break;
+    case KEY_UP:
+      keyName = "UP";
+      break;
+    case KEY_RIGHT:
+      keyName = "RIGHT";
+      break;
+    case KEY_DOWN:
+      keyName = "DOWN";
+      break;
+    case KEY_INSERT:
+      keyName = "INSERT";
+      break;
+    case KEY_DELETE:
+      keyName = "DELETE";
+      break;
+    case KEY_HOME:
+      keyName = "HOME";
+      break;
+    case KEY_END:
+      keyName = "END";
+      break;
+    case KEY_PAGEUP:
+      keyName = "PAGEUP";
+      break;
+    case KEY_PAGEDOWN:
+      keyName = "PAGEDOWN";
+      break;
+    case KEY_CAPSLOCK:
+      keyName = "CAPSLOCK";
+      break;
+    case KEY_NUMLOCK:
+      keyName = "NUMLOCK";
+      break;
+    case KEY_SCROLLLOCK:
+      keyName = "SCROLLLOCK";
+      break;
+    case KEY_PAUSE:
+      keyName = "PAUSE";
+      break;
+    case KEY_PRINTSCREEN:
+      keyName = "PRINTSCREEN";
+      break;
+    case KEY_F1:
+    case KEY_F2:
+    case KEY_F3:
+    case KEY_F4:
+    case KEY_F5:
+    case KEY_F6:
+    case KEY_F7:
+    case KEY_F8:
+    case KEY_F9:
+    case KEY_F10:
+    case KEY_F11:
+    case KEY_F12:
+      SStrPrintf(charBuf, sizeof(charBuf), "F%d", evt.key - KEY_F1 + 1);
+      keyName = charBuf;
+      break;
+    default:
+      keyName = "UNKNOWN";
+      break;
   }
 
   RunOnKeyDownScript(keyName);
@@ -1160,135 +1216,191 @@ BOOL CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
     return 0;
   }
 
-  if ((evt.key >= KEY_0 && evt.key <= KEY_9) || (evt.key >= KEY_A && evt.key <= KEY_Z)) {
-    SStrPrintf(charBuf, sizeof(charBuf), "%c", evt.key);
-    keyName = charBuf;
-  } else if (evt.key >= KEY_NUMPAD0 && evt.key <= KEY_NUMPAD9) {
-    SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", evt.key - KEY_NUMPAD0);
-    keyName = charBuf;
-  } else if (evt.key >= KEY_F1 && evt.key <= KEY_F12) {
-    SStrPrintf(charBuf, sizeof(charBuf), "F%d", evt.key - KEY_F1 + 1);
-    keyName = charBuf;
-  } else {
-    switch (evt.key) {
-      case KEY_SHIFT:
-        keyName = "SHIFT";
-        break;
-      case KEY_CONTROL:
-        keyName = "CTRL";
-        break;
-      case KEY_ALT:
-        keyName = "ALT";
-        break;
-      case KEY_SPACE:
-        keyName = "SPACE";
-        break;
-      case KEY_TILDE:
-        keyName = "TILDE";
-        break;
-      case KEY_NUMPAD_PLUS:
-        keyName = "NUMPADPLUS";
-        break;
-      case KEY_NUMPAD_MINUS:
-        keyName = "NUMPADMINUS";
-        break;
-      case KEY_NUMPAD_MULTIPLY:
-        keyName = "NUMPADMULTIPLY";
-        break;
-      case KEY_NUMPAD_DIVIDE:
-        keyName = "NUMPADDIVIDE";
-        break;
-      case KEY_PLUS:
-        keyName = "PLUS";
-        break;
-      case KEY_MINUS:
-        keyName = "MINUS";
-        break;
-      case KEY_BRACKET_OPEN:
-        keyName = "LEFTBRACKET";
-        break;
-      case KEY_BRACKET_CLOSE:
-        keyName = "RIGHTBRACKET";
-        break;
-      case KEY_SLASH:
-        keyName = "SLASH";
-        break;
-      case KEY_BACKSLASH:
-        keyName = "BACKSLASH";
-        break;
-      case KEY_SEMICOLON:
-        keyName = "SEMICOLON";
-        break;
-      case KEY_APOSTROPHE:
-        keyName = "APOSTROPHE";
-        break;
-      case KEY_COMMA:
-        keyName = "COMMA";
-        break;
-      case KEY_PERIOD:
-        keyName = "PERIOD";
-        break;
-      case KEY_ESCAPE:
-        keyName = "ESCAPE";
-        break;
-      case KEY_ENTER:
-        keyName = "ENTER";
-        break;
-      case KEY_BACKSPACE:
-        keyName = "BACKSPACE";
-        break;
-      case KEY_TAB:
-        keyName = "TAB";
-        break;
-      case KEY_LEFT:
-        keyName = "LEFT";
-        break;
-      case KEY_UP:
-        keyName = "UP";
-        break;
-      case KEY_RIGHT:
-        keyName = "RIGHT";
-        break;
-      case KEY_DOWN:
-        keyName = "DOWN";
-        break;
-      case KEY_INSERT:
-        keyName = "INSERT";
-        break;
-      case KEY_DELETE:
-        keyName = "DELETE";
-        break;
-      case KEY_HOME:
-        keyName = "HOME";
-        break;
-      case KEY_END:
-        keyName = "END";
-        break;
-      case KEY_PAGEUP:
-        keyName = "PAGEUP";
-        break;
-      case KEY_PAGEDOWN:
-        keyName = "PAGEDOWN";
-        break;
-      case KEY_NUMLOCK:
-        keyName = "NUMLOCK";
-        break;
-      case KEY_CAPSLOCK:
-        keyName = "CAPSLOCK";
-        break;
-      case KEY_SCROLLLOCK:
-        keyName = "SCROLLLOCK";
-        break;
-      case KEY_PAUSE:
-        keyName = "PAUSE";
-        break;
-      case KEY_PRINTSCREEN:
-        keyName = "PRINTSCREEN";
-        break;
-      default:
-        keyName = "UNKNOWN";
-        break;
-    }
+  switch (evt.key) {
+    case KEY_SHIFT:
+      keyName = "SHIFT";
+      break;
+    case KEY_CONTROL:
+      keyName = "CTRL";
+      break;
+    case KEY_ALT:
+      keyName = "ALT";
+      break;
+    case KEY_SPACE:
+      keyName = "SPACE";
+      break;
+    case KEY_0:
+    case KEY_1:
+    case KEY_2:
+    case KEY_3:
+    case KEY_4:
+    case KEY_5:
+    case KEY_6:
+    case KEY_7:
+    case KEY_8:
+    case KEY_9:
+    case KEY_A:
+    case KEY_B:
+    case KEY_C:
+    case KEY_D:
+    case KEY_E:
+    case KEY_F:
+    case KEY_G:
+    case KEY_H:
+    case KEY_I:
+    case KEY_J:
+    case KEY_K:
+    case KEY_L:
+    case KEY_M:
+    case KEY_N:
+    case KEY_O:
+    case KEY_P:
+    case KEY_Q:
+    case KEY_R:
+    case KEY_S:
+    case KEY_T:
+    case KEY_U:
+    case KEY_V:
+    case KEY_W:
+    case KEY_X:
+    case KEY_Y:
+    case KEY_Z:
+      SStrPrintf(charBuf, sizeof(charBuf), "%c", evt.key);
+      keyName = charBuf;
+      break;
+    case KEY_TILDE:
+      keyName = "TILDE";
+      break;
+    case KEY_NUMPAD0:
+    case KEY_NUMPAD1:
+    case KEY_NUMPAD2:
+    case KEY_NUMPAD3:
+    case KEY_NUMPAD4:
+    case KEY_NUMPAD5:
+    case KEY_NUMPAD6:
+    case KEY_NUMPAD7:
+    case KEY_NUMPAD8:
+    case KEY_NUMPAD9:
+      SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", evt.key - KEY_NUMPAD0);
+      keyName = charBuf;
+      break;
+    case KEY_NUMPAD_PLUS:
+      keyName = "NUMPADPLUS";
+      break;
+    case KEY_NUMPAD_MINUS:
+      keyName = "NUMPADMINUS";
+      break;
+    case KEY_NUMPAD_MULTIPLY:
+      keyName = "NUMPADMULTIPLY";
+      break;
+    case KEY_NUMPAD_DIVIDE:
+      keyName = "NUMPADDIVIDE";
+      break;
+    case KEY_PLUS:
+      keyName = "PLUS";
+      break;
+    case KEY_MINUS:
+      keyName = "MINUS";
+      break;
+    case KEY_BRACKET_OPEN:
+      keyName = "LEFTBRACKET";
+      break;
+    case KEY_BRACKET_CLOSE:
+      keyName = "RIGHTBRACKET";
+      break;
+    case KEY_SLASH:
+      keyName = "SLASH";
+      break;
+    case KEY_BACKSLASH:
+      keyName = "BACKSLASH";
+      break;
+    case KEY_SEMICOLON:
+      keyName = "SEMICOLON";
+      break;
+    case KEY_APOSTROPHE:
+      keyName = "APOSTROPHE";
+      break;
+    case KEY_COMMA:
+      keyName = "COMMA";
+      break;
+    case KEY_PERIOD:
+      keyName = "PERIOD";
+      break;
+    case KEY_ESCAPE:
+      keyName = "ESCAPE";
+      break;
+    case KEY_ENTER:
+      keyName = "ENTER";
+      break;
+    case KEY_BACKSPACE:
+      keyName = "BACKSPACE";
+      break;
+    case KEY_TAB:
+      keyName = "TAB";
+      break;
+    case KEY_LEFT:
+      keyName = "LEFT";
+      break;
+    case KEY_UP:
+      keyName = "UP";
+      break;
+    case KEY_RIGHT:
+      keyName = "RIGHT";
+      break;
+    case KEY_DOWN:
+      keyName = "DOWN";
+      break;
+    case KEY_INSERT:
+      keyName = "INSERT";
+      break;
+    case KEY_DELETE:
+      keyName = "DELETE";
+      break;
+    case KEY_HOME:
+      keyName = "HOME";
+      break;
+    case KEY_END:
+      keyName = "END";
+      break;
+    case KEY_PAGEUP:
+      keyName = "PAGEUP";
+      break;
+    case KEY_PAGEDOWN:
+      keyName = "PAGEDOWN";
+      break;
+    case KEY_CAPSLOCK:
+      keyName = "CAPSLOCK";
+      break;
+    case KEY_NUMLOCK:
+      keyName = "NUMLOCK";
+      break;
+    case KEY_SCROLLLOCK:
+      keyName = "SCROLLLOCK";
+      break;
+    case KEY_PAUSE:
+      keyName = "PAUSE";
+      break;
+    case KEY_PRINTSCREEN:
+      keyName = "PRINTSCREEN";
+      break;
+    case KEY_F1:
+    case KEY_F2:
+    case KEY_F3:
+    case KEY_F4:
+    case KEY_F5:
+    case KEY_F6:
+    case KEY_F7:
+    case KEY_F8:
+    case KEY_F9:
+    case KEY_F10:
+    case KEY_F11:
+    case KEY_F12:
+      SStrPrintf(charBuf, sizeof(charBuf), "F%d", evt.key - KEY_F1 + 1);
+      keyName = charBuf;
+      break;
+    default:
+      keyName = "UNKNOWN";
+      break;
   }
 
   RunOnKeyUpScript(keyName);

@@ -3092,7 +3092,9 @@ void CMovement::ExtrudeBoxSideZ(const C3Vector &moveVector, float bottom, C4Plan
 
   float height[2] = {bottom, m_collisionBoxHeight};
 
-  C3Vector moveDir[2] = {-moveVector, moveVector};
+  C3Vector moveDir[2];
+  moveDir[0] = -moveVector;
+  moveDir[1] = moveVector;
 
   boxSides[0].n = -basePlane.n;
   boxSides[0].d = -basePlane.d - 0.027777778f;
@@ -3145,7 +3147,9 @@ void CMovement::ExtrudeBoxSideY(const C3Vector &moveVector, float bottom, C4Plan
 
   float depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
 
-  C3Vector moveDir[2] = {-moveVector, moveVector};
+  C3Vector moveDir[2];
+  moveDir[0] = -moveVector;
+  moveDir[1] = moveVector;
 
   boxSides[0].n = -basePlane.n;
   boxSides[0].d = -basePlane.d - 0.027777778f;
@@ -3193,7 +3197,9 @@ void CMovement::ExtrudeBoxSideX(const C3Vector &moveVector, float bottom, C4Plan
 
   float depth[2] = {-m_collisionBoxHalfDepth, m_collisionBoxHalfDepth};
 
-  C3Vector moveDir[2] = {-moveVector, moveVector};
+  C3Vector moveDir[2];
+  moveDir[0] = -moveVector;
+  moveDir[1] = moveVector;
 
   boxSides[0].n = -basePlane.n;
   boxSides[0].d = -basePlane.d - 0.027777778f;

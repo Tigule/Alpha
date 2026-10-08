@@ -30,26 +30,35 @@ static void IAddParticleErrors(TSet &errors) {
 }
 
 static void IReadParticleKeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLE *options) {
-  if (savedtoken == 0x15D) {
-    ReadObjectFloatKeyframes(parse, &options->speed);
-  } else if (savedtoken == 0x165) {
-    ReadObjectFloatKeyframes(parse, &options->life);
-  } else if (savedtoken == 0x1A0) {
-    SStrCopy(options->path, parse.ExpectString(), 260);
-    parse.Expect(',');
-  } else {
-    parse.FatalUnexpected(tokenText);
-    parse.Expect(',');
+  switch (savedtoken) {
+    case 0x165:
+      ReadObjectFloatKeyframes(parse, &options->life);
+      break;
+    case 0x15D:
+      ReadObjectFloatKeyframes(parse, &options->speed);
+      break;
+    case 0x1A0:
+      SStrCopy(options->path, parse.ExpectString(), 260);
+      parse.Expect(',');
+      break;
+    default:
+      parse.FatalUnexpected(tokenText);
+      parse.Expect(',');
+      break;
   }
 }
 
 static void IReadParticleStaticData(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLE *options) {
-  if (savedtoken == 0x15D) {
-    ReadFloatKeyData(parse, &options->staticSpeed, 1);
-  } else if (savedtoken == 0x165) {
-    ReadFloatKeyData(parse, &options->staticLife, 1);
-  } else {
-    parse.FatalUnexpected(tokenText);
+  switch (savedtoken) {
+    case 0x165:
+      ReadFloatKeyData(parse, &options->staticLife, 1);
+      break;
+    case 0x15D:
+      ReadFloatKeyData(parse, &options->staticSpeed, 1);
+      break;
+    default:
+      parse.FatalUnexpected(tokenText);
+      break;
   }
   parse.Expect(',');
 }
@@ -84,16 +93,16 @@ static void IReadParticleEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR
       ReadObjectFloatKeyframes(parse, &emitter->gravity);
       break;
     case 0x161:
-      ReadObjectFloatKeyframes(parse, &emitter->longitude);
-      break;
-    case 0x162:
       ReadObjectFloatKeyframes(parse, &emitter->latitude);
       break;
-    case 0x18C:
-      IReadParticleOptions(parse, &emitter->particle);
+    case 0x162:
+      ReadObjectFloatKeyframes(parse, &emitter->longitude);
       break;
     case 0x1D9:
       ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
+      break;
+    case 0x18C:
+      IReadParticleOptions(parse, &emitter->particle);
       break;
     default:
       parse.FatalUnexpected(tokenText);
@@ -102,26 +111,22 @@ static void IReadParticleEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR
 }
 
 static void IReadParticleEmitterStaticData(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLEEMITTER *emitter) {
-  float *value = 0;
   switch (savedtoken) {
     case 0x144:
-      value = &emitter->staticEmissionRate;
+      ReadFloatKeyData(parse, &emitter->staticEmissionRate, 1);
       break;
     case 0x153:
-      value = &emitter->staticGravity;
+      ReadFloatKeyData(parse, &emitter->staticGravity, 1);
       break;
     case 0x161:
-      value = &emitter->staticLongitude;
+      ReadFloatKeyData(parse, &emitter->staticLatitude, 1);
       break;
     case 0x162:
-      value = &emitter->staticLatitude;
+      ReadFloatKeyData(parse, &emitter->staticLongitude, 1);
       break;
     default:
       parse.FatalUnexpected(tokenText);
       break;
-  }
-  if (value) {
-    ReadFloatKeyData(parse, value, 1);
   }
   parse.Expect(',');
 }

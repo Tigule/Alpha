@@ -475,7 +475,7 @@ static void ProcessAttachments(
   modelptr->m_attachmentFlags.SetCount(numAttachments);
   memset(modelptr->m_attachmentFlags.Ptr(), 0, numAttachments);
 
-  UINT highestId = attachments.Ptr()[numAttachments - 1].attachmentId;
+  UINT highestId = attachments.Top()->attachmentId;
   shared->attachIdToIndex.SetCount(highestId + 1);
   memset(shared->attachIdToIndex.Ptr(), 0xFF, shared->attachIdToIndex.Count() * sizeof(UINT));
 
@@ -483,7 +483,7 @@ static void ProcessAttachments(
   LISTPTR(LINKUNIQUE) instance = modelptr->m_attached.Ptr();
   for (UINT i = 0; i < numAttachments; ++i, ++instance) {
     UINT attachmentId = attachments.Ptr()[i].attachmentId;
-    shared->attachIdToIndex.Ptr()[attachmentId] = i;
+    shared->attachIdToIndex[attachmentId] = i;
     if (!SStrLen(attachments.Ptr()[i].path)) {
       continue;
     }

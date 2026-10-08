@@ -169,12 +169,11 @@ namespace MDL {
   }
 
   BOOL ReadBinEventObjects(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-    UINT numEvents = buf.GetUint();
     UINT totalRead = 4;
+    UINT numEvents = buf.GetUint();
     data.events.SetCount(0);
     data.events.ReserveSpace(numEvents);
-    while (numEvents) {
-      --numEvents;
+    while (totalRead < length) {
       MDLEVENTSECTION *eventObject = data.events.New();
       if (!eventObject) {
         status->FatalFlunked("EventObject", -1);
@@ -189,13 +188,13 @@ namespace MDL {
       if (read < sectionLength) {
         DWORD tag = buf.GetDword();
         read += 4;
-        if (tag == 'TVEK') {
+        if (tag != 'TVEK') {
+          SkipUnknown(buf, read);
+        } else {
           if (!ReadBinEventKeyFrames(eventObject->eventKeys, buf, &read)) {
             status->Add(STATUS_ERROR, "Error reading event keys portion of event object.\n");
             return 0;
           }
-        } else {
-          SkipUnknown(buf, read);
         }
       }
       totalRead += read;

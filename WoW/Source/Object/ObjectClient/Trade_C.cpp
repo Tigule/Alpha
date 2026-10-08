@@ -340,12 +340,11 @@ static BOOL TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *ms
   while (msg->Tell() < msg->Size()) {
     BYTE index;
     msg->Get(index);
-    TradeItemData &item = s_tradeItems[whichPlayer][index];
-    msg->Get(item.entryID);
-    msg->Get(item.displayID);
-    msg->Get(item.count);
-    msg->Get(item.enchantmentID);
-    msg->Get(item.creator);
+    msg->Get(s_tradeItems[whichPlayer][index].entryID);
+    msg->Get(s_tradeItems[whichPlayer][index].displayID);
+    msg->Get(s_tradeItems[whichPlayer][index].count);
+    msg->Get(s_tradeItems[whichPlayer][index].enchantmentID);
+    msg->Get(s_tradeItems[whichPlayer][index].creator);
   }
   FATALASSERT(msg->IsRead() && msg->IsValid());
   CGTradeInfo::Update(s_tradeItems[1]);

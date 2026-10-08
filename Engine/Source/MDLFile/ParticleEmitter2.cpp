@@ -204,10 +204,14 @@ static void IReadParticleEmitter2KeyFrames(Parser &parse, UINT savedtoken, LPCST
       emitter->replaceableId = parse.ExpectInt();
       break;
     case 0x194:
-      SStrCopy(emitter->geometryMdl, parse.ExpectString(), 260);
+      if (tokentext = parse.ExpectString()) {
+        SStrCopy(emitter->geometryMdl, tokentext, 260);
+      }
       break;
     case 0x196:
-      SStrCopy(emitter->recursionMdl, parse.ExpectString(), 260);
+      if (tokentext = parse.ExpectString()) {
+        SStrCopy(emitter->recursionMdl, tokentext, 260);
+      }
       break;
     case 0x14D:
       emitter->twinkleFPS = parse.ExpectFloat();

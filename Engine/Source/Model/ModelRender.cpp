@@ -1614,8 +1614,7 @@ static void CreateSphereGeometry(
   *out++ = static_cast<WORD>(lastRing);
   *out++ = static_cast<WORD>(bottom);
 
-  primitives->SetCount(primitives->Count() + 1);
-  CPrimitive &primitive = primitives->operator[](primitives->Count() - 1);
+  CPrimitive &primitive = *primitives->New();
   primitive.type = GxPrim_TriangleStrip;
   primitive.vertexCount = 527;
 }
@@ -1841,7 +1840,7 @@ void ModelRenderDestroy() {
 }
 
 UINT GetInvalidMatrixId() {
-  return (s_currAnimFrame - 1) << 16;
+  return (s_currAnimFrame - 1U) << 16;
 }
 
 UINT MatrixAlloc(UINT numMatrices) {

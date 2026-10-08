@@ -51,12 +51,12 @@ namespace MDL {
       UINT totalSize = 4;
       UINT i;
       for (i = 0; i < data.helpers.Count(); ++i) {
-        totalSize += GetBinGenObjectSize(data.helpers.Ptr()[i]);
+        totalSize += GetBinGenObjectSize(data.helpers[i]);
       }
       buf.AddUint(totalSize);
       buf.AddUint(data.helpers.Count());
       for (i = 0; i < data.helpers.Count(); ++i) {
-        WriteBinGenObject(data.helpers.Ptr()[i], buf, status);
+        WriteBinGenObject(data.helpers[i], buf, status);
       }
     }
     return 1;

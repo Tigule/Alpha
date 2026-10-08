@@ -10,8 +10,8 @@ class CGContainerInfo {
   static void      UpdateContainers();
   static void      UpdateContents(DWORDLONG guid);
   static void      UpdateCooldowns();
-  static DWORDLONG GetContainer(UINT index) {
-    if (index < 10) {
+  static DWORDLONG GetContainer(INT index) {
+    if (index < sizeof(m_containers) / sizeof(m_containers[0])) {
       return m_containers[index];
     }
     return 0;

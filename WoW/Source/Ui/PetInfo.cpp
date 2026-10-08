@@ -323,20 +323,23 @@ static int Script_GetPetActionInfo(lua_State *L) {
     return luaL_error(L, "Usage: GetPetActionInfo(index)");
   UINT             index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
   const PetAction *action = CGPetInfo::GetAction(index);
-  UINT             raw = action ? *action : 0;
-  UINT             type = raw >> 24 & 0x3F;
-  if (!CGPetInfo::GetPet() || !raw) {
-    for (int i = 0; i < 7; ++i)
-      lua_pushnil(L);
+  if (!CGPetInfo::GetPet() || !action || !action->GetAction()) {
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
     return 7;
   }
-  switch (type) {
+  switch (action->GetActionType()) {
   case 1:
   case 2:
   case 3:
   case 4:
   case 5: {
-    const SpellRec     *spell = g_spellDB.GetRecord(raw & 0xFFFF);
+    const SpellRec     *spell = g_spellDB.GetRecord(action->GetActionID());
     const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
     if (spell)
       lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
@@ -354,18 +357,29 @@ static int Script_GetPetActionInfo(lua_State *L) {
     lua_pushnil(L);
     break;
   }
-  case 6:
-  case 7: {
-    char   buf[64];
-    LPCSTR token = type == 6 ? CGPetInfo::GetModeToken(raw & 0xFFFF) : CGPetInfo::GetOrdersToken(raw & 0xFFFF);
-    SStrPrintf(buf, sizeof(buf), type == 6 ? "PET_MODE_%s" : "PET_ACTION_%s", token);
+  case 6: {
+    char buf[64];
+    SStrPrintf(buf, sizeof(buf), "PET_MODE_%s", CGPetInfo::GetModeToken(action->GetActionID()));
     lua_pushstring(L, buf);
     lua_pushnil(L);
-    SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", token);
+    SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(action->GetActionID()));
     lua_pushstring(L, buf);
     lua_pushnumber(L, 1.0);
-    UINT current = type == 6 ? CGPetInfo::GetPetMode() : CGPetInfo::GetPetOrders();
-    if (current == (raw & 0xFFFF))
+    if (CGPetInfo::GetPetMode() == action->GetActionID())
+      lua_pushnumber(L, 1.0);
+    else
+      lua_pushnil(L);
+    break;
+  }
+  case 7: {
+    char buf[64];
+    SStrPrintf(buf, sizeof(buf), "PET_ACTION_%s", CGPetInfo::GetOrdersToken(action->GetActionID()));
+    lua_pushstring(L, buf);
+    lua_pushnil(L);
+    SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(action->GetActionID()));
+    lua_pushstring(L, buf);
+    lua_pushnumber(L, 1.0);
+    if (CGPetInfo::GetPetOrders() == action->GetActionID())
       lua_pushnumber(L, 1.0);
     else
       lua_pushnil(L);
@@ -375,11 +389,11 @@ static int Script_GetPetActionInfo(lua_State *L) {
     FATALASSERT(!"Unknown pet action type");
     break;
   }
-  if (static_cast<int>(raw) < 0)
+  if (action->GetAutocastAllowed())
     lua_pushnumber(L, 1.0);
   else
     lua_pushnil(L);
-  if (raw & 0x40000000)
+  if (action->GetAutocastEnabled())
     lua_pushnumber(L, 1.0);
   else
     lua_pushnil(L);

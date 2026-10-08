@@ -464,37 +464,38 @@ extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
 }
 
 extern "C" char *APIENTRY SUniSPutUTF8(DWORD c, char *strptr) {
-  if (!strptr) {
-    return strptr;
-  }
+  if (strptr) {
+    if (c < 0x80) {
+      *strptr++ = static_cast<char>(c);
+    } else if (c < 0x800) {
+      *strptr++ = static_cast<char>((c >> 6) | 0xC0);
+      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+    } else if (c < 0x10000) {
+      *strptr++ = static_cast<char>((c >> 12) | 0xE0);
+      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+    } else if (c < 0x200000) {
+      *strptr++ = static_cast<char>((c >> 18) | 0xF0);
+      *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+    } else if (c < 0x400000) {
+      *strptr++ = static_cast<char>((c >> 24) | 0xF8);
+      *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+    } else if (c < 0x80000000) {
+      *strptr++ = static_cast<char>((c >> 30) | 0xFC);
+      *strptr++ = static_cast<char>(((c >> 24) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
+      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+    }
 
-  if (c < 0x80) {
-    *strptr++ = static_cast<char>(c);
-  } else if (c < 0x800) {
-    *strptr++ = static_cast<char>((c >> 6) | 0xC0);
-    *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
-  } else if (c < 0x10000) {
-    *strptr++ = static_cast<char>((c >> 12) | 0xE0);
-    *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
-  } else if (c < 0x200000) {
-    *strptr++ = static_cast<char>((c >> 18) | 0xF0);
-    *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
-  } else if (c < 0x400000) {
-    *strptr++ = static_cast<char>((c >> 24) | 0xF8);
-    *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
-  } else if (c < 0x80000000) {
-    *strptr++ = static_cast<char>((c >> 30) | 0xFC);
-    *strptr++ = static_cast<char>(((c >> 24) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-    *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+    *strptr = 0;
   }
-
-  *strptr = 0;
   return strptr;
 }
 
@@ -514,13 +515,12 @@ extern "C" int APIENTRY SUniFindAfterUTF8Chr(LPCSTR utf8String, int index) {
 }
 
 static DWORD SUniConvertUTF16ToCP(WORD *codepage, char *dest, const WORD *source, DWORD destsize) {
-  char *start;
+  char *start = dest;
 
   if (!destsize) {
     return 0;
   }
 
-  start = dest;
   while (*source && destsize) {
     WORD ch;
     UINT cp;

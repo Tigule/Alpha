@@ -26,47 +26,23 @@ static void IReadTextureAnim(Parser &parse, MDLTEXANIMSECTION *texAnim, CMDLStat
   parse.Expect('{');
   LPCSTR tokenText;
   UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokenText);
     }
-    if (token == 0x1C7) {
-      ReadObjectFloatKeyframes(parse, &texAnim->transkeys);
-    } else if (token == 0x1AF) {
-      ReadObjectFloatKeyframes(parse, &texAnim->scalekeys);
-    } else if (token == 0x1AD) {
-      MDLKEYTRACK<NTempest::C4Quaternion> &track = texAnim->rotkeys;
-      UTokenData                           tokenData;
-      long                                 expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
-      if (expected > 0) {
-        track.keys.ReserveSpace(expected);
-      }
-      parse.Expect('{', token, tokenText);
-      token = ReadFloatTrackHeader(parse, &track, &tokenText, &tokenData);
-      long actual = 0;
-      while (token == 0x100) {
-        MDLKEYFRAME<NTempest::C4Quaternion> *key = track.keys.New();
-        key->time = tokenData.lVal;
-        parse.Expect(':');
-        ReadFloatKeyData(parse, &key->value.x, 4);
-        parse.Expect(',');
-        ++actual;
-        if (track.type > TRACK_LINEAR) {
-          parse.Expect(0x15E);
-          ReadFloatKeyData(parse, &key->inTan.x, 4);
-          parse.Expect(',');
-          parse.Expect(0x18A);
-          ReadFloatKeyData(parse, &key->outTan.x, 4);
-          parse.Expect(',');
-        }
-        token = parse.Token(&tokenText, &tokenData);
-      }
-      parse.Expect('}', token, tokenText);
-      if (expected >= 0 && actual != expected) {
-        parse.WarningCount("key frames", expected, actual);
-      }
-    } else {
-      parse.FatalUnexpected(tokenText);
+    switch (token) {
+      case 0x1C7:
+        ReadObjectFloatKeyframes(parse, &texAnim->transkeys);
+        break;
+      case 0x1AD:
+        ReadObjectFloatKeyframes(parse, &texAnim->rotkeys);
+        break;
+      case 0x1AF:
+        ReadObjectFloatKeyframes(parse, &texAnim->scalekeys);
+        break;
+      default:
+        parse.FatalUnexpected(tokenText);
+        break;
     }
     token = parse.Token(&tokenText, 0);
   }
@@ -99,61 +75,9 @@ BOOL MDL::ReadTextureAnims(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 
 static void IWriteTextureAnim(const MDLTEXANIMSECTION &section, TSGrowableArray<char> &buffer) {
   MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1CC));
-  LPCSTR indent = "\t\t";
-
-  if (section.transkeys.keys.Count()) {
-    const MDLKEYTRACK<NTempest::C3Vector> &track = section.transkeys;
-    MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(0x1C7), track.keys.Count());
-    WriteTrackHeader(indent, track, buffer);
-    for (UINT i = 0; i < track.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = track.keys.Ptr()[i];
-      MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-      WriteKeyData(buffer, &key.value.x, 3);
-      if (track.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
-        WriteKeyData(buffer, &key.inTan.x, 3);
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
-        WriteKeyData(buffer, &key.outTan.x, 3);
-      }
-    }
-    MDL::WriteLine(buffer, "%s}\n", indent);
-  }
-
-  if (section.rotkeys.keys.Count()) {
-    const MDLKEYTRACK<NTempest::C4Quaternion> &track = section.rotkeys;
-    MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(0x1AD), track.keys.Count());
-    WriteTrackHeader(indent, track, buffer);
-    for (UINT i = 0; i < track.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C4Quaternion> &key = track.keys.Ptr()[i];
-      MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-      WriteKeyData(buffer, &key.value.x, 4);
-      if (track.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
-        WriteKeyData(buffer, &key.inTan.x, 4);
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
-        WriteKeyData(buffer, &key.outTan.x, 4);
-      }
-    }
-    MDL::WriteLine(buffer, "%s}\n", indent);
-  }
-
-  if (section.scalekeys.keys.Count()) {
-    const MDLKEYTRACK<NTempest::C3Vector> &track = section.scalekeys;
-    MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(0x1AF), track.keys.Count());
-    WriteTrackHeader(indent, track, buffer);
-    for (UINT i = 0; i < track.keys.Count(); ++i) {
-      const MDLKEYFRAME<NTempest::C3Vector> &key = track.keys.Ptr()[i];
-      MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-      WriteKeyData(buffer, &key.value.x, 3);
-      if (track.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
-        WriteKeyData(buffer, &key.inTan.x, 3);
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
-        WriteKeyData(buffer, &key.outTan.x, 3);
-      }
-    }
-    MDL::WriteLine(buffer, "%s}\n", indent);
-  }
+  WriteFloatKeyFrames(0x1C7, "\t\t", section.transkeys, buffer);
+  WriteFloatKeyFrames(0x1AD, "\t\t", section.rotkeys, buffer);
+  WriteFloatKeyFrames(0x1AF, "\t\t", section.scalekeys, buffer);
   MDL::WriteLine(buffer, "\t}\n");
 }
 
@@ -242,7 +166,7 @@ BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLS
           }
           break;
         default:
-          SkipUnknown(buf, sectionRead);
+          SkipUnknown(buf, totalRead);
           break;
       }
     }

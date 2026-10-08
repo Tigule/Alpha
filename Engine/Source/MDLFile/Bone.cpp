@@ -92,7 +92,7 @@ BOOL MDL::WriteBones(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLSta
   if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
     int needObjIds = data.bones.Count() != data.objects.Count();
     for (UINT i = 0; i < data.bones.Count(); ++i) {
-      IWriteBoneSection(data, data.bones.Ptr()[i], needObjIds, buffer);
+      IWriteBoneSection(data, data.bones[i], needObjIds, buffer);
     }
   }
   return 1;

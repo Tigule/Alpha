@@ -101,17 +101,17 @@ static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR t
 
 static void IReadRibbonEmitterStaticData(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLRIBBONEMITTER *emitter) {
   switch (savedToken) {
-    case 0x11C:
-      ReadFloatKeyData(parse, &emitter->staticAlpha, 1);
-      break;
-    case 0x136:
-      ReadFloatKeyData(parse, &emitter->staticColor.b, 3);
-      break;
     case 0x159:
       ReadFloatKeyData(parse, &emitter->staticHeightAbove, 1);
       break;
     case 0x15A:
       ReadFloatKeyData(parse, &emitter->staticHeightBelow, 1);
+      break;
+    case 0x11C:
+      ReadFloatKeyData(parse, &emitter->staticAlpha, 1);
+      break;
+    case 0x136:
+      ReadFloatKeyData(parse, &emitter->staticColor.b, 3);
       break;
     case 0x1C4:
       emitter->staticTextureSlot = parse.ExpectInt();

@@ -156,7 +156,7 @@ void ReportMissingComponentTextures(UINT race, UINT sex) {
   const ChrRacesRec *raceInfo;
   LPCSTR             raceName;
 
-  sex = min(max(static_cast<int>(sex), 0), 3);
+  sex = max(min(static_cast<int>(sex), 3), 0);
   raceInfo = g_chrRacesDB.GetRecord(race);
   raceName = raceInfo ? raceInfo->m_name_lang[CURRENT_LANGUAGE] : "unknown race";
 
@@ -269,7 +269,7 @@ void CCharCreateInfo::SetCharCustomizeModel(LPCSTR filename) {
 
 UINT CCharCreateInfo::GetNumOutfits(UINT raceID, UINT classID, UINT sexID) {
   UINT count = 0;
-  for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
+  for (UINT i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
     const CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
     if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID) {
       ++count;
@@ -279,7 +279,7 @@ UINT CCharCreateInfo::GetNumOutfits(UINT raceID, UINT classID, UINT sexID) {
 }
 
 const CharStartOutfitRec *CCharCreateInfo::GetOutfit(UINT raceID, UINT classID, UINT sexID, UINT outfitID) {
-  for (int i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
+  for (UINT i = 0; i < g_charStartOutfitDB.GetNumRecords(); ++i) {
     const CharStartOutfitRec *outfit = g_charStartOutfitDB.GetRecordByIndex(i);
     if (outfit->m_raceID == raceID && outfit->m_classID == classID && outfit->m_sexID == sexID && outfit->m_outfitID == outfitID) {
       return outfit;

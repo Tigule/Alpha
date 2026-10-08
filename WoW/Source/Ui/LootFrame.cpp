@@ -213,21 +213,10 @@ LPCSTR CGLootInfo::GetLootSlotTexture(UINT slot) {
       if (m_coins < 0) {
         return 0;
       }
-      LPCSTR icon;
-      if (m_coins < 10) {
-        icon = "INV_Misc_Coin_05";
-      } else if (m_coins < 100) {
-        icon = "INV_Misc_Coin_06";
-      } else if (m_coins < 1000) {
-        icon = "INV_Misc_Coin_03";
-      } else if (m_coins < 10000) {
-        icon = "INV_Misc_Coin_04";
-      } else if (m_coins < 100000) {
-        icon = "INV_Misc_Coin_01";
-      } else {
-        icon = "INV_Misc_Coin_02";
-      }
-      SStrPack(buffer, icon, sizeof(buffer));
+      SStrPack(
+          buffer, m_coins < 10 ? "INV_Misc_Coin_05" : m_coins < 100 ? "INV_Misc_Coin_06" : m_coins < 1000 ? "INV_Misc_Coin_03"
+          : m_coins < 10000 ? "INV_Misc_Coin_04" : m_coins < 100000 ? "INV_Misc_Coin_01" : "INV_Misc_Coin_02", sizeof(buffer)
+      );
       return buffer;
     }
     --slot;
@@ -238,10 +227,11 @@ LPCSTR CGLootInfo::GetLootSlotTexture(UINT slot) {
     return 0;
   }
   const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(m_loot[slot].itemDisplayID);
-  SStrPack(
-      buffer, displayInfo && displayInfo->m_inventoryIcon && *displayInfo->m_inventoryIcon ? displayInfo->m_inventoryIcon : "INV_Misc_QuestionMark",
-      sizeof(buffer)
-  );
+  if (displayInfo && *displayInfo->m_inventoryIcon) {
+    SStrPack(buffer, displayInfo->m_inventoryIcon, sizeof(buffer));
+  } else {
+    SStrPack(buffer, "INV_Misc_QuestionMark", sizeof(buffer));
+  }
   return buffer;
 }
 

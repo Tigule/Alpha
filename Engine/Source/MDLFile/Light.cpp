@@ -42,14 +42,8 @@ static BOOL IllegalStaticToken(UINT token) {
   }
 }
 
-static void IReadLightKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLLIGHTSECTION *light, UINT) {
+static void IReadLightKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLLIGHTSECTION *light, UINT version) {
   switch (savedToken) {
-    case 0x11F:
-      ReadObjectFloatKeyframes(parse, &light->ambcolorkeys);
-      break;
-    case 0x120:
-      ReadObjectFloatKeyframes(parse, &light->ambintensitykeys);
-      break;
     case 0x126:
       ReadObjectFloatKeyframes(parse, &light->attenstartkeys);
       break;
@@ -57,10 +51,24 @@ static void IReadLightKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText
       ReadObjectFloatKeyframes(parse, &light->attenendkeys);
       break;
     case 0x136:
-      ReadObjectFloatKeyframes(parse, &light->colorkeys);
+      if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
+        ReadObjectFloatKeyframes(parse, &light->ambcolorkeys);
+      } else {
+        ReadObjectFloatKeyframes(parse, &light->colorkeys);
+      }
       break;
     case 0x15F:
-      ReadObjectFloatKeyframes(parse, &light->intensitykeys);
+      if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
+        ReadObjectFloatKeyframes(parse, &light->ambintensitykeys);
+      } else {
+        ReadObjectFloatKeyframes(parse, &light->intensitykeys);
+      }
+      break;
+    case 0x11F:
+      ReadObjectFloatKeyframes(parse, &light->ambcolorkeys);
+      break;
+    case 0x120:
+      ReadObjectFloatKeyframes(parse, &light->ambintensitykeys);
       break;
     case 0x1D9:
       ReadObjectFloatKeyframes(parse, &light->visibilityKeys);
@@ -71,14 +79,8 @@ static void IReadLightKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText
   }
 }
 
-static void IReadLightStaticData(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLLIGHTSECTION *light, UINT) {
+static void IReadLightStaticData(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLLIGHTSECTION *light, UINT version) {
   switch (savedToken) {
-    case 0x11F:
-      ReadFloatKeyData(parse, &light->staticAmbColor.b, 3);
-      break;
-    case 0x120:
-      ReadFloatKeyData(parse, &light->staticAmbIntensity, 1);
-      break;
     case 0x126:
       ReadFloatKeyData(parse, &light->staticAttenStart, 1);
       break;
@@ -86,10 +88,24 @@ static void IReadLightStaticData(Parser &parse, UINT savedToken, LPCSTR tokenTex
       ReadFloatKeyData(parse, &light->staticAttenEnd, 1);
       break;
     case 0x136:
-      ReadFloatKeyData(parse, &light->staticColor.b, 3);
+      if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
+        ReadFloatKeyData(parse, &light->staticAmbColor.b, 3);
+      } else {
+        ReadFloatKeyData(parse, &light->staticColor.b, 3);
+      }
       break;
     case 0x15F:
-      ReadFloatKeyData(parse, &light->staticIntensity, 1);
+      if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
+        ReadFloatKeyData(parse, &light->staticAmbIntensity, 1);
+      } else {
+        ReadFloatKeyData(parse, &light->staticIntensity, 1);
+      }
+      break;
+    case 0x11F:
+      ReadFloatKeyData(parse, &light->staticAmbColor.b, 3);
+      break;
+    case 0x120:
+      ReadFloatKeyData(parse, &light->staticAmbIntensity, 1);
       break;
     default:
       parse.FatalUnexpected(tokenText);

@@ -116,7 +116,10 @@ static BOOL IWriteFile(LPCSTR path, LPCSTR mode, LPCVOID data, UINT bytes) {
     return 0;
   }
   UINT written = fwrite(data, 1, bytes, file);
-  return !fclose(file) && written == bytes;
+  if (fclose(file)) {
+    return 0;
+  }
+  return written == bytes;
 }
 
 static void FileReadError(LPCSTR path, CMDLStatus *status) {

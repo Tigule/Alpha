@@ -250,9 +250,11 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
     return 0;
   }
 
-  UINT offset = 0;
+  UINT offset;
   if (fileSize > ZIP_MAX_COMMENT + sizeof(CentralDirectoryHeader) + 1) {
     offset = fileSize - ZIP_MAX_COMMENT - sizeof(CentralDirectoryHeader) - 1;
+  } else {
+    offset = 0;
   }
   if (fseek(file, offset, SEEK_SET)) {
     return 0;
@@ -260,7 +262,7 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
 
   UINT signatureOffset = 0;
   while (!feof(file)) {
-    if (static_cast<BYTE>(fgetc(file)) == centralDirectoryHeaderSignature[signatureOffset]) {
+    if (static_cast<char>(fgetc(file)) == centralDirectoryHeaderSignature[signatureOffset]) {
       ++signatureOffset;
       if (signatureOffset == sizeof(centralDirectoryHeaderSignature)) {
         break;
@@ -285,7 +287,10 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
   }
 
   cdirHeader.EndianCorrect();
-  return cdirHeader.thisDiskNumber == cdirHeader.directoryStartDiskNumber && cdirHeader.directoryEntriesThisDisk == cdirHeader.directoryEntriesTotal;
+  if (cdirHeader.thisDiskNumber != cdirHeader.directoryStartDiskNumber) {
+    return 0;
+  }
+  return cdirHeader.directoryEntriesThisDisk == cdirHeader.directoryEntriesTotal;
 }
 
 BOOL ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) {

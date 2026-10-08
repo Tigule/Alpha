@@ -7,26 +7,26 @@ namespace MDL {
 }
 
 void CMDLStatus::FatalDuplicate(LPCSTR found, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Found duplicate \"%s\"\n", found);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Found duplicate \"%s\"\n", lineno, found);
+  } else {
+    Add(STATUS_FATAL, "Error: Found duplicate \"%s\"\n", found);
   }
 }
 
 void CMDLStatus::FatalUnmatched(LPCSTR item1, UINT count1, LPCSTR item2, UINT count2, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: found %d \"%s\", but %d \"%s\", counts must match\n", count1, item1, count2, item2);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): found %d \"%s\", but %d \"%s\", counts must match\n", lineno, count1, item1, count2, item2);
+  } else {
+    Add(STATUS_FATAL, "Error: found %d \"%s\", but %d \"%s\", counts must match\n", count1, item1, count2, item2);
   }
 }
 
 void CMDLStatus::FatalNotFound(LPCSTR expected, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Expected \"%s\"\n", expected);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Expected \"%s\"\n", lineno, expected);
+  } else {
+    Add(STATUS_FATAL, "Error: Expected \"%s\"\n", expected);
   }
 }
 
@@ -35,18 +35,18 @@ void CMDLStatus::FatalNotFound(UINT what, int lineno) {
 }
 
 void CMDLStatus::FatalUnexpected(LPCSTR found, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Unexpected token \"%s\"\n", found);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Unexpected token \"%s\"\n", lineno, found);
+  } else {
+    Add(STATUS_FATAL, "Error: Unexpected token \"%s\"\n", found);
   }
 }
 
 void CMDLStatus::FatalExpected(LPCSTR expected, LPCSTR found, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Expected \"%s\", but found \"%s\"\n", expected, found);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Expected \"%s\", but found \"%s\"\n", lineno, expected, found);
+  } else {
+    Add(STATUS_FATAL, "Error: Expected \"%s\", but found \"%s\"\n", expected, found);
   }
 }
 
@@ -55,34 +55,34 @@ void CMDLStatus::FatalExpected(UINT what, LPCSTR found, int lineno) {
 }
 
 void CMDLStatus::FatalEOF(int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Unexpected end of file\n");
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Unexpected end of file\n", lineno);
+  } else {
+    Add(STATUS_FATAL, "Error: Unexpected end of file\n");
   }
 }
 
 void CMDLStatus::WarningCount(LPCSTR item, long expected, long actual, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_WARNING, "Warning: Expected %d \"%s\", but found %d\n", expected, item, actual);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_WARNING, "Warning (line %d): Expected %d \"%s\", but found %d\n", lineno, expected, item, actual);
+  } else {
+    Add(STATUS_WARNING, "Warning: Expected %d \"%s\", but found %d\n", expected, item, actual);
   }
 }
 
 void CMDLStatus::FatalOverran(LPCSTR section, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Section %s overran remaining buffer.\n", section);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Section %s overran remaining buffer.\n", lineno, section);
+  } else {
+    Add(STATUS_FATAL, "Error: Section %s overran remaining buffer.\n", section);
   }
 }
 
 void CMDLStatus::FatalFlunked(LPCSTR section, int lineno) {
-  if (lineno == -1) {
-    Add(STATUS_FATAL, "Error: Could not create new %s section (out of memory?)\n", section);
-  } else {
+  if (lineno != -1) {
     Add(STATUS_FATAL, "Error (line %d): Could not create new %s section (out of memory?)\n", lineno, section);
+  } else {
+    Add(STATUS_FATAL, "Error: Could not create new %s section (out of memory?)\n", section);
   }
 }
 

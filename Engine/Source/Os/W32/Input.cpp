@@ -203,12 +203,7 @@ static void OsQueueSetParam(int index, int param) {
 }
 
 static BOOL ConvertKeyCode(int vkey, KEY *key) {
-  if (vkey >= '0' && vkey <= '9') {
-    *key = static_cast<KEY>(vkey);
-    return 1;
-  }
-
-  if (vkey >= 'A' && vkey <= 'Z') {
+  if ((vkey >= '0' && vkey <= '9') || (vkey >= 'A' && vkey <= 'Z')) {
     *key = static_cast<KEY>(vkey);
     return 1;
   }
@@ -288,6 +283,9 @@ static BOOL ConvertKeyCode(int vkey, KEY *key) {
     case VK_SPACE:
       *key = KEY_SPACE;
       break;
+    case VK_OEM_3:
+      *key = KEY_TILDE;
+      break;
 
     case VK_NUMPAD0:
       *key = KEY_NUMPAD0;
@@ -335,38 +333,35 @@ static BOOL ConvertKeyCode(int vkey, KEY *key) {
       *key = KEY_NUMPAD_DECIMAL;
       break;
 
-    case VK_OEM_PLUS:
-      *key = KEY_PLUS;
-      break;
-    case VK_OEM_MINUS:
-      *key = KEY_MINUS;
-      break;
-    case VK_OEM_4:
-      *key = KEY_BRACKET_OPEN;
-      break;
-    case VK_OEM_6:
-      *key = KEY_BRACKET_CLOSE;
-      break;
-    case VK_OEM_2:
-      *key = KEY_SLASH;
-      break;
-    case VK_OEM_5:
-      *key = KEY_BACKSLASH;
-      break;
     case VK_OEM_1:
       *key = KEY_SEMICOLON;
       break;
-    case VK_OEM_7:
-      *key = KEY_APOSTROPHE;
+    case VK_OEM_PLUS:
+      *key = KEY_PLUS;
       break;
     case VK_OEM_COMMA:
       *key = KEY_COMMA;
       break;
+    case VK_OEM_MINUS:
+      *key = KEY_MINUS;
+      break;
     case VK_OEM_PERIOD:
       *key = KEY_PERIOD;
       break;
-    case VK_OEM_3:
-      *key = KEY_TILDE;
+    case VK_OEM_2:
+      *key = KEY_SLASH;
+      break;
+    case VK_OEM_4:
+      *key = KEY_BRACKET_OPEN;
+      break;
+    case VK_OEM_5:
+      *key = KEY_BACKSLASH;
+      break;
+    case VK_OEM_6:
+      *key = KEY_BRACKET_CLOSE;
+      break;
+    case VK_OEM_7:
+      *key = KEY_APOSTROPHE;
       break;
 
     default:
@@ -393,14 +388,14 @@ static BOOL ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button) {
       *button = MOUSE_BUTTON_LEFT;
       return 1;
 
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-      *button = MOUSE_BUTTON_RIGHT;
-      return 1;
-
     case WM_MBUTTONDOWN:
     case WM_MBUTTONUP:
       *button = MOUSE_BUTTON_MIDDLE;
+      return 1;
+
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+      *button = MOUSE_BUTTON_RIGHT;
       return 1;
 
     case WM_XBUTTONDOWN:
@@ -413,7 +408,8 @@ static BOOL ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button) {
         *button = MOUSE_BUTTON_XBUTTON2;
         return 1;
       }
-      break;
+      *button = MOUSE_BUTTON_NONE;
+      return 0;
   }
 
   *button = MOUSE_BUTTON_NONE;

@@ -85,57 +85,29 @@ static void IReadModelGlobals(Parser &parse, TSet *errors, MDLMODELSECTION *mode
   parse.Expect('{');
   LPCSTR tokenText;
   UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     if (!errors->Check(token)) {
       parse.FatalDuplicate(tokenText);
     }
     switch (token) {
-      case 0x11E:
-        model->flags |= 4;
-        break;
-      case 0x123: {
-        LPCSTR animationFile = parse.ExpectString();
-        if (animationFile) {
-          SStrCopy(model->animationFile, animationFile, 260);
-        }
-        break;
-      }
-      case 0x130:
-        model->blendTime = parse.ExpectInt();
-        break;
-      case 0x134:
-        model->bounds.radius = parse.ExpectFloat();
-        break;
-      case 0x154:
-        IReadGroundTrack(parse, model, status);
-        break;
-      case 0x16F:
-        IReadVertex(parse, &model->bounds.extent.t);
-        break;
-      case 0x170:
-        IReadVertex(parse, &model->bounds.extent.b);
-        break;
-      case 0x17C:
-        model->attachmentCount = parse.ExpectInt();
-        break;
-      case 0x17D:
-      case 0x183:
-        model->boneCount = parse.ExpectInt();
-        break;
-      case 0x17E:
-        model->eventCount = parse.ExpectInt();
-        break;
       case 0x17F:
         model->geosetCount = parse.ExpectInt();
-        break;
-      case 0x180:
-        model->geosetAnimCount = parse.ExpectInt();
         break;
       case 0x181:
         model->helperCount = parse.ExpectInt();
         break;
       case 0x182:
         model->lightCount = parse.ExpectInt();
+        break;
+      case 0x17E:
+        model->eventCount = parse.ExpectInt();
+        break;
+      case 0x17D:
+      case 0x183:
+        model->boneCount = parse.ExpectInt();
+        break;
+      case 0x130:
+        model->blendTime = parse.ExpectInt();
         break;
       case 0x184:
         model->particleCount = parse.ExpectInt();
@@ -145,6 +117,34 @@ static void IReadModelGlobals(Parser &parse, TSet *errors, MDLMODELSECTION *mode
         break;
       case 0x186:
         model->ribbonCount = parse.ExpectInt();
+        break;
+      case 0x17C:
+        model->attachmentCount = parse.ExpectInt();
+        break;
+      case 0x180:
+        model->geosetAnimCount = parse.ExpectInt();
+        break;
+      case 0x170:
+        IReadVertex(parse, &model->bounds.extent.b);
+        break;
+      case 0x16F:
+        IReadVertex(parse, &model->bounds.extent.t);
+        break;
+      case 0x134:
+        model->bounds.radius = parse.ExpectFloat();
+        break;
+      case 0x123: {
+        LPCSTR animationFile = parse.ExpectString();
+        if (animationFile) {
+          SStrCopy(model->animationFile, animationFile, 260);
+        }
+        break;
+      }
+      case 0x154:
+        IReadGroundTrack(parse, model, status);
+        break;
+      case 0x11E:
+        model->flags |= 4;
         break;
       default:
         parse.FatalUnexpected(tokenText);
