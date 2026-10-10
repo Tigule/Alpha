@@ -22,7 +22,7 @@ static WORD WindowClassCreate() {
   wc.lpfnWndProc = CGxDeviceOpenGl::WindowProcGl;
   wc.hInstance = instance;
   wc.lpszClassName = s_WndClassName;
-  wc.hIcon = static_cast<HICON>(LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+  wc.hIcon = (HICON)LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
   wc.hCursor = LoadCursorA(instance, "BlizzardCursor.cur");
   if (!wc.hCursor) {
     wc.hCursor = LoadCursorA(instance, IDC_ARROW);
@@ -31,7 +31,7 @@ static WORD WindowClassCreate() {
 }
 
 static void WindowClassDestroy(WORD &hwndClass) {
-  UnregisterClass(reinterpret_cast<LPCSTR>(hwndClass), GetModuleHandle(0));
+  UnregisterClass((LPCSTR)hwndClass, GetModuleHandle(0));
   hwndClass = 0;
 }
 
@@ -104,8 +104,8 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     dd.cb = sizeof(dd);
     dm.dmSize = sizeof(dm);
     EnumDisplayDevicesA(0, 0, &dd, 0);
-    EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), format.apiSpecificModeID, &dm);
-    LONG cdsErr = ChangeDisplaySettingsExA(reinterpret_cast<LPCSTR>(dd.DeviceName), &dm, 0, CDS_FULLSCREEN, 0);
+    EnumDisplaySettingsA(dd.DeviceName, format.apiSpecificModeID, &dm);
+    LONG cdsErr = ChangeDisplaySettingsExA(dd.DeviceName, &dm, 0, CDS_FULLSCREEN, 0);
     FATALASSERT(cdsErr == 0);
     SetWindowPos(m_hwnd, 0, 0, 0, format.size.x, format.size.y, SWP_DEFERERASE | SWP_NOCOPYBITS | SWP_NOREDRAW);
     ShowWindow(m_hwnd, SW_SHOWMAXIMIZED);
@@ -129,9 +129,9 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   dm.dmSize = sizeof(dm);
   UINT bitsPerPixel = format.colorFormat ? 32 : 16;
   UINT mode = 0;
-  while (EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm)) {
-    if (dm.dmBitsPerPel == bitsPerPixel && dm.dmDisplayFrequency == format.refreshRate && dm.dmPelsWidth == static_cast<UINT>(format.size.x) &&
-        dm.dmPelsHeight == static_cast<UINT>(format.size.y))
+  while (EnumDisplaySettingsA(dd.DeviceName, mode, &dm)) {
+    if (dm.dmBitsPerPel == bitsPerPixel && dm.dmDisplayFrequency == format.refreshRate && dm.dmPelsWidth == (UINT)format.size.x &&
+        dm.dmPelsHeight == (UINT)format.size.y)
     {
       format.apiSpecificModeID = mode;
       return 1;
@@ -182,20 +182,26 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
   m_context = 0;
 }
 
-long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND window, UINT message, UINT wparam, long lparam) {
-  CGxDeviceOpenGl *dev = reinterpret_cast<CGxDeviceOpenGl *>(GetWindowLongA(window, GWL_USERDATA));
-  switch (message) {
-    case WM_CREATE: {
-      CREATESTRUCTA *create = reinterpret_cast<CREATESTRUCTA *>(lparam);
-      SetWindowLongA(window, GWL_USERDATA, reinterpret_cast<LONG>(create->lpCreateParams));
+long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND hWnd, UINT uMsg, UINT wParam, long lParam) {
+  CGxDeviceOpenGl *dev = (CGxDeviceOpenGl *)GetWindowLongA(hWnd, GWL_USERDATA);
+  switch (uMsg) {
+    case WM_CREATE:
+      SetWindowLongA(hWnd, GWL_USERDATA, (LONG)(((CREATESTRUCTA *)lParam)->lpCreateParams));
       return 0;
-    }
     case WM_DESTROY:
       dev->DeviceWM(GxWM_Destroy, 0, 0);
       return 0;
+    case WM_ERASEBKGND:
+      return 0;
+    case WM_PAINT: {
+      PAINTSTRUCT ps;
+      BeginPaint(hWnd, &ps);
+      EndPaint(hWnd, &ps);
+      return 0;
+    }
     case WM_SIZE: {
-      NTempest::CRect rect(0.0f, 0.0f, static_cast<float>(HIWORD(lparam)), static_cast<float>(LOWORD(lparam)));
-      dev->DeviceWM(GxWM_Size, reinterpret_cast<long>(&rect), 0);
+      NTempest::CRect rect(0.0f, 0.0f, HIWORD(lParam), LOWORD(lParam));
+      dev->DeviceWM(GxWM_Size, (long)&rect, 0);
       break;
     }
     case WM_SETFOCUS:
@@ -204,44 +210,38 @@ long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND window, UINT message, UINT wpar
     case WM_KILLFOCUS:
       dev->DeviceWM(GxWM_KillFocus, 0, 0);
       return 0;
-    case WM_PAINT: {
-      PAINTSTRUCT ps;
-      BeginPaint(window, &ps);
-      EndPaint(window, &ps);
-      return 0;
-    }
-    case WM_ERASEBKGND:
-      return 0;
     case WM_SYSCOMMAND:
-      if (wparam == SC_SCREENSAVE || wparam == SC_MONITORPOWER) {
-        return 0;
+      switch (wParam) {
+        case SC_SCREENSAVE:
+        case SC_MONITORPOWER:
+          return 0;
       }
       break;
   }
   if (dev && dev->m_windowProc) {
-    return dev->m_windowProc(window, message, wparam, lparam);
+    return dev->m_windowProc(hWnd, uMsg, wParam, lParam);
   }
-  return DefWindowProcA(window, message, wparam, lparam);
+  return DefWindowProcA(hWnd, uMsg, wParam, lParam);
 }
 
 void CGxDeviceOpenGl::DeviceWM(EGxWM wm, long param1, long param2) {
   switch (wm) {
-    case GxWM_Size:
-      DeviceSetDefWindow(*reinterpret_cast<NTempest::CRect *>(param1));
-      DeviceQueryPbuffer();
-      break;
     case GxWM_Destroy:
       IDevRemoveGlContext();
       IDevSetFocus(0, m_format);
       break;
+    case GxWM_Size:
+      DeviceSetDefWindow(*(NTempest::CRect *)param1);
+      DeviceQueryPbuffer();
+      break;
     case GxWM_SetFocus:
       if (!s_inCreateOrDestroy && !IDevIsWindowed()) {
-        if (m_hglrc) {
-          DeviceQueryPbuffer();
-        } else {
+        if (!m_hglrc) {
           IDevSetFocus(1, m_format);
           IDevAttachGlContext(m_format);
-          DeviceSetGamma(m_gammaRamp);
+          CGxDeviceOpenGl::DeviceSetGamma(m_gammaRamp);
+        } else {
+          DeviceQueryPbuffer();
         }
       }
       break;
@@ -258,13 +258,23 @@ BOOL CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &for
   m_ownhwnd = 1;
   HDC hDC = GetDC(0);
   if (GetDeviceGammaRamp(hDC, &m_systemGammaRamp)) {
-    m_gammaRamp = m_systemGammaRamp;
+    if (&m_gammaRamp != &m_systemGammaRamp) {
+      m_gammaRamp = m_systemGammaRamp;
+    }
   }
   ReleaseDC(0, hDC);
   m_hwndClass = WindowClassCreate();
-  if (m_hwndClass && CGxDevice::DeviceCreate(windowProc, format)) {
-    return 1;
+  if (!m_hwndClass) {
+    goto finallylabel;
   }
+
+  if (!CGxDevice::DeviceCreate(windowProc, format)) {
+    goto finallylabel;
+  }
+
+  return 1;
+
+finallylabel:
   DeviceDestroy();
   return 0;
 }
@@ -274,15 +284,24 @@ BOOL CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
   m_ownhwnd = 0;
   HDC hDC = GetDC(0);
   if (GetDeviceGammaRamp(hDC, &m_systemGammaRamp)) {
-    m_gammaRamp = m_systemGammaRamp;
+    if (&m_gammaRamp != &m_systemGammaRamp) {
+      m_gammaRamp = m_systemGammaRamp;
+    }
   }
   ReleaseDC(0, hDC);
-  m_hwnd = reinterpret_cast<HWND>(clienthwnd);
-  if (IDevAttachGlContext(format)) {
-    s_inCreateOrDestroy = 0;
-    if (CGxDevice::DeviceCreate(clienthwnd, format))
-      return 1;
+  m_hwnd = (HWND)clienthwnd;
+  if (!IDevAttachGlContext(format)) {
+    goto finallylabel;
   }
+
+  s_inCreateOrDestroy = 0;
+  if (!CGxDevice::DeviceCreate(clienthwnd, format)) {
+    goto finallylabel;
+  }
+
+  return 1;
+
+finallylabel:
   DeviceDestroy();
   s_inCreateOrDestroy = 0;
   return 0;
@@ -310,19 +329,31 @@ BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   IDevRemoveGlContext();
   WindowDestroy(m_hwnd);
-  if (SetFormatMode(format)) {
-    m_hwnd = WindowCreate(this, format);
-    if (m_hwnd) {
-      IDevSetFocus(1, format);
-      if (IDevAttachGlContext(format)) {
-        DeviceSetGamma(m_gammaRamp);
-        s_inCreateOrDestroy = 0;
-        if (CGxDevice::DeviceSetFormat(format)) {
-          return 1;
-        }
-      }
-    }
+  if (!SetFormatMode(format)) {
+    goto finallylabel;
   }
+
+  m_hwnd = WindowCreate(this, format);
+  if (!m_hwnd) {
+    goto finallylabel;
+  }
+
+  IDevSetFocus(1, format);
+
+  if (!IDevAttachGlContext(format)) {
+    goto finallylabel;
+  }
+
+  DeviceSetGamma(m_gammaRamp);
+
+  s_inCreateOrDestroy = 0;
+  if (!CGxDevice::DeviceSetFormat(format)) {
+    goto finallylabel;
+  }
+
+  return 1;
+
+finallylabel:
   s_inCreateOrDestroy = 0;
   return 0;
 }
@@ -355,9 +386,9 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UIN
   }
 
   CGxDevice::DeviceSetRenderTarget(buffer, gxTex, plane);
-  CGxTex *oldTex = static_cast<CGxTex *>(target.m_apiSpecific);
+  CGxTex *oldTex = (CGxTex *)target.m_apiSpecific;
   if (oldTex) {
-    BindTexture(oldTex, static_cast<UINT>(-1));
+    BindTexture(oldTex, kNullTmu);
     if (oldTex->m_needsCreation) {
       glCopyTexImage2D(GL_TEXTURE_2D, 0, s_convertTexFmt[oldTex->m_format], 0, 0, oldTex->m_width, oldTex->m_height, 0);
     } else {
@@ -385,7 +416,7 @@ void CGxDeviceOpenGl::DeviceSetTextureQuality(int force32) {
 }
 
 DWORD CGxDeviceOpenGl::DeviceWindow() {
-  return reinterpret_cast<DWORD>(m_hwnd);
+  return (DWORD)m_hwnd;
 }
 
 static BOOL IsGlDisplayModeGood(const DEVMODEA &dm) {
@@ -405,7 +436,7 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
 
   dm.dmSize = sizeof(dm);
 
-  for (mode = 0; EnumDisplaySettingsA(reinterpret_cast<LPCSTR>(dd.DeviceName), mode, &dm); ++mode) {
+  for (mode = 0; EnumDisplaySettingsA(dd.DeviceName, mode, &dm); ++mode) {
     if (IsGlDisplayModeGood(dm)) {
       CGxFormat fmt;
       memset(&fmt, 0, sizeof(fmt));
@@ -424,11 +455,11 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
 
   ASSERT(windowRect.Width() * windowRect.Height() > 1.0f);
 
-  RECT wrect = {0, 0, static_cast<LONG>(windowRect.r), static_cast<LONG>(windowRect.b)};
-  MapWindowPoints(m_hwnd, 0, reinterpret_cast<LPPOINT>(&wrect), 2);
+  RECT wrect = {0, 0, windowRect.r, windowRect.b};
+  MapWindowPoints(m_hwnd, 0, (LPPOINT)&wrect, 2);
 
-  dst.t = static_cast<float>(wrect.top);
-  dst.l = static_cast<float>(wrect.left);
-  dst.b = static_cast<float>(wrect.bottom);
-  dst.r = static_cast<float>(wrect.right);
+  dst.t = wrect.top;
+  dst.l = wrect.left;
+  dst.b = wrect.bottom;
+  dst.r = wrect.right;
 }

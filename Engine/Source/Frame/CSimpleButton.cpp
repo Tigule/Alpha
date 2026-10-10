@@ -48,8 +48,8 @@ CSimpleButton::~CSimpleButton() {
   SetDisabledText(0);
   SetHighlightText(0);
 
-  for (CSimpleButtonState state = BUTTONSTATE_DISABLED; state < NUM_BUTTONSTATES; state = static_cast<CSimpleButtonState>(state + 1)) {
-    SetStateTexture(state, static_cast<CSimpleTexture *>(0));
+  for (CSimpleButtonState state = BUTTONSTATE_DISABLED; state < NUM_BUTTONSTATES; state = (CSimpleButtonState)(state + 1)) {
+    SetStateTexture(state, (CSimpleTexture *)0);
   }
 
   SetOnClickScript(0);

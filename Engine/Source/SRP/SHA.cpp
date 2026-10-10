@@ -173,7 +173,7 @@ void SHA1_Final(unsigned char digest[], SHA1_CONTEXT *context) {
   DWORD i;
 
   for (i = 0; i < 8; i++) {
-    finalcount[i] = (BYTE)((context->count[(i >= 4) ? 0 : 1] >> ((3 - (i & 3)) * 8)) & 0xFF);
+    finalcount[i] = (context->count[(i >= 4) ? 0 : 1] >> ((3 - (i & 3)) * 8)) & 0xFF;
   }
 
   SHA1_Update(context, &s_sha1Padding, 1);
@@ -183,7 +183,7 @@ void SHA1_Final(unsigned char digest[], SHA1_CONTEXT *context) {
   SHA1_Update(context, finalcount, 8);
 
   for (i = 0; i < 20; i++) {
-    digest[i] = (BYTE)((context->state[i >> 2] >> ((3 - (i & 3)) * 8)) & 0xFF);
+    digest[i] = (context->state[i >> 2] >> ((3 - (i & 3)) * 8)) & 0xFF;
   }
 }
 

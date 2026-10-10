@@ -23,115 +23,69 @@ void CClientMoveUpdate::Skip(CDataStore *packet) {
   }
 }
 
+inline CDataStore &operator<<(CDataStore &s_, const CMovementStatus &d_) {
+  s_ << d_.transport << d_.transRelPosition << d_.transRelFacing << d_.worldPosition << d_.worldFacing << d_.pitch << d_.moveFlags;
+  return s_;
+}
+
+inline CDataStore &operator>>(CDataStore &s_, CMovementStatus &d_) {
+  s_ >> d_.transport >> d_.transRelPosition >> d_.transRelFacing >> d_.worldPosition >> d_.worldFacing >> d_.pitch >> d_.moveFlags;
+  return s_;
+}
+
 CDataStore &operator<<(CDataStore &packet, const CClientMoveUpdate &update) {
-  packet << update.status.transport << update.status.transRelPosition.x << update.status.transRelPosition.y << update.status.transRelPosition.z
-         << update.status.transRelFacing;
-  packet << update.status.worldPosition;
-  packet << update.status.worldFacing << update.status.pitch << update.status.moveFlags << update.timeFallen << update.walkSpeed << update.runSpeed
-         << update.swimSpeed << update.turnRate;
-
+  packet << update.status;
+  packet << update.timeFallen << update.walkSpeed << update.runSpeed << update.swimSpeed << update.turnRate;
   if (update.status.moveFlags & 0x04000000) {
-    packet << update.spline.flags;
-    if (update.spline.flags & 0x00010000) {
-      packet << update.spline.face.spot.x << update.spline.face.spot.y << update.spline.face.spot.z;
-    }
-    if (update.spline.flags & 0x00020000) {
-      packet << update.spline.face.guid;
-    }
-    if (update.spline.flags & 0x00040000) {
-      packet << update.spline.face.facing;
-    }
-    packet << static_cast<int>(OsGetAsyncTimeMs() - update.spline.start) << update.spline.time;
-    UINT pointCount = update.spline.spline.NumPoints();
-    packet << pointCount;
-    for (UINT i = 0; i < pointCount; ++i) {
-      const NTempest::C3Vector &point = update.spline.spline.Point(i);
-      packet << point.x << point.y << point.z;
-    }
+    packet << update.spline;
   }
-
   return packet;
 }
 
 CDataStore &operator>>(CDataStore &packet, CClientMoveUpdate &update) {
-  packet.Get(update.status.transport);
-  packet.Get(update.status.transRelPosition.x);
-  packet.Get(update.status.transRelPosition.y);
-  packet.Get(update.status.transRelPosition.z);
-  packet.Get(update.status.transRelFacing);
-  packet.Get(update.status.worldPosition.x);
-  packet.Get(update.status.worldPosition.y);
-  packet.Get(update.status.worldPosition.z);
-  packet.Get(update.status.worldFacing);
-  packet.Get(update.status.pitch);
-  packet.Get(update.status.moveFlags);
-  packet.Get(update.timeFallen);
-  packet.Get(update.walkSpeed);
-  packet.Get(update.runSpeed);
-  packet.Get(update.swimSpeed);
-  packet.Get(update.turnRate);
-
+  packet >> update.status;
+  packet >> update.timeFallen >> update.walkSpeed >> update.runSpeed >> update.swimSpeed >> update.turnRate;
   if (update.status.moveFlags & 0x04000000) {
-    packet.Get(update.spline.flags);
-    if (update.spline.flags & 0x00010000) {
-      packet.Get(update.spline.face.spot.x);
-      packet.Get(update.spline.face.spot.y);
-      packet.Get(update.spline.face.spot.z);
-    }
-    if (update.spline.flags & 0x00020000) {
-      packet.Get(update.spline.face.guid);
-    }
-    if (update.spline.flags & 0x00040000) {
-      packet.Get(update.spline.face.facing);
-    }
-    DWORD timeNow = OsGetAsyncTimeMs();
-    int elapsed;
-    packet.Get(elapsed);
-    update.spline.start = timeNow - elapsed;
-    packet.Get(update.spline.time);
-    UINT pointCount = 0;
-    packet.Get(pointCount);
-    if (pointCount) {
-      LPVOID points;
-      packet.GetDataInSitu(points, 12 * pointCount);
-      update.spline.spline.SetPoints(static_cast<const NTempest::C3Vector *>(points), pointCount);
-    }
+    packet >> update.spline;
   }
-
   return packet;
 }
 
 bool IsAngleWithinRange(float a, float b, float fieldofView) {
-  fieldofView = static_cast<float>(fabs(fieldofView));
+  fieldofView = fabsf(fieldofView);
+
   while (a < 0.0f) {
     a += TWO_PI;
   }
   while (b < 0.0f) {
     b += TWO_PI;
   }
-  a = static_cast<float>(fmod(a, TWO_PI));
-  b = static_cast<float>(fmod(b, TWO_PI));
-  if (fabs(a - b) < fieldofView) {
+
+  a = fmod(a, TWO_PI);
+  b = fmod(b, TWO_PI);
+
+  if (fabsf(a - b) < fieldofView) {
     return 1;
   }
-  if (a >= b) {
-    b += TWO_PI;
-  } else {
+
+  if (a < b) {
     a += TWO_PI;
+  } else {
+    b += TWO_PI;
   }
-  return fabs(a - b) < fieldofView;
+
+  return fabsf(a - b) < fieldofView;
 }
 
 float CalculateFacingTo(const NTempest::C3Vector &position, const NTempest::C3Vector &destination) {
-  float diff = destination.x - position.x;
-  float diffY = destination.y - position.y;
-
-  if (fabs(diff) >= 2.3841858e-7f) {
-    if (fabs(diffY) >= 2.3841858e-7f) {
-      return static_cast<float>(atan2(diffY, diff));
-    }
-    return destination.x >= position.x ? 0.0f : PI;
+  NTempest::C3Vector diff = destination - position;
+  if (fabsf(diff.x) < 2.3841858e-7f) {
+    return (diff.y < 0.0f ? 1.5f : 0.5f) * PI;
   }
 
-  return diffY >= 0.0f ? 0.5f * PI : 1.5f * PI;
+  if (fabsf(diff.y) < 2.3841858e-7f) {
+    return destination.x < position.x ? PI : 0.0f;
+  }
+
+  return atan2(diff.y, diff.x);
 }

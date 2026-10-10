@@ -201,11 +201,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   }
 
   int ScaleBy(float scaleX, float scaleY, FRAMEPOINT anchor, NTempest::CRect *rect) {
-    return CLayoutFrame::ScaleBy(reinterpret_cast<CLayoutFrame *>(m_top), scaleX, scaleY, anchor, rect);
+    return CLayoutFrame::ScaleBy((CLayoutFrame *)m_top, scaleX, scaleY, anchor, rect);
   }
 
   int DragBy(float deltaX, float deltaY, FRAMEPOINT anchor, NTempest::CRect *rect) {
-    return CLayoutFrame::DragBy(reinterpret_cast<CLayoutFrame *>(m_top), deltaX, deltaY, anchor, rect);
+    return CLayoutFrame::DragBy((CLayoutFrame *)m_top, deltaX, deltaY, anchor, rect);
   }
 
   void                SetBackdrop(CBackdropGenerator *backdrop);
@@ -428,7 +428,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOnEnterScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, (UINT)-1);
     }
     SStrPrintf(description, sizeof(description), "%s:OnEnter", GetName());
     SetEventScript(m_onEnter, source, description);
@@ -444,7 +444,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOnLeaveScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, (UINT)-1);
     }
     SStrPrintf(description, sizeof(description), "%s:OnLeave", GetName());
     SetEventScript(m_onLeave, source, description);
@@ -460,7 +460,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOnMouseDownScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, (UINT)-1);
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseDown", GetName());
     SetEventScript(m_onMouseDown, source, description);
@@ -499,7 +499,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOnMouseUpScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, (UINT)-1);
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseUp", GetName());
     SetEventScript(m_onMouseUp, source, description);
@@ -538,7 +538,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOnMouseWheelScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, static_cast<UINT>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, (UINT)-1);
     }
     SStrPrintf(description, sizeof(description), "%s:OnMouseWheel", GetName());
     SetEventScript(m_onMouseWheel, source, description);
@@ -554,7 +554,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void SetOnDragStartScript(LPCSTR source) {
     char description[1024];
     if (source) {
-      EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+      EnableEvent(SIMPLE_EVENT_MOUSE, (UINT)-1);
     }
     SStrPrintf(description, sizeof(description), "%s:OnDragStart", GetName());
     SetEventScript(m_onDragStart, source, description);

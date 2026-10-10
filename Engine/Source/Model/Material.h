@@ -86,7 +86,7 @@ struct CMaterial : public CHandleObject {
   CMaterial(const CMaterial &source)
       : CHandleObject(source),
         layers(source.layers),
-        data(static_cast<HMATERIALSHARED>(HandleDuplicate(source.data))),
+        data((HMATERIALSHARED)HandleDuplicate(source.data)),
         emissiveColor(source.emissiveColor) {
   }
 
@@ -100,7 +100,7 @@ struct CMaterial : public CHandleObject {
     if (data) {
       HandleClose(data);
     }
-    data = static_cast<HMATERIALSHARED>(HandleDuplicate(source.data));
+    data = (HMATERIALSHARED)HandleDuplicate(source.data);
     layers = source.layers;
     emissiveColor = source.emissiveColor;
     return *this;

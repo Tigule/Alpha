@@ -105,9 +105,9 @@ void CWorldMath::TransformAABox(const NTempest::C33Matrix &m, const NTempest::CA
   nBox.b = NTempest::C3Vector(0.0f);
   nBox.t = NTempest::C3Vector(0.0f);
 
-  const NTempest::C3Vector &row0 = *reinterpret_cast<const NTempest::C3Vector *>(&m.a0);
-  const NTempest::C3Vector &row1 = *reinterpret_cast<const NTempest::C3Vector *>(&m.b0);
-  const NTempest::C3Vector &row2 = *reinterpret_cast<const NTempest::C3Vector *>(&m.c0);
+  const NTempest::C3Vector &row0 = *(const NTempest::C3Vector *)&m.a0;
+  const NTempest::C3Vector &row1 = *(const NTempest::C3Vector *)&m.b0;
+  const NTempest::C3Vector &row2 = *(const NTempest::C3Vector *)&m.c0;
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
@@ -115,9 +115,9 @@ void CWorldMath::TransformAABox(const NTempest::C34Matrix &m, const NTempest::CA
   nBox.b = *m.Row3AsVec3();
   nBox.t = *m.Row3AsVec3();
 
-  const NTempest::C3Vector &row0 = *reinterpret_cast<const NTempest::C3Vector *>(&m.a0);
-  const NTempest::C3Vector &row1 = *reinterpret_cast<const NTempest::C3Vector *>(&m.b0);
-  const NTempest::C3Vector &row2 = *reinterpret_cast<const NTempest::C3Vector *>(&m.c0);
+  const NTempest::C3Vector &row0 = *(const NTempest::C3Vector *)&m.a0;
+  const NTempest::C3Vector &row1 = *(const NTempest::C3Vector *)&m.b0;
+  const NTempest::C3Vector &row2 = *(const NTempest::C3Vector *)&m.c0;
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 
@@ -125,9 +125,9 @@ void CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CA
   nBox.b = *m.Row3AsVec3();
   nBox.t = *m.Row3AsVec3();
 
-  const NTempest::C3Vector &row0 = *reinterpret_cast<const NTempest::C3Vector *>(&m.a0);
-  const NTempest::C3Vector &row1 = *reinterpret_cast<const NTempest::C3Vector *>(&m.b0);
-  const NTempest::C3Vector &row2 = *reinterpret_cast<const NTempest::C3Vector *>(&m.c0);
+  const NTempest::C3Vector &row0 = *(const NTempest::C3Vector *)&m.a0;
+  const NTempest::C3Vector &row1 = *(const NTempest::C3Vector *)&m.b0;
+  const NTempest::C3Vector &row2 = *(const NTempest::C3Vector *)&m.c0;
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
 }
 

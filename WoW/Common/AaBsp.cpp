@@ -49,7 +49,7 @@ void CAaBsp::operator=(const CAaBsp &rhs) {
   FATALASSERT(nodeFaceIndices == 0);
 
   nNodes = rhs.nNodes;
-  nodes = static_cast<CAaBspNode *>(SMemAlloc(sizeof(CAaBspNode) * nNodes, 0, 0, 0));
+  nodes = (CAaBspNode *)SMemAlloc(sizeof(CAaBspNode) * nNodes, 0, 0, 0);
   FATALASSERT(nodes);
   rootNode = nodes;
 
@@ -59,7 +59,7 @@ void CAaBsp::operator=(const CAaBsp &rhs) {
   }
 
   nNodeFaceIndices = rhs.nNodeFaceIndices;
-  nodeFaceIndices = static_cast<WORD *>(SMemAlloc(sizeof(WORD) * nNodeFaceIndices, 0, 0, 0));
+  nodeFaceIndices = (WORD *)SMemAlloc(sizeof(WORD) * nNodeFaceIndices, 0, 0, 0);
   FATALASSERT(nodeFaceIndices);
   for (i = 0; i < nNodeFaceIndices; ++i) {
     nodeFaceIndices[i] = rhs.nodeFaceIndices[i];
@@ -91,7 +91,7 @@ void CAaBsp::Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVert
   aaBox = NTempest::CAaBox::Bounding(vertices, nVertices);
 
   if (!nodes) {
-    nodes = static_cast<CAaBspNode *>(SMemAlloc(0x100000, 0, 0, 0));
+    nodes = (CAaBspNode *)SMemAlloc(0x100000, 0, 0, 0);
     FATALASSERT(nodes);
   }
   nodeSize = 0x10000;
@@ -99,7 +99,7 @@ void CAaBsp::Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVert
   nNodes = 0;
 
   if (!nodeFaceIndices) {
-    nodeFaceIndices = static_cast<WORD *>(SMemAlloc(0x80000, 0, 0, 0));
+    nodeFaceIndices = (WORD *)SMemAlloc(0x80000, 0, 0, 0);
     FATALASSERT(nodeFaceIndices);
   }
   nodeFaceIndicesSize = 0x40000;
@@ -107,7 +107,7 @@ void CAaBsp::Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVert
   nNodeFaceIndices = 0;
 
   if (!buildFaceIndices) {
-    buildFaceIndices = static_cast<WORD *>(SMemAlloc(0x400000, 0, 0, 0));
+    buildFaceIndices = (WORD *)SMemAlloc(0x400000, 0, 0, 0);
     FATALASSERT(buildFaceIndices);
   }
   buildFaceIndicesSize = 0x200000;
@@ -282,16 +282,10 @@ void CAaBsp::GenBoundingBox(NTempest::CAaBox &aaBox, WORD *buildFaceIndices, UIN
 
   UINT n;
   for (n = 0; n < count; ++n) {
+    UINT face = buildFaceIndices[n] * 3;
     for (UINT i = 0; i < 3; ++i) {
-      NTempest::C3Vector &vertex = vertices[faceVertexIndices[3 * buildFaceIndices[n] + i]];
-      aaBox.b = NTempest::C3Vector(
-          vertex.x > aaBox.b.x ? aaBox.b.x : vertex.x, vertex.y > aaBox.b.y ? aaBox.b.y : vertex.y,
-          vertex.z > aaBox.b.z ? aaBox.b.z : vertex.z
-      );
-      aaBox.t = NTempest::C3Vector(
-          aaBox.t.x <= vertex.x ? vertex.x : aaBox.t.x, aaBox.t.y <= vertex.y ? vertex.y : aaBox.t.y,
-          aaBox.t.z <= vertex.z ? vertex.z : aaBox.t.z
-      );
+      NTempest::C3Vector &vertex = vertices[faceVertexIndices[face + i]];
+      aaBox.Enclose(vertex);
     }
   }
 }
@@ -308,7 +302,7 @@ void CAaBsp::ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices
     int maxDist = Fast_ftol(aaBox.t[axis]);
     int step = max(1, Fast_ftol((aaBox.t[axis] - aaBox.b[axis]) * 0.0625f));
     for (int dist = minDist; dist <= maxDist; dist += step) {
-      float fDist = static_cast<float>(dist);
+      float fDist = dist;
       UINT o = 0;
       UINT f = 0;
       UINT b = 0;
@@ -348,7 +342,7 @@ void CAaBsp::ChoosePlane(UINT &bestAxis, float &bestDist, WORD *buildFaceIndices
         }
       }
 
-      float score = NTempest::CMath::fabs_(static_cast<float>(f - b)) + 2 * s + o;
+      float score = NTempest::CMath::fabs_((float)(f - b)) + 2 * s + o;
       if (score != 0.0f && score < bestPlaneScore) {
         bestPlaneScore = score;
         bestPlaneAxis = axis;

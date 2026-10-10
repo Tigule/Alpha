@@ -205,14 +205,14 @@ void SRWLock::IOsRWLockDecRef() {
 }
 
 BOOL SRWLock::IWaitAndCheckForDeadlock(LPVOID hevent) {
-  if (WaitForSingleObject((HANDLE)hevent, 60000) == WAIT_OBJECT_0) {
-    return 1;
+  if (WaitForSingleObject(hevent, 60000) != WAIT_OBJECT_0) {
+    SInterlockedIncrement(&s_dupcount);
+    CDebugSCritSect::DumpAllEntries();
+    CDebugSRWLock::DumpAllEntries();
+    return 0;
   }
 
-  SInterlockedIncrement(&s_dupcount);
-  CDebugSCritSect::DumpAllEntries();
-  CDebugSRWLock::DumpAllEntries();
-  return 0;
+  return 1;
 }
 
 long SRWLock::IAllocEvent(DWORD evtype) {
@@ -286,7 +286,7 @@ long SRWLock::IEventIncRefCountOnly(long volatile *eventptr, long increment) {
   }
 
   do {
-    if (SInterlockedCompareExchange((long *)eventptr, value + increment, value) == value) {
+    if (value == SInterlockedCompareExchange((long *)eventptr, value + increment, value)) {
       return value + increment;
     }
 
@@ -303,7 +303,7 @@ long SRWLock::IAllocEventOrIncRefCount(DWORD evtype, long volatile *eventptr, lo
   allocated = IAllocEvent(evtype);
   value = SInterlockedCompareExchange((long *)eventptr, allocated, 0);
   while (value) {
-    if (SInterlockedCompareExchange((long *)eventptr, value + increment, value) == value) {
+    if (value == SInterlockedCompareExchange((long *)eventptr, value + increment, value)) {
       IFreeEvent(evtype, allocated, 0);
       return value + increment;
     }
@@ -319,7 +319,7 @@ BOOL SRWLock::IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, lo
 
   previous = SInterlockedCompareExchange((long *)eventptr, 0, finalevent);
   while (previous != finalevent) {
-    if (SInterlockedCompareExchange((long *)eventptr, previous - decrement, previous) == previous) {
+    if (previous == SInterlockedCompareExchange((long *)eventptr, previous - decrement, previous)) {
       return 0;
     }
     previous = SInterlockedCompareExchange((long *)eventptr, 0, finalevent);
@@ -351,24 +351,21 @@ void SRWLock::SUNNLockEnter(SUNNLOCK volatile *sunnlock) {
 
   if (!sunnlock->m_event) {
     spin = s_spinCount;
-    for (;;) {
+    do {
       if (SInterlockedExchange((long *)&sunnlock->m_state, 0) != 0) {
         return;
       }
       Pause();
-      if (!--spin || sunnlock->m_event) {
-        break;
-      }
-    }
+    } while (--spin && !sunnlock->m_event);
   }
 
-  eventValue = IAllocEventOrIncRefCount(0, (volatile long *)&sunnlock->m_event, 1);
-  baseValue = (long)((DWORD)eventValue & SRW_EVENT_VALUE_MASK);
+  eventValue = IAllocEventOrIncRefCount(0, &sunnlock->m_event, 1);
+  baseValue = (DWORD)eventValue & SRW_EVENT_VALUE_MASK;
   for (;;) {
     spin = s_spinCount;
     do {
       if (SInterlockedExchange((long *)&sunnlock->m_state, 0) != 0) {
-        IDecRefCountAndFreeEvent(0, (volatile long *)&sunnlock->m_event, baseValue, 1);
+        IDecRefCountAndFreeEvent(0, &sunnlock->m_event, baseValue, 1);
         return;
       }
       Pause();
@@ -405,16 +402,14 @@ void SRWLock::SURWLockDelete(SURWLOCK volatile *surwlock) {
 void SRWLock::SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting) {
   DWORD spin;
   long  eventValue;
-  long  baseValue;
 
   if (forwriting) {
     SUNNLockEnter(&surwlock->m_mutex);
     return;
   }
 
-  eventValue = IAllocEventOrIncRefCount(1, (volatile long *)&surwlock->m_readerEvent, 2);
-  baseValue = (long)((DWORD)eventValue & SRW_EVENT_VALUE_MASK);
-  if (eventValue == baseValue) {
+  eventValue = IAllocEventOrIncRefCount(1, &surwlock->m_readerEvent, 2);
+  if (eventValue == (long)((DWORD)eventValue & SRW_EVENT_VALUE_MASK)) {
     SUNNLockEnter(&surwlock->m_mutex);
     SInterlockedIncrement((long *)&surwlock->m_readerEvent);
     ISetEvent(1, eventValue);
@@ -423,16 +418,14 @@ void SRWLock::SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting) {
 
   for (;;) {
     spin = s_spinCount;
-    while (!(surwlock->m_readerEvent & 1)) {
-      Pause();
-      if (--spin == 0) {
-        if (IWaitForEvent(1, eventValue)) {
-          return;
-        }
-        break;
+    do {
+      if (surwlock->m_readerEvent & 1) {
+        return;
       }
-    }
-    if (surwlock->m_readerEvent & 1) {
+      Pause();
+    } while (--spin);
+
+    if (IWaitForEvent(1, eventValue)) {
       return;
     }
   }
@@ -441,37 +434,37 @@ void SRWLock::SURWLockEnter(SURWLOCK volatile *surwlock, int forwriting) {
 int SRWLock::SURWLockTryEnter(SURWLOCK volatile *surwlock, int forwriting) {
   DWORD spin;
   long  eventValue;
-  long  baseValue;
 
   if (forwriting) {
     return SUNNLockTryEnter(&surwlock->m_mutex);
   }
 
   if (SUNNLockTryEnter(&surwlock->m_mutex)) {
-    eventValue = IAllocEventOrIncRefCount(1, (volatile long *)&surwlock->m_readerEvent, 2);
-    baseValue = (long)((DWORD)eventValue & SRW_EVENT_VALUE_MASK);
-    if (eventValue == baseValue) {
+    eventValue = IAllocEventOrIncRefCount(1, &surwlock->m_readerEvent, 2);
+    if (eventValue == (long)((DWORD)eventValue & SRW_EVENT_VALUE_MASK)) {
       SInterlockedIncrement((long *)&surwlock->m_readerEvent);
       ISetEvent(1, eventValue);
-      goto success;
+      return 1;
     }
 
     SUNNLockLeave(&surwlock->m_mutex);
-  } else if (!IEventIncRefCountOnly((volatile long *)&surwlock->m_readerEvent, 2)) {
-    return 0;
-  }
-
-  spin = s_spinCount;
-  while (!(surwlock->m_readerEvent & 1)) {
-    Pause();
-    if (--spin == 0) {
-      SURWLockLeave(surwlock, 0);
+  } else {
+    eventValue = IEventIncRefCountOnly(&surwlock->m_readerEvent, 2);
+    if (!eventValue) {
       return 0;
     }
   }
 
-success:
-  return 1;
+  spin = s_spinCount;
+  do {
+    if (surwlock->m_readerEvent & 1) {
+      return 1;
+    }
+    Pause();
+  } while (--spin);
+
+  SURWLockLeave(surwlock, 0);
+  return 0;
 }
 
 void SRWLock::SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting) {
@@ -480,7 +473,8 @@ void SRWLock::SURWLockLeave(SURWLOCK volatile *surwlock, int fromwriting) {
     return;
   }
 
-  if (IDecRefCountAndFreeEvent(1, (volatile long *)&surwlock->m_readerEvent, (surwlock->m_readerEvent & SRW_EVENT_VALUE_MASK) + 1, 2)) {
+  long finalevent = (surwlock->m_readerEvent & SRW_EVENT_VALUE_MASK) + 1;
+  if (IDecRefCountAndFreeEvent(1, &surwlock->m_readerEvent, finalevent, 2)) {
     SUNNLockLeave(&surwlock->m_mutex);
   }
 }
@@ -554,24 +548,21 @@ template <class T>
 DWORD CDebugLock<T>::IClashingEntry(CDebugLockData *lock, DWORD threadId, int forwriting) {
   DWORD            index;
   CDebugLockEntry *entry;
-  CDebugLockEntry *previous;
 
-  previous = NULL;
   index = lock->m_entries;
   while (index) {
+    entry = &s_entries[index];
     if (index >= 256) {
-      IRepairBadEntry(lock, index, previous, __FILE__, __LINE__);
+      IRepairBadEntry(lock, index, entry, __FILE__, __LINE__);
       return 0;
     }
 
-    entry = &s_entries[index];
     if (entry->m_threadId == threadId && (forwriting || (entry->m_line & 0x40000000))) {
-      return index;
+      break;
     }
-    previous = entry;
     index = entry->m_next;
   }
-  return 0;
+  return index;
 }
 
 template <class T>
@@ -589,12 +580,11 @@ DWORD CDebugLock<T>::IAddEntry(CDebugLockData *lock, DWORD threadId, int forwrit
     s_freeEntries = entry->m_next;
     entry->m_next = lock->m_entries;
     lock->m_entries = index;
-    return index;
+  } else {
+    SOutputDebugString("%s(%u) : CDebugLock:%08x no free entries\n", fileName, line, lock);
+    IDumpEntries(lock);
   }
-
-  SOutputDebugString("%s(%u) : CDebugLock:%08x no free entries\n", fileName, line, lock);
-  IDumpEntries(lock);
-  return 0;
+  return index;
 }
 
 template <class T>
@@ -603,14 +593,14 @@ DWORD CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int from
   CDebugLockEntry *entry;
   CDebugLockEntry *previous;
 
-  previous = NULL;
-  index = lock->m_entries;
-  while (index) {
+  entry = NULL;
+  for (index = lock->m_entries; index; index = entry->m_next) {
     if (index >= 256) {
-      IRepairBadEntry(lock, index, previous, __FILE__, __LINE__);
-      return index;
+      IRepairBadEntry(lock, index, entry, __FILE__, __LINE__);
+      break;
     }
 
+    previous = entry;
     entry = &s_entries[index];
     if (entry->m_threadId == threadId && (entry->m_line & 0x80000000) && ((entry->m_line >> 30) & 1) == (DWORD)fromwriting) {
       if (previous) {
@@ -621,13 +611,10 @@ DWORD CDebugLock<T>::IDeleteEntry(CDebugLockData *lock, DWORD threadId, int from
       entry->m_threadId = 0;
       entry->m_next = s_freeEntries;
       s_freeEntries = index;
-      return index;
+      break;
     }
-
-    previous = entry;
-    index = entry->m_next;
   }
-  return 0;
+  return index;
 }
 
 template <class T>
@@ -732,7 +719,7 @@ void SCritSect::Enter() {
 }
 
 BOOL SCritSect::TryEnter() {
-  return STryEnterCriticalSection((LPCRITICAL_SECTION)m_opaqueData);
+  return STryEnterCriticalSection(m_opaqueData);
 }
 
 void SCritSect::Leave() {
@@ -800,7 +787,7 @@ BOOL SInitCritSect::Enter() {
   created = 0;
   if (!m_critsect) {
     do {
-    } while (SInterlockedExchange((long *)&m_spinLock, 1));
+    } while (SInterlockedExchange(&m_spinLock, 1));
 
     if (!m_critsect) {
       m_critsect = (SCritSect *)m_critsectData;
@@ -1019,7 +1006,7 @@ BOOL SThread::Create(STHREADPROC threadProc, LPVOID param, SThread &thread, char
   UINT id;
 
   (void)threadName;
-  *(HANDLE *)thread.m_opaqueData = (HANDLE)SCreateThread(threadProc, param, &id, NULL, NULL);
+  *(HANDLE *)thread.m_opaqueData = SCreateThread(threadProc, param, &id, NULL, NULL);
   return *(HANDLE *)thread.m_opaqueData != NULL;
 }
 

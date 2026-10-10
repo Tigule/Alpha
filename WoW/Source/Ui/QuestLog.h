@@ -49,11 +49,11 @@ class CGQuestLog {
   static LPCSTR GetQuestTag(int index);
   static int    GetQuestLevel(int index);
   static BOOL   IsQuestHeader(int index) {
-    return index >= 0 && index < static_cast<int>(m_numQuests) ? m_quests[index].isHeader : 0;
+    return index >= 0 && index < (int)m_numQuests ? m_quests[index].isHeader : 0;
   }
   static int GetQuestItemID(LPCSTR type, int index);
   static int GetQuestLogEntry(int index) {
-    return index >= 0 && index < static_cast<int>(m_numQuests) && !m_quests[index].isHeader ? m_quests[index].logIndex : -1;
+    return index >= 0 && index < (int)m_numQuests && !m_quests[index].isHeader ? m_quests[index].logIndex : -1;
   }
   static int GetQuestSortIndex(UINT index);
   static int GetQuestSortID(UINT index) {

@@ -21,36 +21,41 @@ static BOOL FREETYPE_RenderGlyph(FT_Face face, UINT charCode, int noHinting, int
     return 0;
   }
 
-  FT_Render_Mode mode = monochrome ? ft_render_mode_mono : ft_render_mode_normal;
-  return FT_Render_Glyph(face->glyph, mode) == 0;
+  FT_Error error;
+  if (monochrome) {
+    error = FT_Render_Glyph(face->glyph, ft_render_mode_mono);
+  } else {
+    error = FT_Render_Glyph(face->glyph, ft_render_mode_normal);
+  }
+  return error == 0;
 }
 
-static void CalculateYOffset(FT_Face face, UINT *yOffsetPtr, UINT *glyphYStart, UINT pixelHeight, int baseLineRow, UINT glyphHeight) {
+static void CalculateYOffset(FT_Face face, UINT *yOffsetPtr, UINT *glyphYStart, UINT pixelHeight, UINT baseLineRow, UINT glyphHeight) {
   ASSERT(face);
   ASSERT(yOffsetPtr);
   ASSERT(glyphYStart);
   ASSERT(pixelHeight);
   ASSERT(glyphHeight);
 
-  UINT yStart = 0;
+  UINT yStart;
   UINT yOffset = 0;
-
-  if (glyphHeight <= pixelHeight) {
-    int bitmapTop = face->glyph->bitmap_top;
-    if (bitmapTop > baseLineRow) {
-      yOffset = bitmapTop - baseLineRow;
-    } else {
-      yStart = baseLineRow - bitmapTop;
-    }
-  }
-
-  if (pixelHeight - glyphHeight < yStart) {
-    *yOffsetPtr = pixelHeight - yStart - glyphHeight;
-    *glyphYStart = pixelHeight - glyphHeight;
+  if (glyphHeight > pixelHeight) {
+    yStart = 0;
+  } else if (face->glyph->bitmap_top > (int)baseLineRow) {
+    yStart = 0;
+    yOffset = face->glyph->bitmap_top - baseLineRow;
   } else {
-    *yOffsetPtr = yOffset;
-    *glyphYStart = yStart;
+    yStart = baseLineRow - face->glyph->bitmap_top;
   }
+
+  yStart = max(yStart, 0);
+  if (pixelHeight - glyphHeight < yStart) {
+    yOffset = pixelHeight - yStart - glyphHeight;
+    yStart = pixelHeight - glyphHeight;
+  }
+
+  *yOffsetPtr = yOffset;
+  *glyphYStart = yStart;
 }
 
 BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT baseLine, GLYPHDATA *dataPtr, int noHinting, int monochrome) {
@@ -81,14 +86,17 @@ BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT ba
   int     dummyGlyph = 0;
 
   if (!width || !height || !srcData || !pitch || !dataSize) {
-    width = (pixelHeight + 3) / 4;
     height = pixelHeight;
+    width = (pixelHeight + 3) / 4;
     if (!width) {
       width = pixelHeight;
     }
-
-    pitch = monochrome ? (width + 7) & ~7 : width;
-    dataSize = height * pitch;
+    if (monochrome) {
+      pitch = (width + 7) & ~7;
+    } else {
+      pitch = width;
+    }
+    dataSize = pitch * height;
     dummyGlyph = 1;
   }
 
@@ -109,12 +117,12 @@ BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT ba
   dataPtr->freeTypeGlyphBearing = face->glyph->metrics.horiBearingX * (1.0f / 64.0f);
 
   UINT yOffset = 0;
-  UINT yStart = 0;
+  UINT YStart = 0;
   if (height && width && data && !dummyGlyph) {
-    CalculateYOffset(face, &yOffset, &yStart, pixelHeight, baseLine, height);
+    CalculateYOffset(face, &yOffset, &YStart, pixelHeight, baseLine, height);
   }
 
   dataPtr->yOffset = yOffset;
-  dataPtr->yStart = yStart;
+  dataPtr->yStart = YStart;
   return 1;
 }

@@ -40,7 +40,7 @@ class TObjectAlloc {
       return 0;
     }
 
-    T *obj = static_cast<T *>(ObjectPtr(memHandle));
+    T *obj = (T *)ObjectPtr(memHandle);
     ASSERT(obj);
     obj->SetMemHandle(memHandle);
     return obj;

@@ -32,7 +32,7 @@ static LONG IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valueName) {
   status = RegDeleteValueA(key, valueName);
   if (status == ERROR_SUCCESS) {
     SStrCopy(currentSubKey, subKeyName, sizeof(currentSubKey));
-    status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeyCount, NULL, NULL, reinterpret_cast<LPDWORD>(&valueName), NULL, NULL, NULL, NULL);
+    status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeyCount, NULL, NULL, (LPDWORD)&valueName, NULL, NULL, NULL, NULL);
     while (status == ERROR_SUCCESS) {
       if (subKeyCount || valueName) {
         break;
@@ -51,7 +51,7 @@ static LONG IDeleteValue(HKEY parentKey, LPCSTR subKeyName, LPCSTR valueName) {
       if (status != ERROR_SUCCESS) {
         return status;
       }
-      status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeyCount, NULL, NULL, reinterpret_cast<LPDWORD>(&valueName), NULL, NULL, NULL, NULL);
+      status = RegQueryInfoKeyA(key, NULL, NULL, NULL, &subKeyCount, NULL, NULL, (LPDWORD)&valueName, NULL, NULL, NULL, NULL);
     }
   }
   RegCloseKey(key);
@@ -117,7 +117,7 @@ static BOOL InternalDeleteEntry(LPCSTR keyname, LPCSTR valuename, UINT flags) {
   }
 
   status = hkcuStatus != ERROR_SUCCESS ? hkcuStatus : hklmStatus;
-  SetLastError((DWORD)status);
+  SetLastError(status);
   return FALSE;
 }
 
@@ -152,7 +152,7 @@ static BOOL InternalDeleteKey(LPCSTR keyname, UINT flags) {
   }
 
   status = hkcuStatus != ERROR_SUCCESS ? hkcuStatus : hklmStatus;
-  SetLastError((DWORD)status);
+  SetLastError(status);
   return FALSE;
 }
 
@@ -178,7 +178,7 @@ static BOOL InternalLoadEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, LPDW
     return TRUE;
   }
 
-  SetLastError((DWORD)status);
+  SetLastError(status);
   return FALSE;
 }
 
@@ -208,7 +208,7 @@ static BOOL InternalSaveEntry(LPCSTR keyname, LPCSTR valuename, UINT flags, DWOR
     RegCloseKey(key);
   }
 
-  SetLastError((DWORD)status);
+  SetLastError(status);
   return FALSE;
 }
 

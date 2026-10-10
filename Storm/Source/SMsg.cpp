@@ -62,7 +62,7 @@ static LRESULT CALLBACK GenericWndProc(HWND window, UINT message, WPARAM wparam,
 
   useresult = FALSE;
   result = 0;
-  if (SMsgDispatchMessage(window, message, (UINT)wparam, (LONG)lparam, &useresult, &result) && useresult) {
+  if (SMsgDispatchMessage(window, message, wparam, lparam, &useresult, &result) && useresult) {
     return result;
   }
 
@@ -178,7 +178,7 @@ extern "C" int APIENTRY SMsgDoMessageLoop(SMSGIDLEPROC idleproc, BOOL cleanuponq
 
     idlecount = 0;
     if (!GetMessageA(&message, NULL, 0, 0)) {
-      return (int)message.wParam;
+      return message.wParam;
     }
 
     TranslateMessage(&message);

@@ -23,7 +23,7 @@ class CGPetInfo {
   }
   static void SetPetOrders(UINT orders);
   static UINT GetPetOrders() {
-    return m_petMode >> 8 & 0xFF;
+    return m_petMode >> 8;
   }
   static void             ClearActions();
   static void             SetAction(UINT index, PetAction &action, int save);

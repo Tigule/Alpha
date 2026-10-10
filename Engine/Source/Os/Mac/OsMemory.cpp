@@ -15,7 +15,7 @@ struct OSSHAREDMEMORY {
 };
 
 COsSharedMemory::COsSharedMemory() : m_data(0), m_size(0) {
-  OSSHAREDMEMORY *shared = reinterpret_cast<OSSHAREDMEMORY *>(m_opaqueData);
+  OSSHAREDMEMORY *shared = (OSSHAREDMEMORY *)m_opaqueData;
 
   shared->descriptor = -1;
   shared->name[0] = 0;
@@ -26,7 +26,7 @@ COsSharedMemory::~COsSharedMemory() {
 }
 
 bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
-  OSSHAREDMEMORY *shared = reinterpret_cast<OSSHAREDMEMORY *>(m_opaqueData);
+  OSSHAREDMEMORY *shared = (OSSHAREDMEMORY *)m_opaqueData;
   struct stat     stats;
   int             flags;
   int             protection = mode == SMEM_OPEN_READONLY ? PROT_READ : PROT_READ | PROT_WRITE;
@@ -68,7 +68,7 @@ bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
       return true;
     }
 
-    size = static_cast<UINT>(stats.st_size);
+    size = (UINT)stats.st_size;
   }
 
   if (!size) {
@@ -92,7 +92,7 @@ bool COsSharedMemory::ChangeAccess(int newAccess) {
 }
 
 void COsSharedMemory::Destroy() {
-  OSSHAREDMEMORY *shared = reinterpret_cast<OSSHAREDMEMORY *>(m_opaqueData);
+  OSSHAREDMEMORY *shared = (OSSHAREDMEMORY *)m_opaqueData;
 
   if (m_data) {
     munmap(m_data, m_size);

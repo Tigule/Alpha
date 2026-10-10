@@ -30,7 +30,7 @@ struct CMatrixGroup {
   UINT  leftIndex;
   UINT  rightIndex;
 
-  CMatrixGroup() : matrices(0), numMatrices(0), index(0), leftIndex(static_cast<UINT>(-1)), rightIndex(static_cast<UINT>(-1)) {
+  CMatrixGroup() : matrices(0), numMatrices(0), index(0), leftIndex(-1), rightIndex(-1) {
   }
   CMatrixGroup(UINT *, UINT);
 };
@@ -56,29 +56,15 @@ class CMatrixGroupTree {
   int  GroupLessThan(const UINT *matrixGroup1, UINT numMatrices1, const UINT *matrixGroup2, UINT numMatrices2);
 };
 
-CModelTexture::CModelTexture(const CModelTexture &source) {
-  replaceableId = source.replaceableId;
-  handle = static_cast<HTEXTURE>(HandleDuplicate(source.handle));
-}
-
-CModelTexture &CModelTexture::operator=(const CModelTexture &source) {
-  replaceableId = source.replaceableId;
-  if (handle) {
-    HandleClose(handle);
-  }
-  handle = static_cast<HTEXTURE>(HandleDuplicate(source.handle));
-  return *this;
-}
-
 static BOOL MaterialUsedOnce(HMATERIAL material) {
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(material);
+  CMaterial *uniqueMtl = (CMaterial *)material;
 
   ASSERT(uniqueMtl);
   return uniqueMtl->GetRefCount() == 1;
 }
 
 static HMATERIAL MaterialDuplicate(HMATERIAL material) {
-  CMaterial *source = reinterpret_cast<CMaterial *>(material);
+  CMaterial *source = (CMaterial *)material;
   ASSERT(source);
 
   CMaterial *duplicate = NEWHANDLE(HMATERIAL, CMaterial);
@@ -148,7 +134,7 @@ void CModelSimple::CopyMaterials(const CModelSimple &source) {
   UINT numMaterials = source.m_materials.Count();
   m_materials.SetCount(numMaterials);
   for (UINT i = 0; i < numMaterials; ++i) {
-    m_materials[i] = static_cast<HMATERIAL>(HandleDuplicate(source.m_materials[i]));
+    m_materials[i] = (HMATERIAL)HandleDuplicate(source.m_materials[i]);
   }
 }
 
@@ -157,7 +143,7 @@ void CModelComplex::CopyAttachments(const CModelComplex &source) {
   m_attachmentFlags.SetCount(source.m_attachmentFlags.Count());
   m_attachmentFlags.Zero();
 
-  LIST(LINKUNIQUE) *src = const_cast<LIST(LINKUNIQUE) *>(source.m_attached.Ptr());
+  LIST(LINKUNIQUE) *src = (LIST(LINKUNIQUE) *)source.m_attached.Ptr();
   LIST(LINKUNIQUE) *dest = m_attached.Ptr();
   for (UINT i = m_attached.Count(); i; --i, ++src, ++dest) {
     ITERATELISTPTR(LINKUNIQUE, src, link) {
@@ -232,7 +218,7 @@ CModelComplex::CModelComplex(const CModelSimple &source) : CModelBase(source) {
   UINT numMaterials = source.m_materials.Count();
   m_materials.SetCount(numMaterials);
   for (UINT i = 0; i < numMaterials; ++i) {
-    m_materials[i] = static_cast<HMATERIAL>(HandleDuplicate(source.m_materials[i]));
+    m_materials[i] = (HMATERIAL)HandleDuplicate(source.m_materials[i]);
   }
 
   m_textures.Set(source.m_textures.Count(), source.m_textures.Ptr());
@@ -244,7 +230,7 @@ CModelComplex::CModelComplex(const CModelComplex &source) : CModelBase(source) {
   UINT numMaterials = source.m_materials.Count();
   m_materials.SetCount(numMaterials);
   for (UINT i = 0; i < numMaterials; ++i) {
-    m_materials[i] = static_cast<HMATERIAL>(HandleDuplicate(source.m_materials[i]));
+    m_materials[i] = (HMATERIAL)HandleDuplicate(source.m_materials[i]);
   }
 
   CopyAttachments(source);
@@ -260,39 +246,18 @@ CModelComplex::CModelComplex(const CModelComplex &source) : CModelBase(source) {
 }
 
 CModelSimple::CModelSimple(const CModelSimple &source) : CModelBase(source) {
-  UINT i;
-
-  m_geosets.SetCount(5);
-  m_geosetColor.SetCount(5);
-  m_custGeosets.SetCount(1);
-  m_materials.SetCount(4);
-  m_textures.SetCount(4);
-  for (i = 0; i < 4; ++i) {
-    m_textures[i].handle = 0;
-    m_textures[i].replaceableId = 0;
-  }
-
   CopyMaterials(source);
-  m_textures.SetCount(source.m_textures.Count());
-  for (i = 0; i < source.m_textures.Count(); ++i) {
-    m_textures[i] = source.m_textures[i];
-  }
 
-  m_geosets.SetCount(source.m_geosets.Count());
-  for (i = 0; i < source.m_geosets.Count(); ++i) {
-    m_geosets[i] = source.m_geosets[i];
-  }
-  m_geosetColor.SetCount(source.m_geosetColor.Count());
-  for (i = 0; i < source.m_geosetColor.Count(); ++i) {
-    m_geosetColor[i] = source.m_geosetColor[i];
-  }
+  m_textures = source.m_textures;
+  m_geosets = source.m_geosets;
+  m_geosetColor = source.m_geosetColor;
   m_custGeosets.SetCount(0);
 }
 
 CModel::CModel(CModel &source)
     : asyncObject(0), createData(0) {
   ASSERT(source.shared);
-  shared = static_cast<HMODELSHARED>(HandleDuplicate(source.shared));
+  shared = (HMODELSHARED)HandleDuplicate(source.shared);
   ASSERT(shared);
 
   if (source.state == CMODEL_LOADED) {
@@ -312,9 +277,9 @@ void CModel::FinishDuplication(CModel &source) {
   }
 
   if (source.data->m_flags & 0x20) {
-    data = NEW(CModelComplex)(*static_cast<CModelComplex *>(source.data));
+    data = NEW(CModelComplex)(*(CModelComplex *)source.data);
   } else {
-    data = NEW(CModelSimple)(*static_cast<CModelSimple *>(source.data));
+    data = NEW(CModelSimple)(*(CModelSimple *)source.data);
   }
 
   source.data->m_flags &= ~4U;
@@ -329,9 +294,9 @@ CModel::~CModel() {
   switch (state) {
     case CMODEL_LOADED:
       if (data->m_flags & 0x20) {
-        DEL(reinterpret_cast<CModelComplex *>(data));
+        DEL((CModelComplex *)data);
       } else {
-        DEL(reinterpret_cast<CModelSimple *>(data));
+        DEL((CModelSimple *)data);
       }
       break;
     case CMODEL_ASYNC_WAIT:
@@ -376,46 +341,53 @@ static void UpdateParticleEmitters(CModelComplex *unique, UINT replaceableId, HT
 
 void ModelMaterialShowLayer(HMODEL model, UINT materialIndex, UINT layerIndex, int show) {
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = reinterpret_cast<CModelComplex *>(unique);
-    ASSERT(materialIndex < complex->m_materials.Count());
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(complex->m_materials[materialIndex]);
-    ASSERT(uniqueMtl);
-    ASSERT(layerIndex < uniqueMtl->layers.Count());
-    uniqueMtl->layers[layerIndex].layerAlpha = show ? 0xFF : 0;
+    CModelComplex *complex = (CModelComplex *)unique;
+    {
+      CModelComplex *unique = complex;
+      ASSERT(materialIndex < unique->m_materials.Count());
+      CMaterial *uniqueMtl = (CMaterial *)unique->m_materials[materialIndex];
+      ASSERT(uniqueMtl);
+      ASSERT(layerIndex < uniqueMtl->layers.Count());
+      uniqueMtl->layers[layerIndex].layerAlpha = show ? 0xFF : 0;
+    }
   } else {
-    CModelSimple *simple = reinterpret_cast<CModelSimple *>(unique);
-    ASSERT(materialIndex < simple->m_materials.Count());
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(simple->m_materials[materialIndex]);
-    ASSERT(uniqueMtl);
-    ASSERT(layerIndex < uniqueMtl->layers.Count());
-    uniqueMtl->layers[layerIndex].layerAlpha = show ? 0xFF : 0;
+    CModelSimple *simple = (CModelSimple *)unique;
+    {
+      CModelSimple *unique = simple;
+      ASSERT(materialIndex < unique->m_materials.Count());
+      CMaterial *uniqueMtl = (CMaterial *)unique->m_materials[materialIndex];
+      ASSERT(uniqueMtl);
+      ASSERT(layerIndex < uniqueMtl->layers.Count());
+      uniqueMtl->layers[layerIndex].layerAlpha = show ? 0xFF : 0;
+    }
   }
 }
 
 static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::CImVector &color, int doLinkedModels) {
   ASSERT(unique);
 
-  for (UINT i = 0; i < unique->m_materials.Count(); ++i) {
+  ASSERT(unique);
+  UINT numMaterials = unique->m_materials.Count();
+  for (UINT i = 0; i < numMaterials; ++i) {
     if (!MaterialUsedOnce(unique->m_materials[i])) {
       HMATERIAL oldMaterial = unique->m_materials[i];
-      unique->m_materials[i] = MaterialDuplicate(oldMaterial);
+      unique->m_materials[i] = MaterialDuplicate(unique->m_materials[i]);
       HandleClose(oldMaterial);
     }
 
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
+    CMaterial *uniqueMtl = (CMaterial *)unique->m_materials[i];
     ASSERT(uniqueMtl);
     uniqueMtl->emissiveColor = color;
   }
-
   if (doLinkedModels) {
-    for (UINT i = 0; i < unique->m_attached.Count(); ++i) {
-      LIST(LINKUNIQUE) &links = unique->m_attached[i];
-      ITERATELIST(LINKUNIQUE, links, link) {
+    UINT numAttachments = unique->m_attached.Count();
+    for (UINT i = 0; i < numAttachments; ++i) {
+      ITERATELIST(LINKUNIQUE, unique->m_attached[i], link) {
         ModelSetEmissiveColor(link->child, color, 1);
       }
     }
@@ -423,33 +395,33 @@ static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::
 }
 
 void ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int doLinkedModels) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
-    EnqueueModelCommand(modelptr, MODEL_SET_EMISSIVE_COLOR, *reinterpret_cast<const DWORD *>(&color), doLinkedModels);
+    EnqueueModelCommand(modelptr, MODEL_SET_EMISSIVE_COLOR, *&color, doLinkedModels);
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    ComplexModelSetEmissiveColor(static_cast<CModelComplex *>(unique), color, doLinkedModels);
-    return;
-  }
+    ComplexModelSetEmissiveColor((CModelComplex *)unique, color, doLinkedModels);
+  } else {
+    CModelSimple *simple = (CModelSimple *)unique;
+    UINT numMaterials = simple->m_materials.Count();
+    for (UINT i = 0; i < numMaterials; ++i) {
+      if (!MaterialUsedOnce(simple->m_materials[i])) {
+        HMATERIAL oldMaterial = simple->m_materials[i];
+        simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
+        HandleClose(oldMaterial);
+      }
 
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
-  for (UINT i = 0; i < simple->m_materials.Count(); ++i) {
-    if (!MaterialUsedOnce(simple->m_materials[i])) {
-      HMATERIAL oldMaterial = simple->m_materials[i];
-      simple->m_materials[i] = MaterialDuplicate(oldMaterial);
-      HandleClose(oldMaterial);
+      CMaterial *uniqueMtl = (CMaterial *)simple->m_materials[i];
+      ASSERT(uniqueMtl);
+      uniqueMtl->emissiveColor = color;
     }
-
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(simple->m_materials[i]);
-    ASSERT(uniqueMtl);
-    uniqueMtl->emissiveColor = color;
   }
 }
 
@@ -464,7 +436,7 @@ static UINT ComplexModelReplaceTexture(CModelComplex *unique, UINT replaceableId
 
     if (modelTexture.replaceableId == replaceableId) {
       HTEXTURE oldTexture = modelTexture.handle;
-      modelTexture.handle = static_cast<HTEXTURE>(HandleDuplicate(texture));
+      modelTexture.handle = (HTEXTURE)HandleDuplicate(texture);
       if (oldTexture) {
         HandleClose(oldTexture);
       }
@@ -490,7 +462,7 @@ static UINT ComplexModelReplaceTexture(CModelComplex *unique, UINT replaceableId
 BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int doLinkedModels) {
   CModelBase *unique;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATE(replaceableId != 0);
@@ -502,10 +474,10 @@ BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int
   }
 
   if (unique->m_flags & 0x20) {
-    return ComplexModelReplaceTexture(static_cast<CModelComplex *>(unique), replaceableId, texture, doLinkedModels) != 0;
+    return ComplexModelReplaceTexture((CModelComplex *)unique, replaceableId, texture, doLinkedModels) != 0;
   }
 
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
+  CModelSimple *simple = (CModelSimple *)unique;
   UINT          numReplaced = 0;
   UINT          numTextures = simple->m_textures.Count();
   for (UINT index = 0; index < numTextures; ++index) {
@@ -513,7 +485,7 @@ BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int
 
     if (modelTexture.replaceableId == replaceableId) {
       HTEXTURE oldTexture = modelTexture.handle;
-      modelTexture.handle = static_cast<HTEXTURE>(HandleDuplicate(texture));
+      modelTexture.handle = (HTEXTURE)HandleDuplicate(texture);
       if (oldTexture) {
         HandleClose(oldTexture);
       }
@@ -526,7 +498,7 @@ BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int
 
 UINT ModelGetMatrixCount(HMODEL model) {
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
+  if (IModelDerefHandle((CModel *)model, &shared)) {
     return shared->numBones;
   }
   return 0;
@@ -543,29 +515,30 @@ BOOL ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entrie
   VALIDATE(*entriesInOut > 0);
   VALIDATEEND;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) || !(unique->m_flags & 0x20)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared) || !(unique->m_flags & 0x20)) {
     *entriesInOut = 0;
     return 0;
   }
 
-  ASSERT(shared);
+  CModelShared *dataptr = shared;
+  ASSERT(dataptr);
   if (index >= shared->attachIdToIndex.Count()) {
     *entriesInOut = 0;
     return 0;
   }
 
   index = shared->attachIdToIndex[index];
-  if (index == static_cast<UINT>(-1)) {
+  if (index == (UINT)-1) {
     *entriesInOut = 0;
     return 0;
   }
 
   added = 0;
-  ITERATELIST(LINKUNIQUE, static_cast<CModelComplex *>(unique)->m_attached[index], link) {
+  ITERATELIST(LINKUNIQUE, ((CModelComplex *)unique)->m_attached[index], link) {
     if (added == *entriesInOut) {
       break;
     }
-    *modelList++ = static_cast<HMODEL>(HandleDuplicate(link->child));
+    *modelList++ = (HMODEL)HandleDuplicate(link->child);
     ++added;
   }
 
@@ -582,21 +555,22 @@ BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
   VALIDATEEND;
   *numLinked = 0;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) || !(unique->m_flags & 0x20)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared) || !(unique->m_flags & 0x20)) {
     return 0;
   }
 
-  ASSERT(shared);
+  CModelShared *dataptr = shared;
+  ASSERT(dataptr);
   if (index >= shared->attachIdToIndex.Count()) {
     return 0;
   }
 
   index = shared->attachIdToIndex[index];
-  if (index == static_cast<UINT>(-1)) {
+  if (index == (UINT)-1) {
     return 0;
   }
 
-  ITERATELIST(LINKUNIQUE, static_cast<CModelComplex *>(unique)->m_attached[index], link) {
+  ITERATELIST(LINKUNIQUE, ((CModelComplex *)unique)->m_attached[index], link) {
     ++*numLinked;
   }
 
@@ -606,19 +580,23 @@ BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
 BOOL ModelHasLinkPoint(HMODEL model, UINT index) {
   CModelShared *shared;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &shared)) {
     return 0;
   }
 
-  ASSERT(shared);
-  return index < shared->attachIdToIndex.Count() && shared->attachIdToIndex[index] != static_cast<UINT>(-1);
+  CModelShared *dataptr = shared;
+  ASSERT(dataptr);
+  if (index < dataptr->attachIdToIndex.Count() ? dataptr->attachIdToIndex[index] != (UINT)-1 : 0) {
+    return 1;
+  }
+  return 0;
 }
 
 UINT ModelGetNumLinkPoints(HMODEL model) {
   CModelBase *unique;
 
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && (unique->m_flags & 0x20)) {
-    return static_cast<CModelComplex *>(unique)->m_attached.Count();
+  if (IModelDerefHandle((CModel *)model, &unique) && (unique->m_flags & 0x20)) {
+    return ((CModelComplex *)unique)->m_attached.Count();
   }
 
   return 0;
@@ -629,7 +607,7 @@ BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   CModelShared  *parentdata;
   CModelComplex *parentptr;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(parent);
+  CModel *modelptr = (CModel *)parent;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEEND;
@@ -646,20 +624,21 @@ BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
     return 0;
   }
 
-  parentptr = static_cast<CModelComplex *>(parentBase);
-  ASSERT(parentdata);
+  parentptr = (CModelComplex *)parentBase;
+  CModelShared *dataptr = parentdata;
+  ASSERT(dataptr);
 
   if (parentIndex >= parentdata->attachIdToIndex.Count()) {
     return 0;
   }
 
-  if (parentdata->attachIdToIndex[parentIndex] == static_cast<UINT>(-1)) {
+  if (parentdata->attachIdToIndex[parentIndex] == (UINT)-1) {
     return 0;
   }
 
   LIST(LINKUNIQUE) &links = parentptr->m_attached[parentdata->attachIdToIndex[parentIndex]];
   LINKUNIQUE *link = links.NewNode(LIST_TAIL, 0, 0);
-  link->child = static_cast<HMODEL>(HandleDuplicate(child));
+  link->child = (HMODEL)HandleDuplicate(child);
   link->scale = scale;
 
   ModelSetLightSelectCallback(link->child, parentptr->m_PickLights, parentptr->m_pickLightsParm, 1);
@@ -670,7 +649,7 @@ BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
   CModelBase   *parentBase;
   CModelShared *parentdata;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(parent);
+  CModel *modelptr = (CModel *)parent;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEEND;
@@ -684,18 +663,19 @@ BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
     return 0;
   }
 
-  CModelComplex *parentptr = static_cast<CModelComplex *>(parentBase);
-  ASSERT(parentdata);
+  CModelComplex *parentptr = (CModelComplex *)parentBase;
+  CModelShared *dataptr = parentdata;
+  ASSERT(dataptr);
   if (parentIndex >= parentdata->attachIdToIndex.Count()) {
     return 0;
   }
 
   parentIndex = parentdata->attachIdToIndex[parentIndex];
-  if (parentIndex == static_cast<UINT>(-1)) {
+  if (parentIndex == (UINT)-1) {
     return 0;
   }
 
-  CModel *childptr = reinterpret_cast<CModel *>(child);
+  CModel *childptr = (CModel *)child;
   ASSERT(childptr);
   LIST(LINKUNIQUE) &links = parentptr->m_attached[parentIndex];
   ITERATELIST(LINKUNIQUE, links, link) {
@@ -712,7 +692,7 @@ BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
   CModelShared  *parentdata;
   CModelComplex *parentptr;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(parent);
+  CModel *modelptr = (CModel *)parent;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEEND;
@@ -726,15 +706,16 @@ BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
     return 0;
   }
 
-  parentptr = static_cast<CModelComplex *>(parentBase);
-  ASSERT(parentdata);
+  parentptr = (CModelComplex *)parentBase;
+  CModelShared *dataptr = parentdata;
+  ASSERT(dataptr);
 
   if (parentIndex >= parentdata->attachIdToIndex.Count()) {
     return 0;
   }
 
   parentIndex = parentdata->attachIdToIndex[parentIndex];
-  if (parentIndex == static_cast<UINT>(-1)) {
+  if (parentIndex == (UINT)-1) {
     return 0;
   }
 
@@ -747,7 +728,7 @@ void ModelClearAllLinks(HMODEL parent) {
   UINT        numAttachments;
   UINT        i;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(parent);
+  CModel *modelptr = (CModel *)parent;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -761,7 +742,7 @@ void ModelClearAllLinks(HMODEL parent) {
     return;
   }
 
-  CModelComplex *parentptr = static_cast<CModelComplex *>(parentBase);
+  CModelComplex *parentptr = (CModelComplex *)parentBase;
   numAttachments = parentptr->m_attached.Count();
   for (i = 0; i < numAttachments; ++i) {
     parentptr->m_attached[i].Clear();
@@ -771,8 +752,8 @@ void ModelClearAllLinks(HMODEL parent) {
 UINT ModelGetNumCameras(HMODEL model) {
   CModelBase *unique;
 
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && (unique->m_flags & 0x20)) {
-    return static_cast<CModelComplex *>(unique)->m_cameras.Count();
+  if (IModelDerefHandle((CModel *)model, &unique) && (unique->m_flags & 0x20)) {
+    return ((CModelComplex *)unique)->m_cameras.Count();
   }
 
   return 0;
@@ -781,18 +762,18 @@ UINT ModelGetNumCameras(HMODEL model) {
 HCAMERA ModelGetCamera(HMODEL model, UINT index) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) || !(unique->m_flags & 0x20)) {
+  if (!IModelDerefHandle((CModel *)model, &unique) || !(unique->m_flags & 0x20)) {
     return 0;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  CModelComplex *complex = (CModelComplex *)unique;
   if (complex->m_cameraOrder.Count()) {
     if (index >= complex->m_cameraOrder.Count()) {
       return 0;
     }
 
     index = complex->m_cameraOrder[index];
-    if (index == static_cast<UINT>(-1)) {
+    if (index == (UINT)-1) {
       return 0;
     }
   }
@@ -801,24 +782,24 @@ HCAMERA ModelGetCamera(HMODEL model, UINT index) {
   VALIDATE(index < complex->m_cameras.Count());
   VALIDATEEND;
 
-  return static_cast<HCAMERA>(HandleDuplicate(complex->m_cameras[index]));
+  return (HCAMERA)HandleDuplicate(complex->m_cameras[index]);
 }
 
 int ModelIsCameraEnabled(HMODEL model, UINT index) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) || !(unique->m_flags & 0x20)) {
+  if (!IModelDerefHandle((CModel *)model, &unique) || !(unique->m_flags & 0x20)) {
     return 0;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  CModelComplex *complex = (CModelComplex *)unique;
   if (complex->m_cameraOrder.Count()) {
     if (index >= complex->m_cameraOrder.Count()) {
       return 0;
     }
 
     index = complex->m_cameraOrder[index];
-    if (index == static_cast<UINT>(-1)) {
+    if (index == (UINT)-1) {
       return 0;
     }
   }
@@ -832,19 +813,19 @@ int ModelIsCameraEnabled(HMODEL model, UINT index) {
 BOOL ModelIsShowingBoundingSphere(HMODEL model) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_boundsModel && (unique->m_flags & 1);
+  return IModelDerefHandle((CModel *)model, &unique) && unique->m_boundsModel && (unique->m_flags & 1);
 }
 
 BOOL ModelIsShowingBoundingBox(HMODEL model) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_boundsModel && !(unique->m_flags & 1);
+  return IModelDerefHandle((CModel *)model, &unique) && unique->m_boundsModel && !(unique->m_flags & 1);
 }
 
 BOOL ModelIsShowingHitTestGeometry(HMODEL model) {
   CModelBase *unique;
 
-  return IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && (unique->m_flags & 8);
+  return IModelDerefHandle((CModel *)model, &unique) && (unique->m_flags & 8);
 }
 
 static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedModels) {
@@ -852,22 +833,27 @@ static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedMode
 
   ASSERT(unique);
 
-  for (UINT i = 0; i < unique->m_materials.Count(); ++i) {
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
+  UINT numMaterials = unique->m_materials.Count();
+  for (UINT i = 0; i < numMaterials; ++i) {
+    CMaterial *uniqueMtl = (CMaterial *)unique->m_materials[i];
     ASSERT(uniqueMtl);
 
-    CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+    CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
     ASSERT(sharedMtl);
 
     if (!MaterialUsedOnce(unique->m_materials[i])) {
+      HMATERIAL oldMaterial = unique->m_materials[i];
       unique->m_materials[i] = MaterialDuplicate(unique->m_materials[i]);
-      HandleClose(reinterpret_cast<HMATERIAL>(uniqueMtl));
-      uniqueMtl = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
+      HandleClose(oldMaterial);
+      uniqueMtl = (CMaterial *)unique->m_materials[i];
       ASSERT(uniqueMtl);
     }
 
-    for (UINT layer = 0; layer < sharedMtl->layers.Count(); ++layer) {
-      uniqueMtl->layers[layer].blendMode = sharedMtl->layers[layer].blendMode;
+    UINT             numLayers = sharedMtl->layers.Count();
+    CTexLayer       *uniqueLayer = uniqueMtl->layers.Ptr();
+    CTexLayerShared *sharedLayer = sharedMtl->layers.Ptr();
+    for (; numLayers; --numLayers, ++uniqueLayer, ++sharedLayer) {
+      uniqueLayer->blendMode = sharedLayer->blendMode;
     }
   }
 
@@ -884,32 +870,36 @@ static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedMode
 void ModelRestoreBlendMode(HMODEL model, int doLinkedModels) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    ComplexModelRestoreBlendMode(static_cast<CModelComplex *>(unique), doLinkedModels);
-    return;
-  }
-
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
-  for (UINT i = 0; i < simple->m_materials.Count(); ++i) {
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(simple->m_materials[i]);
-    ASSERT(uniqueMtl);
-
-    CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
-    ASSERT(sharedMtl);
-
-    if (!MaterialUsedOnce(simple->m_materials[i])) {
-      simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
-      HandleClose(reinterpret_cast<HMATERIAL>(uniqueMtl));
-      uniqueMtl = reinterpret_cast<CMaterial *>(simple->m_materials[i]);
+    ComplexModelRestoreBlendMode((CModelComplex *)unique, doLinkedModels);
+  } else {
+    CModelSimple *simple = (CModelSimple *)unique;
+    UINT numMaterials = simple->m_materials.Count();
+    for (UINT i = 0; i < numMaterials; ++i) {
+      CMaterial *uniqueMtl = (CMaterial *)simple->m_materials[i];
       ASSERT(uniqueMtl);
-    }
 
-    for (UINT layer = 0; layer < sharedMtl->layers.Count(); ++layer) {
-      uniqueMtl->layers[layer].blendMode = sharedMtl->layers[layer].blendMode;
+      CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
+      ASSERT(sharedMtl);
+
+      if (!MaterialUsedOnce(simple->m_materials[i])) {
+        HMATERIAL oldMaterial = simple->m_materials[i];
+        simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
+        HandleClose(oldMaterial);
+        uniqueMtl = (CMaterial *)simple->m_materials[i];
+        ASSERT(uniqueMtl);
+      }
+
+      UINT             numLayers = sharedMtl->layers.Count();
+      CTexLayer       *uniqueLayer = uniqueMtl->layers.Ptr();
+      CTexLayerShared *sharedLayer = sharedMtl->layers.Ptr();
+      for (; numLayers; --numLayers, ++uniqueLayer, ++sharedLayer) {
+        uniqueLayer->blendMode = sharedLayer->blendMode;
+      }
     }
   }
 }
@@ -919,22 +909,27 @@ static void ComplexModelSetBlendMode(CModelComplex *unique, EGxBlend blendMode, 
 
   ASSERT(unique);
 
-  for (UINT i = 0; i < unique->m_materials.Count(); ++i) {
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
+  UINT numMaterials = unique->m_materials.Count();
+  for (UINT i = 0; i < numMaterials; ++i) {
+    CMaterial *uniqueMtl = (CMaterial *)unique->m_materials[i];
     ASSERT(uniqueMtl);
 
-    CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+    CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
     ASSERT(sharedMtl);
 
     if (!MaterialUsedOnce(unique->m_materials[i])) {
+      HMATERIAL oldMaterial = unique->m_materials[i];
       unique->m_materials[i] = MaterialDuplicate(unique->m_materials[i]);
-      HandleClose(reinterpret_cast<HMATERIAL>(uniqueMtl));
-      uniqueMtl = reinterpret_cast<CMaterial *>(unique->m_materials[i]);
+      HandleClose(oldMaterial);
+      uniqueMtl = (CMaterial *)unique->m_materials[i];
       ASSERT(uniqueMtl);
     }
 
-    for (UINT layer = 0; layer < sharedMtl->layers.Count(); ++layer) {
-      uniqueMtl->layers[layer].blendMode = blendMode;
+    UINT             numLayers = sharedMtl->layers.Count();
+    CTexLayer       *uniqueLayer = uniqueMtl->layers.Ptr();
+    CTexLayerShared *sharedLayer = sharedMtl->layers.Ptr();
+    for (; numLayers; --numLayers, ++uniqueLayer, ++sharedLayer) {
+      uniqueLayer->blendMode = blendMode;
     }
   }
 
@@ -951,32 +946,36 @@ static void ComplexModelSetBlendMode(CModelComplex *unique, EGxBlend blendMode, 
 void ModelSetBlendMode(HMODEL model, EGxBlend blendMode, int doLinkedModels) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    ComplexModelSetBlendMode(static_cast<CModelComplex *>(unique), blendMode, doLinkedModels);
-    return;
-  }
-
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
-  for (UINT i = 0; i < simple->m_materials.Count(); ++i) {
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(simple->m_materials[i]);
-    ASSERT(uniqueMtl);
-
-    CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
-    ASSERT(sharedMtl);
-
-    if (!MaterialUsedOnce(simple->m_materials[i])) {
-      simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
-      HandleClose(reinterpret_cast<HMATERIAL>(uniqueMtl));
-      uniqueMtl = reinterpret_cast<CMaterial *>(simple->m_materials[i]);
+    ComplexModelSetBlendMode((CModelComplex *)unique, blendMode, doLinkedModels);
+  } else {
+    CModelSimple *simple = (CModelSimple *)unique;
+    UINT numMaterials = simple->m_materials.Count();
+    for (UINT i = 0; i < numMaterials; ++i) {
+      CMaterial *uniqueMtl = (CMaterial *)simple->m_materials[i];
       ASSERT(uniqueMtl);
-    }
 
-    for (UINT layer = 0; layer < sharedMtl->layers.Count(); ++layer) {
-      uniqueMtl->layers[layer].blendMode = blendMode;
+      CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
+      ASSERT(sharedMtl);
+
+      if (!MaterialUsedOnce(simple->m_materials[i])) {
+        HMATERIAL oldMaterial = simple->m_materials[i];
+        simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
+        HandleClose(oldMaterial);
+        uniqueMtl = (CMaterial *)simple->m_materials[i];
+        ASSERT(uniqueMtl);
+      }
+
+      UINT             numLayers = sharedMtl->layers.Count();
+      CTexLayer       *uniqueLayer = uniqueMtl->layers.Ptr();
+      CTexLayerShared *sharedLayer = sharedMtl->layers.Ptr();
+      for (; numLayers; --numLayers, ++uniqueLayer, ++sharedLayer) {
+        uniqueLayer->blendMode = blendMode;
+      }
     }
   }
 }
@@ -996,7 +995,7 @@ inline void IModelHideGeosets(T *modelptr, CModelShared *shared, UINT selectionG
 }
 
 void ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1009,10 +1008,10 @@ void ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide) {
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     IModelHideGeosets(complex, shared, selectionGroup, hide);
   } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    CModelSimple *simple = (CModelSimple *)unique;
     IModelHideGeosets(simple, shared, selectionGroup, hide);
   }
 }
@@ -1031,7 +1030,7 @@ inline void IModelHideGeosetsRange(T *modelptr, CModelShared *shared, UINT selec
 }
 
 void ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd, int hide) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1044,10 +1043,10 @@ void ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd,
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     IModelHideGeosetsRange(complex, shared, selectionStart, selectionEnd, hide);
   } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    CModelSimple *simple = (CModelSimple *)unique;
     IModelHideGeosetsRange(simple, shared, selectionStart, selectionEnd, hide);
   }
 }
@@ -1075,14 +1074,14 @@ UINT CMatrixGroupTree::Insert(UINT *matrixGroup, UINT numMatrices) {
     }
 
     if (GroupLessThan(matrixGroup, numMatrices, nodes[parentIndex].matrices, nodes[parentIndex].numMatrices)) {
-      if (nodes[parentIndex].leftIndex == static_cast<UINT>(-1)) {
+      if (nodes[parentIndex].leftIndex == (UINT)-1) {
         UINT childIndex = AddNode(matrixGroup, numMatrices);
         nodes[parentIndex].leftIndex = childIndex;
         return childIndex;
       }
       parentIndex = nodes[parentIndex].leftIndex;
     } else {
-      if (nodes[parentIndex].rightIndex == static_cast<UINT>(-1)) {
+      if (nodes[parentIndex].rightIndex == (UINT)-1) {
         UINT childIndex = AddNode(matrixGroup, numMatrices);
         nodes[parentIndex].rightIndex = childIndex;
         return childIndex;
@@ -1125,7 +1124,7 @@ static void AddMatrixGroupRangeToSet(
   UINT  numMatrices = srcGeoset->groupMatrixCounts[middle];
   UINT  groupCount = matrixGroupSets->GroupCount();
   UINT  index = matrixGroupSets->Insert(matrices, numMatrices);
-  groupIdConvert[middle] = static_cast<BYTE>(index);
+  groupIdConvert[middle] = index;
 
   if (matrixGroupSets->GroupCount() > groupCount) {
     matrixOffset = matrixGroupSets->MatrixCount() - numMatrices;
@@ -1145,7 +1144,7 @@ static void AddGeosetMatrixGroups(CMatrixGroupTree *matrixGroupSets, CGeosetShar
   UINT               numIndices = srcGeoset->primitiveVertices.Count();
   TSStackArray<BYTE> groupIdConvert(_alloca(numIndices), numIndices, numIndices);
   UINT               numGroups = srcGeoset->groupMatrixCounts.Count();
-  UINT              *matrixOffsets = static_cast<UINT *>(_alloca(numGroups * sizeof(UINT)));
+  UINT              *matrixOffsets = (UINT *)_alloca(numGroups * sizeof(UINT));
   UINT               total = 0;
   UINT               index;
 
@@ -1229,7 +1228,7 @@ static void BuildCompositeGeoset(CGeosetShared *newGeoset, UINT geosetId, CGeose
     WORD *srcIndex = geosets[geosetIds[i]].primitiveVertices.Ptr();
     WORD *dest = &newGeoset->primitiveVertices[numIndices];
     for (UINT primitiveIndex = geosets[geosetIds[i]].primitiveVertices.Count(); primitiveIndex; --primitiveIndex) {
-      *dest++ = static_cast<WORD>(*srcIndex++ + numVertices);
+      *dest++ = *srcIndex++ + numVertices;
     }
 
     AddGeosetMatrixGroups(&matrixGroupSets, &geosets[geosetIds[i]], newGeoset, numVertices);
@@ -1288,7 +1287,7 @@ static void IModelOptimizeVisibleGeosets(CModelComplex *unique, CModelShared *sh
 }
 
 BOOL ModelOptimizeVisibleGeosets(HMODEL model) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEEND;
@@ -1304,19 +1303,19 @@ BOOL ModelOptimizeVisibleGeosets(HMODEL model) {
     return 0;
   }
 
-  IModelOptimizeVisibleGeosets(static_cast<CModelComplex *>(unique), shared);
+  IModelOptimizeVisibleGeosets((CModelComplex *)unique, shared);
   return 1;
 }
 
 BYTE ModelGetVertexAlpha(HMODEL model) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return 0xFF;
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     if (!complex->m_geosetColor.Count()) {
       return 0xFF;
     }
@@ -1324,7 +1323,7 @@ BYTE ModelGetVertexAlpha(HMODEL model) {
     return NTempest::CMath::fuint_(complex->m_geosetColor[0].proceduralAlpha * 255.0f);
   }
 
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
+  CModelSimple *simple = (CModelSimple *)unique;
   if (!simple->m_geosetColor.Count()) {
     return 0xFF;
   }
@@ -1342,17 +1341,17 @@ static void GeosetSetVertexAlpha(CGeosetShared *geoShared, CGeosetColor *geoColo
   geoColor->proceduralAlpha = alpha;
   geoColor->animatedColor.a = NTempest::CMath::ftol_0_256_(alpha * geoColor->animatedAlpha * 255.0f);
 
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[geoShared->materialId]);
+  CMaterial *uniqueMtl = (CMaterial *)materials[geoShared->materialId];
   ASSERT(uniqueMtl);
 
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
-  if (!MaterialUsedOnce(reinterpret_cast<HMATERIAL>(uniqueMtl))) {
-    HMATERIAL oldMaterial = reinterpret_cast<HMATERIAL>(uniqueMtl);
-    uniqueMtl = reinterpret_cast<CMaterial *>(MaterialDuplicate(oldMaterial));
+  if (!MaterialUsedOnce((HMATERIAL)uniqueMtl)) {
+    HMATERIAL oldMaterial = (HMATERIAL)uniqueMtl;
+    uniqueMtl = (CMaterial *)MaterialDuplicate(oldMaterial);
     HandleClose(oldMaterial);
-    materials[geoShared->materialId] = reinterpret_cast<HMATERIAL>(uniqueMtl);
+    materials[geoShared->materialId] = (HMATERIAL)uniqueMtl;
     ASSERT(uniqueMtl);
   }
 
@@ -1377,7 +1376,7 @@ static void GeosetSetVertexAlpha(CGeosetShared *geoShared, CGeosetColor *geoColo
 static void IModelSetVertexAlpha(CModelSimple *unique, CModelShared *shared, BYTE alpha) {
   ASSERT(unique);
 
-  float fAlpha = static_cast<float>(alpha) * 0.0039215689f;
+  float fAlpha = (float)alpha * 0.0039215689f;
   UINT  numGeosets = unique->m_geosets.Count();
   for (UINT i = 0; i < numGeosets; ++i) {
     GeosetSetVertexAlpha(&shared->geosets[i], &unique->m_geosetColor[i], unique->m_materials.Ptr(), fAlpha);
@@ -1387,7 +1386,7 @@ static void IModelSetVertexAlpha(CModelSimple *unique, CModelShared *shared, BYT
 static void IModelSetVertexAlpha(CModelComplex *unique, CModelShared *shared, BYTE alpha) {
   ASSERT(unique);
 
-  float fAlpha = static_cast<float>(alpha) * 0.0039215689f;
+  float fAlpha = (float)alpha * 0.0039215689f;
   for (UINT i = 0; i < shared->numGeosets; ++i) {
     GeosetSetVertexAlpha(&shared->geosets[i], &unique->m_geosetColor[i], unique->m_materials.Ptr(), fAlpha);
   }
@@ -1402,7 +1401,7 @@ void ModelSetVertexAlpha(HMODEL model, BYTE alpha, int doLinkedModels) {
   CModelBase   *unique;
   CModelShared *shared;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1413,11 +1412,11 @@ void ModelSetVertexAlpha(HMODEL model, BYTE alpha, int doLinkedModels) {
   }
 
   if (!(unique->m_flags & 0x20)) {
-    IModelSetVertexAlpha(static_cast<CModelSimple *>(unique), shared, alpha);
+    IModelSetVertexAlpha((CModelSimple *)unique, shared, alpha);
     return;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  CModelComplex *complex = (CModelComplex *)unique;
   IModelSetVertexAlpha(complex, shared, alpha);
 
   if (!doLinkedModels) {
@@ -1439,12 +1438,12 @@ void ModelGetVertexColor(HMODEL model, BYTE &red, BYTE &green, BYTE &blue) {
   green = 0;
   blue = 0;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     if (!complex->m_geosetColor.Count()) {
       return;
     }
@@ -1455,7 +1454,7 @@ void ModelGetVertexColor(HMODEL model, BYTE &red, BYTE &green, BYTE &blue) {
     return;
   }
 
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
+  CModelSimple *simple = (CModelSimple *)unique;
   if (!simple->m_geosetColor.Count()) {
     return;
   }
@@ -1502,7 +1501,7 @@ void ModelSetVertexColor(HMODEL model, BYTE red, BYTE green, BYTE blue, int doLi
   CModelBase   *unique;
   CModelShared *shared;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1513,11 +1512,11 @@ void ModelSetVertexColor(HMODEL model, BYTE red, BYTE green, BYTE blue, int doLi
   }
 
   if (!(unique->m_flags & 0x20)) {
-    IModelSetVertexColor(static_cast<CModelSimple *>(unique), shared, red, green, blue);
+    IModelSetVertexColor((CModelSimple *)unique, shared, red, green, blue);
     return;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  CModelComplex *complex = (CModelComplex *)unique;
   IModelSetVertexColor(complex, shared, red, green, blue);
 
   if (!doLinkedModels) {
@@ -1561,14 +1560,14 @@ void ModelShowUnselectable(HMODEL model, BYTE red, BYTE green, BYTE blue) {
   CModelBase   *unique;
   CModelShared *shared;
   UINT          i;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
     return;
   }
 
   if (!(unique->m_flags & 0x20)) {
-    IModelShowUnselectable(static_cast<CModelSimple *>(unique), shared, red, green, blue);
+    IModelShowUnselectable((CModelSimple *)unique, shared, red, green, blue);
   } else {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     IModelShowUnselectable(complex, shared, red, green, blue);
 
     UINT numAttachments = complex->m_attached.Count();
@@ -1610,14 +1609,14 @@ void ModelHideUnselectable(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   UINT          i;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
     return;
   }
 
   if (!(unique->m_flags & 0x20)) {
-    IModelHideUnselectable(static_cast<CModelSimple *>(unique), shared);
+    IModelHideUnselectable((CModelSimple *)unique, shared);
   } else {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     IModelHideUnselectable(complex, shared);
 
     UINT numAttachments = complex->m_attached.Count();
@@ -1643,7 +1642,7 @@ static BOOL GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets)
 BOOL ModelIsShowingUnselectable(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
     return 0;
   }
 
@@ -1652,7 +1651,7 @@ BOOL ModelIsShowingUnselectable(HMODEL model) {
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     UINT           numAttachments = complex->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
@@ -1668,7 +1667,7 @@ BOOL ModelIsShowingUnselectable(HMODEL model) {
 void ModelEnableLights(HMODEL model, int enable) {
   CModelBase *pModel;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &pModel)) {
+  if (!IModelDerefHandle((CModel *)model, &pModel)) {
     return;
   }
 
@@ -1676,7 +1675,7 @@ void ModelEnableLights(HMODEL model, int enable) {
     return;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(pModel);
+  CModelComplex *complex = (CModelComplex *)pModel;
   UINT           count = complex->m_lights.Count();
   for (UINT i = 0; i < count; ++i) {
     GxuLightEnableSet(complex->m_lights[i], enable);
@@ -1686,17 +1685,17 @@ void ModelEnableLights(HMODEL model, int enable) {
 UINT ModelGetNumLights(HMODEL model) {
   CModelBase *pModel;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &pModel) || !(pModel->m_flags & 0x20)) {
+  if (!IModelDerefHandle((CModel *)model, &pModel) || !(pModel->m_flags & 0x20)) {
     return 0;
   }
 
-  return static_cast<CModelComplex *>(pModel)->m_lights.Count();
+  return ((CModelComplex *)pModel)->m_lights.Count();
 }
 
 const CGxLight *ModelGetLight(HMODEL model, UINT index) {
   CModelBase *pModel;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &pModel)) {
+  if (!IModelDerefHandle((CModel *)model, &pModel)) {
     return 0;
   }
 
@@ -1704,7 +1703,7 @@ const CGxLight *ModelGetLight(HMODEL model, UINT index) {
   VALIDATE(pModel->m_flags & 0x00000020);
   VALIDATEEND;
 
-  CModelComplex *complex = static_cast<CModelComplex *>(pModel);
+  CModelComplex *complex = (CModelComplex *)pModel;
   return GxuLightLock(complex->m_lights[index]);
 }
 
@@ -1716,7 +1715,7 @@ void ModelSetLightSelectCallback(
 ) {
   CModelBase *unique;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1733,7 +1732,7 @@ void ModelSetLightSelectCallback(
     return;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  CModelComplex *complex = (CModelComplex *)unique;
   UINT           numAttachments = complex->m_attached.Count();
   for (UINT i = 0; i < numAttachments; ++i) {
     ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
@@ -1753,17 +1752,17 @@ void ModelCustGeosetAdd(
   VALIDATEENDVOID;
 
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   CCustomGeoset *geoset;
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     *custGeosetId = complex->m_custGeosets.Count();
     geoset = complex->m_custGeosets.New();
   } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    CModelSimple *simple = (CModelSimple *)unique;
     *custGeosetId = simple->m_custGeosets.Count();
     simple->m_custGeosets.SetCount(*custGeosetId + 1);
     geoset = &simple->m_custGeosets[*custGeosetId];
@@ -1777,44 +1776,44 @@ void ModelCustGeosetAdd(
 void ModelCustGeosetMove(HMODEL model, UINT custGeosetId, const NTempest::C3Vector &modelSpacePosition) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
-  (unique->m_flags & 0x20 ? static_cast<CModelComplex *>(unique)->m_custGeosets[custGeosetId]
-                          : static_cast<CModelSimple *>(unique)->m_custGeosets[custGeosetId])
+  (unique->m_flags & 0x20 ? ((CModelComplex *)unique)->m_custGeosets[custGeosetId]
+                          : ((CModelSimple *)unique)->m_custGeosets[custGeosetId])
       .position = modelSpacePosition;
 }
 
 void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId) {
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    ASSERT(custGeosetId < static_cast<CModelComplex *>(unique)->m_custGeosets.Count());
-    memmove(
-        &static_cast<CModelComplex *>(unique)->m_custGeosets[custGeosetId],
-        static_cast<CModelComplex *>(unique)->m_custGeosets.Ptr() + custGeosetId + 1,
-        (static_cast<CModelComplex *>(unique)->m_custGeosets.Count() - custGeosetId - 1) * sizeof(CCustomGeoset)
-    );
-    static_cast<CModelComplex *>(unique)->m_custGeosets.SetCount(static_cast<CModelComplex *>(unique)->m_custGeosets.Count() - 1);
+    CModelComplex *complex = (CModelComplex *)unique;
+    {
+      CModelComplex *unique = complex;
+      ASSERT(custGeosetId < unique->m_custGeosets.Count());
+      memmove(&unique->m_custGeosets[custGeosetId], &unique->m_custGeosets[custGeosetId] + 1, (unique->m_custGeosets.Count() - (custGeosetId + 1)) * sizeof(CCustomGeoset));
+      unique->m_custGeosets.SetCount(unique->m_custGeosets.Count() - 1);
+    }
   } else {
-    ASSERT(custGeosetId < static_cast<CModelSimple *>(unique)->m_custGeosets.Count());
-    memmove(
-        &static_cast<CModelSimple *>(unique)->m_custGeosets[custGeosetId],
-        static_cast<CModelSimple *>(unique)->m_custGeosets.Ptr() + custGeosetId + 1,
-        (static_cast<CModelSimple *>(unique)->m_custGeosets.Count() - custGeosetId - 1) * sizeof(CCustomGeoset)
-    );
-    static_cast<CModelSimple *>(unique)->m_custGeosets.SetCount(static_cast<CModelSimple *>(unique)->m_custGeosets.Count() - 1);
+    CModelSimple *simple = (CModelSimple *)unique;
+    {
+      CModelSimple *unique = simple;
+      ASSERT(custGeosetId < unique->m_custGeosets.Count());
+      memmove(&unique->m_custGeosets[custGeosetId], &unique->m_custGeosets[custGeosetId] + 1, (unique->m_custGeosets.Count() - (custGeosetId + 1)) * sizeof(CCustomGeoset));
+      unique->m_custGeosets.SetCount(unique->m_custGeosets.Count() - 1);
+    }
   }
 }
 
 void ModelEnumAnimObjects(HMODEL model, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOID param) {
   CModelBase *unique;
 
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+  if (IModelDerefHandle((CModel *)model, &unique) && unique->m_anim) {
     AnimEnumObjects(unique->m_anim, callbackfcn, param);
   }
 }
@@ -1822,7 +1821,7 @@ void ModelEnumAnimObjects(HMODEL model, int (*callbackfcn)(UINT, LPCSTR, LPVOID)
 int ModelGetSequenceTime(HMODEL model, UINT seqIndex) {
   CModelBase *unique;
 
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+  if (IModelDerefHandle((CModel *)model, &unique) && unique->m_anim) {
     return AnimGetSequenceTime(unique->m_anim, seqIndex);
   }
   return 0;
@@ -1831,7 +1830,7 @@ int ModelGetSequenceTime(HMODEL model, UINT seqIndex) {
 UINT ModelGetPrimarySequence(HMODEL model) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) || !unique->m_anim) {
+  if (!IModelDerefHandle((CModel *)model, &unique) || !unique->m_anim) {
     return 0;
   }
 
@@ -1843,7 +1842,7 @@ UINT ModelGetPrimarySequence(HMODEL model) {
 void ModelEnableAnimBlending(HMODEL model, int enabled) {
   CModelBase *unique;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1861,7 +1860,7 @@ void ModelEnableAnimBlending(HMODEL model, int enabled) {
 BOOL ModelUsesBlending(HMODEL model) {
   CModelBase *unique;
 
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+  if (IModelDerefHandle((CModel *)model, &unique) && unique->m_anim) {
     return AnimUsesBlending(unique->m_anim);
   }
 
@@ -1873,12 +1872,12 @@ void ModelEnableEmitters(HMODEL model, int enable, int doLinkedModels) {
   CModelComplex *complex;
   CModelBase    *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   ASSERT(unique->m_flags & 0x00000020);
-  complex = static_cast<CModelComplex *>(unique);
+  complex = (CModelComplex *)unique;
 
   numElements = complex->m_emitters2.Count();
   for (UINT i = 0; i < numElements; ++i) {
@@ -1898,12 +1897,12 @@ void ModelEnableEmitters(HMODEL model, int enable, int doLinkedModels) {
 void ModelEnableRibbons(HMODEL model, int enable) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   ASSERT(unique->m_flags & 0x00000020);
-  CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  CModelComplex *complex = (CModelComplex *)unique;
 
   UINT numElements = complex->m_ribbons.Count();
   for (UINT i = 0; i < numElements; ++i) {
@@ -1920,20 +1919,20 @@ void IModelEnableFullAlpha(CModelBase *unique, int enable) {
 
   alphaOp = enable ? GxBlend_Alpha : GxBlend_AlphaKey;
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     materials = complex->m_materials.Ptr();
     numMaterials = complex->m_materials.Count();
   } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    CModelSimple *simple = (CModelSimple *)unique;
     materials = simple->m_materials.Ptr();
     numMaterials = simple->m_materials.Count();
   }
 
   for (; numMaterials; --numMaterials, ++materials) {
-    CMaterial *materialUnique = reinterpret_cast<CMaterial *>(*materials);
+    CMaterial *materialUnique = (CMaterial *)*materials;
     ASSERT(materialUnique);
 
-    CMaterialShared *materialShared = reinterpret_cast<CMaterialShared *>(materialUnique->data);
+    CMaterialShared *materialShared = (CMaterialShared *)materialUnique->data;
     ASSERT(materialShared);
 
     UINT             numLayers = materialShared->layers.Count();
@@ -1950,7 +1949,7 @@ void IModelEnableFullAlpha(CModelBase *unique, int enable) {
 void ModelEnableFullAlpha(HMODEL model, int enable) {
   CModelBase *unique;
 
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -1966,7 +1965,7 @@ void ModelEnableFullAlpha(HMODEL model, int enable) {
 BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId) {
   CModelBase *unique;
 
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique) && unique->m_anim) {
+  if (IModelDerefHandle((CModel *)model, &unique) && unique->m_anim) {
     return AnimHasObjectId(unique->m_anim, objectId);
   }
 
@@ -1975,7 +1974,7 @@ BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId) {
 
 static void IModelSetMaterialDisables(HMATERIAL *materials, UINT numMaterials, UINT setMask, UINT unsetMask) {
   for (UINT i = 0; i < numMaterials; ++i) {
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[i]);
+    CMaterial *uniqueMtl = (CMaterial *)materials[i];
     ASSERT(uniqueMtl);
 
     UINT numLayers = uniqueMtl->layers.Count();
@@ -2048,14 +2047,14 @@ static void ComplexModelSetMaterialDisables(CModelComplex *unique, UINT setMask,
 
 void ModelSetMaterialDisables(HMODEL model, UINT setMask, UINT unsetMask, int doLinkedModels) {
   CModelBase *unique;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return;
   }
 
   if (unique->m_flags & 0x20) {
-    ComplexModelSetMaterialDisables(static_cast<CModelComplex *>(unique), setMask, unsetMask, doLinkedModels);
+    ComplexModelSetMaterialDisables((CModelComplex *)unique, setMask, unsetMask, doLinkedModels);
   } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(unique);
+    CModelSimple *simple = (CModelSimple *)unique;
     IModelSetMaterialDisables(simple->m_materials.Ptr(), simple->m_materials.Count(), setMask, unsetMask);
   }
 }
@@ -2063,31 +2062,31 @@ void ModelSetMaterialDisables(HMODEL model, UINT setMask, UINT unsetMask, int do
 UINT ModelGetNumTextures(HMODEL model) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return 0;
   }
 
   if (unique->m_flags & 0x20) {
-    return static_cast<CModelComplex *>(unique)->m_textures.Count();
+    return ((CModelComplex *)unique)->m_textures.Count();
   }
 
-  return static_cast<CModelSimple *>(unique)->m_textures.Count();
+  return ((CModelSimple *)unique)->m_textures.Count();
 }
 
 UINT ModelGetTextureReplaceableId(HMODEL model, UINT textureId) {
   CModelBase *unique;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique)) {
+  if (!IModelDerefHandle((CModel *)model, &unique)) {
     return 0;
   }
 
   if (unique->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+    CModelComplex *complex = (CModelComplex *)unique;
     ASSERT(textureId < complex->m_textures.Count());
     return complex->m_textures[textureId].replaceableId;
   }
 
-  CModelSimple *simple = static_cast<CModelSimple *>(unique);
+  CModelSimple *simple = (CModelSimple *)unique;
   ASSERT(textureId < simple->m_textures.Count());
   return simple->m_textures[textureId].replaceableId;
 }

@@ -221,7 +221,7 @@ void InitializeWaterAmbiences() {
   for (UINT i = g_soundWaterTypeDB.GetNumRecords(); i--;) {
     const SoundWaterTypeRec *record = g_soundWaterTypeDB.GetRecordByIndex(i);
     if (record && record->m_soundType < 4) {
-      s_liquidInfo[record->m_soundType].InitSoundID((static_cast<UINT>(record->m_soundSubtype) >> 2) & 3, record->m_SoundID);
+      s_liquidInfo[record->m_soundType].InitSoundID(((UINT)record->m_soundSubtype >> 2) & 3, record->m_SoundID);
     }
   }
   s_flags |= 1;

@@ -190,7 +190,7 @@ BOOL SetChunkPropertyINDOORS(LPCSTR command, LPCSTR arguments) {
   float value;
   _FSOUND_REVERB_PROPERTIES *desc = &obj->desc;
   sscanf(arguments, "%d %f", &prefNumber, &value);
-  int intValue = static_cast<int>(value);
+  int intValue = value;
 
   switch (prefNumber) {
     case 1:

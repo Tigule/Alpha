@@ -63,15 +63,12 @@ static float SynthesizeCenter(float side1, float side2, float size) {
 }
 
 float CLayoutFrame::GetFirstPointX(const FRAMEPOINT pointarray[], int elements) {
-  for (; elements; --elements, ++pointarray) {
-    CFramePoint *point = m_points[*pointarray];
+  for (int i = 0; i < elements; ++i) {
+    CFramePoint *point = m_points[pointarray[i]];
 
-    if (point) {
-      float value = point->X(m_layoutScale);
-
-      if (value != CFramePoint::UNDEFINED) {
-        return value;
-      }
+    float value;
+    if (point && (value = point->X(m_layoutScale)) != CFramePoint::UNDEFINED) {
+      return value;
     }
   }
 
@@ -79,15 +76,12 @@ float CLayoutFrame::GetFirstPointX(const FRAMEPOINT pointarray[], int elements) 
 }
 
 float CLayoutFrame::GetFirstPointY(const FRAMEPOINT pointarray[], int elements) {
-  for (; elements; --elements, ++pointarray) {
-    CFramePoint *point = m_points[*pointarray];
+  for (int i = 0; i < elements; ++i) {
+    CFramePoint *point = m_points[pointarray[i]];
 
-    if (point) {
-      float value = point->Y(m_layoutScale);
-
-      if (value != CFramePoint::UNDEFINED) {
-        return value;
-      }
+    float value;
+    if (point && (value = point->Y(m_layoutScale)) != CFramePoint::UNDEFINED) {
+      return value;
     }
   }
 
@@ -225,7 +219,7 @@ void CLayoutFrame::FreePoints() {
 
 CLayoutFrame::CLayoutFrame() : m_flags(0), m_width(0.0f), m_height(0.0f), m_layoutScale(1.0f) {
   m_points.SetCount(FRAMEPOINT_NUMPOINTS);
-  memset(m_points.Ptr(), 0, m_points.Count() * sizeof(CFramePoint *));
+  m_points.Zero();
   memset(&m_guard, 0, sizeof(m_guard));
 }
 
@@ -589,8 +583,8 @@ float CLayoutFrame::GetWidth() {
 }
 
 BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, float delta_x, float delta_y, NTempest::CRect *finalrect) {
-  NTempest::CRect toprect;
   NTempest::CRect rect;
+  NTempest::CRect toprect;
 
   if (!GetRect(&rect) || !top->GetRect(&toprect)) {
     return 0;
@@ -598,7 +592,7 @@ BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, fl
 
   FreePoints();
   SetPoint(
-      FRAMEPOINT_TOPLEFT, top, FRAMEPOINT_TOPLEFT, -(toprect.l - (rect.l + delta_x)) / m_layoutScale, -(toprect.b - (rect.b + delta_y)) / m_layoutScale, 0
+      FRAMEPOINT_TOPLEFT, top, FRAMEPOINT_TOPLEFT, (-(toprect.l - (rect.l + delta_x))) / m_layoutScale, (-(toprect.b - (rect.b + delta_y))) / m_layoutScale, 0
   );
 
   if (width == 0.0f) {
@@ -650,6 +644,22 @@ int CLayoutFrame::ScaleBy(CLayoutFrame *top, float scale_x, float scale_y, FRAME
       delta_x = oldwidth - newwidth;
       delta_y = 0.0f;
       break;
+    case FRAMEPOINT_RIGHT:
+      delta_x = oldwidth - newwidth;
+      delta_y = (newheight - oldheight) * 0.5f;
+      break;
+    case FRAMEPOINT_BOTTOMRIGHT:
+      delta_x = oldwidth - newwidth;
+      delta_y = newheight - oldheight;
+      break;
+    case FRAMEPOINT_BOTTOM:
+      delta_x = (oldwidth - newwidth) * 0.5f;
+      delta_y = newheight - oldheight;
+      break;
+    case FRAMEPOINT_BOTTOMLEFT:
+      delta_x = 0.0f;
+      delta_y = newheight - oldheight;
+      break;
     case FRAMEPOINT_LEFT:
       delta_x = 0.0f;
       delta_y = (newheight - oldheight) * 0.5f;
@@ -657,22 +667,6 @@ int CLayoutFrame::ScaleBy(CLayoutFrame *top, float scale_x, float scale_y, FRAME
     case FRAMEPOINT_CENTER:
       delta_x = (oldwidth - newwidth) * 0.5f;
       delta_y = (newheight - oldheight) * 0.5f;
-      break;
-    case FRAMEPOINT_RIGHT:
-      delta_x = oldwidth - newwidth;
-      delta_y = (newheight - oldheight) * 0.5f;
-      break;
-    case FRAMEPOINT_BOTTOMLEFT:
-      delta_x = 0.0f;
-      delta_y = newheight - oldheight;
-      break;
-    case FRAMEPOINT_BOTTOM:
-      delta_x = (oldwidth - newwidth) * 0.5f;
-      delta_y = newheight - oldheight;
-      break;
-    case FRAMEPOINT_BOTTOMRIGHT:
-      delta_x = oldwidth - newwidth;
-      delta_y = newheight - oldheight;
       break;
     default:
       ASSERT(!"Unhandled frame point");
@@ -833,9 +827,7 @@ void CLayoutFrame::DestroyLayout() {
 UINT CLayoutFrame::ResizePending() {
   UINT resized = 0;
 
-  for (CLayoutFrame *node = s_resizePendingList.Head(), *nodenext_node;
-       (int)node > 0 ? ((nodenext_node = s_resizePendingList.RawNext(node)), 1) : 0;
-       node = nodenext_node) {
+  SAFEITERATELIST(CLayoutFrame, s_resizePendingList, node) {
     if (!node->OnFrameResize()) {
       if (--node->m_resizeCounter) {
         continue;

@@ -56,10 +56,10 @@ CSimpleEditBox::CSimpleEditBox(CSimpleFrame *parent)
   UINT i;
 
   m_textSize = 32;
-  m_text = static_cast<char *>(ALLOC(0x20));
+  m_text = (char *)ALLOC(0x20);
   *m_text = 0;
 
-  m_textInfo = static_cast<UINT *>(ALLOC(4 * m_textSize));
+  m_textInfo = (UINT *)ALLOC(4 * m_textSize);
   memset(m_textInfo, 0, 4 * m_textSize);
 
   m_string = NEW(CSimpleFontString)(this, 2, 1);
@@ -593,83 +593,83 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
       break;
 
     case KEY_A:
-    case static_cast<KEY>(KEY_A + 32):
+    case (KEY)(KEY_A + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         HighlightText();
       }
       break;
 
     case KEY_F:
-    case static_cast<KEY>(KEY_F + 32):
+    case (KEY)(KEY_F + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         MoveForward(EventIsKeyDown(KEY_SHIFT));
       }
       break;
 
     case KEY_B:
-    case static_cast<KEY>(KEY_B + 32):
+    case (KEY)(KEY_B + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         MoveBackward(EventIsKeyDown(KEY_SHIFT));
       }
       break;
 
     case KEY_D:
-    case static_cast<KEY>(KEY_D + 32):
+    case (KEY)(KEY_D + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         DeleteForward();
       }
       break;
 
     case KEY_W:
-    case static_cast<KEY>(KEY_W + 32):
+    case (KEY)(KEY_W + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         DeleteBackwardWord();
       }
       break;
 
     case KEY_U:
-    case static_cast<KEY>(KEY_U + 32):
+    case (KEY)(KEY_U + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         DeleteToStart();
       }
       break;
 
     case KEY_K:
-    case static_cast<KEY>(KEY_K + 32):
+    case (KEY)(KEY_K + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         DeleteToEnd();
       }
       break;
 
     case KEY_P:
-    case static_cast<KEY>(KEY_P + 32):
+    case (KEY)(KEY_P + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         BackwardHistory();
       }
       break;
 
     case KEY_N:
-    case static_cast<KEY>(KEY_N + 32):
+    case (KEY)(KEY_N + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         ForwardHistory();
       }
       break;
 
     case KEY_C:
-    case static_cast<KEY>(KEY_C + 32):
+    case (KEY)(KEY_C + 32):
     case KEY_X:
-    case static_cast<KEY>(KEY_X + 32):
+    case (KEY)(KEY_X + 32):
       if (EventIsKeyDown(KEY_CONTROL) && IsHighlighted()) {
         CopyToClipboard();
 
-        if (evt.key == KEY_X || evt.key == static_cast<KEY>(KEY_X + 32)) {
+        if (evt.key == KEY_X || evt.key == (KEY)(KEY_X + 32)) {
           DeleteHighlight();
         }
       }
       break;
 
     case KEY_V:
-    case static_cast<KEY>(KEY_V + 32):
+    case (KEY)(KEY_V + 32):
       if (EventIsKeyDown(KEY_CONTROL)) {
         PasteFromClipboard();
       }
@@ -805,7 +805,7 @@ void CSimpleEditBox::UpdateTextInfo() {
       flags |= 0x80000000;
     }
 
-    m_textInfo[offset] = (advance & 0xFFFF) | (static_cast<UINT>(code) << 16) | flags;
+    m_textInfo[offset] = (advance & 0xFFFF) | ((UINT)code << 16) | flags;
 
     offset += advance;
     string += advance;
@@ -818,82 +818,65 @@ void CSimpleEditBox::UpdateTextInfo() {
 }
 
 int CSimpleEditBox::GetNumToLen(int offset, int amount, bool checkHyperLink) {
-  UINT *textInfo = m_textInfo;
-  UINT *info = &textInfo[offset];
+  UINT *info = &m_textInfo[offset];
   int   length = 0;
+  UINT  advance;
+  UINT  code;
+  UINT  flags;
 
   if (amount > 0) {
     while (amount-- > 0 && *info) {
-      UINT value;
-      UINT advance;
-      UINT code;
-
       do {
-        do {
-          value = *info;
-          advance = value & 0xFFFF;
-          code = (value >> 16) & 0xFF;
-          length += advance;
-          info += advance;
-        } while (!code);
-      } while (code == CODE_HYPERLINKSTART || (checkHyperLink && (value & 0x80000000) && code != CODE_HYPERLINKSTOP));
+        advance = *info & 0xFFFF;
+        code = (*info >> 16) & 0xFF;
+        flags = *info & 0xFF000000;
+        length += advance;
+        info += advance;
+      } while (code == CODE_COLORON || code == CODE_HYPERLINKSTART || (checkHyperLink && (flags & 0x80000000) && code != CODE_HYPERLINKSTOP));
 
       ASSERT((code == CODE_NEWLINE || code == CODE_PIPE || code == CODE_INVALIDCODE) || code == CODE_HYPERLINKSTOP);
 
       for (;;) {
-        value = *info;
-        advance = value & 0xFFFF;
-        code = (value >> 16) & 0xFF;
-
+        advance = *info & 0xFFFF;
+        code = (*info >> 16) & 0xFF;
         if (code != CODE_COLORRESTORE && code != CODE_HYPERLINKSTOP) {
           break;
         }
-
         length += advance;
         info += advance;
       }
     }
-  } else if (amount < 0) {
-    int remaining = -amount;
+  } else {
+    amount = -amount;
 
-    while (remaining-- > 0 && info > textInfo) {
-      UINT value;
-      UINT advance;
-      UINT code;
-
+    while (amount-- > 0 && info > m_textInfo) {
       do {
-        do {
+        --info;
+        while (info > m_textInfo && !*info) {
           --info;
-        } while (info > textInfo && !*info);
+        }
 
-        value = *info;
-        advance = value & 0xFFFF;
-        code = (value >> 16) & 0xFF;
+        advance = *info & 0xFFFF;
+        code = (*info >> 16) & 0xFF;
         length += advance;
-      } while (code == CODE_COLORRESTORE || code == CODE_HYPERLINKSTOP || (checkHyperLink && (value & 0x80000000) && code != CODE_HYPERLINKSTART));
+      } while (code == CODE_COLORRESTORE || code == CODE_HYPERLINKSTOP || (checkHyperLink && (*info & 0x80000000) && code != CODE_HYPERLINKSTART));
 
       ASSERT((code == CODE_NEWLINE || code == CODE_PIPE || code == CODE_INVALIDCODE) || code == CODE_HYPERLINKSTART);
 
-      if (info > textInfo) {
-        for (;;) {
-          do {
-            --info;
-          } while (info > textInfo && !*info);
-
-          value = *info;
-          advance = value & 0xFFFF;
-          code = (value >> 16) & 0xFF;
-
-          if (code && code != CODE_HYPERLINKSTART) {
-            info += advance;
-            break;
-          }
-
-          length += advance;
-          if (info <= textInfo) {
-            break;
-          }
+      while (info > m_textInfo) {
+        --info;
+        while (info > m_textInfo && !*info) {
+          --info;
         }
+
+        advance = *info & 0xFFFF;
+        code = (*info >> 16) & 0xFF;
+        if (code != CODE_COLORON && code != CODE_HYPERLINKSTART) {
+          info += advance;
+          break;
+        }
+
+        length += advance;
       }
     }
   }
@@ -960,8 +943,8 @@ void CSimpleEditBox::GrowText(int size) {
   ++size;
   if (size > m_textSize) {
     m_textSize = (size + 31) & ~31;
-    m_text = static_cast<char *>(SMemReAlloc(m_text, m_textSize, __FILE__, __LINE__, 0));
-    m_textInfo = static_cast<UINT *>(SMemReAlloc(m_textInfo, sizeof(UINT) * m_textSize, __FILE__, __LINE__, 0));
+    m_text = (char *)SMemReAlloc(m_text, m_textSize, __FILE__, __LINE__, 0);
+    m_textInfo = (UINT *)SMemReAlloc(m_textInfo, sizeof(UINT) * m_textSize, __FILE__, __LINE__, 0);
   }
 }
 
@@ -1092,10 +1075,10 @@ void CSimpleEditBox::DeleteForwardWord() {
   }
 
   int advance;
-  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && iswspace(sgetu8((const BYTE *)&m_text[m_cursorPos], &advance))) {
     Delete(1);
   }
-  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8((const BYTE *)&m_text[m_cursorPos], &advance))) {
     Delete(1);
   }
 }
@@ -1115,10 +1098,10 @@ void CSimpleEditBox::DeleteBackwardWord() {
   }
 
   int advance;
-  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+  while (m_cursorPos > 0 && iswspace(sgetu8((const BYTE *)&m_text[PrevCharOffset(m_cursorPos)], &advance))) {
     Delete(-1);
   }
-  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[PrevCharOffset(m_cursorPos)]), &advance))) {
+  while (m_cursorPos > 0 && !iswspace(sgetu8((const BYTE *)&m_text[PrevCharOffset(m_cursorPos)], &advance))) {
     Delete(-1);
   }
 }
@@ -1211,10 +1194,10 @@ void CSimpleEditBox::MoveForward(int highlight) {
 
 void CSimpleEditBox::MoveForwardWord(int highlight) {
   int advance;
-  while (m_cursorPos < m_textLength && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && iswspace(sgetu8((const BYTE *)&m_text[m_cursorPos], &advance))) {
     Move(1, highlight);
   }
-  while (m_cursorPos < m_textLength && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos < m_textLength && !iswspace(sgetu8((const BYTE *)&m_text[m_cursorPos], &advance))) {
     Move(1, highlight);
   }
 }
@@ -1227,10 +1210,10 @@ void CSimpleEditBox::MoveBackward(int highlight) {
 
 void CSimpleEditBox::MoveBackwardWord(int highlight) {
   int advance;
-  while (m_cursorPos > 0 && iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos > 0 && iswspace(sgetu8((const BYTE *)&m_text[m_cursorPos], &advance))) {
     Move(-1, highlight);
   }
-  while (m_cursorPos > 0 && !iswspace(sgetu8(reinterpret_cast<const BYTE *>(&m_text[m_cursorPos]), &advance))) {
+  while (m_cursorPos > 0 && !iswspace(sgetu8((const BYTE *)&m_text[m_cursorPos], &advance))) {
     Move(-1, highlight);
   }
 }
@@ -1359,9 +1342,9 @@ void CSimpleEditBox::AddHistoryLine(LPCSTR line) {
   }
 
   if (m_history[m_curHistory]) {
-    m_history[m_curHistory] = static_cast<char *>(SMemReAlloc(m_history[m_curHistory], SStrLen(line) + 1, __FILE__, __LINE__, 0));
+    m_history[m_curHistory] = (char *)SMemReAlloc(m_history[m_curHistory], SStrLen(line) + 1, __FILE__, __LINE__, 0);
   } else {
-    m_history[m_curHistory] = static_cast<char *>(ALLOC(SStrLen(line) + 1));
+    m_history[m_curHistory] = (char *)ALLOC(SStrLen(line) + 1);
   }
 
   SStrCopy(m_history[m_curHistory], line, INT_MAX);
@@ -1444,7 +1427,7 @@ void CSimpleEditBox::MakeTextVisible(int position, float offset, float stringWid
   }
 
   UINT amount = m_string->GetNumCharsWithinWidthFromEnd(m_text, position, offset);
-  m_visiblePos = position - GetNumToLen(position, -static_cast<int>(amount), false);
+  m_visiblePos = position - GetNumToLen(position, -(int)amount, false);
   if (m_visiblePos < 0) {
     m_visiblePos = 0;
   }
@@ -1464,7 +1447,7 @@ void CSimpleEditBox::UpdateVisibleText() {
   if (m_password) {
     UINT length = SStrLen(m_text);
 
-    m_textHidden = static_cast<char *>(SMemReAlloc(m_textHidden, length + 1, __FILE__, __LINE__, 0));
+    m_textHidden = (char *)SMemReAlloc(m_textHidden, length + 1, __FILE__, __LINE__, 0);
     memset(m_textHidden, '*', length);
     m_textHidden[length] = 0;
   }
@@ -1652,7 +1635,7 @@ void CSimpleEditBox::CopyToClipboard() {
   }
 
   UINT  length = m_highlightRight - m_highlightLeft;
-  char *buffer = static_cast<char *>(_alloca(length + 1));
+  char *buffer = (char *)_alloca(length + 1);
   GxuFontStripEscapeCodes(m_text + m_highlightLeft, length, 0x500, buffer, length + 1);
   OsClipboardPutString(buffer);
 }
@@ -1665,7 +1648,7 @@ void CSimpleEditBox::PasteFromClipboard() {
 
   int advance;
   for (LPCSTR position = string; *position;) {
-    UINT character = sgetu8(reinterpret_cast<const BYTE *>(position), &advance);
+    UINT character = sgetu8((const BYTE *)position, &advance);
     Insert(character);
     position += advance;
   }

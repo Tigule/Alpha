@@ -61,14 +61,14 @@ static inline UINT GetPlayerBankSlots(CGPlayer_C *player) {
 static int Script_GetBankSlotCost(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   UINT        cost = player ? GetBankSlotCost(GetPlayerBankSlots(player) + 1) : 0;
-  lua_pushnumber(L, static_cast<double>(cost));
+  lua_pushnumber(L, cost);
   return 1;
 }
 
 static int Script_GetNumBankSlots(lua_State *L) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   int         slots = GetPlayerBankSlots(player);
-  lua_pushnumber(L, static_cast<double>(slots));
+  lua_pushnumber(L, slots);
   if (slots >= 6) {
     lua_pushnumber(L, 1.0);
     return 2;
@@ -83,7 +83,7 @@ static int Script_CloseBankFrame(lua_State *L) {
 
 static int Script_PickupBankGenericItem(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    CGBankInfo::PickupItem(static_cast<int>(lua_tonumber(L, 1)) - 1, lua_isnumber(L, 2), 1);
+    CGBankInfo::PickupItem((int)lua_tonumber(L, 1) - 1, lua_isnumber(L, 2), 1);
   }
   return 0;
 }
@@ -93,7 +93,7 @@ static int Script_SplitBankGenericItem(lua_State *L) {
     luaL_error(L, "Usage: SplitBankGenericItem(slot, amount)");
     return 0;
   }
-  CGBankInfo::SplitItem(static_cast<int>(lua_tonumber(L, 1)) - 1, static_cast<int>(lua_tonumber(L, 2)));
+  CGBankInfo::SplitItem((int)lua_tonumber(L, 1) - 1, lua_tonumber(L, 2));
   return 0;
 }
 
@@ -110,8 +110,8 @@ static int Script_BankButtonIDToInvSlotID(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return 0;
   }
-  int ID = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  lua_pushnumber(L, static_cast<double>(ButtonIDToSlotID(ID, lua_isnumber(L, 2)) + 1));
+  int ID = (int)lua_tonumber(L, 1) - 1;
+  lua_pushnumber(L, ButtonIDToSlotID(ID, lua_isnumber(L, 2)) + 1);
   return 1;
 }
 
@@ -120,7 +120,7 @@ static int Script_PutItemInBankBag(lua_State *L) {
     luaL_error(L, "Usage: Script_PutItemInBankBag(unit, slot)");
     return 0;
   }
-  int         slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int         slot = (int)lua_tonumber(L, 1) - 1;
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (slot >= 63 && slot <= 68 && player && CGGameUI::HasPlayerControl()) {
     DWORDLONG cursorItem;
@@ -181,12 +181,12 @@ static int Script_ContainerIDToInventoryID(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
     return 0;
   }
-  int ID = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int ID = (int)lua_tonumber(L, 1) - 1;
   if (ID >= 4) {
-    lua_pushnumber(L, static_cast<double>(ID + 60));
+    lua_pushnumber(L, ID + 60);
     return 1;
   }
-  lua_pushnumber(L, static_cast<double>(ID + 20));
+  lua_pushnumber(L, ID + 20);
   return 1;
 }
 
@@ -202,7 +202,7 @@ static int Script_PurchaseSlot(lua_State *L) {
       return 0;
     }
     if (player->GetMoney() < GetBankSlotCost(player->GetNumBankSlots() + 1)) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(231));
+      CGGameUI::DisplayError(GERR_BANKSLOT_INSUFFICIENT_FUNDS);
       return 0;
     }
 
@@ -224,7 +224,7 @@ static int Script_PickupBagFromBankSlot(lua_State *L) {
     luaL_error(L, "Usage: PickupBagFromBankSlot(invSlot)");
     return 0;
   }
-  int slot = static_cast<int>(lua_tonumber(L, 1) - 1.0);
+  int slot = lua_tonumber(L, 1) - 1.0;
   if (slot >= 63 && slot <= 68) {
     DWORDLONG cursorItem;
     DWORDLONG cursorItemPack;

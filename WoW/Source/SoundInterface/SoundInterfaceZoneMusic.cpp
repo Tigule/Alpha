@@ -65,13 +65,13 @@ static void PlayMusic() {
 }
 
 static BOOL ZoneMusicIdle(LPCVOID dataPtr, LPVOID ptr) {
-  const EVENT_DATA_IDLE *data = static_cast<const EVENT_DATA_IDLE *>(dataPtr);
+  const EVENT_DATA_IDLE *data = (const EVENT_DATA_IDLE *)dataPtr;
   if (!(s_flags & 1) && s_currentMusic && (s_currentMusic->m_Sounds[0] || s_currentMusic->m_Sounds[1])) {
     if (s_sound && !s_sound->IsPlaying()) {
       s_nextPlay = GetNextPlayTime();
       Sound::KillSound(s_sound);
     }
-    if (!s_sound && (s_nextPlay == -1 || data->time > static_cast<UINT>(s_nextPlay))) {
+    if (!s_sound && (s_nextPlay == -1 || data->time > (UINT)s_nextPlay)) {
       PlayMusic();
     }
   }

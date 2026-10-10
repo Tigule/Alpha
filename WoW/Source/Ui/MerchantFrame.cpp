@@ -122,7 +122,7 @@ static int Script_CloseMerchant(lua_State *) {
 }
 
 static int Script_GetMerchantNumItems(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGMerchantInfo::GetNumItems()));
+  lua_pushnumber(L, CGMerchantInfo::GetNumItems());
   return 1;
 }
 
@@ -131,7 +131,7 @@ static int Script_GetMerchantItemInfo(lua_State *L) {
     luaL_error(L, "Usage: GetMerchantItemInfo(index)");
     return 0;
   }
-  const VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const VendorItem *item = CGMerchantInfo::GetItem((int)lua_tonumber(L, 1) - 1);
   if (!item || !item->m_itemType) {
     lua_pushnil(L);
     lua_pushnil(L);
@@ -154,9 +154,9 @@ static int Script_GetMerchantItemInfo(lua_State *L) {
   SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
   SStrPack(buffer, CGItem_C::GetInventoryArt(item->m_itemDisplayID), sizeof(buffer));
   lua_pushstring(L, buffer);
-  lua_pushnumber(L, static_cast<double>(item->m_price));
-  lua_pushnumber(L, static_cast<double>(item->m_stackCount));
-  lua_pushnumber(L, static_cast<double>(item->m_quantity));
+  lua_pushnumber(L, item->m_price);
+  lua_pushnumber(L, item->m_stackCount);
+  lua_pushnumber(L, item->m_quantity);
 
   CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   GAME_ERROR_TYPE reason;
@@ -173,7 +173,7 @@ static int Script_GetMerchantItemLink(lua_State *L) {
     luaL_error(L, "Usage: GetMerchantItemLink(index)");
     return 0;
   }
-  const VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const VendorItem *item = CGMerchantInfo::GetItem((int)lua_tonumber(L, 1) - 1);
   if (!item || !item->m_itemType) {
     return 0;
   }
@@ -192,11 +192,11 @@ static int Script_GetMerchantItemMaxStack(lua_State *L) {
     luaL_error(L, "Usage: GetMerchantItemMaxStack(index)");
     return 0;
   }
-  const VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const VendorItem *item = CGMerchantInfo::GetItem((int)lua_tonumber(L, 1) - 1);
   if (item && item->m_stackCount <= 1 && item->m_itemType) {
     const ItemStats *stats = g_itemDBCache.GetRecord(item->m_itemType, 0, 0, 0);
     if (stats) {
-      lua_pushnumber(L, static_cast<double>(stats->m_stackable));
+      lua_pushnumber(L, stats->m_stackable);
       return 1;
     }
   }
@@ -216,13 +216,13 @@ static int Script_PickupMerchantItem(lua_State *L) {
     return 0;
   }
   if (lua_isnumber(L, 1)) {
-    int               index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    int               index = (int)lua_tonumber(L, 1) - 1;
     const VendorItem *item = CGMerchantInfo::GetItem(index);
     if (item && item->m_muid) {
-      if (CGGameUI::GetCursorVirtualItem() == item->m_itemType) {
-        CGGameUI::ClearCursor(1);
-      } else {
+      if (CGGameUI::GetCursorVirtualItem() != item->m_itemType) {
         CGGameUI::SetCursorVirtualItem(item->m_itemType, item->m_itemDisplayID, index, UICURSOR_MERCHANT);
+      } else {
+        CGGameUI::ClearCursor(1);
       }
       return 0;
     }
@@ -241,15 +241,15 @@ static int Script_BuyMerchantItem(lua_State *L) {
     return 0;
   }
   CGGameUI::ClearCursor(1);
-  int  index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int  index = (int)lua_tonumber(L, 1) - 1;
   int quantity = 1;
   if (lua_isnumber(L, 2)) {
-    quantity = max(1, static_cast<int>(lua_tonumber(L, 2)));
+    quantity = max(1, (int)lua_tonumber(L, 2));
     quantity = min(quantity, 255);
   }
   const VendorItem *item = CGMerchantInfo::GetItem(index);
   if (item && item->m_muid) {
-    CGPlayer_C::XBuyItem(CGMerchantInfo::GetMerchant(), item->m_itemType, static_cast<BYTE>(quantity), 1);
+    CGPlayer_C::XBuyItem(CGMerchantInfo::GetMerchant(), item->m_itemType, quantity, 1);
   }
   return 0;
 }
@@ -262,10 +262,10 @@ static int Script_ShowMerchantSellCursor(lua_State *L) {
     luaL_error(L, "Usage: ShowMerchantSellCursor(index)");
     return 0;
   }
-  const VendorItem *item = CGMerchantInfo::GetItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const VendorItem *item = CGMerchantInfo::GetItem((int)lua_tonumber(L, 1) - 1);
   if (item && item->m_itemType) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    CursorModelSetSequence(player && player->GetMoney() >= static_cast<UINT>(item->m_price) ? BUY_CURSOR : BUY_ERROR_CURSOR);
+    CursorModelSetSequence(player && player->GetMoney() >= (UINT)item->m_price ? BUY_CURSOR : BUY_ERROR_CURSOR);
   }
   return 0;
 }

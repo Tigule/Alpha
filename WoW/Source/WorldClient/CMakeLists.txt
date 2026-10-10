@@ -44,6 +44,7 @@ target_include_directories(WorldClient PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WorldClient PRIVATE /Gr /Z7)
+    target_compile_options(WorldClient PRIVATE /Gr /Z7 /YX)
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES vc60.pch)
     set_source_files_properties(Map.cpp MapQuery.cpp PROPERTIES COMPILE_OPTIONS /QIfist)
 endif()

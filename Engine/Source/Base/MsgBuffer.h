@@ -114,12 +114,17 @@ class CMsgBuffer {
   }
 };
 
-inline CMsgBuffer::CMsgBuffer(UINT count)
-    : m_alloc(count), m_freeData(1), m_read(0), m_write(0), m_data(count ? static_cast<BYTE *>(SMemAlloc(count, __FILE__, __LINE__, 0)) : 0) {
+inline CMsgBuffer::CMsgBuffer(UINT count) {
+  m_read = 0;
+  m_write = 0;
+  m_alloc = count;
+  m_data = count ? (BYTE *)SMemAlloc(count, __FILE__, __LINE__, 0) : 0;
+  m_freeData = 1;
 }
 
 inline CMsgBuffer::~CMsgBuffer() {
-  if (m_freeData && m_data) {
+  ASSERT(m_read == m_write);
+  if (m_data && m_freeData) {
     SMemFree(m_data, __FILE__, __LINE__, 0);
   }
 }
@@ -164,11 +169,11 @@ inline void CMsgBuffer::SetData(BYTE *data, UINT count, int freeData) {
   if (m_freeData && m_data) {
     SMemFree(m_data, __FILE__, __LINE__, 0);
   }
-  m_alloc = count;
-  m_freeData = freeData;
   m_read = 0;
-  m_write = count;
+  m_freeData = freeData;
   m_data = data;
+  m_alloc = count;
+  m_write = count;
 }
 
 #endif

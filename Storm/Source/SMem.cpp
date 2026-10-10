@@ -296,7 +296,7 @@ static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWOR
   }
 
   filenamebytes = (filename ? SStrLen(filename) : 0) + 1;
-  headerbytes = 0x8B + filenamebytes;
+  headerbytes = sizeof(HEAP) - sizeof(heapptr->filename) + filenamebytes;
   if (headerbytes & 7) {
     headerbytes += 8 - (headerbytes & 7);
   }
@@ -317,7 +317,7 @@ static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWOR
   } else {
     heapptr->filename[0] = 0;
   }
-  block.heapaddr = (WORD)((DWORD)heapptr >> 16);
+  block.heapaddr = (DWORD)heapptr >> 16;
   block.signature1 = SIGNATURE1;
   heapptr->addrsig = *(DWORD *)&block.heapaddr;
 
@@ -475,9 +475,9 @@ static LPVOID AllocateHeapBlock(HEAPPTR heapptr, DWORD bytes, BYTE baseflags) {
 
     *(DWORD *)(externalBase + 0) = bytes;
     *(BLOCKPTR *)(externalBase + 4) = blockptr;
-    *(WORD *)(externalBase + 8) = (WORD)((bytes + 0xFFFF) >> 16);
-    *(BYTE *)(externalBase + 0xA) = 0;
-    *(BYTE *)(externalBase + 0xB) = BF_LARGEALLOC | BF_OUTSIDEHEAP;
+    *(WORD *)(externalBase + 8) = (bytes + 0xFFFF) >> 16;
+    *(externalBase + 0xA) = 0;
+    *(externalBase + 0xB) = BF_LARGEALLOC | BF_OUTSIDEHEAP;
     *(DWORD *)(externalBase + 0xC) = heapptr->addrsig;
 
     externalPtr = externalBase + 0x10;
@@ -542,7 +542,7 @@ static void CombineFreeBlocks(HEAPPTR heapptr) {
   for (blockptr = heapptr->firstblock; blockptr != heapptr->termblock; blockptr = (BLOCKPTR)((LPBYTE)blockptr + blockptr->bytes)) {
     if (blockptr->flags & BF_FREEBLOCK) {
       ((FREEBLOCKPTR)blockptr)->next = NULL;
-      if (lastfree && (LPBYTE)lastfree + lastfree->bytes == (LPBYTE)blockptr
+      if (lastfree && (LPBYTE)blockptr == (LPBYTE)lastfree + lastfree->bytes
           && lastfree->bytes + blockptr->bytes <= 0xFFFFU)
         lastfree->bytes += blockptr->bytes;
       else {
@@ -605,50 +605,43 @@ static void ComputePageSize() {
 }
 
 static HEAPPTR *DestroyHeap(HEAPPTR *nextptr) {
-  HEAPPTR  heapptr;
-  BLOCKPTR blockptr;
-  int      preserve;
+  HEAPPTR heapptr = *nextptr;
+  int     preserve = FALSE;
 
-  heapptr = *nextptr;
-  blockptr = heapptr->firstblock;
-  preserve = FALSE;
-
+  BLOCKPTR blockptr = heapptr->firstblock;
   while (blockptr < heapptr->termblock) {
     BLOCKPTR nextblock = (BLOCKPTR)((LPBYTE)blockptr + blockptr->bytes);
-    BYTE     flags = blockptr->flags;
 
-    if (flags & (BF_PRESERVE | BF_FREEBLOCK)) {
-      if (flags & BF_PRESERVE) {
-        preserve = TRUE;
-      }
-    } else {
-      if (!(flags & 0x40)) {
-        if (smemOptions.smemleaksilentwarning) {
-          char szMessage[200];
-
-          wsprintfA(szMessage, "Storm Error : memory never released -- %s:%d\n", heapptr->filename, heapptr->linenumber);
-          OutputDebugStringA(szMessage);
-        } else {
-          Warning(STORM_ERROR_MEMORY_NEVER_RELEASED, heapptr->filename, heapptr->linenumber);
-        }
-      }
-      FreeHeapBlock(heapptr, blockptr);
+    if (blockptr->flags & (BF_PRESERVE | BF_FREEBLOCK)) {
+      preserve |= blockptr->flags & BF_PRESERVE;
+      blockptr = nextblock;
+      continue;
     }
+    if (!(blockptr->flags & 0x40)) {
+      if (!smemOptions.smemleaksilentwarning) {
+        Warning(STORM_ERROR_MEMORY_NEVER_RELEASED, heapptr->filename, heapptr->linenumber);
+      } else {
+        char szMessage[200];
 
+        wsprintfA(szMessage, "Storm Error : memory never released -- %s, %i\n", heapptr->filename, heapptr->linenumber);
+        OutputDebugStringA(szMessage);
+      }
+    }
+    FreeHeapBlock(heapptr, blockptr);
     blockptr = nextblock;
   }
 
-  if (preserve) {
-    return (HEAPPTR *)heapptr;
+  if (!preserve) {
+    FreeHeap(nextptr);
+    return nextptr;
   }
 
-  FreeHeap(nextptr);
-  return nextptr;
+  return &heapptr->next;
 }
 
 static void FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags) {
-  blockptr->bytes = (WORD)blockSize;
-  blockptr->padding = (BYTE)padding;
+  blockptr->bytes = blockSize;
+  blockptr->padding = padding;
   blockptr->flags = flags;
   *(DWORD *)&blockptr->heapaddr = heapptr->addrsig;
 
@@ -737,8 +730,8 @@ static void FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block) {
   }
 
   if (!heapptr->allocatedblocks) {
-    ZeroMemory(heapptr->firstfreeblock, sizeof(heapptr->firstfreeblock));
     heapptr->termblock = heapptr->firstblock;
+    ZeroMemory(heapptr->firstfreeblock, sizeof(heapptr->firstfreeblock));
     heapptr->uncombinedfree = 0;
     if (heapptr->handle < (HSHEAP)FIRSTUSERHEAP) {
       s_emptyheap[heapptr->slot] = TRUE;
@@ -824,7 +817,7 @@ static BOOL GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes,
     }
 
     if (adjacentFreeBytes < neededBytes) {
-      DWORD newheapsize = (DWORD)((LPBYTE)newEndBlock - (LPBYTE)heapptr);
+      DWORD newheapsize = (LPBYTE)newEndBlock - (LPBYTE)heapptr;
 
       if (newheapsize > heapptr->committedbytes) {
         if (newheapsize > heapptr->reservedbytes) {
@@ -838,9 +831,9 @@ static BOOL GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes,
       heapptr->termblock = newEndBlock;
     }
 
-    blockptr->bytes = (WORD)newBlockSize;
+    blockptr->bytes = newBlockSize;
     SubdivideBlock(heapptr, blockptr, &blockSize, &padding);
-    blockptr->bytes = (WORD)blockSize;
+    blockptr->bytes = blockSize;
 
     if (newEndBlock != heapptr->termblock) {
       newEndBlock->flags &= ~BF_PREVFREE;
@@ -996,7 +989,7 @@ static void SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize
     heapptr->termblock = (BLOCKPTR)((LPBYTE)blockptr + *blocksize);
   else if (remaining >= MINBLOCKSIZE) {
     FREEBLOCKPTR freeblock = (FREEBLOCKPTR)((LPBYTE)blockptr + *blocksize);
-    freeblock->bytes = (WORD)remaining;
+    freeblock->bytes = remaining;
     freeblock->padding = 0;
     freeblock->flags = BF_FREEBLOCK;
     DWORD slot = ComputeFreeSlot(freeblock->bytes);
@@ -1646,8 +1639,8 @@ void APIENTRY SMemInitialize() {
   SRegLoadValue(REGKEY, REGVAL_REALLOCSHUFFLE, 0, (LPDWORD)&s_reallocshufflemode);
   SRegLoadValue(REGKEY, REGVAL_DEBUGERROUTPUT, 0, (LPDWORD)&smemOptions.smemleaksilentwarning);
 
-  SRegSaveValue(REGKEY, REGVAL_DEBUG, 0, (DWORD)s_debugmode);
-  SRegSaveValue(REGKEY, REGVAL_GUARD, 0, (DWORD)s_guardmode);
+  SRegSaveValue(REGKEY, REGVAL_DEBUG, 0, s_debugmode);
+  SRegSaveValue(REGKEY, REGVAL_GUARD, 0, s_guardmode);
 
   s_debugmode = TRUE;
   s_fillmode = TRUE;

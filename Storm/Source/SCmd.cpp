@@ -65,7 +65,7 @@ static void ConvertNumber(CMDDEF *ptr, LPCSTR string, int *datachars) {
   char *endptr = NULL;
 
   if ((ptr->flags & SCMD_NUM_MASK) == SCMD_NUM_SIGNED) {
-    ptr->currvalue = (DWORD)strtol(string, &endptr, 0);
+    ptr->currvalue = strtol(string, &endptr, 0);
   } else {
     ptr->currvalue = strtoul(string, &endptr, 0);
   }
@@ -81,7 +81,7 @@ static void ConvertNumber(CMDDEF *ptr, LPCSTR string, int *datachars) {
 }
 
 static void ConvertString(CMDDEF *ptr, LPCSTR string, int *datachars) {
-  *datachars = (int)SStrLen(string);
+  *datachars = SStrLen(string);
   if (ptr->currvaluestr) {
     SMemFree(ptr->currvaluestr, __FILE__, __LINE__, 0);
   }
@@ -117,12 +117,12 @@ static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, LPCS
   int      resourceId;
 
   switch (errorcode) {
-    case 0x85100065:
+    case STORM_ERROR_BAD_ARGUMENT:
       errorIndex = 0;
       resourceId = 0x5201;
       break;
 
-    case 0x8510006D:
+    case STORM_ERROR_NOT_ENOUGH_ARGUMENTS:
       errorIndex = 1;
       resourceId = 0x5202;
       break;
@@ -277,7 +277,7 @@ static BOOL ProcessFlags(LPCSTR string, PROCESSING *processing, SCMDERRORCALLBAC
   while (*string) {
     CMDDEF *cmd;
 
-    strlength = (int)SStrLen(string);
+    strlength = SStrLen(string);
     namelength = SStrLen(lastflag) < 1 ? 1 : (int)SStrLen(lastflag);
 
     cmd = NULL;
@@ -295,7 +295,7 @@ static BOOL ProcessFlags(LPCSTR string, PROCESSING *processing, SCMDERRORCALLBAC
 
     if (!cmd) {
       if (errorcallback) {
-        GenerateError(errorcallback, 0x85100065, string);
+        GenerateError(errorcallback, STORM_ERROR_BAD_ARGUMENT, string);
       }
       return FALSE;
     }
@@ -378,7 +378,7 @@ static BOOL ProcessToken(
   }
 
   if (errorcallback) {
-    GenerateError(errorcallback, 0x85100065, string);
+    GenerateError(errorcallback, STORM_ERROR_BAD_ARGUMENT, string);
   }
   return FALSE;
 }
@@ -502,7 +502,7 @@ extern "C" BOOL APIENTRY SCmdProcess(LPCSTR cmdline, int skipprogname, SCMDPROCE
   }
 
   if (errorcallback && !result) {
-    GenerateError(errorcallback, 0x8510006D, "");
+    GenerateError(errorcallback, STORM_ERROR_NOT_ENOUGH_ARGUMENTS, "");
   }
 
   return result;
@@ -546,7 +546,7 @@ extern "C" BOOL APIENTRY SCmdRegisterArgument(
     name = "";
   }
 
-  namelength = (int)SStrLen(name);
+  namelength = SStrLen(name);
   VALIDATEBEGIN;
   VALIDATE(namelength < 16);
   VALIDATE((!variablebytes) || variableptr);

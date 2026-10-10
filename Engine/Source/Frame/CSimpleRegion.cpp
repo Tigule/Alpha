@@ -44,7 +44,7 @@ void CSimpleRegion::OnGxColorChanged() {
   const NTempest::CImVector *oldGxColor = m_GxColor;
 
   if (m_frame) {
-    m_color.a = static_cast<BYTE>(m_color_a * m_frame->GetAlpha() / 255);
+    m_color.a = m_color_a * m_frame->GetAlpha() / 255;
 
     if (m_color.a >= 0xFE && m_color.r == 0xFF && m_color.g == 0xFF && m_color.b == 0xFF) {
       m_GxColor = 0;

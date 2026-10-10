@@ -246,8 +246,8 @@ int CGTradeSkillInfo::GetSelectionIndex() {
 static int __cdecl QSortSkills(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  TradeSkillInfo *info1 = *static_cast<TradeSkillInfo *const *>(a);
-  TradeSkillInfo *info2 = *static_cast<TradeSkillInfo *const *>(b);
+  TradeSkillInfo *info1 = *(TradeSkillInfo *const *)a;
+  TradeSkillInfo *info2 = *(TradeSkillInfo *const *)b;
   UINT            subClassRank1 = 0;
   UINT            subClassRank2 = 0;
   int             enabled1 = 1;
@@ -292,8 +292,8 @@ static int __cdecl QSortSkills(LPCVOID a, LPCVOID b) {
 static int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  TradeSkillSubClassInfo *info1 = *static_cast<TradeSkillSubClassInfo *const *>(a);
-  TradeSkillSubClassInfo *info2 = *static_cast<TradeSkillSubClassInfo *const *>(b);
+  TradeSkillSubClassInfo *info1 = *(TradeSkillSubClassInfo *const *)a;
+  TradeSkillSubClassInfo *info2 = *(TradeSkillSubClassInfo *const *)b;
   if (info1->classID == info2->classID) {
     const ItemSubClassRec *rec1 = 0;
     const ItemSubClassRec *rec2 = 0;
@@ -393,7 +393,7 @@ void CGTradeSkillInfo::RefreshList(int resetFilters) {
               }
             }
             const ItemStats_C *stats = g_itemDBCache.GetRecord(
-                spell->m_effectItemType[0], static_cast<DWORDLONG>(spellID) | 0xB000000000000000ui64, TradeSkillListItemCallback, 0
+                spell->m_effectItemType[0], (DWORDLONG)spellID | 0xB000000000000000ui64, TradeSkillListItemCallback, 0
             );
             if (!stats) {
               ++m_itemsPending;
@@ -551,7 +551,7 @@ static int Script_CloseTradeSkill(lua_State *) {
 }
 
 static int Script_GetNumTradeSkills(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGTradeSkillInfo::GetNumTradeSkills()));
+  lua_pushnumber(L, CGTradeSkillInfo::GetNumTradeSkills());
   return 1;
 }
 
@@ -560,7 +560,7 @@ static int Script_GetTradeSkillInfo(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillInfo(index)");
     return 0;
   }
-  int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int                   index = (int)lua_tonumber(L, 1) - 1;
   const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
   if (info) {
     if (info->spellID == -1) {
@@ -587,7 +587,7 @@ static int Script_GetTradeSkillInfo(lua_State *L) {
       if (spell) {
         lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
         lua_pushstring(L, s_skillCategoryStrings[info->category]);
-        lua_pushnumber(L, static_cast<double>(info->numAvailable));
+        lua_pushnumber(L, info->numAvailable);
         lua_pushnil(L);
         return 4;
       }
@@ -605,12 +605,12 @@ static int Script_SelectTradeSkill(lua_State *L) {
     luaL_error(L, "Usage: SelectTradeSkill(index)");
     return 0;
   }
-  CGTradeSkillInfo::SetSelection(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  CGTradeSkillInfo::SetSelection((int)lua_tonumber(L, 1) - 1);
   return 0;
 }
 
 static int Script_GetTradeSkillSelectionIndex(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGTradeSkillInfo::GetSelectionIndex() + 1));
+  lua_pushnumber(L, CGTradeSkillInfo::GetSelectionIndex() + 1);
   return 1;
 }
 
@@ -619,12 +619,12 @@ static int Script_GetTradeSkillIcon(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillIcon(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo((int)lua_tonumber(L, 1) - 1);
   if (info && info->spellID >= 0) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
     if (spell) {
       const ItemStats_C *stats =
-          g_itemDBCache.GetRecord(spell->m_effectItemType[0], static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+          g_itemDBCache.GetRecord(spell->m_effectItemType[0], (DWORDLONG)info->spellID | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
       if (stats) {
         char   buffer[MAX_PATH];
         LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -654,7 +654,7 @@ static int Script_GetTradeSkillItemStats(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillItemStats(index)");
     return 0;
   }
-  int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int                   index = (int)lua_tonumber(L, 1) - 1;
   const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
   if (!info) {
     return 0;
@@ -669,7 +669,7 @@ static int Script_GetTradeSkillItemStats(lua_State *L) {
   char                   temp[128];
   int                    count;
   int                    itemID = spell->m_effectItemType[0];
-  const ItemStats       *stats = g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(spell->m_ID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+  const ItemStats       *stats = g_itemDBCache.GetRecord(itemID, (DWORDLONG)spell->m_ID | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
   CGPlayer_C *player;
   char        buf[128];
   if (!stats) {
@@ -1093,7 +1093,7 @@ static int Script_GetTradeSkillItemLink(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillItemLink(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo((int)lua_tonumber(L, 1) - 1);
   if (info && info->spellID >= 0) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
     if (spell) {
@@ -1115,7 +1115,7 @@ static int Script_GetTradeSkillNumReagents(lua_State *L) {
     luaL_error(L, "Usage: GetTradeSkillNumReagents(index)");
     return 0;
   }
-  int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int                   index = (int)lua_tonumber(L, 1) - 1;
   int                   count = 0;
   const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
   if (info && info->spellID >= 0) {
@@ -1128,14 +1128,14 @@ static int Script_GetTradeSkillNumReagents(lua_State *L) {
       }
     }
   }
-  lua_pushnumber(L, static_cast<double>(count));
+  lua_pushnumber(L, count);
   return 1;
 }
 
 static int Script_GetTradeSkillReagentInfo(lua_State *L) {
   if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
-    int                   index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-    int                   reagentIndex = static_cast<int>(lua_tonumber(L, 2));
+    int                   index = (int)lua_tonumber(L, 1) - 1;
+    int                   reagentIndex = lua_tonumber(L, 2);
     const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(index);
     if (info && info->spellID >= 0) {
       const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1147,7 +1147,7 @@ static int Script_GetTradeSkillReagentInfo(lua_State *L) {
             if (count == reagentIndex) {
               int                itemID = spell->m_reagent[i];
               const ItemStats_C *stats =
-                  g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+                  g_itemDBCache.GetRecord(itemID, (DWORDLONG)info->spellID | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
               if (stats) {
                 lua_pushstring(L, stats->m_displayName[0]);
                 char   buffer[MAX_PATH];
@@ -1159,10 +1159,10 @@ static int Script_GetTradeSkillReagentInfo(lua_State *L) {
                 lua_pushnil(L);
                 lua_pushnil(L);
               }
-              lua_pushnumber(L, static_cast<double>(spell->m_reagentCount[i]));
+              lua_pushnumber(L, spell->m_reagentCount[i]);
               CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
               if (player) {
-                lua_pushnumber(L, static_cast<double>(player->CGPlayer_C::GetBag()->GetItemTypeCount(itemID, 0)));
+                lua_pushnumber(L, player->CGPlayer_C::GetBag()->GetItemTypeCount(itemID, 0));
               } else {
                 lua_pushnumber(L, 0.0);
               }
@@ -1188,7 +1188,7 @@ static int Script_GetTradeSkillTools(lua_State *L) {
     return 0;
   }
   UINT                  count = 0;
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo((int)lua_tonumber(L, 1) - 1);
   if (info && info->spellID >= 0) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
     if (spell) {
@@ -1202,7 +1202,7 @@ static int Script_GetTradeSkillTools(lua_State *L) {
       for (UINT i = 0; i < 2; ++i) {
         if (spell->m_totem[i]) {
           const ItemStats_C *stats =
-              g_itemDBCache.GetRecord(spell->m_totem[i], static_cast<DWORDLONG>(info->spellID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
+              g_itemDBCache.GetRecord(spell->m_totem[i], (DWORDLONG)info->spellID | 0xB000000000000000ui64, TradeSkillItemCallback, 0);
           if (stats) {
             lua_pushstring(L, stats->m_displayName[0]);
             ++count;
@@ -1250,12 +1250,12 @@ static int Script_SetTradeSkillSubClassFilter(lua_State *L) {
     luaL_error(L, "Usage: SetTradeSkillSubClassFilter(index [, on\\off, exclusive])");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGTradeSkillInfo::SetSubClassFilter(-1);
     return 0;
   }
-  if (index >= static_cast<int>(CGTradeSkillInfo::GetNumSubClasses())) {
+  if (index >= (int)CGTradeSkillInfo::GetNumSubClasses()) {
     luaL_error(L, "Bad sub class in SetTradeSkillSubClassFilter");
     return 0;
   }
@@ -1264,11 +1264,11 @@ static int Script_SetTradeSkillSubClassFilter(lua_State *L) {
     return 0;
   }
   int filter = CGTradeSkillInfo::GetSubClassFilter();
-  if (!static_cast<int>(lua_tonumber(L, 2))) {
+  if (!(int)lua_tonumber(L, 2)) {
     CGTradeSkillInfo::SetSubClassFilter(filter & ~(1 << index));
     return 0;
   }
-  if (lua_isnumber(L, 3) && static_cast<int>(lua_tonumber(L, 3))) {
+  if (lua_isnumber(L, 3) && (int)lua_tonumber(L, 3)) {
     CGTradeSkillInfo::SetSubClassFilter(1 << index);
     return 0;
   }
@@ -1282,7 +1282,7 @@ static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
     return 0;
   }
   int filter = CGTradeSkillInfo::GetSubClassFilter();
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     for (UINT i = 0; i < CGTradeSkillInfo::GetNumSubClasses(); ++i) {
       if (!((1 << i) & filter)) {
@@ -1293,7 +1293,7 @@ static int Script_GetTradeSkillSubClassFilter(lua_State *L) {
     lua_pushnumber(L, 1.0);
     return 1;
   }
-  if (index >= static_cast<int>(CGTradeSkillInfo::GetNumSubClasses())) {
+  if (index >= (int)CGTradeSkillInfo::GetNumSubClasses()) {
     luaL_error(L, "Bad sub class in GetTradeSkillSubClassFilter");
     return 0;
   }
@@ -1310,7 +1310,7 @@ static int Script_SetTradeSkillInvSlotFilter(lua_State *L) {
     luaL_error(L, "Usage: SetTradeSkillInvSlotFilter(index [, on\\off, exclusive])");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGTradeSkillInfo::SetInvTypeFilter(-1);
     return 0;
@@ -1336,11 +1336,11 @@ static int Script_SetTradeSkillInvSlotFilter(lua_State *L) {
     return 0;
   }
   int filter = CGTradeSkillInfo::GetInvTypeFilter();
-  if (!static_cast<int>(lua_tonumber(L, 2))) {
+  if (!(int)lua_tonumber(L, 2)) {
     CGTradeSkillInfo::SetInvTypeFilter(filter & ~(1 << slot));
     return 0;
   }
-  if (lua_isnumber(L, 3) && static_cast<int>(lua_tonumber(L, 3))) {
+  if (lua_isnumber(L, 3) && (int)lua_tonumber(L, 3)) {
     CGTradeSkillInfo::SetInvTypeFilter(1 << slot);
     return 0;
   }
@@ -1354,7 +1354,7 @@ static int Script_GetTradeSkillInvSlotFilter(lua_State *L) {
     return 0;
   }
   int filter = CGTradeSkillInfo::GetInvTypeFilter();
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     if ((CGTradeSkillInfo::GetAvailableSlots() & CGTradeSkillInfo::GetInvTypeFilter()) == CGTradeSkillInfo::GetAvailableSlots()) {
       lua_pushnumber(L, 1.0);
@@ -1392,7 +1392,7 @@ static int Script_CollapseTradeSkillSubClass(lua_State *L) {
     luaL_error(L, "Usage: CollapseTradeSkillSubClass(index)");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGTradeSkillInfo::SetCollapseFilter(0);
   } else {
@@ -1411,7 +1411,7 @@ static int Script_ExpandTradeSkillSubClass(lua_State *L) {
     luaL_error(L, "Usage: ExpandTradeSkillSubClass(index)");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGTradeSkillInfo::SetCollapseFilter(-1);
   } else {
@@ -1430,7 +1430,7 @@ static int Script_DoTradeSkill(lua_State *L) {
     luaL_error(L, "Usage: DoTradeSkill(index)");
     return 0;
   }
-  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo(static_cast<UINT>(lua_tonumber(L, 1)) - 1);
+  const TradeSkillInfo *info = CGTradeSkillInfo::GetTradeSkillInfo((UINT)lua_tonumber(L, 1) - 1);
   if (info) {
     Spell_C_CastSpell(info->spellID, 0);
   }

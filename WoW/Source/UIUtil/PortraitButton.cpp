@@ -150,7 +150,7 @@ static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
 static void TextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch) {
     texelStrideInBytes = 4 * w;
-    texels = static_cast<TSGrowableArray<NTempest::CImVector> *>(userArg)->Ptr();
+    texels = ((TSGrowableArray<NTempest::CImVector> *)userArg)->Ptr();
   }
 }
 
@@ -324,7 +324,7 @@ void PortraitShutdown() {
 void UpdatePortraits() {
   while (DIRTYFACE *dirty = s_dirtyList.Head()) {
     DWORDLONG       guid = dirty->guid;
-    UINT            hashval = static_cast<UINT>(guid);
+    UINT            hashval = guid;
     CHashKeyGUID    hashkey(guid);
     PLAYERPORTRAIT *portrait = s_playerPortraits.Ptr(hashval, hashkey);
     if (portrait) {
@@ -359,7 +359,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
 
   if (unit->IsA(ID_PLAYER)) {
     CHashKeyGUID    hashkey(unit->GetGUID());
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(unit->GetGUID()), hashkey);
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(unit->GetGUID(), hashkey);
     if (playerPortrait && !playerPortrait->dirty) {
       texture->SetTexture(playerPortrait->portrait.texture);
       return;
@@ -381,8 +381,12 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   viewRect.r = 51.200001f / screenRect.Width();
 
   HMODEL  model = 0;
-  HCAMERA camera;
-  if (!unit->IsObjectModelLoaded() || !(unit->m_flags & 0x100) || (model = unit->DuplicateCharacterModel(0), (camera = ModelGetCamera(model, 0)) == 0)) {
+  HCAMERA camera = 0;
+  if (unit->IsObjectModelLoaded() && (unit->m_flags & 0x100)) {
+    model = unit->DuplicateCharacterModel(0);
+    camera = ModelGetCamera(model, 0);
+  }
+  if (!camera) {
     if (unit->IsA(ID_PLAYER)) {
       SetPortraitTexture(texture, unit->GetRace(), unit->GetSex(), unit->GetGUID());
     } else {
@@ -466,15 +470,16 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   PortraitData *portrait;
   if (unit->IsA(ID_PLAYER)) {
     CHashKeyGUID    hashkey(unit->GetGUID());
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(unit->GetGUID()), hashkey);
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(unit->GetGUID(), hashkey);
     if (playerPortrait) {
       playerPortrait->dirty = 0;
-      portrait = &playerPortrait->portrait;
     } else {
-      portrait = &s_playerPortraits.New(static_cast<UINT>(unit->GetGUID()), hashkey, 0, 0)->portrait;
+      playerPortrait = s_playerPortraits.New(unit->GetGUID(), hashkey, 0, 0);
     }
+    portrait = &playerPortrait->portrait;
   } else {
-    portrait = &s_unitPortraits.New(unit->GetDisplayID(), HASHKEY_NONE(), 0, 0)->portrait;
+    UNITPORTRAIT *unitPortrait = s_unitPortraits.New(unit->GetDisplayID(), HASHKEY_NONE(), 0, 0);
+    portrait = &unitPortrait->portrait;
   }
 
   TSGrowableArray<NTempest::CImVector> &pixels = portrait->pixels;
@@ -507,7 +512,7 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
 
 void SetPortraitTexture(CSimpleTexture *texture, UINT race, UINT sex, DWORDLONG guid) {
   if (guid) {
-    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(static_cast<UINT>(guid), guid);
+    PLAYERPORTRAIT *playerPortrait = s_playerPortraits.Ptr(guid, guid);
     if (playerPortrait && playerPortrait->portrait.texture) {
       texture->SetTexture(playerPortrait->portrait.texture);
       return;

@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -172,7 +172,7 @@ void CDetailDoodad::FreeGxBuf(CGxBuf *gxBuf) {
 }
 
 void CDetailDoodad::GxBufFillCallback(CGxBufCommand &cmd, CGxBuf *buf) {
-  CDetailDoodadGeom *detailDoodadGeom = static_cast<CDetailDoodadGeom *>(buf->UserArg());
+  CDetailDoodadGeom *detailDoodadGeom = (CDetailDoodadGeom *)buf->UserArg();
   FATALASSERT(detailDoodadGeom);
   detailDoodadGeom->FillGxBufVertex(cmd, buf);
   detailDoodadGeom->FillGxBufIndex(cmd, buf);
@@ -221,7 +221,7 @@ void CDetailDoodadGeom::FillGxBufVertex(CGxBufCommand &cmd, CGxBuf *buf) {
       return;
 
     case GxBufOp_Fill: {
-      CGxVertexPNCT0 *vertices = static_cast<CGxVertexPNCT0 *>(*cmd.vertex.mem[GxVM_Vertex]);
+      CGxVertexPNCT0 *vertices = (CGxVertexPNCT0 *)*cmd.vertex.mem[GxVM_Vertex];
       for (index = 0; index < vertexList.Count(); ++index) {
         vertices[index].p = vertexList[index];
         vertices[index].n = normalList[index];
@@ -341,7 +341,7 @@ void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailD
   FATALASSERT(numTextures == 1);
   FATALASSERT(sectionBytes == (numTextures * sizeof(MDLTEXTURESECTION)));
 
-  MDLTEXTURESECTION *textures = reinterpret_cast<MDLTEXTURESECTION *>(data);
+  MDLTEXTURESECTION *textures = (MDLTEXTURESECTION *)data;
   data += sectionBytes;
   detailDoodad->texture = CMap::LoadTexture(textures->image);
 
@@ -610,7 +610,7 @@ void CDetailDoodadInst::Render() {
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
   GxRsSet(GxRs_Blend, GxBlend_AlphaKey);
-  GxRsSet(GxRs_AlphaRef, static_cast<BYTE>(CWorld::detailDoodadAlphaRef));
+  GxRsSet(GxRs_AlphaRef, (BYTE)CWorld::detailDoodadAlphaRef);
   GxRsSet(GxRs_DepthWrite, 1);
   GxVertexShaderSelect(GxVS_PassThru);
 
@@ -641,7 +641,7 @@ void CDetailDoodadInst::RenderAlpha() {
   GxRsSet(GxRs_Culling, 0);
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
-  GxRsSet(GxRs_AlphaRef, static_cast<BYTE>(CWorld::detailDoodadAlphaRef));
+  GxRsSet(GxRs_AlphaRef, (BYTE)CWorld::detailDoodadAlphaRef);
   GxRsSet(GxRs_DepthWrite, 1);
   GxRsSet(GxRs_Texture1, CDetailDoodad::alphaRampTexture);
   GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);

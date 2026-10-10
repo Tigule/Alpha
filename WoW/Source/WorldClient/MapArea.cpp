@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -23,7 +23,7 @@ static BYTE  s_asyncBuffersInitialized;
 static TSCArray<BYTE, 163840> s_syncLoadBuffer;
 
 void CMapArea::FreeAsyncLoadBuffer(BYTE *buffer) {
-  *reinterpret_cast<BYTE **>(buffer) = s_freeAsyncBuffer;
+  *(BYTE **)buffer = s_freeAsyncBuffer;
   s_freeAsyncBuffer = buffer;
 }
 
@@ -39,11 +39,12 @@ BYTE *CMapArea::AllocAsyncLoadBuffer() {
     s_asyncBuffersInitialized = 1;
   }
 
-  BYTE *buffer = s_freeAsyncBuffer;
-  if (buffer) {
-    s_freeAsyncBuffer = *reinterpret_cast<BYTE **>(buffer);
+  if (!s_freeAsyncBuffer) {
+    return 0;
   }
 
+  BYTE *buffer = s_freeAsyncBuffer;
+  s_freeAsyncBuffer = *(BYTE **)buffer;
   return buffer;
 }
 
@@ -63,8 +64,8 @@ void CMapArea::AsyncPollHandler() {
       break;
     }
 
-    CAsyncObject *next = s_asyncLoadList.Next(object);
-    object->link.Unlink();
+    CAsyncObject *next = object->link.Next();
+    s_asyncLoadList.UnlinkNode(object);
     object->buffer = buffer;
     object->canReorder = 1;
     AsyncFileReadObject(object);
@@ -117,7 +118,7 @@ void CMapArea::Load(SMAreaInfo *areaInfo) {
       s_asyncLoadList.LinkNode(asyncObject, LIST_TAIL, 0);
     }
 
-    areaInfo->asyncId = reinterpret_cast<UINT>(asyncObject);
+    areaInfo->asyncId = (UINT)asyncObject;
   }
 }
 
@@ -145,33 +146,33 @@ void CMapArea::Create(BYTE *data) {
   FATALASSERT(data);
   FATALASSERT(CMap::bActive);
 
-  SIffChunk *mIffChunk = reinterpret_cast<SIffChunk *>(data);
+  SIffChunk *mIffChunk = (SIffChunk *)data;
   FATALASSERT(mIffChunk->token=='MHDR');
 
   data += sizeof(SIffChunk);
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsInfo);
+  mIffChunk = (SIffChunk *)(data + ((SMAreaHeader *)data)->offsInfo);
   FATALASSERT(mIffChunk->token == 'MCIN');
   memcpy(chunkInfo, mIffChunk + 1, mIffChunk->size);
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsTex);
+  mIffChunk = (SIffChunk *)(data + ((SMAreaHeader *)data)->offsTex);
   FATALASSERT(mIffChunk->token == 'MTEX');
-  char *mTexNames = reinterpret_cast<char *>(mIffChunk + 1);
+  char *mTexNames = (char *)(mIffChunk + 1);
   LoadTextures(mTexNames, mIffChunk->size);
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsDoo);
+  mIffChunk = (SIffChunk *)(data + ((SMAreaHeader *)data)->offsDoo);
   FATALASSERT(mIffChunk->token == 'MDDF');
   doodadDefList.SetCount(mIffChunk->size / sizeof(SMDoodadDef));
   if (doodadDefList.Count()) {
-    SMDoodadDef *mDoodadDef = &doodadDefList[0];
+    SMDoodadDef *mDoodadDef = doodadDefList.Ptr();
     memcpy(mDoodadDef, mIffChunk + 1, mIffChunk->size);
   }
 
-  mIffChunk = reinterpret_cast<SIffChunk *>(data + reinterpret_cast<SMAreaHeader *>(data)->offsMob);
+  mIffChunk = (SIffChunk *)(data + ((SMAreaHeader *)data)->offsMob);
   FATALASSERT(mIffChunk->token == 'MODF');
   mapObjDefList.SetCount(mIffChunk->size / sizeof(SMMapObjDef));
   if (mapObjDefList.Count()) {
-    SMMapObjDef *mMapObjDef = &mapObjDefList[0];
+    SMMapObjDef *mMapObjDef = mapObjDefList.Ptr();
     memcpy(mMapObjDef, mIffChunk + 1, mIffChunk->size);
   }
 
@@ -189,8 +190,8 @@ void CMapArea::LoadTextures(char *texNames, DWORD size) {
     HTEXTURE hTexture;
 
     if (CMap::EnableSpecularTerrain()) {
-      static const char specExt[] = "_s";
-      char              specFileName[MAX_PATH];
+      const char *specExt = "_s";
+      char        specFileName[MAX_PATH];
 
       FATALASSERT(SStrLen(&fileNames[i]) + SStrLen(specExt) < 260);
       SStrCopy(specFileName, &fileNames[i], 0x7FFFFFFF);
@@ -206,16 +207,19 @@ void CMapArea::LoadTextures(char *texNames, DWORD size) {
     texIdTable.SetCount(texIdTable.Count() + 1);
     texIdTable[texIdTable.Count() - 1] = hTexture;
     ++texCount;
-    i += SStrLen(&texNames[i]) + 1;
+    while (texNames[i]) {
+      ++i;
+    }
+    ++i;
   }
 }
 
 void CMapArea::AsyncCallback(LPVOID userArg) {
-  CMapArea *area = static_cast<CMapArea *>(userArg);
+  CMapArea *area = (CMapArea *)userArg;
   FATALASSERT(area);
 
-  area->Create(static_cast<BYTE *>(area->asyncObject->buffer));
-  FreeAsyncLoadBuffer(static_cast<BYTE *>(area->asyncObject->buffer));
+  area->Create((BYTE *)area->asyncObject->buffer);
+  FreeAsyncLoadBuffer((BYTE *)area->asyncObject->buffer);
   area->asyncObject->buffer = 0;
   AsyncFileReadDestroyObject(area->asyncObject);
   area->asyncObject = 0;

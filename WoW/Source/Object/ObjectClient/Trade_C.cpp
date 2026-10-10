@@ -29,7 +29,7 @@ static int       s_useCursorItem;
 static DWORDLONG s_tradePartner;
 static int       s_tradeProposedEnchantment[2];
 static int       s_tradeProposedEnchantmentSlot[2];
-static UINT      s_tradeGold[2];
+UINT             s_tradeGold[2];
 UINT             s_tradeStateIndex[2];
 
 struct TradeItemData {
@@ -40,7 +40,7 @@ struct TradeItemData {
   DWORDLONG creator;
 };
 
-static TradeItemData s_tradeItems[2][8];
+TradeItemData s_tradeItems[2][8];
 
 enum TRADE_STATUS {
   TRADE_STATUS_PLAYER_BUSY = 0,
@@ -153,9 +153,13 @@ static BOOL CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_ClearTradeItem(LPCSTR command, LPCSTR arguments) {
-  if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
-    Trade_C_RemoveItem(arguments && *arguments ? SStrToInt(arguments) : 0);
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return 1;
   }
+
+  BYTE tradeSlot = arguments && *arguments ? SStrToInt(arguments) : 0;
+  Trade_C_RemoveItem(tradeSlot);
   return 1;
 }
 
@@ -163,7 +167,7 @@ static BOOL CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     CDataStore msg;
     msg.Put(CMSG_CLEAR_TRADE_ITEM);
-    msg.Put(static_cast<BYTE>(0xFF));
+    msg.Put((BYTE)0xFF);
     msg.Finalize();
     ClientServices_Send(&msg);
   }
@@ -186,8 +190,12 @@ static BOOL CCommand_CancelTrade(LPCSTR command, LPCSTR arguments) {
 
 static BOOL CCommand_ShowTrade(LPCSTR, LPCSTR) {
   for (BYTE player = 0; player < 2; ++player) {
-    ConsoleWrite(player ? "He is offering:" : "You are offering:", DEFAULT_COLOR);
-    for (UINT slot = 0; slot < 8; ++slot) {
+    if (!player) {
+      ConsoleWrite("You are offering:", DEFAULT_COLOR);
+    } else {
+      ConsoleWrite("He is offering:", DEFAULT_COLOR);
+    }
+    for (BYTE slot = 0; slot < 8; ++slot) {
       ConsolePrintf("%d: item=%d, display=%d", slot, s_tradeItems[player][slot].entryID, s_tradeItems[player][slot].displayID);
     }
   }
@@ -195,8 +203,10 @@ static BOOL CCommand_ShowTrade(LPCSTR, LPCSTR) {
 }
 
 static BOOL CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
+  UINT       gold = arguments ? SStrToInt(arguments) : 0;
   CDataStore msg;
-  msg.Put(CMSG_SET_TRADE_GOLD) << static_cast<UINT>(arguments ? SStrToInt(arguments) : 0);
+  msg.Put(CMSG_SET_TRADE_GOLD);
+  msg.Put(gold);
   msg.Finalize();
   ClientServices_Send(&msg);
   return 1;
@@ -210,7 +220,7 @@ static BOOL CCommand_UnacceptTrade(LPCSTR, LPCSTR) {
 static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
   UINT statusint;
   netmsg->Get(statusint);
-  TRADE_STATUS status = static_cast<TRADE_STATUS>(statusint);
+  TRADE_STATUS status = (TRADE_STATUS)statusint;
   BAG_RESULT   bagResult = BAG_OK;
   BYTE         failureForMe = 0;
   int          itemID = 0;
@@ -286,7 +296,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
       clearTrade = 1;
       break;
     case 12:
-      netmsg->Get(reinterpret_cast<int &>(bagResult));
+      netmsg->Get((int &)bagResult);
       netmsg->Get(failureForMe);
       netmsg->Get(itemID);
       SStrCopy(buf, FrameScript_GetText("TRADE_FAILED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
@@ -367,20 +377,19 @@ BOOL Trade_C_UseCursorItem() {
 }
 
 BOOL Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
-  int enchantment = s_tradeProposedEnchantment[player];
-  if (enchantment <= 0) {
-    return 0;
+  if (s_tradeProposedEnchantment[player] > 0) {
+    spellID = s_tradeProposedEnchantment[player];
+    slot = s_tradeProposedEnchantmentSlot[player];
+    return 1;
   }
-  spellID = enchantment;
-  slot = s_tradeProposedEnchantmentSlot[player];
-  return 1;
+  return 0;
 }
 
 static void TradeNameCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     const NameCache *name = g_nameDBCache.GetRecord(guid, 0, 0, 0);
     if (name) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(169), name->m_name);
+      CGGameUI::DisplayError(GERR_INITIATE_TRADE_S, name->m_name);
     }
   }
 }
@@ -396,7 +405,7 @@ void Trade_C_InitiateTrade(DWORDLONG target, int useCursorItem) {
   s_useCursorItem = useCursorItem;
   const NameCache *name = g_nameDBCache.GetRecord(target, target, TradeNameCallback, 0);
   if (name) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(169), name->m_name);
+    CGGameUI::DisplayError(GERR_INITIATE_TRADE_S, name->m_name);
   }
 }
 
@@ -424,7 +433,7 @@ void Trade_C_PlayerIgnored() {
 void Trade_C_AcceptTrade() {
   CDataStore msg;
   msg.Put(CMSG_ACCEPT_TRADE);
-  msg.Put(static_cast<int>(s_tradeStateIndex[1]));
+  msg.Put((int)s_tradeStateIndex[1]);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -450,16 +459,19 @@ bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UIN
   }
 
   CGItem_C *itemPtr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
-  if (!itemPtr || itemPtr->IsBound()) {
+  if (!itemPtr) {
+    return false;
+  }
+  if (itemPtr->IsBound()) {
     return false;
   }
 
   BYTE       itemContainerIndex = player->FindSlotIndex(itemContainer);
   CDataStore msg;
   msg.Put(CMSG_SET_TRADE_ITEM);
-  msg.Put(static_cast<BYTE>(tradeSlot));
+  msg.Put((BYTE)tradeSlot);
   msg.Put(itemContainerIndex);
-  msg.Put(static_cast<BYTE>(itemSlot));
+  msg.Put((BYTE)itemSlot);
   msg.Finalize();
   ClientServices_Send(&msg);
   return true;
@@ -468,28 +480,32 @@ bool Trade_C_AddItem(DWORDLONG item, DWORDLONG itemContainer, UINT itemSlot, UIN
 void Trade_C_RemoveItem(UINT slot) {
   CDataStore msg;
   msg.Put(CMSG_CLEAR_TRADE_ITEM);
-  msg.Put(static_cast<BYTE>(slot));
+  msg.Put((BYTE)slot);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
 
 void Trade_C_AddMoney(UINT money) {
   if (money) {
+    UINT       gold = s_tradeGold[0] + money;
     CDataStore msg;
     msg.Put(CMSG_SET_TRADE_GOLD);
-    msg.Put(s_tradeGold[0] + money);
+    msg.Put(gold);
     msg.Finalize();
     ClientServices_Send(&msg);
   }
 }
 
 void Trade_C_RemoveMoney(UINT money) {
-  if (money && money <= s_tradeGold[0]) {
-    CDataStore msg;
-    msg.Put(CMSG_SET_TRADE_GOLD);
-    msg.Put(s_tradeGold[0] - money);
-    msg.Finalize();
-    ClientServices_Send(&msg);
+  if (money) {
+    if (money <= s_tradeGold[0]) {
+      UINT       gold = s_tradeGold[0] - money;
+      CDataStore msg;
+      msg.Put(CMSG_SET_TRADE_GOLD);
+      msg.Put(gold);
+      msg.Finalize();
+      ClientServices_Send(&msg);
+    }
   }
 }
 

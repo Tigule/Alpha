@@ -140,7 +140,7 @@ class CSimpleTop : public CLayoutFrame {
   };
 
   frame_layout                        m_layout;
-  CSimpleSortedArray<FRAMEPRIORITY *> m_eventqueue[4][5];
+  CSimpleSortedArray<FRAMEPRIORITY *> m_eventqueue[NUM_SIMPLE_EVENTS][5];
   DWORD                               m_eventTime;
   BOOL                                m_checkFocus;
   EVENT_DATA_MOUSE                    m_mousePosition;
@@ -162,7 +162,7 @@ class CSimpleTop : public CLayoutFrame {
 };
 
 inline CLayoutFrame *CSimpleFrame::GetLayoutParent() {
-  if (m_parent) {
+  if ((CLayoutFrame *)m_parent) {
     return m_parent;
   }
 

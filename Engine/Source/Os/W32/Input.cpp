@@ -204,12 +204,12 @@ static void OsQueueSetParam(int index, int param) {
 
 static BOOL ConvertKeyCode(int vkey, KEY *key) {
   if ((vkey >= '0' && vkey <= '9') || (vkey >= 'A' && vkey <= 'Z')) {
-    *key = static_cast<KEY>(vkey);
+    *key = (KEY)vkey;
     return 1;
   }
 
   if (vkey >= VK_F1 && vkey <= VK_F12) {
-    *key = static_cast<KEY>(KEY_F1 + vkey - VK_F1);
+    *key = (KEY)(KEY_F1 + vkey - VK_F1);
     return 1;
   }
 
@@ -375,7 +375,7 @@ static BOOL ConvertKeyCode(int vkey, KEY *key) {
 static void CenterMouse() {
   RECT r;
 
-  GetWindowRect(static_cast<HWND>(OsGuiGetWindow(0)), &r);
+  GetWindowRect((HWND)OsGuiGetWindow(0), &r);
   s_mouseCenter.x = r.right / 2;
   s_mouseCenter.y = r.bottom / 2;
   SetCursorPos(s_mouseCenter.x, s_mouseCenter.y);
@@ -432,15 +432,15 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
   MSG message;
   int messageAvailable;
 
-  *id = static_cast<OSINPUT>(-1);
+  *id = (OSINPUT)-1;
 
   if (s_savedResize) {
-    int w = static_cast<short>(LOWORD(s_savedResize));
-    int h = static_cast<short>(HIWORD(s_savedResize));
+    int w = (short)LOWORD(s_savedResize);
+    int h = (short)HIWORD(s_savedResize);
 
-    s_defaultwindowrect.right = static_cast<long>(static_cast<float>(w));
+    s_defaultwindowrect.right = (float)w;
     s_defaultwindowrect.left = 0;
-    s_defaultwindowrect.bottom = static_cast<long>(static_cast<float>(h));
+    s_defaultwindowrect.bottom = (float)h;
     s_defaultwindowrect.top = 0;
 
     *id = OS_INPUT_SIZE;
@@ -496,7 +496,7 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
   return 0;
 
 deliverMessage:
-  OsQueueSetParam(3, static_cast<int>(message.time));
+  OsQueueSetParam(3, message.time);
   OsQueueGet(id, param0, param1, param2, param3);
   return 1;
 }
@@ -528,7 +528,7 @@ void OsInputSetMouseMode(OS_MOUSE_MODE mode) {
 }
 
 void OsInputGetMousePosition(int *x, int *y) {
-  HWND  window = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND  window = (HWND)OsGuiGetWindow(0);
   POINT pt;
 
   GetCursorPos(&pt);
@@ -544,7 +544,7 @@ void OsInputGetMousePosition(int *x, int *y) {
 }
 
 void OsInputSetMousePosition(int x, int y) {
-  HWND  window = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND  window = (HWND)OsGuiGetWindow(0);
   POINT pt;
 
   pt.x = x;
@@ -559,7 +559,7 @@ BOOL OsGetDefaultWindowRect(RECT *rect) {
   VALIDATE(rect);
   VALIDATEEND;
 
-  if ((!s_defaultwindowrect.right || !s_defaultwindowrect.bottom) && !GetClientRect(static_cast<HWND>(OsGuiGetWindow(0)), &s_defaultwindowrect)) {
+  if ((!s_defaultwindowrect.right || !s_defaultwindowrect.bottom) && !GetClientRect((HWND)OsGuiGetWindow(0), &s_defaultwindowrect)) {
     return 0;
   }
 
@@ -593,7 +593,7 @@ void OsSetWindowProc(OSWINDOWPROC windowproc) {
 }
 
 long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
-  HWND        hWnd = static_cast<HWND>(_window);
+  HWND        hWnd = (HWND)_window;
   POINT       pt;
   KEY         key;
   MOUSEBUTTON button;
@@ -610,7 +610,7 @@ long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
 
     case WM_ACTIVATE:
       s_buttonState = 0;
-      OsQueuePut(OS_INPUT_FOCUS, static_cast<WORD>(LOWORD(wparam)) != WA_INACTIVE, 0, 0, 0);
+      OsQueuePut(OS_INPUT_FOCUS, LOWORD(wparam) != WA_INACTIVE, 0, 0, 0);
       break;
 
     case WM_CLOSE:
@@ -634,7 +634,7 @@ long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
       }
 
       OsQueuePut(
-          message == WM_KEYDOWN || message == WM_SYSKEYDOWN ? OS_INPUT_KEY_DOWN : OS_INPUT_KEY_UP, key, static_cast<WORD>(LOWORD(lparam)), 0, 0
+          message == WM_KEYDOWN || message == WM_SYSKEYDOWN ? OS_INPUT_KEY_DOWN : OS_INPUT_KEY_UP, key, LOWORD(lparam), 0, 0
       );
 
       if (key == KEY_F4 && OsGuiIsModifierKeyDown(KEY_ALT)) {
@@ -664,7 +664,7 @@ long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
         }
       }
 
-      OsQueuePut(OS_INPUT_CHAR, character, static_cast<short>(LOWORD(lparam)), 0, 0);
+      OsQueuePut(OS_INPUT_CHAR, character, (short)LOWORD(lparam), 0, 0);
       return 0;
 
     case WM_IME_STARTCOMPOSITION:
@@ -748,12 +748,12 @@ long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
       }
 
       OsQueuePut(
-          buttonDown ? OS_INPUT_MOUSE_DOWN : OS_INPUT_MOUSE_UP, button, static_cast<short>(LOWORD(lparam)), static_cast<short>(HIWORD(lparam)), 0
+          buttonDown ? OS_INPUT_MOUSE_DOWN : OS_INPUT_MOUSE_UP, button, (short)LOWORD(lparam), (short)HIWORD(lparam), 0
       );
       return message == WM_XBUTTONDOWN || message == WM_XBUTTONUP;
 
     case WM_MOUSEWHEEL:
-      OsQueuePut(OS_INPUT_MOUSE_WHEEL, static_cast<short>(HIWORD(wparam)), static_cast<short>(LOWORD(lparam)), static_cast<short>(HIWORD(lparam)), 0);
+      OsQueuePut(OS_INPUT_MOUSE_WHEEL, (short)HIWORD(wparam), (short)LOWORD(lparam), (short)HIWORD(lparam), 0);
       return 0;
 
     case WM_CAPTURECHANGED:

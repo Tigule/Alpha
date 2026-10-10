@@ -185,7 +185,7 @@ void CSimpleScrollFrame::OnFrameSizeChanged(float w, float h) {
 }
 
 void CSimpleScrollFrame::RenderScrollChild(LPVOID param) {
-  CSimpleScrollFrame *scrollFrame = static_cast<CSimpleScrollFrame *>(param);
+  CSimpleScrollFrame *scrollFrame = (CSimpleScrollFrame *)param;
   NTempest::CRect     viewRect(0.0f);
 
   if (scrollFrame->GetHitRect(viewRect) && scrollFrame->m_scrollChild && scrollFrame->m_scrollChild->IsVisible()) {

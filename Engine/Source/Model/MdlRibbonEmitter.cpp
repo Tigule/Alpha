@@ -40,42 +40,42 @@ static void LoadRibbonMaterial(
 }
 
 static void LoadEmitterData(BYTE *emitterData, CModelComplex *modelptr, CRibbonEmitter *ribbon) {
-  emitterData += *reinterpret_cast<UINT *>(emitterData) + 4;
-  float staticHeightAbove = *reinterpret_cast<float *>(emitterData);
+  emitterData += *(UINT *)emitterData + 4;
+  float staticHeightAbove = *(float *)emitterData;
   emitterData += 4;
-  float staticHeightBelow = *reinterpret_cast<float *>(emitterData);
+  float staticHeightBelow = *(float *)emitterData;
   emitterData += 4;
   NTempest::CImVector diffColor(
-      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[0] * 255.0f),
-      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[1] * 255.0f),
-      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[2] * 255.0f),
-      NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(emitterData)[3] * 255.0f)
+      NTempest::CMath::ftol_0_256_(((float *)emitterData)[0] * 255.0f),
+      NTempest::CMath::ftol_0_256_(((float *)emitterData)[1] * 255.0f),
+      NTempest::CMath::ftol_0_256_(((float *)emitterData)[2] * 255.0f),
+      NTempest::CMath::ftol_0_256_(((float *)emitterData)[3] * 255.0f)
   );
   emitterData += 16;
-  float edgeLifetime = *reinterpret_cast<float *>(emitterData);
+  float edgeLifetime = *(float *)emitterData;
   emitterData += 4;
-  UINT staticTextureSlot = *reinterpret_cast<UINT *>(emitterData);
+  UINT staticTextureSlot = *(UINT *)emitterData;
   emitterData += 4;
-  UINT edgesPerSecond = *reinterpret_cast<UINT *>(emitterData);
+  UINT edgesPerSecond = *(UINT *)emitterData;
   emitterData += 4;
-  UINT textureRows = *reinterpret_cast<UINT *>(emitterData);
+  UINT textureRows = *(UINT *)emitterData;
   emitterData += 4;
-  UINT textureCols = *reinterpret_cast<UINT *>(emitterData);
+  UINT textureCols = *(UINT *)emitterData;
   emitterData += 4;
-  UINT materialId = *reinterpret_cast<UINT *>(emitterData);
+  UINT materialId = *(UINT *)emitterData;
   emitterData += 4;
-  float gravity = *reinterpret_cast<float *>(emitterData);
+  float gravity = *(float *)emitterData;
 
   static TSGrowableArray<CRibbonMat> mats;
   static TSGrowableArray<HTEXTURE>   textures;
   static TSGrowableArray<UINT>       replace;
 
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[materialId]);
+  CMaterial *uniqueMtl = (CMaterial *)modelptr->m_materials[materialId];
   ASSERT(uniqueMtl);
   LoadRibbonMaterial(*uniqueMtl, modelptr->m_textures, &mats, &textures, &replace);
 
   ribbon->Initialize(
-      static_cast<float>(edgesPerSecond), edgeLifetime, diffColor, textures, mats, replace, NTempest::CRect(0.0f, 0.0f, 1.0f, 1.0f), textureRows,
+      edgesPerSecond, edgeLifetime, diffColor, textures, mats, replace, NTempest::CRect(0.0f, 0.0f, 1.0f, 1.0f), textureRows,
       textureCols
   );
   ribbon->SetAbove(staticHeightAbove);
@@ -99,7 +99,7 @@ BOOL MdlReadLoadRibbonEmitters(const MDLDATA &data, CModelComplex *modelptr, CMo
   for (UINT i = 0; i < numRibbons; ++i) {
     shared->ribbonOrder[i] = data.ribbonEmitters[i].objectId;
 
-    CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[data.ribbonEmitters[i].materialId]);
+    CMaterial *uniqueMtl = (CMaterial *)modelptr->m_materials[data.ribbonEmitters[i].materialId];
     FATALASSERT(uniqueMtl);
     LoadRibbonMaterial(*uniqueMtl, modelptr->m_textures, &mats, &textures, &replace);
 
@@ -131,21 +131,21 @@ void MdxReadRibbonEmitters(BYTE *data, UINT fileBytes, CModelComplex *modelptr, 
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  UINT sectionBytes = *(UINT *)data;
   data += 4;
   BYTE *dataDone = data + sectionBytes;
-  UINT  numEmitters = *reinterpret_cast<UINT *>(data);
+  UINT  numEmitters = *(UINT *)data;
   data += 4;
 
   modelptr->m_ribbons.SetCount(numEmitters);
   shared->ribbonOrder.SetCount(numEmitters);
 
   for (UINT i = 0; i < numEmitters; ++i) {
-    UINT bytesThisEmitter = *reinterpret_cast<UINT *>(data);
+    UINT bytesThisEmitter = *(UINT *)data;
     ASSERT(dataDone >= (data + bytesThisEmitter));
 
     modelptr->m_ribbons[i] = RibbonManager::GetInstance()->CreateEmitter();
-    UINT objectId = *reinterpret_cast<UINT *>(data + 0x58);
+    UINT objectId = *(UINT *)(data + 0x58);
     shared->ribbonOrder[i] = objectId;
     LoadEmitterData(data + 4, modelptr, modelptr->m_ribbons[i]);
 

@@ -15,19 +15,19 @@ namespace MDL {
 }  // namespace MDL
 
 static void AddCameraErrors(TSet &errors) {
-  errors.Add(0x1A5, 0, 0);
-  errors.Add(0x1C7, 0, 0);
-  errors.Add(0x1AD, 0, 0);
-  errors.Add(0x14A, 1, 0);
-  errors.Add(0x149, 1, 0);
-  errors.Add(0x176, 0, 0);
-  errors.Add(0x1C1, 0, 0);
-  errors.Add(0x1D9, 0, 0);
+  errors.Add(MDLTOK_POSITION, 0, 0);
+  errors.Add(MDLTOK_TRANSLATION, 0, 0);
+  errors.Add(MDLTOK_ROTATION, 0, 0);
+  errors.Add(MDLTOK_FIELDOFVIEW, 1, 0);
+  errors.Add(MDLTOK_FAR_CLIP, 1, 0);
+  errors.Add(MDLTOK_NEAR_CLIP, 0, 0);
+  errors.Add(MDLTOK_TARGET, 0, 0);
+  errors.Add(MDLTOK_VISIBILITY, 0, 0);
 }
 
 static void AddCameraTargetErrors(TSet &errors) {
-  errors.Add(0x1A5, 0, 0);
-  errors.Add(0x1C7, 0, 0);
+  errors.Add(MDLTOK_POSITION, 0, 0);
+  errors.Add(MDLTOK_TRANSLATION, 0, 0);
 }
 
 static void IReadCameraTarget(Parser &parse, MDLTARGETSECTION *target, CMDLStatus *status) {
@@ -36,21 +36,27 @@ static void IReadCameraTarget(Parser &parse, MDLTARGETSECTION *target, CMDLStatu
   AddCameraTargetErrors(errors);
   parse.Expect('{');
   LPCSTR tokenText;
-  UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
+  UINT   token;
+  for (token = parse.Token(&tokenText, 0); token != '}'; token = parse.Token(&tokenText, 0)) {
+    if (!token) {
+      break;
+    }
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokenText);
     }
-    if (token == 0x1A5) {
-      ReadFloatKeyData(parse, &target->pivot.x, 3);
-      parse.Expect(',');
-    } else if (token == 0x1C7) {
-      ReadObjectFloatKeyframes(parse, &target->transkeys);
-    } else {
-      parse.FatalUnexpected(tokenText);
-      parse.Expect(',');
+    switch (token) {
+      case MDLTOK_TRANSLATION:
+        ReadObjectFloatKeyframes(parse, &target->transkeys);
+        break;
+      case MDLTOK_POSITION:
+        ReadFloatKeyData(parse, &target->pivot.x, 3);
+        parse.Expect(',');
+        break;
+      default:
+        parse.FatalUnexpected(tokenText);
+        parse.Expect(',');
+        break;
     }
-    token = parse.Token(&tokenText, 0);
   }
   parse.Expect('}', token, tokenText);
   errors.Complete(status);
@@ -69,32 +75,32 @@ BOOL MDL::ReadCamera(Parser &parse, MDLDATA &data, CMDLStatus *status) {
       parse.FatalDuplicate(tokentext);
     }
     switch (token) {
-      case 0x1A5:
+      case MDLTOK_POSITION:
         ReadFloatKeyData(parse, &camera->pivot.x, 3);
         parse.Expect(',');
         break;
-      case 0x1C7:
+      case MDLTOK_TRANSLATION:
         ReadObjectFloatKeyframes(parse, &camera->transkeys);
         break;
-      case 0x1AD:
+      case MDLTOK_ROTATION:
         ReadObjectFloatKeyframes(parse, &camera->rollkeys);
         break;
-      case 0x14A:
+      case MDLTOK_FIELDOFVIEW:
         camera->fieldOfView = parse.ExpectFloat();
         parse.Expect(',');
         break;
-      case 0x149:
+      case MDLTOK_FAR_CLIP:
         camera->farClip = parse.ExpectFloat();
         parse.Expect(',');
         break;
-      case 0x176:
+      case MDLTOK_NEAR_CLIP:
         camera->nearClip = parse.ExpectFloat();
         parse.Expect(',');
         break;
-      case 0x1C1:
+      case MDLTOK_TARGET:
         IReadCameraTarget(parse, &camera->target, status);
         break;
-      case 0x1D9:
+      case MDLTOK_VISIBILITY:
         ReadObjectFloatKeyframes(parse, &camera->visibilityKeys);
         break;
       default:
@@ -110,24 +116,25 @@ BOOL MDL::ReadCamera(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 static void IWriteCamera(const MDLCAMERASECTION &section, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "%s \"%s\" {\n", MDL::TokenText(0x114), static_cast<LPCSTR>(section.name));
-  MDL::WriteLine(buffer, "\t%s { %g, %g, %g },\n", MDL::TokenText(0x1A5), section.pivot.x, section.pivot.y, section.pivot.z);
-  WriteFloatKeyFrames(0x1C7, "\t", section.transkeys, buffer);
-  WriteFloatKeyFrames(0x1AD, "\t", section.rollkeys, buffer);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x14A), section.fieldOfView);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x149), section.farClip);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x176), section.nearClip);
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1C1));
-  MDL::WriteLine(buffer, "\t\t%s { %g, %g, %g },\n", MDL::TokenText(0x1A5), section.target.pivot.x, section.target.pivot.y, section.target.pivot.z);
-  WriteFloatKeyFrames(0x1C7, "\t\t", section.target.transkeys, buffer);
+  MDL::WriteLine(buffer, "%s \"%s\" {\n", MDL::TokenText(MDLTOK_CAMERA), (LPCSTR)section.name);
+  MDL::WriteLine(buffer, "\t%s { %g, %g, %g },\n", MDL::TokenText(MDLTOK_POSITION), section.pivot.x, section.pivot.y, section.pivot.z);
+  WriteFloatKeyFrames(MDLTOK_TRANSLATION, "\t", section.transkeys, buffer);
+  WriteFloatKeyFrames(MDLTOK_ROTATION, "\t", section.rollkeys, buffer);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_FIELDOFVIEW), section.fieldOfView);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_FAR_CLIP), section.farClip);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_NEAR_CLIP), section.nearClip);
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_TARGET));
+  MDL::WriteLine(buffer, "\t\t%s { %g, %g, %g },\n", MDL::TokenText(MDLTOK_POSITION), section.target.pivot.x, section.target.pivot.y, section.target.pivot.z);
+  WriteFloatKeyFrames(MDLTOK_TRANSLATION, "\t\t", section.target.transkeys, buffer);
   MDL::WriteLine(buffer, "\t}\n");
-  WriteFloatKeyFrames(0x1D9, "\t", section.visibilityKeys, buffer);
+  WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", section.visibilityKeys, buffer);
   MDL::WriteLine(buffer, "}\n");
 }
 
 BOOL MDL::WriteCameras(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  for (UINT i = 0; i < data.cameras.Count(); ++i) {
-    IWriteCamera(data.cameras.Ptr()[i], buffer);
+  const MDLCAMERASECTION *pCamera = data.cameras.Ptr();
+  for (UINT i = data.cameras.Count(); i; --i, ++pCamera) {
+    IWriteCamera(*pCamera, buffer);
   }
   return 1;
 }
@@ -169,18 +176,19 @@ static void IWriteBinCamera(const MDLCAMERASECTION &section, CMsgBuffer &buffer)
 
 BOOL MDL::WriteBinCameras(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numCameras = data.cameras.Count();
-  if (numCameras) {
-    buf.AddDword('SMAC');
-    UINT totalSize = 4;
-    UINT i;
-    for (i = 0; i < data.cameras.Count(); ++i) {
-      totalSize += GetBinCameraSize(data.cameras[i]);
-    }
-    buf.AddUint(totalSize);
-    buf.AddUint(numCameras);
-    for (i = 0; i < numCameras; ++i) {
-      IWriteBinCamera(data.cameras[i], buf);
-    }
+  if (!numCameras) {
+    return 1;
+  }
+  buf.AddDword('SMAC');
+  UINT totalSize = 4;
+  UINT i;
+  for (i = 0; i < data.cameras.Count(); ++i) {
+    totalSize += GetBinCameraSize(data.cameras[i]);
+  }
+  buf.AddUint(totalSize);
+  buf.AddUint(numCameras);
+  for (i = 0; i < numCameras; ++i) {
+    IWriteBinCamera(data.cameras[i], buf);
   }
   return 1;
 }

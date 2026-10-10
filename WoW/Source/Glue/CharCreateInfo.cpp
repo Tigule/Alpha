@@ -68,7 +68,6 @@ TSGrowableArray<UINT> CCharCreateInfo::m_classIndex;
 int                   CCharCreateInfo::m_selectedClass;
 UINT                  CCharCreateInfo::m_selectedSex;
 float                 CCharCreateInfo::m_charFacing;
-CHARCREATEINFO        CCharCreateInfo::m_charInfo;
 
 static UINT RandomSelection(UINT numChoices) {
   if (!numChoices) {
@@ -76,6 +75,8 @@ static UINT RandomSelection(UINT numChoices) {
   }
   return NTempest::CRandom::dice_(numChoices, g_rndSeed);
 }
+
+CHARCREATEINFO CCharCreateInfo::m_charInfo;
 
 static int Script_SetCharCustomizeFrame(lua_State *L);
 static int Script_SetCharCustomizeBackground(lua_State *L);
@@ -156,7 +157,9 @@ void ReportMissingComponentTextures(UINT race, UINT sex) {
   const ChrRacesRec *raceInfo;
   LPCSTR             raceName;
 
-  sex = max(min(static_cast<int>(sex), 3), 0);
+  if (sex > 3) {
+    sex = ~((int)sex >> 31) & 3;
+  }
   raceInfo = g_chrRacesDB.GetRecord(race);
   raceName = raceInfo ? raceInfo->m_name_lang[CURRENT_LANGUAGE] : "unknown race";
 
@@ -191,7 +194,7 @@ void CCharCreateInfo::Initialize() {
   const FactionGroupRec *group;
   UINT                   numRaces = 0;
 
-  for (i = 0; i < static_cast<UINT>(g_chrRacesDB.GetNumRecords()); ++i) {
+  for (i = 0; i < (UINT)g_chrRacesDB.GetNumRecords(); ++i) {
     const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
 
     if (!(race->m_flags & 1)) {
@@ -321,7 +324,7 @@ LPCSTR CCharCreateInfo::GetRaceNameByIndex(UINT index) {
 }
 
 void CCharCreateInfo::UpdateAvailableClasses() {
-  if (static_cast<UINT>(m_selectedRace) >= m_raceIndex.Count()) {
+  if ((UINT)m_selectedRace >= m_raceIndex.Count()) {
     return;
   }
 
@@ -356,7 +359,7 @@ void CCharCreateInfo::Shutdown() {
 }
 
 UINT CCharCreateInfo::GetSelectedRaceID() {
-  if (static_cast<UINT>(m_selectedRace) >= m_raceIndex.Count()) {
+  if ((UINT)m_selectedRace >= m_raceIndex.Count()) {
     return 0;
   }
 
@@ -368,7 +371,7 @@ UINT CCharCreateInfo::GetSelectedSexID() {
 }
 
 UINT CCharCreateInfo::GetSelectedClassID() {
-  if (static_cast<UINT>(m_selectedClass) >= m_classIndex.Count()) {
+  if ((UINT)m_selectedClass >= m_classIndex.Count()) {
     return 0;
   }
 
@@ -420,7 +423,7 @@ void CHARCREATEINFO::UpdateCharacterInfo(UINT race, UINT sex) {
     characterComponent[sex] = 0;
     geosetHandle[sex] = 0;
 
-    characterModel[sex] = ObjectModelCreate(modelInfo->m_ModelName, static_cast<OBJECT_TYPE>(25), 0x100800);
+    characterModel[sex] = ObjectModelCreate(modelInfo->m_ModelName, HIER_TYPE_PLAYER, 0x100800);
     geosetHandle[sex] = CharCustomizationCreateGeosetHandle(characterModel[sex]);
     FATALASSERT(geosetHandle[sex]);
     ModelSetSequence(characterModel[sex], 0, 0);
@@ -622,8 +625,13 @@ void CCharCreateInfo::ChangeFacialHairGeosets(UINT sex) {
   UINT race = GetSelectedRaceID();
   if (race) {
     BEARDSTYLEDATA facialData;
-    CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData);
-    m_charInfo.ChangeFacialHairGeosets(sex, facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset);
+    if (CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData)) {
+      m_charInfo.ChangeFacialHairGeosets(sex, facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset);
+    } else {
+      m_charInfo.ChangeFacialHairGeosets(
+          sex, g_defaultGeosetIDOffsets[CHARGEOSET_BEARD], g_defaultGeosetIDOffsets[CHARGEOSET_SIDEBURN], g_defaultGeosetIDOffsets[CHARGEOSET_MOUSTACHE]
+      );
+    }
   }
 }
 
@@ -648,8 +656,11 @@ void CCharCreateInfo::UpdateGeosets(UINT sex) {
   UINT race = GetSelectedRaceID();
   if (race) {
     BEARDSTYLEDATA facialData;
-    CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData);
-    m_charInfo.UpdateGeosets(facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset, sex);
+    int            hasFacialInfo = CharCustomizationGetBeardStyle(race, sex, m_charInfo.selections[sex].facialStyle, &facialData);
+    UINT           beardGeoset = hasFacialInfo ? facialData.beardGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_BEARD];
+    UINT           sideBurnGeoset = hasFacialInfo ? facialData.sideBurnGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_SIDEBURN];
+    UINT           moustacheGeoset = hasFacialInfo ? facialData.moustacheGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_MOUSTACHE];
+    m_charInfo.UpdateGeosets(beardGeoset, sideBurnGeoset, moustacheGeoset, sex);
   }
 }
 
@@ -702,7 +713,7 @@ void CCharCreateInfo::SetSelectedRace(UINT index, int updateModel) {
   for (int i = g_characterCreateCamerasDB.GetNumRecords(); i--;) {
     const CharacterCreateCamerasRec *rec = g_characterCreateCamerasDB.GetRecordByIndex(i);
     FATALASSERT(rec);
-    if (rec->m_Race == static_cast<int>(index)) {
+    if (rec->m_Race == (int)index) {
       UINT sex = rec->m_Sex;
       UINT camera = rec->m_Camera;
       if (sex < UNITSEX_LAST && camera < 2) {
@@ -936,15 +947,15 @@ void CCharCreateInfo::CreateCharacter(LPCSTR name) {
   } else {
     CHARACTER_CREATE_INFO createInfo;
     SStrCopy(createInfo.name, name, sizeof(createInfo.name));
-    createInfo.raceID = static_cast<BYTE>(GetSelectedRaceID());
-    createInfo.sexID = static_cast<BYTE>(m_selectedSex);
-    createInfo.classID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].classID);
-    createInfo.outfitID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].outfit);
-    createInfo.skinID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].skinColor);
-    createInfo.hairColorID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].hairColor);
-    createInfo.hairStyleID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].hairStyle);
-    createInfo.facialHairStyleID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].facialStyle);
-    createInfo.faceID = static_cast<BYTE>(m_charInfo.selections[m_selectedSex].face);
+    createInfo.raceID = GetSelectedRaceID();
+    createInfo.sexID = m_selectedSex;
+    createInfo.classID = m_charInfo.selections[m_selectedSex].classID;
+    createInfo.outfitID = m_charInfo.selections[m_selectedSex].outfit;
+    createInfo.skinID = m_charInfo.selections[m_selectedSex].skinColor;
+    createInfo.hairColorID = m_charInfo.selections[m_selectedSex].hairColor;
+    createInfo.hairStyleID = m_charInfo.selections[m_selectedSex].hairStyle;
+    createInfo.facialHairStyleID = m_charInfo.selections[m_selectedSex].facialStyle;
+    createInfo.faceID = m_charInfo.selections[m_selectedSex].face;
     CGlueMgr::CreateCharacter(&createInfo);
   }
 }
@@ -957,7 +968,7 @@ static int Script_SetCharCustomizeFrame(lua_State *L) {
 
   CSimpleFrame *frame = SimpleFrameRegistryGetEntry(lua_tostring(L, 1), 0);
   if (frame) {
-    CCharCreateInfo::SetCharCustomizeFrame(static_cast<CSimpleModel *>(frame));
+    CCharCreateInfo::SetCharCustomizeFrame((CSimpleModel *)frame);
   }
 
   return 0;
@@ -991,17 +1002,17 @@ static int Script_GetNameForRace(lua_State *L) {
 }
 
 static int Script_GetFactionForRace(lua_State *L) {
-  const ChrRacesRec        *race = g_chrRacesDB.GetRecord(CCharCreateInfo::GetSelectedRaceID());
-  const FactionTemplateRec *faction;
-  faction = race ? g_factionTemplateDB.GetRecord(race->m_factionID) : 0;
-
-  if (faction) {
-    for (UINT i = 0; i < static_cast<UINT>(g_factionGroupDB.GetNumRecords()); ++i) {
-      const FactionGroupRec *group = g_factionGroupDB.GetRecordByIndex(i);
-      if (group && ((1 << group->m_maskID) & faction->m_factionGroup) && group->m_name_lang[CURRENT_LANGUAGE][0]) {
-        lua_pushstring(L, group->m_name_lang[CURRENT_LANGUAGE]);
-        lua_pushstring(L, group->m_internalName);
-        return 2;
+  const ChrRacesRec *race = g_chrRacesDB.GetRecord(CCharCreateInfo::GetSelectedRaceID());
+  if (race) {
+    const FactionTemplateRec *faction = g_factionTemplateDB.GetRecord(race->m_factionID);
+    if (faction) {
+      for (UINT i = 0; i < (UINT)g_factionGroupDB.GetNumRecords(); ++i) {
+        const FactionGroupRec *group = g_factionGroupDB.GetRecordByIndex(i);
+        if (group && ((1 << group->m_maskID) & faction->m_factionGroup) && group->m_name_lang[CURRENT_LANGUAGE][0]) {
+          lua_pushstring(L, group->m_name_lang[CURRENT_LANGUAGE]);
+          lua_pushstring(L, group->m_internalName);
+          return 2;
+        }
       }
     }
   }
@@ -1051,7 +1062,7 @@ static int Script_SetSelectedRace(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedRace(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   CCharCreateInfo::SetSelectedRace(index, 0);
   return 0;
 }
@@ -1061,7 +1072,7 @@ static int Script_SetSelectedSex(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedSex(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   CCharCreateInfo::SetSelectedSex(index);
   return 0;
 }
@@ -1071,7 +1082,7 @@ static int Script_SetSelectedClass(lua_State *L) {
     luaL_error(L, "Usage: SetSelectedClass(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   CCharCreateInfo::SetSelectedClass(index);
   return 0;
 }
@@ -1087,7 +1098,7 @@ static int Script_HasCharCustomization(lua_State *L) {
     return 0;
   }
 
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   if (CCharCreateInfo::GetNumCharCustomizations(index) > 1) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -1098,8 +1109,8 @@ static int Script_HasCharCustomization(lua_State *L) {
 
 static int Script_CycleCharCustomization(lua_State *L) {
   if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
-    int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-    int delta = static_cast<int>(lua_tonumber(L, 2));
+    int index = (int)lua_tonumber(L, 1) - 1;
+    int delta = lua_tonumber(L, 2);
     CCharCreateInfo::CycleCharCustomization(index, delta);
     return 0;
   }
@@ -1122,7 +1133,7 @@ static int Script_SetCharacterFacing(lua_State *L) {
     luaL_error(L, "Usage: SetCharacterFacing(degrees)");
     return 0;
   }
-  CCharCreateInfo::SetCharFacing(static_cast<float>(lua_tonumber(L, 1)) * 0.017453292f);
+  CCharCreateInfo::SetCharFacing((float)lua_tonumber(L, 1) * 0.017453292f);
   return 1;
 }
 

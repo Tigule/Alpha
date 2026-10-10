@@ -102,7 +102,7 @@ void OsInputSetMousePosition(int x, int y) {
 BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   OSMACEVENT event;
 
-  *id = static_cast<OSINPUT>(-1);
+  *id = (OSINPUT)-1;
 
   while (s_queueHead == s_queueTail) {
     int width;

@@ -116,7 +116,7 @@ class CTexturePiece : public CHandleObject {
 
 class CTextureLayer {
  public:
-  CTexturePiece m_priorities[4];
+  CTexturePiece m_priorities[NUM_LAYERPRIORITIES];
 
   CTextureLayer &operator=(const CTextureLayer &rhs);
   BOOL           IsOpaque() const;
@@ -162,7 +162,7 @@ class CTextureLayer {
 
 class CSection {
  public:
-  CTextureLayer m_layers[4];
+  CTextureLayer m_layers[NUM_TEXLAYERS];
 
   CSection &operator=(const CSection &rhs);
   void SetHold(int layer, int priority, UINT hold) {
@@ -425,8 +425,8 @@ static void PasteOpaque(
 
   byteWidth = 4 * width;
   for (level = 0; level < levels; ++level) {
-    BYTE       *dstLine = reinterpret_cast<BYTE *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x;
-    const BYTE *srcLine = reinterpret_cast<const BYTE *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x;
+    BYTE       *dstLine = (BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x;
+    const BYTE *srcLine = (const BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x;
     UINT        row;
 
     for (row = 0; row < height; ++row) {
@@ -468,9 +468,9 @@ static void PasteTransparentOneBit(
   ASSERT(srcPitch);
 
   for (level = 0; level < levels; ++level) {
-    C4Pixel       *dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x);
+    C4Pixel       *dstLine = (C4Pixel *)((BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x);
     const C4Pixel *srcLine =
-        reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x);
+        (const C4Pixel *)((const BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x);
     UINT row;
 
     for (row = 0; row < height; ++row) {
@@ -489,8 +489,8 @@ static void PasteTransparentOneBit(
         ++srcPixel;
       }
 
-      dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstLine) + dstPitch);
-      srcLine = reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcLine) + srcPitch);
+      dstLine = (C4Pixel *)((BYTE *)dstLine + dstPitch);
+      srcLine = (const C4Pixel *)((const BYTE *)srcLine + srcPitch);
     }
 
     width = max(width >> 1, 1U);
@@ -526,9 +526,9 @@ static void PasteTransparentFull(
   ASSERT(srcPitch);
 
   for (level = 0; level < levels; ++level) {
-    C4Pixel       *dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstMips->mip[level]) + dstPos.y * dstPitch + 4 * dstPos.x);
+    C4Pixel       *dstLine = (C4Pixel *)((BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x);
     const C4Pixel *srcLine =
-        reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcMips->mip[level]) + srcPos.y * srcPitch + 4 * srcPos.x);
+        (const C4Pixel *)((const BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x);
     UINT row;
 
     for (row = 0; row < height; ++row) {
@@ -544,17 +544,17 @@ static void PasteTransparentFull(
           dstPixel->g = srcPixel->g;
           dstPixel->r = srcPixel->r;
         } else if (alpha) {
-          dstPixel->b += static_cast<WORD>(alpha * (srcPixel->b - dstPixel->b)) >> 8;
-          dstPixel->g += static_cast<WORD>(alpha * (srcPixel->g - dstPixel->g)) >> 8;
-          dstPixel->r += static_cast<WORD>(alpha * (srcPixel->r - dstPixel->r)) >> 8;
+          dstPixel->b += (WORD)(alpha * (srcPixel->b - dstPixel->b)) >> 8;
+          dstPixel->g += (WORD)(alpha * (srcPixel->g - dstPixel->g)) >> 8;
+          dstPixel->r += (WORD)(alpha * (srcPixel->r - dstPixel->r)) >> 8;
         }
 
         ++dstPixel;
         ++srcPixel;
       }
 
-      dstLine = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(dstLine) + dstPitch);
-      srcLine = reinterpret_cast<const C4Pixel *>(reinterpret_cast<const BYTE *>(srcLine) + srcPitch);
+      dstLine = (C4Pixel *)((BYTE *)dstLine + dstPitch);
+      srcLine = (const C4Pixel *)((const BYTE *)srcLine + srcPitch);
     }
 
     width = max(width >> 1, 1U);
@@ -580,7 +580,7 @@ void CTextureLayer::AllocBlankTexture(
   int priority;
 
   for (priority = LAYERPRIORITY_1; priority < NUM_LAYERPRIORITIES; ++priority) {
-    m_priorities[priority].SetTexture(section, layer, static_cast<LAYERPRIORITY>(priority), status, 0, 0, width, height);
+    m_priorities[priority].SetTexture(section, layer, (LAYERPRIORITY)priority, status, 0, 0, width, height);
   }
 }
 
@@ -670,7 +670,7 @@ void CTexturePiece::SetTexture(int checkExistingTexture, const CTexturePiece &so
 
     m_textureInfo = source.m_textureInfo;
     ClearHold(0);
-    m_mippedTexture = static_cast<HMIPPEDTEXTURE>(HandleDuplicate(source.m_mippedTexture));
+    m_mippedTexture = (HMIPPEDTEXTURE)HandleDuplicate(source.m_mippedTexture);
     SStrPrintf(m_fileName, sizeof(m_fileName), "%s", source.m_fileName);
   }
 }
@@ -774,7 +774,7 @@ void CTexComponent::UpdateSections(CStatus *status, BOOL bUpdate) {
 
   for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
     if (m_dirtyFlags & (1 << section)) {
-      UpdateSection(status, static_cast<TEXCOMPONENT_SECTIONS>(section), bUpdate);
+      UpdateSection(status, (TEXCOMPONENT_SECTIONS)section, bUpdate);
     }
   }
 
@@ -785,7 +785,7 @@ BOOL CTexComponent::CheckSections(BOOL bForce) {
   UINT section;
 
   for (section = 0; section < NUM_TEXCOMPONENT_SECTIONS; ++section) {
-    if ((m_dirtyFlags & (1 << section)) && !CheckSection(static_cast<TEXCOMPONENT_SECTIONS>(section), bForce)) {
+    if ((m_dirtyFlags & (1 << section)) && !CheckSection((TEXCOMPONENT_SECTIONS)section, bForce)) {
       return 0;
     }
   }
@@ -875,7 +875,7 @@ void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section
   }
 
   for (; layer < NUM_TEXLAYERS; ++layer) {
-    Paste(status, section, static_cast<TEXCOMPONENT_LAYERS>(layer), x, y, width, height);
+    Paste(status, section, (TEXCOMPONENT_LAYERS)layer, x, y, width, height);
   }
 
   if (bUpdate) {
@@ -904,7 +904,7 @@ void CTexComponent::RemoveHolds() {
         BOOL hadHolds = m_sections[section].HasHolds(layer, priority);
         m_sections[section].ClearHold(layer, priority, 0);
         if (hadHolds && !m_sections[section].HasHolds(layer, priority)) {
-          MarkSectionDirty(static_cast<TEXCOMPONENT_SECTIONS>(section));
+          MarkSectionDirty((TEXCOMPONENT_SECTIONS)section);
         }
       }
     }
@@ -935,12 +935,12 @@ int CTexComponent::Paste(CStatus *status, TEXCOMPONENT_SECTIONS section, TEXCOMP
   UINT                 priority = NUM_LAYERPRIORITIES;
 
   while (priority--) {
-    if (IsTabardSectionLayerAndPriority(section, layer, static_cast<LAYERPRIORITY>(priority))) {
+    if (IsTabardSectionLayerAndPriority(section, layer, (LAYERPRIORITY)priority)) {
       PasteTabardTexture(status, section);
       return 1;
     }
 
-    if (!CheckPastingRules(section, layer, static_cast<LAYERPRIORITY>(priority))) {
+    if (!CheckPastingRules(section, layer, (LAYERPRIORITY)priority)) {
       continue;
     }
 
@@ -1016,7 +1016,7 @@ void CTexComponent::SetTexture(int checkExistingTexture, HTEXTURE texture) {
     HandleClose(m_texture);
   }
 
-  m_texture = static_cast<HTEXTURE>(HandleDuplicate(texture));
+  m_texture = (HTEXTURE)HandleDuplicate(texture);
   CTexturePiece::SetTexture(checkExistingTexture && !(m_flags & 1), texture);
   m_textureInfo.opaque = 1;
 }
@@ -1038,10 +1038,10 @@ void CTexComponent::BuildSkinPieces(CStatus *status, UINT *layerHoldSectionFlags
     FATALASSERT(success);
 
     m_sections[section].m_layers[TEXLAYER_SKIN].AllocBlankTexture(
-        static_cast<TEXCOMPONENT_SECTIONS>(section), status, TEXLAYER_SKIN, GxTex_Argb8888, width, height, 1
+        (TEXCOMPONENT_SECTIONS)section, status, TEXLAYER_SKIN, GxTex_Argb8888, width, height, 1
     );
     m_sections[section].m_layers[TEXLAYER_SKIN].SetTexture(
-        static_cast<TEXCOMPONENT_SECTIONS>(section), TEXLAYER_SKIN, LAYERPRIORITY_0, status, 0, fileName, 0, 0
+        (TEXCOMPONENT_SECTIONS)section, TEXLAYER_SKIN, LAYERPRIORITY_0, status, 0, fileName, 0, 0
     );
   }
 
@@ -1142,7 +1142,7 @@ static void UpdateComponentTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UI
   FATALASSERT(userArg);
 
   CStatus        status;
-  CTexComponent *component = reinterpret_cast<CTexComponent *>(userArg);
+  CTexComponent *component = (CTexComponent *)userArg;
 
   switch (cmd) {
     case GxTex_Lock:
@@ -1253,7 +1253,7 @@ void TexComponentAdd(
 
   ASSERT(playerSex < UNITSEX_LAST);
 
-  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentptr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentptr);
   VALIDATEENDVOID;
@@ -1317,7 +1317,7 @@ int ObjComponentAdd(
 
   UINT componentIndex;
   for (componentIndex = 0; componentIndex < numSubComponents; ++componentIndex) {
-    HMODEL itemModel = existingModel && numSubComponents == 1 ? static_cast<HMODEL>(HandleDuplicate(existingModel))
+    HMODEL itemModel = existingModel && numSubComponents == 1 ? (HMODEL)HandleDuplicate(existingModel)
                                                               : ObjComponentBuildSubComponent(&subComponents[componentIndex], displayInfoRec);
     if (!itemModel) {
       continue;
@@ -1336,7 +1336,7 @@ int ObjComponentAdd(
 }
 
 void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType) {
-  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentptr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentptr);
   VALIDATEENDVOID;
@@ -1367,7 +1367,7 @@ void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displ
 }
 
 void TexComponentChangeCharacterHead(HTEXCOMPONENT component, LPCSTR upperHead, LPCSTR lowerHead, UINT layer) {
-  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentptr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentptr);
   VALIDATEENDVOID;
@@ -1393,12 +1393,12 @@ void TexComponentChangeCharacterHead(HTEXCOMPONENT component, LPCSTR upperHead, 
     }
   }
 
-  componentptr->SetTexture(&status, 0, upperHead, TCS_UPPERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, uWidth, uHeight);
-  componentptr->SetTexture(&status, 0, lowerHead, TCS_LOWERHEAD, static_cast<TEXCOMPONENT_LAYERS>(layer), LAYERPRIORITY_3, lWidth, lHeight);
+  componentptr->SetTexture(&status, 0, upperHead, TCS_UPPERHEAD, (TEXCOMPONENT_LAYERS)layer, LAYERPRIORITY_3, uWidth, uHeight);
+  componentptr->SetTexture(&status, 0, lowerHead, TCS_LOWERHEAD, (TEXCOMPONENT_LAYERS)layer, LAYERPRIORITY_3, lWidth, lHeight);
 }
 
 BOOL TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, BOOL bForce) {
-  CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentPtr = (CTexComponent *)component;
 
   if (!componentPtr) {
     return 0;
@@ -1417,20 +1417,20 @@ BOOL TexComponentCommitSections(CStatus *status, HTEXCOMPONENT component, BOOL b
 
 int TexComponentCheckSections(HTEXCOMPONENT component, BOOL bForce) {
   if (component) {
-    return reinterpret_cast<CTexComponent *>(component)->CheckSections(bForce);
+    return ((CTexComponent *)component)->CheckSections(bForce);
   }
   return 0;
 }
 
 void TexComponentRemoveSections(HTEXCOMPONENT component, const TEXCOMPONENT_SECTIONS *sectionPointers, const UINT *startLayerList, UINT size) {
-  CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentPtr = (CTexComponent *)component;
   if (componentPtr && sectionPointers && startLayerList && size) {
     componentPtr->RemoveSections(sectionPointers, startLayerList, size);
   }
 }
 
 void TexComponentRemoveAllHolds(HTEXCOMPONENT component) {
-  CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentPtr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentPtr);
   VALIDATEENDVOID;
@@ -1438,7 +1438,7 @@ void TexComponentRemoveAllHolds(HTEXCOMPONENT component) {
 }
 
 void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
-  CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentPtr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentPtr);
   VALIDATEENDVOID;
@@ -1446,7 +1446,7 @@ void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEX
 }
 
 void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
-  CTexComponent *componentPtr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentPtr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentPtr);
   VALIDATEENDVOID;
@@ -1585,13 +1585,13 @@ void HeadGeosetHideCharGeosets(
   for (section = 0; section < NUM_CHARGEOSETS; ++section) {
     UINT sectionFlag = 1 << section;
     if (sectionFlag & 0x8F) {
-      CharCustomizationHideGeosetSection(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section));
+      CharCustomizationHideGeosetSection(geosetHandle, (CHARACTER_GEOSET_SECTIONS)section);
       if (preferredGeosets && !(helmData->m_DefaultFlags[raceID] & sectionFlag) && preferredGeosets[section]) {
         if (helmData->m_PreferredFlags[raceID] & sectionFlag) {
-          CharCustomizationShowGeoset(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section), preferredGeosets[section]);
+          CharCustomizationShowGeoset(geosetHandle, (CHARACTER_GEOSET_SECTIONS)section, preferredGeosets[section]);
         }
       } else {
-        CharCustomizationShowGeoset(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section), g_defaultGeosetIDOffsets[section]);
+        CharCustomizationShowGeoset(geosetHandle, (CHARACTER_GEOSET_SECTIONS)section, g_defaultGeosetIDOffsets[section]);
       }
     }
   }
@@ -1609,7 +1609,7 @@ void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const UINT *preferred
 
   for (UINT section = 0; section < NUM_CHARGEOSETS; ++section) {
     if ((1 << section) & 0x8F) {
-      CharCustomizationShowGeoset(geosetHandle, static_cast<CHARACTER_GEOSET_SECTIONS>(section), preferredGeosets[section]);
+      CharCustomizationShowGeoset(geosetHandle, (CHARACTER_GEOSET_SECTIONS)section, preferredGeosets[section]);
     }
   }
 }

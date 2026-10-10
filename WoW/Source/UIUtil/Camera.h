@@ -65,7 +65,7 @@ class CGCamera : public CSimpleCamera {
   DWORD              m_motionMask;
   DWORD              m_motionStart[6];
   DWORD              m_motionStop[6];
-  DWORD              m_motionTimeout[6];
+  DWORD              m_motionTimeout[NUM_CAMERA_MOTIONS];
   NTempest::C3Vector m_lastTarget;
   float              m_savedTargetZ;
   float              m_lastFacing;

@@ -43,11 +43,11 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
   ASSERT(*text);
 
   LPCSTR firstText = text;
-  UINT   code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+  UINT   code = sgetu8((const BYTE *)text, (int *)&advance);
   UINT   firstCharAdvance = advance;
 
   wide = code;
-  if (code == static_cast<UINT>(-1)) {
+  if (code == (UINT)-1) {
     return CODE_INVALIDCODE;
   }
 
@@ -61,7 +61,7 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
   }
 
   text += advance;
-  code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+  code = sgetu8((const BYTE *)text, (int *)&advance);
   wide = code;
 
   switch (*text) {
@@ -75,10 +75,10 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
 
       text += advance;
       while (*text) {
-        code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+        code = sgetu8((const BYTE *)text, (int *)&advance);
         text += advance;
         if (code == '|') {
-          code = sgetu8(reinterpret_cast<const BYTE *>(text), reinterpret_cast<int *>(&advance));
+          code = sgetu8((const BYTE *)text, (int *)&advance);
           text += advance;
 
           if (code != 'h') {
@@ -197,7 +197,7 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
           break;
         }
 
-        comps[i] = static_cast<BYTE>(value);
+        comps[i] = value;
       }
 
       if (color) {
@@ -225,15 +225,15 @@ static BOOL CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
     return 1;
   }
 
-  if (wideChar == static_cast<UINT>(-1)) {
+  if (wideChar == (UINT)-1) {
     return 1;
   }
 
-  if (iswspace(static_cast<wint_t>(lastChar))) {
+  if (iswspace(lastChar)) {
     return 0;
   }
 
-  if (iswspace(static_cast<wint_t>(wideChar))) {
+  if (iswspace(wideChar)) {
     return 1;
   }
 
@@ -357,9 +357,9 @@ static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LP
       *nextText = currentText + advance;
       currentText = startingText + wrapIndex;
       while (currentText < *nextText) {
-        UINT code = sgetu8(reinterpret_cast<const BYTE *>(currentText), reinterpret_cast<int *>(&advance));
+        UINT code = sgetu8((const BYTE *)currentText, (int *)&advance);
         currentText += advance;
-        if (!iswspace(static_cast<wint_t>(code))) {
+        if (!iswspace(code)) {
           wrapIndex = currentText - startingText;
         }
       }
@@ -389,8 +389,8 @@ static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LP
 
   currentText = startingText + wrapIndex;
   while (*currentText) {
-    UINT code = sgetu8(reinterpret_cast<const BYTE *>(currentText), reinterpret_cast<int *>(&advance));
-    if (!iswspace(static_cast<wint_t>(code))) {
+    UINT code = sgetu8((const BYTE *)currentText, (int *)&advance);
+    if (!iswspace(code)) {
       break;
     }
     currentText += advance;
@@ -401,7 +401,7 @@ static UINT FindWrappingIndex(LPCSTR currentText, UINT lineBytes, UINT flags, LP
 }
 
 static STRINGVIEWMATRICES *GetNewStringMatrix(CGxString *stringPtr) {
-  STRINGVIEWMATRICES *head = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(stringPtr), HASHKEY_PTR(stringPtr));
+  STRINGVIEWMATRICES *head = s_stringViewMatrices.Ptr((UINT)stringPtr, HASHKEY_PTR(stringPtr));
 
   if (head) {
     ASSERT(!head->m_freeLink.IsLinked());
@@ -412,7 +412,7 @@ static STRINGVIEWMATRICES *GetNewStringMatrix(CGxString *stringPtr) {
     } else {
       head = s_freeStringMatrices.NewNode(LIST_TAIL, 0, 0);
     }
-    s_stringViewMatrices.Insert(head, reinterpret_cast<UINT>(stringPtr), HASHKEY_PTR(stringPtr));
+    s_stringViewMatrices.Insert(head, (UINT)stringPtr, HASHKEY_PTR(stringPtr));
   }
   return head;
 }
@@ -447,7 +447,7 @@ void CGxString::InitializeTextLine(
   UINT               prevCode = 0;
 
   const float screenPixelHeight = ScreenToPixelHeight(m_flags & 0x80, m_currentFontHeight);
-  const float glyphToScreenPixels = screenPixelHeight / static_cast<float>(m_currentFace->m_pixelSize);
+  const float glyphToScreenPixels = screenPixelHeight / (float)m_currentFace->m_pixelSize;
 
   float glyphPixelHeight = ScreenToPixelHeight(m_flags & 0x80, m_currentFontHeight);
   if (m_currentFace->m_flags & 0x1) {
@@ -639,7 +639,7 @@ void CGxString::InitializeTextLine(
           vert.vc.x += ceilf(code->bitmapData->m_glyphBearing);
         }
 
-        float charWidth = static_cast<float>(code->bitmapData->m_glyphCellWidth) * glyphToScreenPixels;
+        float charWidth = (float)code->bitmapData->m_glyphCellWidth * glyphToScreenPixels;
         if (!(m_flags & 0x80)) {
           charWidth = floorf(charWidth);
         }
@@ -752,7 +752,7 @@ void CHARCODEDESC::GenerateTextureCoords(UINT rowNumber, UINT glyphSide) {
   ASSERT(width);
 
   int   top = rowNumber * glyphSide;
-  float l = static_cast<float>(glyphStartPixel);
+  float l = glyphStartPixel;
   float pr = l + width;
 
   l *= ONEOVERTEXSIZE;
@@ -799,7 +799,7 @@ void TEXTURECACHE::PasteGlyphOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, DWOR
   UINT scratch[32][256];
   memset(scratch, 0, sizeof(scratch));
 
-  const BYTE *src = static_cast<const BYTE *>(glyphData->m_data);
+  const BYTE *src = (const BYTE *)glyphData->m_data;
   UINT        glyphX = 1 + (thick ? 1 : 0);
   UINT        glyphY = glyphData->m_yStart + 1;
   for (UINT y = 0; y < glyphData->m_glyphHeight; ++y) {
@@ -923,11 +923,11 @@ void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, D
   ASSERT(dst);
 
   UINT  pitch = glyphData->m_glyphPitch;
-  char *src = static_cast<char *>(glyphData->m_data);
+  char *src = (char *)glyphData->m_data;
   UINT  dstCellStride = 4 * glyphData->m_glyphCellWidth;
 
   UINT y;
-  for (y = 0; y < static_cast<UINT>(glyphData->m_yStart); ++y) {
+  for (y = 0; y < (UINT)glyphData->m_yStart; ++y) {
     memset(dst, 0, dstCellStride);
     dst += 256;
   }
@@ -944,9 +944,9 @@ void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, D
     dst += 256;
   }
 
-  int remaining = static_cast<int>(m_theFace->m_cellHeight) - static_cast<int>(glyphData->m_glyphHeight) - glyphData->m_yStart;
+  int remaining = (int)m_theFace->m_cellHeight - (int)glyphData->m_glyphHeight - glyphData->m_yStart;
   if (remaining > 0) {
-    for (y = 0; y < static_cast<UINT>(remaining); ++y) {
+    for (y = 0; y < (UINT)remaining; ++y) {
       memset(dst, 0, dstCellStride);
       dst += 256;
     }
@@ -964,7 +964,7 @@ void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *dst, 
   memset(outlineScratch, 0, sizeof(outlineScratch));
   memset(savedGlyphScratch, 0, sizeof(savedGlyphScratch));
 
-  const BYTE *src = static_cast<const BYTE *>(glyphData->m_data);
+  const BYTE *src = (const BYTE *)glyphData->m_data;
   UINT        glyphX = 1 + (thick ? 1 : 0);
   UINT        glyphY = glyphData->m_yStart + 1;
   UINT       *savedGlyphScratchDst = &savedGlyphScratch[glyphY][glyphX];
@@ -1133,27 +1133,27 @@ void TEXTURECACHE::PasteGlyphNonOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *ds
   ASSERT(glyphData);
   ASSERT(dst);
 
-  char *src = static_cast<char *>(glyphData->m_data);
+  char *src = (char *)glyphData->m_data;
   UINT  pitch = glyphData->m_glyphPitch;
   UINT  dstCellStride = 4 * glyphData->m_glyphCellWidth;
 
   UINT y;
-  for (y = 0; y < static_cast<UINT>(glyphData->m_yStart); ++y) {
+  for (y = 0; y < (UINT)glyphData->m_yStart; ++y) {
     memset(dst, 0, dstCellStride);
     dst += 256;
   }
 
   for (y = 0; y < glyphData->m_glyphHeight; ++y) {
     for (UINT x = 0; x < glyphData->m_glyphWidth; ++x) {
-      dst[x] = (static_cast<UINT>(src[x]) << 24) | 0x00FFFFFF;
+      dst[x] = ((UINT)src[x] << 24) | 0x00FFFFFF;
     }
     src += pitch;
     dst += 256;
   }
 
-  int remaining = static_cast<int>(m_theFace->m_cellHeight) - static_cast<int>(glyphData->m_glyphHeight) - glyphData->m_yStart;
+  int remaining = (int)m_theFace->m_cellHeight - (int)glyphData->m_glyphHeight - glyphData->m_yStart;
   if (remaining > 0) {
-    for (y = 0; y < static_cast<UINT>(remaining); ++y) {
+    for (y = 0; y < (UINT)remaining; ++y) {
       memset(dst, 0, dstCellStride);
       dst += 256;
     }
@@ -1195,7 +1195,7 @@ void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
 
     GxXformViewport(minx, maxx, miny, maxy, minz, maxz);
 
-    STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(this), HASHKEY_PTR(this));
+    STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr((UINT)this, HASHKEY_PTR(this));
 
     if (matrices) {
       s_stringViewMatrices.Unlink(matrices);
@@ -1205,7 +1205,7 @@ void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
 }
 
 void CGxString::SetColor(const NTempest::CImVector &color) {
-  if (*reinterpret_cast<const DWORD *>(&color) == *reinterpret_cast<const DWORD *>(&m_fontColor)) {
+  if (*(const DWORD *)&color == *(const DWORD *)&m_fontColor) {
     return;
   }
 
@@ -1225,7 +1225,7 @@ void CGxString::HandleScreenSizeChange() {
     m_requestedFontHeight = GxuFontGetOneToOneHeight(m_currentFace);
   }
 
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / (float)g_heightPixels);
   CreateGeometry();
 }
 
@@ -1287,8 +1287,8 @@ void CGxString::Render() {
   GxXformView(oldView);
 
   NTempest::C44Matrix proj;
-  float               pixWidth = static_cast<float>(GetScreenPixelWidth());
-  float               pixHeight = static_cast<float>(GetScreenPixelHeight());
+  float               pixWidth = GetScreenPixelWidth();
+  float               pixHeight = GetScreenPixelHeight();
   BuildProjection(&proj, minx, maxx, miny, maxy, pixWidth, pixHeight);
   GxXformSetProjection(proj);
 
@@ -1413,10 +1413,10 @@ void CGxString::CreateGeometry() {
 void CGxString::InitializeViewportOffsets() {
   UINT  lineCount = m_textBlock.NumLines();
   float tHeight =
-      (static_cast<float>(lineCount - 1) * m_spacing + static_cast<float>(lineCount) * m_currentFontHeight) * static_cast<float>(g_heightPixels);
-  float              blockWidth = static_cast<float>(g_widthPixels) * m_blockWidth;
-  float              blockHeight = static_cast<float>(g_heightPixels) * m_blockHeight;
-  NTempest::C2Vector position(static_cast<float>(g_widthPixels) * m_position.x, static_cast<float>(g_heightPixels) * m_position.y);
+      ((float)(lineCount - 1) * m_spacing + (float)lineCount * m_currentFontHeight) * (float)g_heightPixels;
+  float              blockWidth = (float)g_widthPixels * m_blockWidth;
+  float              blockHeight = (float)g_heightPixels * m_blockHeight;
+  NTempest::C2Vector position((float)g_widthPixels * m_position.x, (float)g_heightPixels * m_position.y);
   float              minx;
   float              maxx;
   float              miny;
@@ -1442,8 +1442,7 @@ void CGxString::InitializeViewportOffsets() {
     position.y += tHeight;
   }
 
-  m_viewportOffset.x = position.x / (maxx - minx);
-  m_viewportOffset.y = position.y / (maxy - miny);
+  m_viewportOffset = NTempest::C2Vector(position.x / (maxx - minx), position.y / (maxy - miny));
 }
 
 void CGxString::TexturePageEvicted(UINT pageNumber) {
@@ -1472,12 +1471,12 @@ void CGxString::GenerateVertexIndices() {
 
       WORD *index = indices.Ptr();
       for (UINT quad = 0; quad < numQuads; ++quad) {
-        index[quad * 6 + 0] = static_cast<WORD>(baseIndices[0] + quad * 4);
-        index[quad * 6 + 1] = static_cast<WORD>(baseIndices[1] + quad * 4);
-        index[quad * 6 + 2] = static_cast<WORD>(baseIndices[2] + quad * 4);
-        index[quad * 6 + 3] = static_cast<WORD>(baseIndices[3] + quad * 4);
-        index[quad * 6 + 4] = static_cast<WORD>(baseIndices[4] + quad * 4);
-        index[quad * 6 + 5] = static_cast<WORD>(baseIndices[5] + quad * 4);
+        index[quad * 6 + 0] = baseIndices[0] + quad * 4;
+        index[quad * 6 + 1] = baseIndices[1] + quad * 4;
+        index[quad * 6 + 2] = baseIndices[2] + quad * 4;
+        index[quad * 6 + 3] = baseIndices[3] + quad * 4;
+        index[quad * 6 + 4] = baseIndices[4] + quad * 4;
+        index[quad * 6 + 5] = baseIndices[5] + quad * 4;
       }
     }
   }
@@ -1547,7 +1546,7 @@ int CGxString::Initialize(
   if (textLen > m_textLen) {
     FREEIFUSED(m_text);
     m_textLen = textLen;
-    m_text = static_cast<char *>(ALLOC(m_textLen));
+    m_text = (char *)ALLOC(m_textLen);
   }
 
   SStrCopy(m_text, text, m_textLen);
@@ -1573,7 +1572,7 @@ int CGxString::Initialize(
     m_requestedFontHeight = fontHeight;
   }
 
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / (float)g_heightPixels);
   CreateGeometry();
   return 1;
 }
@@ -1627,7 +1626,7 @@ void CGxFont::RegisterEvictNotice(UINT pageNumber) {
 BOOL CGxFont::CheckStringGlyphs(LPCSTR string) {
   while (*string) {
     ++string;
-    if (*string != '\n' && !m_activeCharacters.Ptr(static_cast<signed char>(*string), s_nullHashKey)) {
+    if (*string != '\n' && !m_activeCharacters.Ptr(*string, s_nullHashKey)) {
       return 0;
     }
   }
@@ -1636,8 +1635,8 @@ BOOL CGxFont::CheckStringGlyphs(LPCSTR string) {
 }
 
 int CGxFont::UpdateDimensions() {
-  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  m_pixelSize = min(28, static_cast<int>(ScreenToPixelHeight(0, m_currentFontHeight)));
+  m_currentFontHeight = max(m_requestedFontHeight, 2.0f / (float)g_heightPixels);
+  m_pixelSize = min(28, (int)ScreenToPixelHeight(0, m_currentFontHeight));
 
   if (!m_pixelSize) {
     FATALERROR(
@@ -1651,7 +1650,7 @@ int CGxFont::UpdateDimensions() {
   ASSERT(theFace);
 
   float baseLine = theFace->ascender / (fabsf(theFace->descender) + theFace->ascender) * m_pixelSize;
-  m_baseline = static_cast<UINT>(baseLine + SignOf(baseLine) * 0.5f);
+  m_baseline = baseLine + SignOf(baseLine) * 0.5f;
 
   m_cellHeight = m_pixelSize;
   if (m_flags & 0x1) {
@@ -1662,7 +1661,7 @@ int CGxFont::UpdateDimensions() {
   }
 
   FT_Error error = FT_Set_Pixel_Sizes(theFace, m_pixelSize, 0);
-  m_pixelsPerUnit = static_cast<float>(theFace->size->metrics.x_ppem) / static_cast<float>(theFace->units_per_EM);
+  m_pixelsPerUnit = (float)theFace->size->metrics.x_ppem / (float)theFace->units_per_EM;
   ASSERT(m_pixelsPerUnit != 0.0f);
   return !error;
 }
@@ -1783,8 +1782,8 @@ int CGxFont::Initialize(LPCSTR name, UINT newFlags, float fontHeight) {
 
   SStrPrintf(m_fontName, sizeof(m_fontName), "%s", name);
   m_requestedFontHeight = fontHeight;
-  m_currentFontHeight = max(fontHeight, 2.0f / static_cast<float>(g_heightPixels));
-  m_pixelSize = min(32, static_cast<int>(ScreenToPixelHeight(0, m_currentFontHeight)));
+  m_currentFontHeight = max(fontHeight, 2.0f / (float)g_heightPixels);
+  m_pixelSize = min(32, (int)ScreenToPixelHeight(0, m_currentFontHeight));
 
   if (!m_pixelSize) {
     FATALERROR(
@@ -1878,10 +1877,10 @@ float CGxFont::ComputeStepFixedWidth(UINT currentCode, UINT nextCode) {
   nextGlyph = m_glyphBitmapData.Ptr(nextCode, s_nullHashKey);
 
   if (currentGlyph && nextGlyph) {
-    UINT currentAdvance = static_cast<UINT>(currentGlyph->m_glyphAdvance * m_pixelsPerUnit);
+    UINT currentAdvance = currentGlyph->m_glyphAdvance * m_pixelsPerUnit;
 
     if (currentAdvance >= m_cellHeight) {
-      return static_cast<float>(m_cellHeight);
+      return m_cellHeight;
     }
 
     UINT currentPadding = m_cellHeight - currentAdvance;
@@ -1890,18 +1889,18 @@ float CGxFont::ComputeStepFixedWidth(UINT currentCode, UINT nextCode) {
     }
 
     UINT spacing = m_cellHeight - currentPadding / 2;
-    UINT nextAdvance = static_cast<UINT>(nextGlyph->m_glyphAdvance * m_pixelsPerUnit);
+    UINT nextAdvance = nextGlyph->m_glyphAdvance * m_pixelsPerUnit;
 
     if (nextAdvance >= m_cellHeight) {
-      return static_cast<float>(spacing);
+      return spacing;
     }
 
     UINT nextPadding = m_cellHeight - nextAdvance;
     if (nextPadding & 0x1) {
-      return static_cast<float>(spacing + (nextPadding - 1) / 2);
+      return spacing + (nextPadding - 1) / 2;
     }
 
-    return static_cast<float>(spacing + nextPadding / 2);
+    return spacing + nextPadding / 2;
   }
 
   if (!node) {
@@ -2161,7 +2160,7 @@ void TEXTURECACHE::TextureCallback(
   ASSERT(h);
   ASSERT(userArg);
 
-  static_cast<TEXTURECACHE *>(userArg)->TextureCallbackHandler(cmd, w, h, mipLevel, texelStrideInBytes, texels);
+  ((TEXTURECACHE *)userArg)->TextureCallbackHandler(cmd, w, h, mipLevel, texelStrideInBytes, texels);
 }
 
 void TEXTURECACHE::TextureCallbackHandler(EGxTexCommand cmd, UINT w, UINT h, UINT mipLevel, UINT &texelStrideInBytes, LPCVOID &texels) {
@@ -2203,7 +2202,7 @@ void TEXTURECACHE::TextureCallbackHandler(EGxTexCommand cmd, UINT w, UINT h, UIN
 
       GLYPHBITMAPDATA *glyphData = curr->bitmapData;
       ASSERT(glyphData->m_yStart <= (int)glyphHeight);
-      DWORD *dst = static_cast<DWORD *>(m_data) + row * glyphHeight * 256 + curr->glyphStartPixel;
+      DWORD *dst = (DWORD *)m_data + row * glyphHeight * 256 + curr->glyphStartPixel;
       PasteGlyph(glyphData, dst, m_theFace->m_flags & 0x8);
     }
   }
@@ -2336,8 +2335,8 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
   GxRsSet(GxRs_Lighting, 0);
   GxXformViewport(minx, maxx, miny, maxy, minz, maxz);
 
-  pixWidth = static_cast<float>(GetScreenPixelWidth());
-  pixHeight = static_cast<float>(GetScreenPixelHeight());
+  pixWidth = GetScreenPixelWidth();
+  pixHeight = GetScreenPixelHeight();
 
   for (i = 0; i < 8; ++i) {
     ITERATELIST(CGxString, m_strings, string) {
@@ -2353,7 +2352,7 @@ void BATCHEDRENDERFONTDESC::RenderBatch() {
         GxRsSet(GxRs_Fog, 1);
       }
 
-      matrices = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(string), HASHKEY_PTR(string));
+      matrices = s_stringViewMatrices.Ptr((UINT)string, HASHKEY_PTR(string));
       if (!matrices) {
         matrices = GetNewStringMatrix(string);
         string->BuildProjection(&matrices->projection, minx, maxx, miny, maxy, pixWidth, pixHeight);
@@ -2399,9 +2398,9 @@ void CGxStringBatch::AddString(CGxString *string) {
   currentFace = string->GetCurrentFace();
   ASSERT(currentFace);
 
-  BATCHEDRENDERFONTDESC *batchDesc = m_fontBatch.Ptr(reinterpret_cast<UINT>(currentFace), HASHKEY_PTR(currentFace));
+  BATCHEDRENDERFONTDESC *batchDesc = m_fontBatch.Ptr((UINT)currentFace, HASHKEY_PTR(currentFace));
   if (!batchDesc) {
-    batchDesc = m_fontBatch.New(reinterpret_cast<UINT>(currentFace), HASHKEY_PTR(currentFace), 0, 0);
+    batchDesc = m_fontBatch.New((UINT)currentFace, HASHKEY_PTR(currentFace), 0, 0);
     batchDesc->face = currentFace;
   } else {
     ASSERT(batchDesc->face == currentFace);
@@ -2411,7 +2410,7 @@ void CGxStringBatch::AddString(CGxString *string) {
 }
 
 void CGxString::ClearStringMatrixEntry() {
-  STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr(reinterpret_cast<UINT>(this), HASHKEY_PTR(this));
+  STRINGVIEWMATRICES *matrices = s_stringViewMatrices.Ptr((UINT)this, HASHKEY_PTR(this));
 
   if (matrices) {
     s_stringViewMatrices.Unlink(matrices);
@@ -2420,10 +2419,10 @@ void CGxString::ClearStringMatrixEntry() {
 }
 
 void CGxString::AddHyperlinkParseInfo(GXUFONTHYPERLINKINFO currentParseInfo) {
-  currentParseInfo.extent.t *= 1.0f / static_cast<float>(g_heightPixels);
-  currentParseInfo.extent.b *= 1.0f / static_cast<float>(g_heightPixels);
-  currentParseInfo.extent.l *= 1.0f / static_cast<float>(g_widthPixels);
-  currentParseInfo.extent.r *= 1.0f / static_cast<float>(g_widthPixels);
+  currentParseInfo.extent.t *= 1.0f / (float)g_heightPixels;
+  currentParseInfo.extent.b *= 1.0f / (float)g_heightPixels;
+  currentParseInfo.extent.l *= 1.0f / (float)g_widthPixels;
+  currentParseInfo.extent.r *= 1.0f / (float)g_widthPixels;
   m_hyperlinkInfo.Add(1, &currentParseInfo);
 }
 
@@ -2500,7 +2499,7 @@ int CGxString::SetGradient(int startCharacter, int length, const TSGrowableArray
   index = startIndex;
   if (length > 0) {
     int color = alpha;
-    int gradient = static_cast<int>(static_cast<float>(alpha) / length);
+    int gradient = (float)alpha / length;
 
     do {
       array[index++]->a = color;
@@ -2648,10 +2647,10 @@ UINT InternalGetMaxCharsWithinWidth(
   width = 0.0f;
   prevCode = 0;
   lastWidth = 0.0f;
-  pixelWidth = face->m_pixelSize * static_cast<float>(g_widthPixels) * maxWidth;
+  pixelWidth = face->m_pixelSize * (float)g_widthPixels * maxWidth;
   pixelHeight = ScreenToPixelHeight(flags & 0x80, height);
   pixelHeight = max(pixelHeight, 1.0f);
-  pixWidth = static_cast<UINT>(pixelWidth / pixelHeight + 1.0f);
+  pixWidth = pixelWidth / pixelHeight + 1.0f;
   pixelHeight = ScreenToPixelHeight(flags & 0x80, height);
   pixelScale = pixelHeight / face->m_pixelSize;
   widthIndex = widthArray;
@@ -2750,7 +2749,7 @@ void CGxString::RenderTexture(bool initGxRenderStates, int texture) {
   UINT line = m_textBlock.NumLines();
   while (line) {
     --line;
-    RenderTexture(static_cast<int>(line), texture);
+    RenderTexture((int)line, texture);
   }
 
   if (initGxRenderStates) {
@@ -2761,12 +2760,12 @@ void CGxString::RenderTexture(bool initGxRenderStates, int texture) {
 void CGxString::RenderTexture(int line, int texture) {
   TSGrowableArray<IGXUTEXTLINE *> &lines = m_textBlock.GetLines();
 
-  if (line >= static_cast<int>(lines.Count())) {
+  if (line >= (int)lines.Count()) {
     return;
   }
 
   IGXUTEXTLINE *textLine = lines[line];
-  if (!textLine || texture >= static_cast<int>(textLine->m_texturePages.Count())) {
+  if (!textLine || texture >= (int)textLine->m_texturePages.Count()) {
     return;
   }
 

@@ -19,7 +19,7 @@ SRP6_Random::SRP6_Random(UINT seed) {
   preseed.random = rand();
 
   SHA1_Init(&context);
-  SHA1_Update(&context, reinterpret_cast<BYTE *>(&preseed), sizeof(preseed));
+  SHA1_Update(&context, (BYTE *)&preseed, sizeof(preseed));
   SHA1_Final(this->m_randkey1, &context);
 
   memcpy(this->m_randkey2, this->m_randkey1, sizeof(this->m_randkey2));

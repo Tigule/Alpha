@@ -5,8 +5,9 @@
 namespace NTempest {
 
   C22Matrix C22Matrix::Rotation(float angle) {
-    float cosine = CMath::cos_(angle);
-    float sine = CMath::sin_(angle);
+    float sine;
+    float cosine;
+    CMath::sincos_(angle, sine, cosine);
     return C22Matrix(cosine, sine, -sine, cosine);
   }
 

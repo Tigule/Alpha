@@ -15,9 +15,9 @@ namespace MDL {
 }  // namespace MDL
 
 static void ITextureAnimAddErrors(TSet &errors) {
-  errors.Add(0x1C7, 0, 0);
-  errors.Add(0x1AD, 0, 0);
-  errors.Add(0x1AF, 0, 0);
+  errors.Add(MDLTOK_TRANSLATION, 0, 0);
+  errors.Add(MDLTOK_ROTATION, 0, 0);
+  errors.Add(MDLTOK_SCALING, 0, 0);
 }
 
 static void IReadTextureAnim(Parser &parse, MDLTEXANIMSECTION *texAnim, CMDLStatus *status) {
@@ -31,13 +31,13 @@ static void IReadTextureAnim(Parser &parse, MDLTEXANIMSECTION *texAnim, CMDLStat
       parse.FatalDuplicate(tokenText);
     }
     switch (token) {
-      case 0x1C7:
+      case MDLTOK_TRANSLATION:
         ReadObjectFloatKeyframes(parse, &texAnim->transkeys);
         break;
-      case 0x1AD:
+      case MDLTOK_ROTATION:
         ReadObjectFloatKeyframes(parse, &texAnim->rotkeys);
         break;
-      case 0x1AF:
+      case MDLTOK_SCALING:
         ReadObjectFloatKeyframes(parse, &texAnim->scalekeys);
         break;
       default:
@@ -51,44 +51,49 @@ static void IReadTextureAnim(Parser &parse, MDLTEXANIMSECTION *texAnim, CMDLStat
 }
 
 BOOL MDL::ReadTextureAnims(Parser &parse, MDLDATA &data, CMDLStatus *status) {
-  UINT   token;
-  LPCSTR tokenText;
-  long   expected = parse.GetOptionalInt(&token, &tokenText, 0);
-  if (expected > 0) {
-    data.textureanims.ReserveSpace(expected);
+  UINT   savedtoken;
+  LPCSTR tokentext;
+  long   actual = 0;
+  long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+  if (count > 0) {
+    data.textureanims.ReserveSpace(count);
   }
-  parse.Expect('{', token, tokenText);
-  token = parse.Token(&tokenText, 0);
-  long actual = 0;
-  while (token == 0x1CC) {
-    MDLTEXANIMSECTION *texAnim = data.textureanims.New();
-    IReadTextureAnim(parse, texAnim, status);
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken == MDLTOK_TVERTEXANIM) {
+    IReadTextureAnim(parse, data.textureanims.New(), status);
     ++actual;
-    token = parse.Token(&tokenText, 0);
+    savedtoken = parse.Token(&tokentext, 0);
   }
-  parse.Expect('}', token, tokenText);
-  if (expected >= 0 && actual != expected) {
-    parse.WarningCount("texture animations", expected, actual);
+  parse.Expect('}', savedtoken, tokentext);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("texture animations", count, actual);
   }
   return !parse.FoundError();
 }
 
 static void IWriteTextureAnim(const MDLTEXANIMSECTION &section, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1CC));
-  WriteFloatKeyFrames(0x1C7, "\t\t", section.transkeys, buffer);
-  WriteFloatKeyFrames(0x1AD, "\t\t", section.rotkeys, buffer);
-  WriteFloatKeyFrames(0x1AF, "\t\t", section.scalekeys, buffer);
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_TVERTEXANIM));
+  WriteFloatKeyFrames(MDLTOK_TRANSLATION, "\t\t", section.transkeys, buffer);
+  WriteFloatKeyFrames(MDLTOK_ROTATION, "\t\t", section.rotkeys, buffer);
+  WriteFloatKeyFrames(MDLTOK_SCALING, "\t\t", section.scalekeys, buffer);
   MDL::WriteLine(buffer, "\t}\n");
 }
 
 BOOL MDL::WriteTextureAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.textureanims.Count()) {
-    MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(0x107), data.textureanims.Count());
-    for (UINT i = 0; i < data.textureanims.Count(); ++i) {
-      IWriteTextureAnim(data.textureanims.Ptr()[i], buffer);
-    }
-    MDL::WriteLine(buffer, "}\n");
+  if (data.model.animationFile[0]) {
+    return 1;
   }
+  UINT numTexAnims = data.textureanims.Count();
+  if (!numTexAnims) {
+    return 1;
+  }
+  MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(MDLTOK_TEXTUREANIMS), numTexAnims);
+  const MDLTEXANIMSECTION *texAnim = data.textureanims.Ptr();
+  for (UINT i = numTexAnims; i; --i) {
+    IWriteTextureAnim(*texAnim++, buffer);
+  }
+  MDL::WriteLine(buffer, "}\n");
   return 1;
 }
 
@@ -111,23 +116,6 @@ static void IWriteBinTextureAnim(const MDLTEXANIMSECTION &section, CMsgBuffer &b
   WriteBinFloatKeyFrames(section.transkeys, 'TATK', buffer);
   WriteBinQuatKeyFrames(section.rotkeys, 'RATK', buffer);
   WriteBinFloatKeyFrames(section.scalekeys, 'SATK', buffer);
-}
-
-BOOL MDL::WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.textureanims.Count()) {
-    buf.AddDword('NAXT');
-    UINT totalSize = 4;
-    UINT i;
-    for (i = 0; i < data.textureanims.Count(); ++i) {
-      totalSize += GetBinTexAnimSize(data.textureanims.Ptr()[i]);
-    }
-    buf.AddUint(totalSize);
-    buf.AddUint(data.textureanims.Count());
-    for (i = 0; i < data.textureanims.Count(); ++i) {
-      IWriteBinTextureAnim(data.textureanims.Ptr()[i], buf);
-    }
-  }
-  return 1;
 }
 
 BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -175,6 +163,25 @@ BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLS
       status->FatalOverran("TexAnim", -1);
       return 0;
     }
+  }
+  return 1;
+}
+
+BOOL MDL::WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
+  UINT numTexAnims = data.textureanims.Count();
+  if (data.model.animationFile[0] || !numTexAnims) {
+    return 1;
+  }
+  buf.AddDword('NAXT');
+  UINT totalSize = 4;
+  UINT i;
+  for (i = 0; i < numTexAnims; ++i) {
+    totalSize += GetBinTexAnimSize(data.textureanims[i]);
+  }
+  buf.AddUint(totalSize);
+  buf.AddUint(numTexAnims);
+  for (i = 0; i < numTexAnims; ++i) {
+    IWriteBinTextureAnim(data.textureanims[i], buf);
   }
   return 1;
 }

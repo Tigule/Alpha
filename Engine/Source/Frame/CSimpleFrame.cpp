@@ -87,8 +87,7 @@ CSimpleFrame::~CSimpleFrame() {
     ASSERT(m_drawlayers[i].IsEmpty());
   }
 
-  for (CRenderBatch *node = m_renderList.Head(), *nodenext_node; reinterpret_cast<int>(node) > 0 ? ((nodenext_node = m_renderList.RawNext(node)), 1) : 0;
-       node = nodenext_node) {
+  SAFEITERATELIST(CRenderBatch, m_renderList, node) {
     m_renderList.UnlinkNode(node);
   }
 
@@ -248,7 +247,7 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   attribute = node->GetAttributeByName("alpha");
   if (attribute && *attribute) {
-    SetAlpha(static_cast<BYTE>(__max(__min(SStrToFloat(attribute), 1.0f), 0.0f) * 255.0f));
+    SetAlpha(__max(__min(SStrToFloat(attribute), 1.0f), 0.0f) * 255.0f);
   }
 
   attribute = node->GetAttributeByName("id");
@@ -262,13 +261,13 @@ void CSimpleFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
   attribute = node->GetAttributeByName("enableMouse");
   if (attribute && *attribute && StringToBOOL(attribute)) {
-    EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+    EnableEvent(SIMPLE_EVENT_MOUSE, -1);
   }
 
   attribute = node->GetAttributeByName("enableKeyboard");
   if (attribute && *attribute && StringToBOOL(attribute)) {
-    EnableEvent(SIMPLE_EVENT_KEY, static_cast<UINT>(-1));
-    EnableEvent(SIMPLE_EVENT_CHAR, static_cast<UINT>(-1));
+    EnableEvent(SIMPLE_EVENT_KEY, -1);
+    EnableEvent(SIMPLE_EVENT_CHAR, -1);
   }
 
   const XMLNode *child;
@@ -799,7 +798,7 @@ void CSimpleFrame::RegisterForEvents() {
 
   for (event = 0; event < NUM_SIMPLE_EVENTS; ++event) {
     if (m_eventmask & (1 << event)) {
-      m_top->RegisterForEvent(this, static_cast<CSimpleEventType>(event), static_cast<UINT>(-1));
+      m_top->RegisterForEvent(this, (CSimpleEventType)event, -1);
     }
   }
 }
@@ -809,7 +808,7 @@ void CSimpleFrame::UnregisterForEvents() {
 
   for (event = 0; event < NUM_SIMPLE_EVENTS; ++event) {
     if (m_eventmask & (1 << event)) {
-      m_top->UnregisterForEvent(this, static_cast<CSimpleEventType>(event));
+      m_top->UnregisterForEvent(this, (CSimpleEventType)event);
     }
   }
 }
@@ -821,19 +820,15 @@ BOOL CSimpleFrame::TestHitRect(const NTempest::C2Vector &pt) {
 
   if (m_flags & 0x2000) {
     CSimpleFrame *parent = m_parent;
-
     while (parent && (parent->m_flags & 0x2000)) {
       parent = parent->m_parent;
     }
-
-    if (!parent) {
-      return 0;
+    if (parent) {
+      NTempest::CRect rect = parent->m_hitRect;
+      rect.Intersect(m_hitRect);
+      return rect.Contains(pt);
     }
-
-    NTempest::CRect rect = parent->m_hitRect;
-    rect.Intersect(m_hitRect);
-
-    return rect.Contains(pt);
+    return 0;
   }
 
   return m_hitRect.Contains(pt);
@@ -883,7 +878,7 @@ BOOL CSimpleFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
 
     if (dx * dx + dy * dy >= MIN_DRAG_DIST_SQ) {
       m_dragging = 1;
-      OnDragStart(const_cast<CMouseEvent &>(evt));
+      OnDragStart((CMouseEvent &)evt);
     }
   }
 

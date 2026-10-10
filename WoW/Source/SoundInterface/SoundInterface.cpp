@@ -84,7 +84,7 @@ static UINT                                        s_footstepRequest;
 static UINT                                        s_footstepAccept;
 static const float                                 MaximumFoostepDistance = 20.0f;
 VOCALUISOUND                                       g_vocalUISounds[66];
-static VOCALUISOUNDS                               s_lastPlayedVocalUISound = static_cast<VOCALUISOUNDS>(66);
+static VOCALUISOUNDS                               s_lastPlayedVocalUISound = VUI_NONE;
 static VOCALUISOUNDTYPE                            s_currentVocalUISoundType;
 static UINT                                        s_vocalUISoundPlayCount;
 
@@ -136,7 +136,7 @@ static void DetermineWeaponTypeAndMaterial(const VirtualItemInfo *item, UINT *we
   } else {
     FATALASSERT(item->m_classID == ITEM_WEAPON);
     *weaponType = item->m_subclassID;
-    *material = static_cast<PARRYMATERIALS>(CGItem_C::IsMetal(item->m_material) != 0);
+    *material = (PARRYMATERIALS)(CGItem_C::IsMetal(item->m_material) != 0);
   }
 }
 
@@ -300,7 +300,7 @@ static bool SoundGetParamValueString(LPCSTR parameter, LPCSTR &value) {
 void SndInterfaceInitialize() {
   RegisterCVars();
 
-  if (CmdLineGetBool(static_cast<CMDOPT>(0x1A))) {
+  if (CmdLineGetBool((CMDOPT)0x1A)) {
     return;
   }
 
@@ -354,7 +354,7 @@ void SndInterfacePlayItemSound(ITEMSOUNDTYPE soundType, int itemDisplayID) {
 }
 
 static BOOL WorldIdle(LPCVOID dataPtr, LPVOID ptr) {
-  s_elapsed += static_cast<int>(*static_cast<const float *>(dataPtr) * 1000.0f);
+  s_elapsed += (int)(*(const float *)dataPtr * 1000.0f);
   if (s_elapsed < 1000) {
     return 1;
   }
@@ -378,7 +378,7 @@ static BOOL WorldIdle(LPCVOID dataPtr, LPVOID ptr) {
 
 void SndInterfaceWorldInitialize() {
   SoundInterfaceRegisterWorldCVars();
-  if (!CmdLineGetBool(static_cast<CMDOPT>(26))) {
+  if (!CmdLineGetBool((CMDOPT)26)) {
     s_elapsed = 1000;
     InitializeZoneMusic();
     SoundInterfaceInitializeWorldMIDI();
@@ -398,7 +398,7 @@ void SndInterfaceWorldInitialize() {
 
 void SndInterfaceWorldDestroy() {
   EventUnregister(EVENT_ID_IDLE, WorldIdle);
-  if (!CmdLineGetBool(static_cast<CMDOPT>(26))) {
+  if (!CmdLineGetBool((CMDOPT)26)) {
     ShutdownZoneMusic();
     ShutdownWaterAmbiences();
     SoundInterfaceShutdownWorldMIDI();
@@ -499,7 +499,7 @@ void SndInterfacePlayInterfaceSound(LPCSTR name) {
 void SndInterfaceInitializeVocalUISounds(UINT race, UINT sex) {
   UINT i;
 
-  s_lastPlayedVocalUISound = static_cast<VOCALUISOUNDS>(66);
+  s_lastPlayedVocalUISound = VUI_NONE;
   s_currentVocalUISoundType = VUISOUNDTYPE_NORMAL;
   s_vocalUISoundPlayCount = 0;
 
@@ -515,7 +515,7 @@ void SndInterfaceInitializeVocalUISounds(UINT race, UINT sex) {
     const VocalUISoundsRec *rec = g_vocalUISoundsDB.GetRecordByIndex(i);
     FATALASSERT(rec);
 
-    if (static_cast<UINT>(rec->m_vocalUIEnum) < 66 && static_cast<UINT>(rec->m_raceID) == race) {
+    if ((UINT)rec->m_vocalUIEnum < 66 && (UINT)rec->m_raceID == race) {
       g_vocalUISounds[rec->m_vocalUIEnum].soundTypes[VUISOUNDTYPE_NORMAL] = rec->m_NormalSoundID[sex];
       g_vocalUISounds[rec->m_vocalUIEnum].soundTypes[VUISOUNDTYPE_PISSED] = rec->m_PissedSoundID[sex];
 
@@ -865,7 +865,7 @@ bool SndInterfacePlaySound(Sound *sound, float fadeInRate) {
   return sound->SetPaused(false);
 }
 
-static BYTE SoundPositionCallback(LONGLONG handle, NTempest::C3Vector &pos) {
+static bool SoundPositionCallback(LONGLONG handle, NTempest::C3Vector &pos) {
   CGObject_C *object = ClntObjMgrObjectPtr(handle, __FILE__, __LINE__);
   if (object) {
     pos = object->GetPosition();

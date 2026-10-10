@@ -89,7 +89,7 @@ class TManaged : public CBaseManaged {
   virtual void Set_(const T &data) {
     if (m_data != data) {
       m_data = data;
-      m_flags |= 0x8;
+      m_flags |= UPDATED;
     }
   }
 
@@ -137,7 +137,7 @@ template <>
 inline void TManaged<NTempest::C3Vector>::Set_(const NTempest::C3Vector &val) {
   if (m_data.x != val.x || m_data.y != val.y || m_data.z != val.z) {
     m_data = val;
-    m_flags |= 0x8;
+    m_flags |= UPDATED;
   }
 }
 
@@ -145,7 +145,7 @@ template <>
 inline void TManaged<C3Color>::Set_(const C3Color &val) {
   if (m_data.r != val.r || m_data.g != val.g || m_data.b != val.b) {
     m_data = val;
-    m_flags |= 0x8;
+    m_flags |= UPDATED;
   }
 }
 

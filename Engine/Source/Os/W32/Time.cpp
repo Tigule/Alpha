@@ -61,7 +61,7 @@ __declspec(naked) LONGLONG __cdecl OsGetAsyncTimeClocks() {
 #else
 LONGLONG __cdecl OsGetAsyncTimeClocks() {
 #if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
-  return static_cast<LONGLONG>(__rdtsc());
+  return (LONGLONG)__rdtsc();
 #else
   LARGE_INTEGER clocks;
   QueryPerformanceCounter(&clocks);
@@ -124,21 +124,20 @@ DWORD OsGetAsyncTimeMs() {
 }
 
 DWORD OsGetAsyncTimeMsPrecise() {
-  LARGE_INTEGER freq;
-  LARGE_INTEGER currTime;
-
   if (!s_qpcExistsTested) {
+    LARGE_INTEGER freq;
     if (QueryPerformanceFrequency(&freq) && freq.QuadPart) {
       s_qpcExists = 1;
-      s_qpcScaleToMs = 1000.0 / (double)freq.QuadPart;
+      s_qpcScaleToMs = 1000.0f / freq.QuadPart;
     }
 
     s_qpcExistsTested = 1;
   }
 
   if (s_qpcExists) {
+    LARGE_INTEGER currTime;
     QueryPerformanceCounter(&currTime);
-    return (DWORD)((double)currTime.QuadPart * s_qpcScaleToMs);
+    return (DWORD)(currTime.QuadPart * s_qpcScaleToMs);
   }
 
   return GetTickCount();
@@ -176,7 +175,7 @@ void OsFileTimeGetCurrent(OSFILETIME *filetime) {
   VALIDATEENDVOID;
   SYSTEMTIME systime;
   GetSystemTime(&systime);
-  SystemTimeToFileTime(&systime, reinterpret_cast<FILETIME *>(&filetime->m_value));
+  SystemTimeToFileTime(&systime, (FILETIME *)&filetime->m_value);
 }
 
 int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
@@ -184,7 +183,7 @@ int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) 
   VALIDATE(filetime1);
   VALIDATE(filetime2);
   VALIDATEEND;
-  return CompareFileTime(reinterpret_cast<const FILETIME *>(&filetime1->m_value), reinterpret_cast<const FILETIME *>(&filetime2->m_value));
+  return CompareFileTime((const FILETIME *)&filetime1->m_value, (const FILETIME *)&filetime2->m_value);
 }
 
 void OsFileTimeAdd(OSFILETIME *filetime, UINT seconds) {
@@ -206,21 +205,21 @@ DWORD OsGetTime() {
   const DWORD *last;
   const DWORD *observed;
 
-  curr = reinterpret_cast<DWORD *>(&currTimeAndTickCount);
+  curr = (DWORD *)&currTimeAndTickCount;
   currTimeAndTickCount = GetTickCount();
 
   lastTimeAndTickCount = SInterlockedRead(&s_lastTimeAndTickCount);
-  last = reinterpret_cast<const DWORD *>(&lastTimeAndTickCount);
+  last = (const DWORD *)&lastTimeAndTickCount;
 
-  if (last[1] && static_cast<long>(curr[0] - last[0]) < 500) {
+  if (last[1] && (long)(curr[0] - last[0]) < 500) {
     return last[1];
   }
 
-  currTimeAndTickCount |= static_cast<LONGLONG>(time(0)) << 32;
+  currTimeAndTickCount |= (LONGLONG)time(0) << 32;
   observedTimeAndTickCount = SInterlockedCompareExchange(&s_lastTimeAndTickCount, currTimeAndTickCount, lastTimeAndTickCount);
 
   if (observedTimeAndTickCount != lastTimeAndTickCount) {
-    observed = reinterpret_cast<const DWORD *>(&observedTimeAndTickCount);
+    observed = (const DWORD *)&observedTimeAndTickCount;
     return observed[1];
   }
 
@@ -326,7 +325,7 @@ OsTimeManager::OsTimeManager() : shutdownEvt(1, 0) {
   s_OsTimeMgr = this;
   sleepVal = 50;
   shutdownEvt.Reset();
-  SThread::Create(TimeKeeper, 0, timeMgrThread, const_cast<char *>("OsTime"));
+  SThread::Create(TimeKeeper, 0, timeMgrThread, (char *)"OsTime");
 }
 
 OsTimeManager::~OsTimeManager() {
@@ -357,7 +356,7 @@ UINT __stdcall OsTimeManager::TimeKeeper(LPVOID) {
 
   OsTimeManager *timeMgr;
   do {
-    timeMgr = reinterpret_cast<OsTimeManager *>(SInterlockedExchange(reinterpret_cast<long *>(&s_OsTimeMgr), 0));
+    timeMgr = (OsTimeManager *)SInterlockedExchange((long *)&s_OsTimeMgr, 0);
   } while (!timeMgr);
 
   delete timeMgr;
@@ -389,9 +388,7 @@ void OsTimeManager::Calibrate() {
 
     if (hasQPF) {
       if (interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) {
-        cpuTicksPerSecond_qp = static_cast<LONGLONG>(
-            (double)qPerfFreq.QuadPart / (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) * (double)deltaCpu
-        );
+        cpuTicksPerSecond_qp = (LONGLONG)((double)qPerfFreq.QuadPart / (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) * (double)deltaCpu);
       }
     }
 
@@ -415,7 +412,7 @@ void OsTimeManager::Calibrate() {
 void OsTimeStartup() {
   NEWZERO(OsTimeManager);
 
-  DWORD len = sizeof(s_cpuTicksPerSecond);
+  DWORD len;
   if (!SRegLoadData("Internal", "CpuTicksPerSecond", 0, &s_cpuTicksPerSecond, sizeof(s_cpuTicksPerSecond), &len)) {
     s_cpuTicksPerSecond = 0;
   }
@@ -423,10 +420,10 @@ void OsTimeStartup() {
 }
 
 void OsTimeShutdown() {
-  OsTimeManager *timeMgr = reinterpret_cast<OsTimeManager *>(SInterlockedExchange(reinterpret_cast<long *>(&s_OsTimeMgr), 0));
+  OsTimeManager *timeMgr = (OsTimeManager *)SInterlockedExchange((long *)&s_OsTimeMgr, 0);
 
   if (timeMgr) {
     timeMgr->Shutdown();
-    SInterlockedExchange(reinterpret_cast<long *>(&s_OsTimeMgr), reinterpret_cast<long>(timeMgr));
+    SInterlockedExchange((long *)&s_OsTimeMgr, (long)timeMgr);
   }
 }

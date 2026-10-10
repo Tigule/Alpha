@@ -147,7 +147,7 @@ namespace NTempest {
       return x * x + y * y + z * z + w * w;
     }
     long Mag() const {
-      return static_cast<long>(CMath::sqrt_(static_cast<float>(SquaredMag())));
+      return (long)CMath::sqrt_((float)SquaredMag());
     }
     long SumC() const {
       return x + y + z + w;

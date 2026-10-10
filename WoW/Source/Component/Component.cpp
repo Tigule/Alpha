@@ -45,7 +45,7 @@ BOOL GetObjComponentInfo(
 }
 
 bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b) {
-  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentptr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentptr);
   VALIDATEEND;
@@ -86,7 +86,7 @@ void GetTabardBorderFileName(int section, int border, int color, char *buffer, i
 }
 
 void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfo, int inventoryType) {
-  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentptr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentptr);
   VALIDATEENDVOID;
@@ -107,7 +107,7 @@ bool CTexComponent::HasTabard() const {
 }
 
 void ComponentForceTabardDraw(HTEXCOMPONENT component) {
-  CTexComponent *componentptr = reinterpret_cast<CTexComponent *>(component);
+  CTexComponent *componentptr = (CTexComponent *)component;
   VALIDATEBEGIN;
   VALIDATE(componentptr);
   VALIDATEENDVOID;
@@ -117,7 +117,7 @@ void ComponentForceTabardDraw(HTEXCOMPONENT component) {
 
 void TexComponentCopy(HTEXCOMPONENT d, HTEXCOMPONENT s) {
   if (d && s) {
-    *reinterpret_cast<CTexComponent *>(d) = *reinterpret_cast<CTexComponent *>(s);
+    *(CTexComponent *)d = *(CTexComponent *)s;
   }
 }
 
@@ -173,7 +173,7 @@ CTexturePiece &CTexturePiece::operator=(const CTexturePiece &rhs) {
       HandleClose(m_mippedTexture);
     }
 
-    m_mippedTexture = static_cast<HMIPPEDTEXTURE>(HandleDuplicate(rhs.m_mippedTexture));
+    m_mippedTexture = (HMIPPEDTEXTURE)HandleDuplicate(rhs.m_mippedTexture);
     m_textureInfo = rhs.m_textureInfo;
     m_holds = rhs.m_holds;
   }

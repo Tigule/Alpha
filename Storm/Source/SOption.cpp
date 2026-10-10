@@ -26,7 +26,7 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.serrleaksilentwarning;
+      *(DWORD *)optval = g_opt.serrleaksilentwarning;
       break;
     case 2:
       if (*optlen < sizeof(DWORD)) {
@@ -38,19 +38,19 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.smemleaksilentwarning;
+      *(DWORD *)optval = g_opt.smemleaksilentwarning;
       break;
     case 4:
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.alignstreamingwavedata;
+      *(DWORD *)optval = g_opt.alignstreamingwavedata;
       break;
     case 5:
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.echotooutputdebugstring;
+      *(DWORD *)optval = g_opt.echotooutputdebugstring;
       break;
     case 6:
       if (*optlen < 2 * sizeof(DWORD)) {
@@ -65,7 +65,7 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.serrsuppresslogs;
+      *(DWORD *)optval = g_opt.serrsuppresslogs;
       break;
     case 8:
       if (*optlen < 2 * sizeof(DWORD)) {
@@ -86,13 +86,13 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.crcenabled;
+      *(DWORD *)optval = g_opt.crcenabled;
       break;
     case 10:
       if (*optlen < sizeof(DWORD)) {
         return FALSE;
       }
-      *(DWORD *)optval = (DWORD)g_opt.orderedprintfenabled;
+      *(DWORD *)optval = g_opt.orderedprintfenabled;
       break;
     default:
       return FALSE;

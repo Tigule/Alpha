@@ -24,8 +24,6 @@ class CParticle {
 
   void Init() {
     m_timeToLive = 0.0f;
-    m_position = 0.0f;
-    m_velocity = 0.0f;
     m_hmodel = 0;
   }
 
@@ -33,7 +31,7 @@ class CParticle {
   void Destroy();
 
  public:
-  CParticle() {
+  CParticle() : m_position(0.0f), m_velocity(0.0f) {
     Init();
   }
 

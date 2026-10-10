@@ -6,11 +6,13 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
+
+#include <Ftol.h>
 
 #include "WorldCommon/WorldMath.h"
 
@@ -19,32 +21,33 @@
 
 static float       lastUpdateTime;
 static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
+static const float Gx_MinTexAspect = 0.125f;
 
 void CMap::SnapBaseObjToSubChunk(CMapBaseObj *baseObj, NTempest::C3Vector &pos, float angle) {
   NTempest::C44Matrix mat;
-  NTempest::CAaBox    tAaBox;
-  NTempest::C3Vector  tVec;
-  NTempest::C3Vector  cen;
-  NTempest::CAaBox    aaBox;
-
   mat.Rotate(angle, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+
+  NTempest::CAaBox tAaBox;
   if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
-    CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(baseObj);
+    CMapObjDef *mapObjDef = (CMapObjDef *)baseObj;
     mapObjDef->mapObj->GetBounds(tAaBox);
   } else {
-    CMapStaticEntity *entity = static_cast<CMapStaticEntity *>(baseObj);
+    CMapStaticEntity *entity = (CMapStaticEntity *)baseObj;
     ModelGetExtents(entity->model, &tAaBox);
   }
 
-  cen = (tAaBox.b + tAaBox.t) * 0.5f;
-  tAaBox.b = tAaBox.b - cen;
-  tAaBox.t = tAaBox.t - cen;
-  CWorldMath::TransformAABox(mat, tAaBox, aaBox);
-  tVec = pos + aaBox.b;
+  NTempest::C3Vector cen = (tAaBox.b + tAaBox.t) * 0.5f;
+  tAaBox.t -= cen;
+  tAaBox.b -= cen;
 
-  int x = static_cast<int>((tVec.x + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - 0.5f);
+  NTempest::CAaBox aaBox;
+  CWorldMath::TransformAABox(mat, tAaBox, aaBox);
+
+  NTempest::C3Vector tVec = aaBox.b + pos;
+  int                x = Fast_ftol((tVec.x + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK);
+  int                y = Fast_ftol((tVec.y + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK);
   pos.x -= tVec.x - x * (150.0f / 36.0f);
-  pos.y -= tVec.y - static_cast<int>((tVec.y + 150.0f / 36.0f) * OO_COORD_TO_SUBCHUNK - 0.5f) * (150.0f / 36.0f);
+  pos.y -= tVec.y - y * (150.0f / 36.0f);
 }
 
 void CMap::Update() {
@@ -70,19 +73,15 @@ void CMap::Update() {
 
   if (skyTexid && CWorld::curTimeSec - lastUpdateTime > 2.0f) {
     lastUpdateTime = CWorld::curTimeSec;
-    GxTexUpdate(skyTexid, 0, 0, 64, 8, 0);
+    GxTexUpdate(skyTexid, 0, 0, (UINT)(Gx_MinTexAspect * SKYTEX_HEIGHT), SKYTEX_HEIGHT, 0);
   }
 
   UpdateLiquidTextures();
 
-  WaterRadWave *wave = waterRipplesActive.Head();
-  while (wave) {
-    WaterRadWave *next = waterRipplesActive.Next(wave);
+  SAFEITERATELIST(WaterRadWave, waterRipplesActive, wave) {
     if (!wave->Update(CWorld::tickTimeSec)) {
-      waterRipplesActive.UnlinkNode(wave);
       waterRipplesFree.LinkNode(wave, LIST_TAIL, 0);
     }
-    wave = next;
   }
 }
 
@@ -134,11 +133,11 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
 
   CMapObj *mapObj = mapObjDef->mapObj;
   FATALASSERT(mapObj);
-  if (!mapObj->bLoaded) {
-    mapObjDef->aaSphere.c = pos;
+  if (!mapObj->IsLoaded()) {
+    mapObjDef->aaSphere.c = mapObjDef->pos;
     mapObjDef->aaSphere.r = 0.0f;
-    mapObjDef->aaBox.b = pos;
-    mapObjDef->aaBox.t = pos;
+    mapObjDef->aaBox.t = mapObjDef->pos;
+    mapObjDef->aaBox.b = mapObjDef->pos;
     return;
   }
 
@@ -149,16 +148,18 @@ void CMap::UpdateMapObjDef(CMapObjDef *mapObjDef, NTempest::C3Vector &pos, float
   CWorldMath::TransformAABox(mapObjDef->mat, aaBox, mapObjDef->aaBox);
 
   ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
-    mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
+    mapObjDefGroup = (CMapObjDefGroup *)groupLink->owner;
     FATALASSERT(mapObjDefGroup);
     mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
     if (mapObjGroup) {
       for (i = 0; i < mapObjGroup->lightRefCount; ++i) {
-        sLight = &mapObj->lightList[mapObjGroup->lightRefList[i]];
-        if (mapObjDef->lightList[mapObjGroup->lightRefList[i]]) {
-          mapObjDef->lightList[mapObjGroup->lightRefList[i]]->gxLight.m_dir = sLight->position * mapObjDef->mat;
+        UINT lightRef = mapObjGroup->lightRefList[i];
+        sLight = &mapObj->lightList[lightRef];
+        CMapLight *light = mapObjDef->lightList[lightRef];
+        if (light) {
+          light->gxLight.m_dir = sLight->position * mapObjDef->mat;
           if (!(mapObjDefGroup->flags & CMapBaseObj::Flag_InteriorLit)) {
-            UpdateLight(mapObjDef->lightList[mapObjGroup->lightRefList[i]]);
+            UpdateLight(light);
           }
         }
       }
@@ -187,10 +188,8 @@ void CMap::UpdateChunks(CMapArea *area) {
   }
 
   ITERATELIST(CMapBaseObjLink, area->chunkLinkList, link) {
-    CMapChunk          *chunk = static_cast<CMapChunk *>(link->owner);
-    NTempest::C3Vector &cornerPos = chunk->vertexList[CMapChunk::cornerVertexIndex[corner]];
-    chunk->camDist = CWorldScene::camPlaneXY.n.x * (cornerPos.x + chunk->corner.x) + CWorldScene::camPlaneXY.n.y * (cornerPos.y + chunk->corner.y) +
-                     CWorldScene::camPlaneXY.n.z * (cornerPos.z + chunk->corner.z) + CWorldScene::camPlaneXY.d;
+    CMapChunk          *chunk = (CMapChunk *)link->owner;
+    chunk->camDist = CWorldScene::camPlaneXY.DistSigned(chunk->vertexList[CMapChunk::cornerVertexIndex[corner]] + chunk->corner);
     chunk->lod = CWorld::lodMax;
     if ((CWorld::enables & CWorld::Enable_Lod) && chunk->camDist > CWorld::lodDist) {
       chunk->lod = CWorld::lodMin;

@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -50,44 +50,45 @@ AREAHASHOBJECT *AREAHASHOBJECT::GetParent() const {
 }
 
 static void InitializeAreaMusic(AREAHASHOBJECT *c) {
-  const AreaTableRec *rec = c->rec;
+  c->midi = c->rec->m_MIDIAmbience;
+  c->midiUnderwater = c->rec->m_MIDIAmbienceUnderwater;
+  c->zoneMusic = c->rec->m_ZoneMusic;
+  c->reverb = c->rec->m_SoundProviderPref;
+  c->reverbUnderwater = c->rec->m_SoundProviderPrefUnderwater;
+  c->zoneIntroID = c->rec->m_IntroSound;
+  c->zoneIntroIDPriority = c->rec->m_IntroPriority;
+  if (c->midi && c->midiUnderwater && c->zoneMusic && c->reverb && c->reverbUnderwater) {
+    return;
+  }
 
-  c->midi = rec->m_MIDIAmbience;
-  c->midiUnderwater = rec->m_MIDIAmbienceUnderwater;
-  c->zoneMusic = rec->m_ZoneMusic;
-  c->reverb = rec->m_SoundProviderPref;
-  c->reverbUnderwater = rec->m_SoundProviderPrefUnderwater;
-  c->zoneIntroID = rec->m_IntroSound;
-  c->zoneIntroIDPriority = rec->m_IntroPriority;
-
-  for (AREAHASHOBJECT *parent = c->GetParent(); parent; parent = parent->GetParent()) {
-    const AreaTableRec *parentRec = parent->rec;
-
+  AREAHASHOBJECT *parent = c->GetParent();
+  while (parent) {
     if (!c->midi) {
-      c->midi = parentRec->m_MIDIAmbience;
+      c->midi = parent->rec->m_MIDIAmbience;
     }
     if (!c->midiUnderwater) {
-      c->midiUnderwater = parentRec->m_MIDIAmbienceUnderwater;
+      c->midiUnderwater = parent->rec->m_MIDIAmbienceUnderwater;
     }
     if (!c->zoneMusic) {
-      c->zoneMusic = parentRec->m_ZoneMusic;
+      c->zoneMusic = parent->rec->m_ZoneMusic;
     }
     if (!c->reverb) {
-      c->reverb = parentRec->m_SoundProviderPref;
+      c->reverb = parent->rec->m_SoundProviderPref;
     }
     if (!c->reverbUnderwater) {
-      c->reverbUnderwater = parentRec->m_SoundProviderPrefUnderwater;
+      c->reverb = parent->rec->m_SoundProviderPrefUnderwater;
     }
     if (!c->zoneIntroID) {
-      c->zoneIntroID = parentRec->m_IntroSound;
+      c->zoneIntroID = parent->rec->m_IntroSound;
     }
     if (!c->zoneIntroIDPriority) {
-      c->zoneIntroIDPriority = parentRec->m_IntroPriority;
+      c->zoneIntroIDPriority = parent->rec->m_IntroPriority;
     }
 
-    if (c->midi && c->midiUnderwater && c->zoneMusic && c->reverb && c->reverbUnderwater && c->zoneIntroID && c->zoneIntroIDPriority) {
+    if (c->midi && c->midiUnderwater && c->zoneMusic && c->reverb && c->reverbUnderwater) {
       break;
     }
+    parent = parent->GetParent();
   }
 }
 
@@ -105,17 +106,18 @@ static void LoadAreaTable() {
   for (UINT i = 0; i < numEntries; ++i) {
     const AreaTableRec *rec = g_areaTableDB.GetRecordByIndex(i);
     UINT                continentID = rec->m_ContinentID;
-    UINT                areaID = static_cast<UINT>(rec->m_AreaNumber) >> 16;
-    UINT                subArea = rec->m_AreaNumber & 0xFFFF;
+    UINT                id = rec->m_AreaNumber;
+    UINT                areaID = id >> 16;
+    UINT                subArea = id & 0xFFFF;
     AREAHASHKEY         key(continentID, areaID, subArea);
 
     AREAHASHOBJECT *area = s_areaHash.Ptr(areaID, key);
     if (!area) {
       area = s_areaHash.New(areaID, key, 0, 0);
-      area->rec = rec;
       area->continent = continentID;
       area->area = areaID;
       area->subArea = subArea;
+      area->rec = rec;
     }
   }
 
@@ -198,8 +200,8 @@ static void SendZoneUpdate(AREAHASHOBJECT *hash) {
 }
 
 static bool HandleIndoorZoneChange(DWORD worldObject, LPCSTR &zoneName, LPCSTR &subZoneName, bool &clearMusic) {
-  const WMOAreaTableRec *globalRec = 0;
-  const WMOAreaTableRec *rec = 0;
+  const WMOAreaTableRec *globalRec;
+  const WMOAreaTableRec *rec;
   LPCSTR                 szName = 0;
   LPCSTR                 zName = 0;
   UINT                   chunk = 0;
@@ -223,23 +225,22 @@ static bool HandleIndoorZoneChange(DWORD worldObject, LPCSTR &zoneName, LPCSTR &
     zoneName = 0;
   }
 
-  if (!CWorld::QueryMapObjAreaTable(worldObject, rec, globalRec)) {
+  if (CWorld::QueryMapObjAreaTable(worldObject, rec, globalRec)) {
+    int musicID = rec && rec->m_ZoneMusic ? rec->m_ZoneMusic : globalRec ? globalRec->m_ZoneMusic : 0;
+    int m = rec && rec->m_MIDIAmbience ? rec->m_MIDIAmbience : globalRec ? globalRec->m_MIDIAmbience : 0;
+    int mu = rec && rec->m_MIDIAmbienceUnderwater ? rec->m_MIDIAmbienceUnderwater : globalRec ? globalRec->m_MIDIAmbienceUnderwater : 0;
+    int p = rec && rec->m_SoundProviderPref ? rec->m_SoundProviderPref : globalRec ? globalRec->m_SoundProviderPref : 0;
+    int pu = rec && rec->m_SoundProviderPrefUnderwater ? rec->m_SoundProviderPrefUnderwater : globalRec ? globalRec->m_SoundProviderPrefUnderwater : 0;
+    int introSound = rec && rec->m_IntroSound ? rec->m_IntroSound : globalRec ? globalRec->m_IntroSound : 0;
+    int priority = rec && rec->m_IntroSound ? rec->m_IntroPriority : globalRec && globalRec->m_IntroSound ? globalRec->m_IntroPriority : 0;
+
+    SndInterfaceRegisterNewZone(musicID);
+    SndInterfaceSetMIDIArea(m, mu);
+    SndInterfaceSetProviderPrefs(p, pu, 2000);
+    SndInterfaceRegisterNewZoneIntro(introSound, priority);
+  } else {
     clearMusic = true;
-    return true;
   }
-
-  int musicID = rec && rec->m_ZoneMusic ? rec->m_ZoneMusic : globalRec ? globalRec->m_ZoneMusic : 0;
-  int m = rec && rec->m_MIDIAmbience ? rec->m_MIDIAmbience : globalRec ? globalRec->m_MIDIAmbience : 0;
-  int mu = rec && rec->m_MIDIAmbienceUnderwater ? rec->m_MIDIAmbienceUnderwater : globalRec ? globalRec->m_MIDIAmbienceUnderwater : 0;
-  int p = rec && rec->m_SoundProviderPref ? rec->m_SoundProviderPref : globalRec ? globalRec->m_SoundProviderPref : 0;
-  int pu = rec && rec->m_SoundProviderPrefUnderwater ? rec->m_SoundProviderPrefUnderwater : globalRec ? globalRec->m_SoundProviderPrefUnderwater : 0;
-  int priority = rec && rec->m_IntroSound ? rec->m_IntroPriority : globalRec && globalRec->m_IntroSound ? globalRec->m_IntroPriority : 0;
-  int introSound = rec && rec->m_IntroSound ? rec->m_IntroSound : globalRec ? globalRec->m_IntroSound : 0;
-
-  SndInterfaceRegisterNewZone(musicID);
-  SndInterfaceSetMIDIArea(m, mu);
-  SndInterfaceSetProviderPrefs(p, pu, 2000);
-  SndInterfaceRegisterNewZoneIntro(introSound, priority);
 
   return true;
 }
@@ -254,16 +255,16 @@ static bool HandleOutdoorZoneChange(UINT zoneID, UINT subZoneID, UINT continent,
   s_currentContinent = continent;
 
   AREAHASHOBJECT *hash = GetZone(continent, zoneID, subZoneID);
-  if (!hash) {
+  if (hash) {
+    SendZoneUpdate(hash);
+    SndInterfaceRegisterNewZone(hash->zoneMusic);
+    SndInterfaceSetMIDIArea(hash->midi, hash->midiUnderwater);
+    SndInterfaceSetProviderPrefs(hash->reverb, hash->reverbUnderwater, 2000);
+    SndInterfaceRegisterNewZoneIntro(hash->zoneIntroID, hash->zoneIntroIDPriority);
+  } else {
     clearMusic = true;
-    return true;
   }
 
-  SendZoneUpdate(hash);
-  SndInterfaceRegisterNewZone(hash->zoneMusic);
-  SndInterfaceSetMIDIArea(hash->midi, hash->midiUnderwater);
-  SndInterfaceSetProviderPrefs(hash->reverb, hash->reverbUnderwater, 2000);
-  SndInterfaceRegisterNewZoneIntro(hash->zoneIntroID, hash->zoneIntroIDPriority);
   return true;
 }
 
@@ -271,12 +272,12 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent
   FATALASSERT(worldObject);
 
   int    indoors = CWorld::QueryObjectInside(worldObject) != 0;
+  LPCSTR subZoneName = 0;
+  LPCSTR zoneName = 0;
   UINT   areaID = CWorld::QueryAreaId(location.x, location.y);
   UINT   zoneID = areaID >> 16;
   UINT   subZoneID = areaID & 0xFFFF;
   int    parentAreaID = 0;
-  LPCSTR zoneName = 0;
-  LPCSTR subZoneName = 0;
 
   AREAHASHOBJECT *hash = GetZone(continent, zoneID, subZoneID);
   if (hash) {
@@ -311,13 +312,7 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent
 
   CGGameUI::SetMinimapZoneText(subZoneName ? subZoneName : zoneName);
 
-  if (!zoneName || !*zoneName) {
-    zoneName = 0;
-  }
-  if (!subZoneName || !*subZoneName) {
-    subZoneName = 0;
-  }
-  CGGameUI::NewZoneFeedback(parentAreaID, zoneName, subZoneName);
+  CGGameUI::NewZoneFeedback(parentAreaID, zoneName && *zoneName ? zoneName : 0, subZoneName && *subZoneName ? subZoneName : 0);
 
   if (clearMusic) {
     SndInterfaceRegisterNewZone(0);

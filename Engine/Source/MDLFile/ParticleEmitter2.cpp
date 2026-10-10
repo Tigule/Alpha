@@ -58,45 +58,45 @@ namespace MDL {
 
 static void IAddParticleEmitter2Errors(TSet &errors) {
   AddObjectErrors(errors);
-  errors.Add(0x144, 1, 0);
-  errors.Add(0x153, 0, 0);
-  errors.Add(0x161, 1, 0);
-  errors.Add(0x1D9, 0, 0);
-  errors.Add(0x1C3, 1, 0);
-  errors.Add(0x1AE, 1, 0);
-  errors.Add(0x137, 1, 0);
-  errors.Add(0x1B0, 0, 0);
-  errors.Add(0x1C6, 1, 0);
-  errors.Add(0x198, 0, 0);
-  errors.Add(0x11C, 0, 0);
-  errors.Add(0x166, 0, 0);
-  errors.Add(0x13D, 0, 0);
-  errors.Add(0x1BF, 0, 0);
-  errors.Add(0x1C0, 0, 0);
-  errors.Add(0x1DA, 0, 0);
-  errors.Add(0x158, 0, 0);
-  errors.Add(0x169, 0, 0);
-  errors.Add(0x1BE, 0, 0);
-  errors.Add(0x1AA, 0, 0);
-  errors.Add(0x1D1, 0, 0);
-  errors.Add(0x171, 0, 0);
-  errors.Add(0x192, 0, 0);
-  errors.Add(0x193, 0, 0);
-  errors.Add(0x194, 0, 0);
-  errors.Add(0x196, 0, 0);
-  errors.Add(0x199, 0, 0);
-  errors.Add(0x19B, 0, 0);
-  errors.Add(0x19C, 0, 0);
-  errors.Add(0x197, 0, 0);
-  errors.Add(0x14D, 0, 0);
-  errors.Add(0x141, 0, 0);
-  errors.Add(0x199, 0, 0);
-  errors.Add(0x1DB, 0, 0);
-  errors.Add(0x1B6, 0, 0);
-  errors.Add(0x19E, 0, 0);
-  errors.Add(0x195, 0, 0);
-  errors.Add(0x18F, 0, 0);
-  errors.Add(0x190, 0, 0);
+  errors.Add(MDLTOK_EMISSION_RATE, 1, 0);
+  errors.Add(MDLTOK_GRAVITY, 0, 0);
+  errors.Add(MDLTOK_LATITUDE, 1, 0);
+  errors.Add(MDLTOK_VISIBILITY, 0, 0);
+  errors.Add(MDLTOK_TEXTURE_ID, 1, 0);
+  errors.Add(MDLTOK_ROWS, 1, 0);
+  errors.Add(MDLTOK_COLS, 1, 0);
+  errors.Add(MDLTOK_SEGMENT_COLOR, 0, 0);
+  errors.Add(MDLTOK_TIME, 1, 0);
+  errors.Add(MDLTOK_PARTICLE_SCALING, 0, 0);
+  errors.Add(MDLTOK_ALPHA, 0, 0);
+  errors.Add(MDLTOK_LIFESPAN_UV, 0, 0);
+  errors.Add(MDLTOK_DECAY_UV, 0, 0);
+  errors.Add(MDLTOK_TAIL_DECAY_UV, 0, 0);
+  errors.Add(MDLTOK_TAIL_UV, 0, 0);
+  errors.Add(MDLTOK_WIDTH, 0, 0);
+  errors.Add(MDLTOK_HEIGHT, 0, 0);
+  errors.Add(MDLTOK_LINE_EMITTER, 0, 0);
+  errors.Add(MDLTOK_TAIL_LENGTH, 0, 0);
+  errors.Add(MDLTOK_REPLACEABLE_ID, 0, 0);
+  errors.Add(MDLTOK_UNFOGGED, 0, 0);
+  errors.Add(MDLTOK_MODEL_SPACE, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_IVEL_LIN, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_IVEL_SCALE, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_GEOMETRY_MDL, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_RECURSION_MDL, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_TUMBLE, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_TWINKLE_ONOFF, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_TWINKLE_SCALE, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_ROTATION, 0, 0);
+  errors.Add(MDLTOK_FPS, 0, 0);
+  errors.Add(MDLTOK_DRAG, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_TUMBLE, 0, 0);
+  errors.Add(MDLTOK_WIND, 0, 0);
+  errors.Add(MDLTOK_SPLINE, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_ZSOURCE, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_PROJECT, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_FOLLOW, 0, 0);
+  errors.Add(MDLTOK_PARTICLE_FOLLOW_PARAMS, 0, 0);
 }
 
 static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTER2 *emitter, CMDLStatus *status) {
@@ -125,128 +125,128 @@ static void IReadParticleEmitter2(Parser &parse, TSet &errors, MDLPARTICLEEMITTE
 
 static void IReadParticleEmitter2KeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
-    case 0x1B9:
+    case MDLTOK_SPEED:
       ReadObjectFloatKeyframes(parse, &emitter->speed);
       return;
-    case 0x1D4:
+    case MDLTOK_VARIATION:
       ReadObjectFloatKeyframes(parse, &emitter->variation);
       return;
-    case 0x153:
+    case MDLTOK_GRAVITY:
       ReadObjectFloatKeyframes(parse, &emitter->gravity);
       return;
-    case 0x161:
+    case MDLTOK_LATITUDE:
       ReadObjectFloatKeyframes(parse, &emitter->latitude);
       return;
-    case 0x162:
+    case MDLTOK_LONGITUDE:
       ReadObjectFloatKeyframes(parse, &emitter->longitude);
       return;
-    case 0x1D9:
+    case MDLTOK_VISIBILITY:
       ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
       return;
-    case 0x1BA:
+    case MDLTOK_SQUIRT:
       emitter->squirts = 1;
       break;
-    case 0x144:
+    case MDLTOK_EMISSION_RATE:
       ReadObjectFloatKeyframes(parse, &emitter->emissionRate);
       return;
-    case 0x1B0:
+    case MDLTOK_SEGMENT_COLOR:
       IReadParticleEmitter2Color(parse, emitter);
       break;
-    case 0x1C6:
+    case MDLTOK_TIME:
       emitter->middleTime = parse.ExpectFloat();
       break;
-    case 0x198:
+    case MDLTOK_PARTICLE_SCALING:
       IReadFloatOption(parse, emitter->startScale, emitter->middleScale, emitter->endScale);
       break;
-    case 0x11C:
+    case MDLTOK_ALPHA:
       IReadByteOption(parse, emitter->startAlpha, emitter->middleAlpha, emitter->endAlpha);
       break;
-    case 0x166:
+    case MDLTOK_LIFESPAN_UV:
       IReadIntOption(parse, emitter->lifespanUVAnimStart, emitter->lifespanUVAnimEnd, emitter->lifespanUVAnimRepeat);
       break;
-    case 0x13D:
+    case MDLTOK_DECAY_UV:
       IReadIntOption(parse, emitter->decayUVAnimStart, emitter->decayUVAnimEnd, emitter->decayUVAnimRepeat);
       break;
-    case 0x1C0:
+    case MDLTOK_TAIL_UV:
       IReadIntOption(parse, emitter->tailUVAnimStart, emitter->tailUVAnimEnd, emitter->tailUVAnimRepeat);
       break;
-    case 0x1BF:
+    case MDLTOK_TAIL_DECAY_UV:
       IReadIntOption(parse, emitter->tailDecayUVAnimStart, emitter->tailDecayUVAnimEnd, emitter->tailDecayUVAnimRepeat);
       break;
-    case 0x165:
+    case MDLTOK_LIFESPAN:
       ReadObjectFloatKeyframes(parse, &emitter->life);
       return;
-    case 0x1DA:
+    case MDLTOK_WIDTH:
       ReadObjectFloatKeyframes(parse, &emitter->width);
       return;
-    case 0x164:
+    case MDLTOK_LENGTH:
       ReadObjectFloatKeyframes(parse, &emitter->length);
       return;
-    case 0x19E:
+    case MDLTOK_PARTICLE_ZSOURCE:
       ReadObjectFloatKeyframes(parse, &emitter->zsource);
       return;
-    case 0x1AE:
+    case MDLTOK_ROWS:
       emitter->rows = parse.ExpectInt();
       break;
-    case 0x137:
+    case MDLTOK_COLS:
       emitter->cols = parse.ExpectInt();
       break;
-    case 0x1BE:
+    case MDLTOK_TAIL_LENGTH:
       emitter->tailLength = parse.ExpectFloat();
       break;
-    case 0x1C3:
+    case MDLTOK_TEXTURE_ID:
       emitter->textureId = parse.ExpectInt();
       break;
-    case 0x1A6:
+    case MDLTOK_PRIORITYPLANE:
       emitter->priorityPlane = parse.ExpectInt();
       break;
-    case 0x1AA:
+    case MDLTOK_REPLACEABLE_ID:
       emitter->replaceableId = parse.ExpectInt();
       break;
-    case 0x194:
+    case MDLTOK_PARTICLE_GEOMETRY_MDL:
       if (tokentext = parse.ExpectString()) {
         SStrCopy(emitter->geometryMdl, tokentext, 260);
       }
       break;
-    case 0x196:
+    case MDLTOK_PARTICLE_RECURSION_MDL:
       if (tokentext = parse.ExpectString()) {
         SStrCopy(emitter->recursionMdl, tokentext, 260);
       }
       break;
-    case 0x14D:
+    case MDLTOK_FPS:
       emitter->twinkleFPS = parse.ExpectFloat();
       break;
-    case 0x19B:
+    case MDLTOK_PARTICLE_TWINKLE_ONOFF:
       emitter->twinkleOnOff = parse.ExpectFloat();
       break;
-    case 0x19C:
+    case MDLTOK_PARTICLE_TWINKLE_SCALE:
       IReadFloatOption(parse, emitter->twinkleScaleMin, emitter->twinkleScaleMax);
       break;
-    case 0x193:
+    case MDLTOK_PARTICLE_IVEL_SCALE:
       emitter->ivelScale = parse.ExpectFloat();
       break;
-    case 0x199:
+    case MDLTOK_PARTICLE_TUMBLE:
       IReadFloatOption(
           parse, emitter->tumblexMin, emitter->tumblexMax, emitter->tumbleyMin, emitter->tumbleyMax, emitter->tumblezMin, emitter->tumblezMax
       );
       break;
-    case 0x141:
+    case MDLTOK_DRAG:
       emitter->drag = parse.ExpectFloat();
       break;
-    case 0x197:
+    case MDLTOK_PARTICLE_ROTATION:
       emitter->spin = parse.ExpectFloat();
       break;
-    case 0x1DB:
+    case MDLTOK_WIND:
       parse.Expect('{');
       IReadFloatOption(parse, emitter->windVector.x, emitter->windVector.y, emitter->windVector.z);
       parse.Expect(',');
       emitter->windTime = parse.ExpectFloat();
       parse.Expect('}');
       break;
-    case 0x1B6:
+    case MDLTOK_SPLINE:
       IReadSpline(parse, emitter->spline);
       return;
-    case 0x190:
+    case MDLTOK_PARTICLE_FOLLOW_PARAMS:
       parse.Expect('{');
       emitter->followSpeed1 = parse.ExpectFloat();
       parse.Expect(',');
@@ -276,11 +276,11 @@ static void IReadIntOption(Parser &parse, UINT &p1, UINT &b, UINT &c) {
 
 static void IReadByteOption(Parser &parse, BYTE &p1, BYTE &b, BYTE &c) {
   parse.Expect('{');
-  p1 = static_cast<BYTE>(parse.ExpectInt());
+  p1 = parse.ExpectInt();
   parse.Expect(',');
-  b = static_cast<BYTE>(parse.ExpectInt());
+  b = parse.ExpectInt();
   parse.Expect(',');
-  c = static_cast<BYTE>(parse.ExpectInt());
+  c = parse.ExpectInt();
   parse.Expect('}');
 }
 
@@ -320,13 +320,13 @@ static void IReadFloatOption(Parser &parser, float &f1, float &b, float &c, floa
 
 static void IReadParticleEmitter2Color(Parser &parse, MDLPARTICLEEMITTER2 *emitter) {
   parse.Expect('{');
-  parse.Expect(0x136);
+  parse.Expect(MDLTOK_COLOR);
   IReadFloatOption(parse, emitter->startColor.b, emitter->startColor.g, emitter->startColor.r);
   parse.Expect(',');
-  parse.Expect(0x136);
+  parse.Expect(MDLTOK_COLOR);
   IReadFloatOption(parse, emitter->middleColor.b, emitter->middleColor.g, emitter->middleColor.r);
   parse.Expect(',');
-  parse.Expect(0x136);
+  parse.Expect(MDLTOK_COLOR);
   IReadFloatOption(parse, emitter->endColor.b, emitter->endColor.g, emitter->endColor.r);
   parse.Expect(',');
   parse.Expect('}');
@@ -334,42 +334,42 @@ static void IReadParticleEmitter2Color(Parser &parse, MDLPARTICLEEMITTER2 *emitt
 
 static void IReadSpline(Parser &parse, TSGrowableArray<NTempest::C3Vector> &spline) {
   parse.Expect('{');
-  parse.Expect(0x128);
-  parse.Expect(0x1D8);
-  ReadVertices(parse, MDL::TokenText(0x1D8), &spline);
+  parse.Expect(MDLTOK_BEZIER);
+  parse.Expect(MDLTOK_VERTICES);
+  ReadVertices(parse, MDL::TokenText(MDLTOK_VERTICES), &spline);
   parse.Expect('}');
 }
 
 static void IReadParticleEmitter2StaticData(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
-    case 0x1B9:
+    case MDLTOK_SPEED:
       ReadFloatKeyData(parse, &emitter->staticSpeed, 1);
       break;
-    case 0x153:
+    case MDLTOK_GRAVITY:
       ReadFloatKeyData(parse, &emitter->staticGravity, 1);
       break;
-    case 0x161:
+    case MDLTOK_LATITUDE:
       ReadFloatKeyData(parse, &emitter->staticLatitude, 1);
       break;
-    case 0x162:
+    case MDLTOK_LONGITUDE:
       ReadFloatKeyData(parse, &emitter->staticLongitude, 1);
       break;
-    case 0x1D4:
+    case MDLTOK_VARIATION:
       ReadFloatKeyData(parse, &emitter->staticVariation, 1);
       break;
-    case 0x144:
+    case MDLTOK_EMISSION_RATE:
       ReadFloatKeyData(parse, &emitter->staticEmissionRate, 1);
       break;
-    case 0x164:
+    case MDLTOK_LENGTH:
       ReadFloatKeyData(parse, &emitter->staticLength, 1);
       break;
-    case 0x1DA:
+    case MDLTOK_WIDTH:
       ReadFloatKeyData(parse, &emitter->staticWidth, 1);
       break;
-    case 0x19E:
+    case MDLTOK_PARTICLE_ZSOURCE:
       ReadFloatKeyData(parse, &emitter->staticZsource, 1);
       break;
-    case 0x165:
+    case MDLTOK_LIFESPAN:
       ReadFloatKeyData(parse, &emitter->staticLife, 1);
       break;
     default:
@@ -381,19 +381,19 @@ static void IReadParticleEmitter2StaticData(Parser &parse, UINT savedtoken, LPCS
 
 static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
-    case 0x12E:
+    case MDLTOK_BLEND:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_BLEND;
       break;
-    case 0x11A:
+    case MDLTOK_ADDITIVE:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ADD;
       break;
-    case 0x172:
+    case MDLTOK_MODULATE:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_MODULATE;
       break;
-    case 0x173:
+    case MDLTOK_MODULATE2X:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_MODULATE_2X;
       break;
-    case 0x11D:
+    case MDLTOK_ALPHA_KEY:
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ALPHA_KEY;
       break;
     default:
@@ -404,8 +404,8 @@ static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPAR
 }
 
 static BOOL IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
-  if (savedtoken == 0x1D0) {
-    emitter->emitterType = static_cast<MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE>(parse.ExpectInt());
+  if (savedtoken == MDLTOK_TYPE) {
+    emitter->emitterType = (MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE)parse.ExpectInt();
     parse.Expect(',');
     return 1;
   }
@@ -414,13 +414,13 @@ static BOOL IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDL
 
 static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
-    case 0x133:
+    case MDLTOK_BOTH:
       emitter->type = MDLPARTICLEEMITTER2::PT_BOTH;
       break;
-    case 0x157:
+    case MDLTOK_HEAD:
       emitter->type = MDLPARTICLEEMITTER2::PT_HEAD;
       break;
-    case 0x1BC:
+    case MDLTOK_TAIL:
       emitter->type = MDLPARTICLEEMITTER2::PT_TAIL;
       break;
     default:
@@ -432,49 +432,49 @@ static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLE
 
 static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   switch (savedtoken) {
-    case 0x1D3:
+    case MDLTOK_UNSHADED:
       emitter->flags |= 0x00008000;
       break;
-    case 0x1B7:
+    case MDLTOK_SORTPRIMSFARZ:
       emitter->flags |= 0x00010000;
       break;
-    case 0x169:
+    case MDLTOK_LINE_EMITTER:
       emitter->flags |= 0x00020000;
       break;
-    case 0x1D1:
+    case MDLTOK_UNFOGGED:
       emitter->flags |= 0x00040000;
       break;
-    case 0x171:
+    case MDLTOK_MODEL_SPACE:
       emitter->flags |= 0x00080000;
       break;
-    case 0x192:
+    case MDLTOK_PARTICLE_IVEL_LIN:
       emitter->flags |= 0x00200000;
       break;
-    case 0x191:
+    case MDLTOK_PARTICLE_INHERIT_SCALE:
       emitter->flags |= 0x00100000;
       break;
-    case 0x18D:
+    case MDLTOK_PARTICLE_0XKILL:
       emitter->flags |= 0x00400000;
       break;
-    case 0x19F:
+    case MDLTOK_PARTICLE_ZVEL_ONLY:
       emitter->flags |= 0x00800000;
       break;
-    case 0x19A:
+    case MDLTOK_PARTICLE_TUMBLER:
       emitter->flags |= 0x01000000;
       break;
-    case 0x1BD:
+    case MDLTOK_TAIL_GROWS:
       emitter->flags |= 0x02000000;
       break;
-    case 0x18E:
+    case MDLTOK_PARTICLE_EXTRUDE:
       emitter->flags |= 0x04000000;
       break;
-    case 0x19D:
+    case MDLTOK_PARTICLE_XYQUADS:
       emitter->flags |= 0x08000000;
       break;
-    case 0x195:
+    case MDLTOK_PARTICLE_PROJECT:
       emitter->flags |= 0x10000000;
       break;
-    case 0x18F:
+    case MDLTOK_PARTICLE_FOLLOW:
       emitter->flags |= 0x20000000;
       break;
     default:
@@ -487,13 +487,14 @@ static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTIC
 namespace MDL {
 
   BOOL WriteParticleEmitters2(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-    if (!data.model.animationFile[0]) {
-      UINT                       numEmitters = data.particleEmitters2.Count();
-      int                        needObjIds = numEmitters != data.objects.Count();
-      const MDLPARTICLEEMITTER2 *pEmit = data.particleEmitters2.Ptr();
-      for (UINT i = numEmitters; i; --i, ++pEmit) {
-        IWriteParticleEmitter2(data, *pEmit, needObjIds, buffer);
-      }
+    if (data.model.animationFile[0]) {
+      return 1;
+    }
+    UINT                       numEmitters = data.particleEmitters2.Count();
+    int                        needObjIds = numEmitters != data.objects.Count();
+    const MDLPARTICLEEMITTER2 *pEmit = data.particleEmitters2.Ptr();
+    for (UINT i = numEmitters; i; --i, ++pEmit) {
+      IWriteParticleEmitter2(data, *pEmit, needObjIds, buffer);
     }
     return 1;
   }
@@ -501,121 +502,121 @@ namespace MDL {
 }
 
 static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER2 &emitter, int needObjIds, TSGrowableArray<char> &buffer) {
-  WriteObjectHeader(data, emitter, 0x113, needObjIds, buffer);
+  WriteObjectHeader(data, emitter, MDLTOK_PARTICLEEMITTER2, needObjIds, buffer);
   IWritePE2Flags(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1D0), emitter.emitterType);
+  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_TYPE), emitter.emitterType);
 
   if (emitter.speed.keys.Count()) {
-    WriteFloatKeyFrames(0x1B9, "\t", emitter.speed, buffer);
+    WriteFloatKeyFrames(MDLTOK_SPEED, "\t", emitter.speed, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1B9));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_SPEED));
     WriteKeyData(buffer, &emitter.staticSpeed, 1);
   }
   if (emitter.variation.keys.Count()) {
-    WriteFloatKeyFrames(0x1D4, "\t", emitter.variation, buffer);
+    WriteFloatKeyFrames(MDLTOK_VARIATION, "\t", emitter.variation, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1D4));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_VARIATION));
     WriteKeyData(buffer, &emitter.staticVariation, 1);
   }
   if (emitter.latitude.keys.Count()) {
-    WriteFloatKeyFrames(0x161, "\t", emitter.latitude, buffer);
+    WriteFloatKeyFrames(MDLTOK_LATITUDE, "\t", emitter.latitude, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x161));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LATITUDE));
     WriteKeyData(buffer, &emitter.staticLatitude, 1);
   }
   if (emitter.longitude.keys.Count()) {
-    WriteFloatKeyFrames(0x162, "\t", emitter.longitude, buffer);
+    WriteFloatKeyFrames(MDLTOK_LONGITUDE, "\t", emitter.longitude, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x162));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LONGITUDE));
     WriteKeyData(buffer, &emitter.staticLongitude, 1);
   }
   if (emitter.gravity.keys.Count()) {
-    WriteFloatKeyFrames(0x153, "\t", emitter.gravity, buffer);
+    WriteFloatKeyFrames(MDLTOK_GRAVITY, "\t", emitter.gravity, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x153));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_GRAVITY));
     WriteKeyData(buffer, &emitter.staticGravity, 1);
   }
-  WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
+  WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", emitter.visibilityKeys, buffer);
   if (emitter.squirts) {
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1BA));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_SQUIRT));
   }
   if (emitter.life.keys.Count()) {
-    WriteFloatKeyFrames(0x165, "\t", emitter.life, buffer);
+    WriteFloatKeyFrames(MDLTOK_LIFESPAN, "\t", emitter.life, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x165));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LIFESPAN));
     WriteKeyData(buffer, &emitter.staticLife, 1);
   }
   if (emitter.emissionRate.keys.Count()) {
-    WriteFloatKeyFrames(0x144, "\t", emitter.emissionRate, buffer);
+    WriteFloatKeyFrames(MDLTOK_EMISSION_RATE, "\t", emitter.emissionRate, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x144));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_EMISSION_RATE));
     WriteKeyData(buffer, &emitter.staticEmissionRate, 1);
   }
   if (emitter.width.keys.Count()) {
-    WriteFloatKeyFrames(0x1DA, "\t", emitter.width, buffer);
+    WriteFloatKeyFrames(MDLTOK_WIDTH, "\t", emitter.width, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1DA));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_WIDTH));
     WriteKeyData(buffer, &emitter.staticWidth, 1);
   }
   if (emitter.length.keys.Count()) {
-    WriteFloatKeyFrames(0x164, "\t", emitter.length, buffer);
+    WriteFloatKeyFrames(MDLTOK_LENGTH, "\t", emitter.length, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x164));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LENGTH));
     WriteKeyData(buffer, &emitter.staticLength, 1);
   }
   if (emitter.zsource.keys.Count()) {
-    WriteFloatKeyFrames(0x19E, "\t", emitter.zsource, buffer);
+    WriteFloatKeyFrames(MDLTOK_PARTICLE_ZSOURCE, "\t", emitter.zsource, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x19E));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_PARTICLE_ZSOURCE));
     WriteKeyData(buffer, &emitter.staticZsource, 1);
   }
 
   IWriteParticleEmitter2BlendMode(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1AE), emitter.rows);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x137), emitter.cols);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_ROWS), emitter.rows);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_COLS), emitter.cols);
   IWriteParticleEmitter2Type(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x1BE), emitter.tailLength);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x1C6), emitter.middleTime);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_TAIL_LENGTH), emitter.tailLength);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_TIME), emitter.middleTime);
   IWriteParticleEmitter2Colors(emitter, buffer);
-  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x11C), emitter.startAlpha, emitter.middleAlpha, emitter.endAlpha);
-  MDL::WriteLine(buffer, "\t%s {%g, %g, %g},\n", MDL::TokenText(0x198), emitter.startScale, emitter.middleScale, emitter.endScale);
+  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(MDLTOK_ALPHA), emitter.startAlpha, emitter.middleAlpha, emitter.endAlpha);
+  MDL::WriteLine(buffer, "\t%s {%g, %g, %g},\n", MDL::TokenText(MDLTOK_PARTICLE_SCALING), emitter.startScale, emitter.middleScale, emitter.endScale);
   MDL::WriteLine(
-      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x166), emitter.lifespanUVAnimStart, emitter.lifespanUVAnimEnd, emitter.lifespanUVAnimRepeat
+      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(MDLTOK_LIFESPAN_UV), emitter.lifespanUVAnimStart, emitter.lifespanUVAnimEnd, emitter.lifespanUVAnimRepeat
   );
-  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x13D), emitter.decayUVAnimStart, emitter.decayUVAnimEnd, emitter.decayUVAnimRepeat);
-  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x1C0), emitter.tailUVAnimStart, emitter.tailUVAnimEnd, emitter.tailUVAnimRepeat);
+  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(MDLTOK_DECAY_UV), emitter.decayUVAnimStart, emitter.decayUVAnimEnd, emitter.decayUVAnimRepeat);
+  MDL::WriteLine(buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(MDLTOK_TAIL_UV), emitter.tailUVAnimStart, emitter.tailUVAnimEnd, emitter.tailUVAnimRepeat);
   MDL::WriteLine(
-      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(0x1BF), emitter.tailDecayUVAnimStart, emitter.tailDecayUVAnimEnd, emitter.tailDecayUVAnimRepeat
+      buffer, "\t%s {%u, %u, %u},\n", MDL::TokenText(MDLTOK_TAIL_DECAY_UV), emitter.tailDecayUVAnimStart, emitter.tailDecayUVAnimEnd, emitter.tailDecayUVAnimRepeat
   );
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1C3), emitter.textureId);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_TEXTURE_ID), emitter.textureId);
   if (emitter.priorityPlane) {
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1A6), emitter.priorityPlane);
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_PRIORITYPLANE), emitter.priorityPlane);
   }
   if (emitter.replaceableId) {
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1AA), emitter.replaceableId);
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_REPLACEABLE_ID), emitter.replaceableId);
   }
   if (SStrLen(emitter.geometryMdl)) {
-    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x194), static_cast<LPCSTR>(emitter.geometryMdl));
+    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(MDLTOK_PARTICLE_GEOMETRY_MDL), (LPCSTR)emitter.geometryMdl);
   }
   if (SStrLen(emitter.recursionMdl)) {
-    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x196), static_cast<LPCSTR>(emitter.recursionMdl));
+    MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(MDLTOK_PARTICLE_RECURSION_MDL), (LPCSTR)emitter.recursionMdl);
   }
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x14D), emitter.twinkleFPS);
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x19B), emitter.twinkleOnOff);
-  MDL::WriteLine(buffer, "\t%s {%f, %f},\n", MDL::TokenText(0x19C), emitter.twinkleScaleMin, emitter.twinkleScaleMax);
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x193), emitter.ivelScale);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(MDLTOK_FPS), emitter.twinkleFPS);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(MDLTOK_PARTICLE_TWINKLE_ONOFF), emitter.twinkleOnOff);
+  MDL::WriteLine(buffer, "\t%s {%f, %f},\n", MDL::TokenText(MDLTOK_PARTICLE_TWINKLE_SCALE), emitter.twinkleScaleMin, emitter.twinkleScaleMax);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(MDLTOK_PARTICLE_IVEL_SCALE), emitter.ivelScale);
   MDL::WriteLine(
-      buffer, "\t%s {%f, %f, %f, %f, %f, %f},\n", MDL::TokenText(0x199), emitter.tumblexMin, emitter.tumblexMax, emitter.tumbleyMin,
+      buffer, "\t%s {%f, %f, %f, %f, %f, %f},\n", MDL::TokenText(MDLTOK_PARTICLE_TUMBLE), emitter.tumblexMin, emitter.tumblexMax, emitter.tumbleyMin,
       emitter.tumbleyMax, emitter.tumblezMin, emitter.tumblezMax
   );
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x141), emitter.drag);
-  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(0x197), emitter.spin);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(MDLTOK_DRAG), emitter.drag);
+  MDL::WriteLine(buffer, "\t%s %f,\n", MDL::TokenText(MDLTOK_PARTICLE_ROTATION), emitter.spin);
   MDL::WriteLine(
-      buffer, "\t%s { { %f, %f, %f }, %f },\n", MDL::TokenText(0x1DB), emitter.windVector.x, emitter.windVector.y, emitter.windVector.z,
+      buffer, "\t%s { { %f, %f, %f }, %f },\n", MDL::TokenText(MDLTOK_WIND), emitter.windVector.x, emitter.windVector.y, emitter.windVector.z,
       emitter.windTime
   );
   MDL::WriteLine(
-      buffer, "\t%s { %f, %f, %f, %f },\n", MDL::TokenText(0x190), emitter.followSpeed1, emitter.followScale1, emitter.followSpeed2,
+      buffer, "\t%s { %f, %f, %f, %f },\n", MDL::TokenText(MDLTOK_PARTICLE_FOLLOW_PARAMS), emitter.followSpeed1, emitter.followScale1, emitter.followSpeed2,
       emitter.followScale2
   );
   if (emitter.emitterType == MDLPARTICLEEMITTER2::PET_SPLINE) {
@@ -628,19 +629,19 @@ static void IWriteParticleEmitter2BlendMode(const MDLPARTICLEEMITTER2 &section, 
   UINT token;
   switch (section.blendMode) {
     case MDLPARTICLEEMITTER2::PBM_ADD:
-      token = 0x11A;
+      token = MDLTOK_ADDITIVE;
       break;
     case MDLPARTICLEEMITTER2::PBM_MODULATE:
-      token = 0x172;
+      token = MDLTOK_MODULATE;
       break;
     case MDLPARTICLEEMITTER2::PBM_MODULATE_2X:
-      token = 0x173;
+      token = MDLTOK_MODULATE2X;
       break;
     case MDLPARTICLEEMITTER2::PBM_ALPHA_KEY:
-      token = 0x11D;
+      token = MDLTOK_ALPHA_KEY;
       break;
     default:
-      token = 0x12E;
+      token = MDLTOK_BLEND;
       break;
   }
   MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(token));
@@ -650,66 +651,66 @@ static void IWriteParticleEmitter2Type(const MDLPARTICLEEMITTER2 &section, TSGro
   UINT token;
   switch (section.type) {
     case MDLPARTICLEEMITTER2::PT_TAIL:
-      token = 0x1BC;
+      token = MDLTOK_TAIL;
       break;
     case MDLPARTICLEEMITTER2::PT_BOTH:
-      token = 0x133;
+      token = MDLTOK_BOTH;
       break;
     default:
-      token = 0x157;
+      token = MDLTOK_HEAD;
       break;
   }
   MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(token));
 }
 
 static void IWriteParticleEmitter2Colors(const MDLPARTICLEEMITTER2 &emitter, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1B0));
-  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(0x136));
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_SEGMENT_COLOR));
+  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(MDLTOK_COLOR));
   WriteKeyData(buffer, &emitter.startColor.b, 3);
-  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(0x136));
+  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(MDLTOK_COLOR));
   WriteKeyData(buffer, &emitter.middleColor.b, 3);
-  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(0x136));
+  MDL::WriteLine(buffer, "%s%s ", "\t\t", MDL::TokenText(MDLTOK_COLOR));
   WriteKeyData(buffer, &emitter.endColor.b, 3);
   MDL::WriteLine(buffer, "\t},\n");
 }
 
 static void IWritePE2Flags(const MDLPARTICLEEMITTER2 &emitter, TSGrowableArray<char> &buffer) {
   if (emitter.flags & 0x00010000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1B7));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_SORTPRIMSFARZ));
   if (emitter.flags & 0x00008000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1D3));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_UNSHADED));
   if (emitter.flags & 0x00020000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x169));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_LINE_EMITTER));
   if (emitter.flags & 0x00040000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1D1));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_UNFOGGED));
   if (emitter.flags & 0x00080000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x171));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_MODEL_SPACE));
   if (emitter.flags & 0x00200000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x192));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_IVEL_LIN));
   if (emitter.flags & 0x00100000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x191));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_INHERIT_SCALE));
   if (emitter.flags & 0x00400000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x18D));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_0XKILL));
   if (emitter.flags & 0x00800000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x19F));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_ZVEL_ONLY));
   if (emitter.flags & 0x01000000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x19A));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_TUMBLER));
   if (emitter.flags & 0x02000000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1BD));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_TAIL_GROWS));
   if (emitter.flags & 0x04000000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x18E));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_EXTRUDE));
   if (emitter.flags & 0x08000000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x19D));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_XYQUADS));
   if (emitter.flags & 0x10000000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x195));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_PROJECT));
   if (emitter.flags & 0x20000000)
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x18F));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_PARTICLE_FOLLOW));
 }
 
 static void IWriteSpline(const TSGrowableArray<NTempest::C3Vector> &points, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(0x1B6));
-  MDL::WriteLine(buffer, "\t%s\n", MDL::TokenText(0x128));
-  WriteVertices(points, 0x1D8, buffer);
+  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(MDLTOK_SPLINE));
+  MDL::WriteLine(buffer, "\t%s\n", MDL::TokenText(MDLTOK_BEZIER));
+  WriteVertices(points, MDLTOK_VERTICES, buffer);
   MDL::WriteLine(buffer, "}\n");
 }
 
@@ -717,18 +718,19 @@ namespace MDL {
 
   BOOL WriteBinParticleEmitters2(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     UINT numEmitters = data.particleEmitters2.Count();
-    if (!data.model.animationFile[0] && numEmitters) {
-      buf.AddDword('2ERP');
-      UINT totalSize = 4;
-      UINT i;
-      for (i = 0; i < numEmitters; ++i) {
-        totalSize += GetBinParticleEmitter2Size(data.particleEmitters2[i]);
-      }
-      buf.AddUint(totalSize);
-      buf.AddUint(numEmitters);
-      for (i = 0; i < numEmitters; ++i) {
-        IWriteBinParticleEmitter2(data.particleEmitters2[i], buf, status);
-      }
+    if (data.model.animationFile[0] || !numEmitters) {
+      return 1;
+    }
+    buf.AddDword('2ERP');
+    UINT totalSize = 4;
+    UINT i;
+    for (i = 0; i < numEmitters; ++i) {
+      totalSize += GetBinParticleEmitter2Size(data.particleEmitters2[i]);
+    }
+    buf.AddUint(totalSize);
+    buf.AddUint(numEmitters);
+    for (i = 0; i < numEmitters; ++i) {
+      IWriteBinParticleEmitter2(data.particleEmitters2[i], buf, status);
     }
     return 1;
   }
@@ -906,7 +908,7 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
   }
   buf.GetUint();
   localBytesRead += 4;
-  pEmit->emitterType = static_cast<MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE>(buf.GetUint());
+  pEmit->emitterType = (MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE)buf.GetUint();
   localBytesRead += 4;
   pEmit->staticSpeed = buf.GetFloat();
   localBytesRead += 4;
@@ -932,7 +934,7 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
   localBytesRead += 4;
   pEmit->cols = buf.GetUint();
   localBytesRead += 4;
-  pEmit->type = static_cast<MDLPARTICLEEMITTER2::PARTICLE_TYPE>(buf.GetUint());
+  pEmit->type = (MDLPARTICLEEMITTER2::PARTICLE_TYPE)buf.GetUint();
   localBytesRead += 4;
   pEmit->tailLength = buf.GetFloat();
   localBytesRead += 4;
@@ -971,7 +973,7 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
   pEmit->tailDecayUVAnimEnd = buf.GetUint();
   pEmit->tailDecayUVAnimRepeat = buf.GetUint();
   localBytesRead += 48;
-  pEmit->blendMode = static_cast<MDLPARTICLEEMITTER2::PARTICLE_BLEND_MODE>(buf.GetUint());
+  pEmit->blendMode = (MDLPARTICLEEMITTER2::PARTICLE_BLEND_MODE)buf.GetUint();
   localBytesRead += 4;
   pEmit->textureId = buf.GetUint();
   localBytesRead += 4;

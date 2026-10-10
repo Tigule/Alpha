@@ -246,8 +246,8 @@ static int SetSequenceTime(CAnim *unique, UINT sequence, const CAnimSequence *se
     return 1;
   }
 
-  int   loopTime = seq->time.h - seq->time.l;
   int   callback = 0;
+  int   loopTime = seq->time.h - seq->time.l;
   float timeScale = s_timeScale * unique->seq[sequence].seqTimeScale;
 
   if (timeScale < 0.0f ? seqTime < 0 : seqTime >= loopTime) {
@@ -295,7 +295,7 @@ static int GetSeqSyncTime(CAnim *unique, CAnimData *shared, UINT currSeq, UINT p
     return 0;
   }
 
-  return NTempest::CMath::fint_n(static_cast<float>(unique->seq[prevSeq].elapsed - seqShared->time.Low()) /
+  return NTempest::CMath::fint_n((float)(unique->seq[prevSeq].elapsed - seqShared->time.Low()) /
                        seqShared->time.Magnitude() *
                        currSharedSeq->time.Magnitude());
 }
@@ -439,7 +439,7 @@ static BOOL AdvanceTime(CAnim *unique, CAnimData *shared) {
     fTimeElapsed = 0.0f;
     unique->flags &= ~0x20;
   } else {
-    fTimeElapsed = static_cast<int>(s_currTime - unique->seqLastTime) * s_timeScale;
+    fTimeElapsed = (int)(s_currTime - unique->seqLastTime) * s_timeScale;
   }
 
   unique->seqLastTime = s_currTime;
@@ -605,7 +605,7 @@ static UINT FindSequenceVariationInUse(CAnim *unique, CAnimData *shared, UINT in
 }
 
 void IAnimInitializeTime() {
-  s_lastFrame = (UINT)-1;
+  s_lastFrame = -1;
   s_currTime = OsGetAsyncTimeMsPrecise();
   s_elapsedTime = 0;
 }
@@ -615,7 +615,7 @@ DWORD IAnimGetCurrTimeMs() {
 }
 
 void AnimSetTimeScale(HANIM anim, float timeScale) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   VALIDATEBEGIN;
   VALIDATE(unique);
   VALIDATEENDVOID;
@@ -623,17 +623,17 @@ void AnimSetTimeScale(HANIM anim, float timeScale) {
 }
 
 BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
 
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
 
@@ -645,7 +645,7 @@ BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
 }
 
 float AnimGetTimeScale(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   VALIDATEBEGIN;
   VALIDATE(unique);
   if (0) {
@@ -657,7 +657,7 @@ float AnimGetTimeScale(HANIM anim) {
 }
 
 float AnimGetObjectTimeScale(HANIM anim, UINT objectId) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   if (!unique) {
     SErrPrepareAppFatal(__FILE__, __LINE__);
@@ -667,13 +667,13 @@ float AnimGetObjectTimeScale(HANIM anim, UINT objectId) {
   }
 
   VALIDATEBEGIN;
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(objectId < shared->objectOrder.Count());
   VALIDATEEND;
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 1.0f;
   }
 
@@ -696,10 +696,10 @@ float AnimGetGlobalTimeScale() {
 }
 
 int AnimForceCurrentSequenceTime(HANIM anim, int time) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   unique->flags |= 0x20;
@@ -708,10 +708,10 @@ int AnimForceCurrentSequenceTime(HANIM anim, int time) {
 }
 
 int AnimForceSequenceTime(HANIM anim, UINT index, int time) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   index = FindSequenceVariationInUse(unique, shared, index);
@@ -724,9 +724,9 @@ int AnimForceSequenceTime(HANIM anim, UINT index, int time) {
 }
 
 BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT flags) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
@@ -742,9 +742,9 @@ BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT flags) {
 }
 
 BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
@@ -753,7 +753,7 @@ BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT 
   }
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
     return 0;
   }
@@ -764,9 +764,9 @@ BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT 
 }
 
 UINT AnimGetNumSequenceFidgets(HANIM anim, UINT seqIndex) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
@@ -777,9 +777,9 @@ UINT AnimGetNumSequenceFidgets(HANIM anim, UINT seqIndex) {
 }
 
 BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
@@ -799,9 +799,9 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags)
 }
 
 BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
@@ -810,7 +810,7 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT object
   }
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
     return 0;
   }
@@ -826,9 +826,9 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT object
 }
 
 BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   UINT count = shared->seqOrder[unique->seqMapIndex].order.Count();
@@ -859,9 +859,9 @@ BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
 }
 
 BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   seqIndex = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
@@ -871,7 +871,7 @@ BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
     return 0;
   }
 
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
     return 0;
   }
@@ -881,12 +881,12 @@ BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
 }
 
 BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flags) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
 
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(objectId < shared->objectOrder.Count());
   VALIDATE(sameAsObjectId < shared->objectOrder.Count());
@@ -894,12 +894,12 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
   objectId = shared->objectOrder[objectId];
   sameAsObjectId = shared->objectOrder[sameAsObjectId];
 
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
     return 0;
   }
 
-  if (sameAsObjectId == static_cast<UINT>(-1)) {
+  if (sameAsObjectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
     return 0;
   }
@@ -913,7 +913,7 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
 }
 
 void AnimResetGlobalSequenceTimes(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   VALIDATEBEGIN;
   VALIDATE(unique);
   VALIDATEENDVOID;
@@ -921,11 +921,11 @@ void AnimResetGlobalSequenceTimes(HANIM anim) {
 }
 
 int AnimAdvanceTime(HANIM anim, UINT currentFrame) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATEEND;
 
@@ -946,11 +946,11 @@ int IAnimManualAdvanceTime(CAnim *unique, CAnimData *shared, int timeChange) {
 }
 
 int AnimManualAdvanceTime(HANIM anim, int timeChange) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATEEND;
   return IAnimManualAdvanceTime(unique, shared, timeChange);
@@ -961,7 +961,7 @@ UINT AnimGetElapsedTime() {
 }
 
 void AnimPauseTime(HANIM anim, int pause) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   VALIDATEBEGIN;
   VALIDATE(unique);
   VALIDATEENDVOID;
@@ -981,12 +981,12 @@ void AnimPauseGlobalTime(int pause) {
 }
 
 int AnimGetSequenceTime(HANIM anim, UINT seqIndex) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
 
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(seqIndex < shared->seqOrder[unique->seqMapIndex].order.Count());
   VALIDATEEND;

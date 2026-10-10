@@ -83,9 +83,9 @@ BOOL CGxBufOgl::LockVB() {
     }
 
     for (UINT member = 0; member < GxVertexMembers_Last; ++member) {
-      int offset = GxVertexMemberOffset(m_vbFormat, static_cast<EGxVertexMember>(member));
+      int offset = GxVertexMemberOffset(m_vbFormat, (EGxVertexMember)member);
       if (offset != -1) {
-        vertexPtr[member] = static_cast<BYTE *>(mem) + offset;
+        vertexPtr[member] = (BYTE *)mem + offset;
       } else {
         vertexPtr[member] = 0;
       }
@@ -177,7 +177,7 @@ void CGxDeviceOpenGl::IBufSetBuffers(CGxBufOgl *buf) {
 void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
   CGxDevice::BufLock(b);
 
-  CGxBufOgl *buf = static_cast<CGxBufOgl *>(b);
+  CGxBufOgl *buf = (CGxBufOgl *)b;
   IBufSetBuffers(buf);
 
   if (glNVVertexArrayRange) {
@@ -198,7 +198,7 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
 
   if (buf->m_indexStatus != CGxBuf::S_VALID) {
     cmd.index.op = buf->LockIB() ? GxBufOp_Fill : GxBufOp_Assign;
-    cmd.index.mem[GxVM_Indices] = reinterpret_cast<LPVOID *>(&buf->indexPtr);
+    cmd.index.mem[GxVM_Indices] = (LPVOID *)&buf->indexPtr;
     cmd.index.stride[GxVM_Indices] = sizeof(WORD);
   }
 
@@ -241,14 +241,14 @@ void CGxDeviceOpenGl::BufRender(const CGxBatch *batches, UINT count) {
   CGxDevice::BufRender(batches, count);
   IStateSync();
 
-  CGxBufOgl *buf = static_cast<CGxBufOgl *>(m_bufLocked);
+  CGxBufOgl *buf = (CGxBufOgl *)m_bufLocked;
   for (UINT i = 0; i < count; ++i) {
     if (batches[i].m_count) {
       if (glDrawRangeElementsEXT) {
         UINT minIndex = batches[i].m_minIndex < 0 ? 0 : batches[i].m_minIndex;
         UINT maxIndex;
         if (batches[i].m_maxIndex < 0) {
-          maxIndex = static_cast<CGxBufOgl *>(m_bufLocked)->m_numVertices;
+          maxIndex = ((CGxBufOgl *)m_bufLocked)->m_numVertices;
         } else {
           maxIndex = batches[i].m_maxIndex;
         }
@@ -271,7 +271,7 @@ void CGxDeviceOpenGl::BufUnlock() {
 
 void CGxDeviceOpenGl::BufDestroy(CGxBuf *&b) {
   CGxDevice::BufDestroy(b);
-  CGxBufOgl *buf = static_cast<CGxBufOgl *>(b);
+  CGxBufOgl *buf = (CGxBufOgl *)b;
   DEL(buf);
   b = 0;
 }
@@ -289,7 +289,7 @@ void CGxDeviceOpenGl::IPrimSetupColor(UINT stride, LPCVOID colors, UINT count, i
   if (colors) {
     if (stride) {
       if (convert) {
-        const BYTE          *src = static_cast<const BYTE *>(colors);
+        const BYTE          *src = (const BYTE *)colors;
         NTempest::CImVector *dst = m_primColor.Ptr();
         for (UINT i = 0; i < count; ++i) {
           dst[i].Set(src[3], src[0], src[1], src[2]);
@@ -304,7 +304,7 @@ void CGxDeviceOpenGl::IPrimSetupColor(UINT stride, LPCVOID colors, UINT count, i
     } else {
       DsSet(Ds_ColorArray, 0, 0);
       IStateSetColorSource(Cs_Constant);
-      IStateSetColorSourceColor(Cs_Constant, *static_cast<const NTempest::CImVector *>(colors));
+      IStateSetColorSourceColor(Cs_Constant, *(const NTempest::CImVector *)colors);
     }
   } else {
     DsSet(Ds_ColorArray, 0, 0);
@@ -320,10 +320,10 @@ void CGxDeviceOpenGl::IPrimSetupTexCoord(UINT tmu, UINT stride, LPCVOID texCoord
 
   DsSet(Ds_ActiveTexture, tmu, 0);
   if (texCoord) {
-    DsSet(static_cast<EDeviceState>(Ds_TextureArray0 + tmu), 1, 0);
+    DsSet((EDeviceState)(Ds_TextureArray0 + tmu), 1, 0);
     glTexCoordPointer(2, GL_FLOAT, stride, texCoord);
   } else {
-    DsSet(static_cast<EDeviceState>(Ds_TextureArray0 + tmu), 0, 0);
+    DsSet((EDeviceState)(Ds_TextureArray0 + tmu), 0, 0);
   }
 }
 
@@ -375,8 +375,8 @@ void CGxDeviceOpenGl::IPrimSetupPos() {
               bone.a2 * s_normal->x + bone.b2 * s_normal->y + bone.c2 * s_normal->z
           );
         }
-        s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
-        s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
+        s_pos = (const NTempest::C3Vector *)((const BYTE *)s_pos + s_posStride);
+        s_normal = (const NTempest::C3Vector *)((const BYTE *)s_normal + s_normalStride);
         s_bone += s_boneStride;
       }
       break;

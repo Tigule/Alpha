@@ -141,16 +141,16 @@ void SWING::AddVerts(
     q2.FromRotationMatrix(basis);
 
     NTempest::C3Vector startingTranslation(m_lastMatrix.d0, m_lastMatrix.d1, m_lastMatrix.d2);
-    UINT               steps = static_cast<UINT>(NTempest::CMath::fabs_(1.0f - (q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)) * STEPS_PER_180DEGS);
+    UINT               steps = NTempest::CMath::fabs_(1.0f - (q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)) * STEPS_PER_180DEGS;
     steps = max(steps, 1);
 
     float              t = 0.0f;
     float              tStep = 1.0f / steps;
-    NTempest::C3Vector translationStep = (NTempest::C3Vector(basis.d0, basis.d1, basis.d2) - startingTranslation) / static_cast<float>(steps);
+    NTempest::C3Vector translationStep = (NTempest::C3Vector(basis.d0, basis.d1, basis.d2) - startingTranslation) / (float)steps;
 
     for (UINT step = 0; step < steps; ++step) {
       NTempest::C4Quaternion slerped = NTempest::C4Quaternion::Slerp(t, q1, q2);
-      NTempest::C44Matrix    matrix(static_cast<NTempest::C33Matrix>(slerped));
+      NTempest::C44Matrix    matrix(slerped);
       matrix.d0 = startingTranslation.x;
       matrix.d1 = startingTranslation.y;
       matrix.d2 = startingTranslation.z;
@@ -207,11 +207,11 @@ WTOBJECT::~WTOBJECT() {
 static void GeosetRenderFunction(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
 
-  static_cast<WTOBJECT *>(param)->Render(basis);
+  ((WTOBJECT *)param)->Render(basis);
 }
 
 static BOOL DiscontinueTimerHandler(LPCVOID data, LPVOID userArg) {
-  WTOBJECT *trail = static_cast<WTOBJECT *>(userArg);
+  WTOBJECT *trail = (WTOBJECT *)userArg;
   FATALASSERT(trail);
 
   trail->m_flags |= 2;
@@ -251,7 +251,7 @@ void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {
   NTempest::C44Matrix world(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, -cameraPos.x, -cameraPos.y, -cameraPos.z, 1.0f);
   GxXformPush(GxXform_World, world);
 
-  for (SWING *swing = m_swings.Head(), *next; (int)swing > 0 ? ((next = m_swings.RawNext(swing)), 1) : 0; swing = next) {
+  SAFEITERATELIST(SWING, m_swings, swing) {
     swing->Render();
   }
 
@@ -277,7 +277,7 @@ void WTOBJECT::Render(const NTempest::C44Matrix &basis) {
   CGWorldFrame::GetCameraPosition(&cameraPos);
 
   if (s_masterEnable && swing && (m_flags & 1)) {
-    swing->AddVerts(basis, m_bottomCoord, m_topCoord, m_color, static_cast<BYTE>(m_currentAlpha), cameraPos);
+    swing->AddVerts(basis, m_bottomCoord, m_topCoord, m_color, m_currentAlpha, cameraPos);
   }
 
   RenderVerts(cameraPos);
@@ -355,7 +355,7 @@ int WeaponTrailCreate(HMODEL model) {
 
   WTOBJECT *trail = s_unusedObjects.Get(0);
 
-  trail->m_model = static_cast<HMODEL>(HandleDuplicate(model));
+  trail->m_model = (HMODEL)HandleDuplicate(model);
   trail->m_fadeOutRate = -1;
   trail->m_color = NTempest::CImVector(-1);
   trail->m_geosetID = -1;
@@ -374,7 +374,7 @@ int WeaponTrailCreate(HMODEL model) {
     trail->m_topCoord = NTempest::C3Vector(e.t.x, (e.b.y + e.t.y) * 0.5f, (e.b.z + e.t.z) * 0.5f);
   }
 
-  return reinterpret_cast<int>(trail);
+  return (int)trail;
 }
 
 void WeaponTrailClose(int trail) {
@@ -382,7 +382,7 @@ void WeaponTrailClose(int trail) {
   VALIDATE(trail);
   VALIDATEENDVOID;
 
-  WTOBJECT *object = reinterpret_cast<WTOBJECT *>(trail);
+  WTOBJECT *object = (WTOBJECT *)trail;
   if (object->m_model && object->m_geosetID) {
     ModelCustGeosetRemove(object->m_model, object->m_geosetID);
   }
@@ -393,25 +393,25 @@ void WeaponTrailSetColor(int trail, NTempest::CImVector color) {
   VALIDATEBEGIN;
   VALIDATE(trail);
   VALIDATEENDVOID;
-  reinterpret_cast<WTOBJECT *>(trail)->SetColor(color);
+  ((WTOBJECT *)trail)->SetColor(color);
 }
 
 void WeaponTrailSetFadeOutRate(int trail, int fadeOutRate) {
   VALIDATEBEGIN;
   VALIDATE(trail);
   VALIDATEENDVOID;
-  reinterpret_cast<WTOBJECT *>(trail)->SetFadeOutRate(fadeOutRate);
+  ((WTOBJECT *)trail)->SetFadeOutRate(fadeOutRate);
 }
 
 void WeaponTrailDisableDrawing(int trail) {
   VALIDATEBEGIN;
   VALIDATE(trail);
   VALIDATEENDVOID;
-  reinterpret_cast<WTOBJECT *>(trail)->DisableDrawing();
+  ((WTOBJECT *)trail)->DisableDrawing();
 }
 
 void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration) {
   if (duration && trail) {
-    reinterpret_cast<WTOBJECT *>(trail)->SetDrawTrail(color, fadeOutRate, duration);
+    ((WTOBJECT *)trail)->SetDrawTrail(color, fadeOutRate, duration);
   }
 }

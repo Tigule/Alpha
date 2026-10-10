@@ -16,7 +16,7 @@ void InputObserverInitialize() {
 }
 
 void InputObserverDestroy() {
-  s_pInputObserver = static_cast<CInputObserver *>(0);
+  s_pInputObserver = 0;
 }
 
 CInputObserver *CInputObserver::GetInputObserver() {
@@ -30,28 +30,28 @@ CInputObserver *CInputObserver::GetInputObserver() {
 BOOL CInputObserver::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
   CCharEvent charEvent(*pCharEvtData);
   charEvent.SetId(0x40060067);
-  static_cast<CInputObserver *>(param)->DispatchEvent(charEvent);
+  ((CInputObserver *)param)->DispatchEvent(charEvent);
   return 1;
 }
 
 BOOL CInputObserver::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CKeyEvent keyEvent(*pKeyData);
   keyEvent.SetId(0x40060064);
-  static_cast<CInputObserver *>(param)->DispatchEvent(keyEvent);
+  ((CInputObserver *)param)->DispatchEvent(keyEvent);
   return 1;
 }
 
 BOOL CInputObserver::OnKeyRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CKeyEvent keyEvent(*pKeyData);
   keyEvent.SetId(0x40060065);
-  static_cast<CInputObserver *>(param)->DispatchEvent(keyEvent);
+  ((CInputObserver *)param)->DispatchEvent(keyEvent);
   return 1;
 }
 
 BOOL CInputObserver::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CKeyEvent keyEvent(*pKeyData);
   keyEvent.SetId(0x40060066);
-  static_cast<CInputObserver *>(param)->DispatchEvent(keyEvent);
+  ((CInputObserver *)param)->DispatchEvent(keyEvent);
   return 1;
 }
 
@@ -59,7 +59,7 @@ BOOL CInputObserver::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   BOOL CInputObserver::name(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) { \
     CMouseEvent mouseEvent(*pMouseData);                                        \
     mouseEvent.SetId(eventId);                                                  \
-    static_cast<CInputObserver *>(param)->DispatchEvent(mouseEvent);            \
+    ((CInputObserver *)param)->DispatchEvent(mouseEvent);            \
     return 1;                                                                   \
   }
 
@@ -75,21 +75,21 @@ INPUT_OBSERVER_MOUSE_HANDLER(OnMouseModeChanged, 0x400500CC)
 BOOL CInputObserver::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
   CImeEvent imeEvent(*pImeData);
   imeEvent.SetId(0x40060068);
-  static_cast<CInputObserver *>(param)->DispatchEvent(imeEvent);
+  ((CInputObserver *)param)->DispatchEvent(imeEvent);
   return 1;
 }
 
 BOOL CInputObserver::OnWindowSize(const EVENT_DATA_SIZE *pSizeData, LPVOID param) {
   CSizeEvent sizeEvent(*pSizeData);
   sizeEvent.SetId(0x40040064);
-  static_cast<CInputObserver *>(param)->DispatchEvent(sizeEvent);
+  ((CInputObserver *)param)->DispatchEvent(sizeEvent);
   return 1;
 }
 
 BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID param) {
   CFocusEvent focusEvent(*pFocusData);
   focusEvent.SetId(0x40040065);
-  static_cast<CInputObserver *>(param)->DispatchEvent(focusEvent);
+  ((CInputObserver *)param)->DispatchEvent(focusEvent);
   return 1;
 }
 
@@ -97,7 +97,7 @@ BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID pa
   void CInputObserver::Register##name(CObserver *pObs) {                                                    \
     if (!GetInputObserver()->IsEventRegistered(eventId)) {                                                  \
       EventRegisterEx(inputEventId,                                                                         \
-                      reinterpret_cast<EVENTHANDLER>(handler),                                              \
+                      (EVENTHANDLER)handler,                                              \
                       GetInputObserver(),                                                                   \
                       priority);                                                                            \
     }                                                                                                       \
@@ -107,7 +107,7 @@ BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID pa
     GetInputObserver()->UnregisterEvent(eventId, pObs);                                                     \
     if (!GetInputObserver()->IsEventRegistered(eventId)) {                                                  \
       EventUnregisterEx(inputEventId,                                                                       \
-                        reinterpret_cast<EVENTHANDLER>(handler),                                            \
+                        (EVENTHANDLER)handler,                                            \
                         GetInputObserver(),                                                                 \
                         0xFFFFFFFF);                                                                        \
     }                                                                                                       \

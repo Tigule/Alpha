@@ -202,8 +202,8 @@ class CGxDeviceOpenGl : public CGxDevice {
   TSFixedArray<NTempest::CImVector> m_primColor;
   TSFixedArray<NTempest::C2Vector>  m_primT0;
   TSFixedArray<NTempest::C2Vector>  m_primT1;
-  CGxMemBuffer                     *m_vertexBuffer[4];
-  CGxMemBuffer                     *m_indexBuffer[4];
+  CGxMemBuffer                     *m_vertexBuffer[GxBufWriteFreqs_Last];
+  CGxMemBuffer                     *m_indexBuffer[GxBufWriteFreqs_Last];
   EGxPrim                           m_primType;
   UINT                              m_primIndexCount;
   const WORD                       *m_primIndices;

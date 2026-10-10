@@ -93,7 +93,7 @@ class NetClientRedirect : public WowConnectionResponse {
       if (port) {
         *port++ = 0;
         m_owner->m_netState = NS_INITIALIZED;
-        m_owner->Connect(m_owner->m_redirectHostPort, static_cast<WORD>(atoi(port)));
+        m_owner->Connect(m_owner->m_redirectHostPort, atoi(port));
       } else {
         m_owner->m_netState = NS_CONNECTING;
         m_owner->m_netEventQueue->AddEvent(EVENT_ID_NET_CANTCONNECT, conn, m_owner, 0, 0);
@@ -228,13 +228,14 @@ void NetClient::Destroy() {
 }
 
 BOOL NetClient::DelayedDelete() {
+  BOOL result = 0;
   if (m_netState != NS_UNINITIALIZED) {
     Disconnect();
     m_netEventQueue->AddEvent(EVENT_ID_NET_DESTROY, 0, this, 0, 0);
-    return 1;
+    result = 1;
   }
 
-  return 0;
+  return result;
 }
 
 void NetClient::CancelRedirect() {
@@ -259,7 +260,7 @@ void NetClient::Connect(LPCSTR hostName) {
   char *portString = SStrChr(hostport, ':');
   if (portString) {
     *portString = 0;
-    port = static_cast<WORD>(atoi(portString + 1));
+    port = atoi(portString + 1);
   }
 
   m_netState = NS_REDIRECT_CONNECTING;
@@ -321,15 +322,17 @@ void NetClient::ProcessMessage(DWORD timeStamp, CDataStore *msg) {
 
   DWORD dwid;
   msg->Get(dwid);
-  NETMESSAGE id = static_cast<NETMESSAGE>(dwid);
+  NETMESSAGE id = (NETMESSAGE)dwid;
 
   if (id >= NUM_MSG_TYPES) {
     SErrDisplayErrorFmt(
         STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
-        isprint((dwid >> 24) & 0xFF) && isprint((dwid >> 16) & 0xFF) && isprint((dwid >> 8) & 0xFF) && isprint(dwid & 0xFF)
+        isprint(((DWORD)id >> 24) & 0xFF) && isprint(((DWORD)id >> 16) & 0xFF) && isprint(((DWORD)id >> 8) & 0xFF) &&
+                isprint((DWORD)id & 0xFF)
             ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
             : "\"%s\", %s = %ld (0x%08X)",
-        "id < NUM_MSG_TYPES", "id", id, id, (dwid >> 24) & 0xFF, (dwid >> 16) & 0xFF, (dwid >> 8) & 0xFF, dwid & 0xFF
+        "id < NUM_MSG_TYPES", "id", id, id, ((DWORD)id >> 24) & 0xFF, ((DWORD)id >> 16) & 0xFF,
+        ((DWORD)id >> 8) & 0xFF, (DWORD)id & 0xFF
     );
   }
 
@@ -397,7 +400,7 @@ BOOL NetClient::HandleData(DWORD timeReceived, LPVOID data, int size) {
 
   s_stats.bytesReceived += size + 2;
   if (m_netState == NS_CONNECTED) {
-    CDataStore theMessage(static_cast<BYTE *>(data), size);
+    CDataStore theMessage((BYTE *)data, size);
     ProcessMessage(timeReceived, &theMessage);
   }
 
@@ -442,7 +445,7 @@ GetRealmsEventHandler(HNETCONN__ *conn, const NETCONNADDR *connAddr, NETNOTE not
     *bytesProcessed = bytes;
   }
 
-  CLIENTNETGETREALMSDATA &connectionData = *static_cast<CLIENTNETGETREALMSDATA *>(user);
+  CLIENTNETGETREALMSDATA &connectionData = *(CLIENTNETGETREALMSDATA *)user;
 
   switch (note) {
     case NETNOTE_CONNECT:
@@ -534,9 +537,9 @@ void NetClient::DisplayNetworkStats() {
 void NetClient::GetNetStats(float &bandwidthIn, float &bandwidthOut, DWORD &latency) {
   m_pingLock.Enter();
 
-  float connectedSeconds = (OsGetAsyncTimeMs() - m_connectedTimestamp) * 0.001f;
-  bandwidthIn = m_bytesReceived * 0.0009765625f / connectedSeconds;
-  bandwidthOut = m_bytesSent * 0.0009765625f / connectedSeconds;
+  DWORD connectedTime = OsGetAsyncTimeMs() - m_connectedTimestamp;
+  bandwidthIn = m_bytesReceived * 0.0009765625f / (connectedTime * 0.001f);
+  bandwidthOut = m_bytesSent * 0.0009765625f / (connectedTime * 0.001f);
 
   DWORD count = 0;
   DWORD total = 0;
@@ -555,7 +558,7 @@ void NetClient::GetNetStats(float &bandwidthIn, float &bandwidthOut, DWORD &late
     ++current;
   }
 
-  latency = count ? total / count : 0;
+  latency = count > 0 ? total / count : 0;
 
   m_pingLock.Leave();
 }

@@ -209,48 +209,48 @@ namespace NTempest {
     }
 
     C3Vector *Row0AsVec3() {
-      return reinterpret_cast<C3Vector *>(&a0);
+      return (C3Vector *)&a0;
     }
 
     const C3Vector *Row0AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&a0);
+      return (const C3Vector *)&a0;
     }
 
     C3Vector *Row1AsVec3() {
-      return reinterpret_cast<C3Vector *>(&b0);
+      return (C3Vector *)&b0;
     }
 
     const C3Vector *Row1AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&b0);
+      return (const C3Vector *)&b0;
     }
 
     C3Vector *Row2AsVec3() {
-      return reinterpret_cast<C3Vector *>(&c0);
+      return (C3Vector *)&c0;
     }
 
     const C3Vector *Row2AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&c0);
+      return (const C3Vector *)&c0;
     }
 
     C3Vector *Row3AsVec3() {
-      return reinterpret_cast<C3Vector *>(&d0);
+      return (C3Vector *)&d0;
     }
 
     const C3Vector *Row3AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&d0);
+      return (const C3Vector *)&d0;
     }
 
     C4Vector *Row0AsVec4() {
-      return reinterpret_cast<C4Vector *>(&a0);
+      return (C4Vector *)&a0;
     }
     C4Vector *Row1AsVec4() {
-      return reinterpret_cast<C4Vector *>(&b0);
+      return (C4Vector *)&b0;
     }
     C4Vector *Row2AsVec4() {
-      return reinterpret_cast<C4Vector *>(&c0);
+      return (C4Vector *)&c0;
     }
     C4Vector *Row3AsVec4() {
-      return reinterpret_cast<C4Vector *>(&d0);
+      return (C4Vector *)&d0;
     }
     C4Vector Row0() const {
       return C4Vector(a0, a1, a2, a3);
@@ -284,8 +284,8 @@ namespace NTempest {
     }
 
     C44Matrix &operator=(const C44Matrix &a) {
-      const __int64 *src = reinterpret_cast<const __int64 *>(&a);
-      __int64       *dst = reinterpret_cast<__int64 *>(this);
+      const __int64 *src = (const __int64 *)&a;
+      __int64       *dst = (__int64 *)this;
       for (int i = 8; i; --i) {
         *dst++ = *src++;
       }

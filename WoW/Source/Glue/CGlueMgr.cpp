@@ -99,7 +99,7 @@ void CGlueMgr::Initialize() {
     {
       SStrPrintf(locale, sizeof(locale), "%s%s", language, country);
 
-      for (WOW_LOCALE candidate = LOCALE_en_US; candidate < NUM_LOCALES; candidate = static_cast<WOW_LOCALE>(candidate + 1)) {
+      for (WOW_LOCALE candidate = LOCALE_en_US; candidate < NUM_LOCALES; candidate = (WOW_LOCALE)(candidate + 1)) {
         if (!SStrCmpI(locale, g_localeID[candidate], 0x7FFFFFFF)) {
           m_locale = candidate;
           break;
@@ -174,9 +174,9 @@ void CGlueMgr::DestroyCursor() {
 
 void CGlueMgr::UpdateWaitQueue(UINT wait) {
   if (wait != m_queuePosition[0] || m_queueTime[2] <= 0) {
-    for (UINT i = 1; i > 0; --i) {
-      m_queuePosition[i + 1] = m_queuePosition[i];
-      m_queueTime[i + 1] = m_queueTime[i];
+    for (UINT i = 2; i > 0; --i) {
+      m_queuePosition[i] = m_queuePosition[i - 1];
+      m_queueTime[i] = m_queueTime[i - 1];
     }
 
     m_queuePosition[0] = wait;
@@ -184,8 +184,8 @@ void CGlueMgr::UpdateWaitQueue(UINT wait) {
 
   m_queueTime[0] = OsGetAsyncTimeMs();
 
-  if (m_queueTime[2] && static_cast<int>(m_queuePosition[0] - m_queuePosition[2]) < 0) {
-    m_estimatedWaitTime = -(static_cast<int>(m_queueTime[0] - m_queueTime[2]) / static_cast<int>(m_queuePosition[0] - m_queuePosition[2]) * wait);
+  if (m_queueTime[2] && (int)(m_queuePosition[0] - m_queuePosition[2]) < 0) {
+    m_estimatedWaitTime = -((int)(m_queueTime[0] - m_queueTime[2]) / (int)(m_queuePosition[0] - m_queuePosition[2]) * wait);
   }
 }
 
@@ -194,7 +194,9 @@ void CGlueMgr::DefaultServerLogin() {
     return;
   }
 
-  SStrCopy(m_accountName, ClientServices_GetAccountName(), sizeof(m_accountName));
+  LPCSTR accountName = ClientServices_GetAccountName();
+
+  SStrCopy(m_accountName, accountName, sizeof(m_accountName));
 
   char lastAccount[64] = "";
   SRegLoadString(REGKEY, REGVAL_ACCOUNTNAME, 0, lastAccount, sizeof(lastAccount));

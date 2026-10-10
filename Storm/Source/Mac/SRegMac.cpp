@@ -53,7 +53,7 @@ static LPCSTR AutoGetUserPath() {
     ASSERT(err == noErr);
 
     if (!err) {
-      OSStatus status = FSRefMakePath(&ref, reinterpret_cast<UInt8 *>(s_path), sizeof(s_path));
+      OSStatus status = FSRefMakePath(&ref, (UInt8 *)s_path, sizeof(s_path));
       ASSERT(status == noErr);
     }
 
@@ -164,14 +164,14 @@ static void ReadEscapedValue(FILE *file, RegistryEntry *entry, int terminate) {
       pending = 1;
 
       if (highNibble) {
-        *data.New() = static_cast<char>(16 * HexDigit(c));
+        *data.New() = (char)(16 * HexDigit(c));
         highNibble = 0;
       } else {
         data[data.Count() - 1] |= HexDigit(c);
         highNibble = 1;
       }
     } else {
-      *data.New() = static_cast<char>(c);
+      *data.New() = (char)c;
     }
   }
 
@@ -180,7 +180,7 @@ static void ReadEscapedValue(FILE *file, RegistryEntry *entry, int terminate) {
   }
 
   entry->size = data.Count();
-  entry->string = static_cast<char *>(SMemAlloc(data.Count(), __FILE__, __LINE__, 0));
+  entry->string = (char *)SMemAlloc(data.Count(), __FILE__, __LINE__, 0);
   memcpy(entry->string, &data[0], data.Count());
 }
 
@@ -188,7 +188,7 @@ static void WriteEscapedValue(FILE *file, LPCSTR data, DWORD size) {
   DWORD index;
 
   for (index = 0; index < size; ++index) {
-    BYTE byte = static_cast<BYTE>(data[index]);
+    BYTE byte = (BYTE)data[index];
 
     if (byte == '%') {
       fprintf(file, "%%%%");
@@ -333,7 +333,7 @@ extern "C" BOOL APIENTRY SRegSaveString(LPCSTR keyname, LPCSTR valuename, UINT f
 
   entry = CreateEntry(key, path);
   entry->type = REGTYPE_STRING;
-  entry->string = static_cast<char *>(SMemAlloc(bytes, __FILE__, __LINE__, 0));
+  entry->string = (char *)SMemAlloc(bytes, __FILE__, __LINE__, 0);
   entry->size = bytes;
   memcpy(entry->string, string, bytes);
 

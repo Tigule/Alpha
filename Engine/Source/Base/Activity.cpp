@@ -82,11 +82,11 @@ float ActivityGetTimePercent(ACTIVITY activity) {
     return 0.0f;
   }
 
-  return (float)((double)s_totalTime[activity] * 100.0 / (double)s_periodElapsedTimeClocks);
+  return (double)s_totalTime[activity] * 100.0 / (double)s_periodElapsedTimeClocks;
 }
 
 float ActivityGetCalls(ACTIVITY activity) {
-  return (float)s_totalCalls[activity];
+  return s_totalCalls[activity];
 }
 
 float ActivityGetTime(ACTIVITY activity) {
@@ -97,7 +97,7 @@ float ActivityGetTime(ACTIVITY activity) {
     ActivityResume();
   }
 
-  return (float)((double)s_totalTime[activity] * s_timeScale);
+  return (double)s_totalTime[activity] * s_timeScale;
 }
 
 void ActivityResetTimes() {

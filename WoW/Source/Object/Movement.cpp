@@ -77,9 +77,8 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
     FallLogWrite("___IDLE EVENT: timeNow(0x%X)\n", timeNow);
   }
 
-  for (CMovementData *baseMover = globals->movers.Head(), *baseMovernext_node;
-       (int)baseMover > 0 ? (baseMovernext_node = globals->movers.RawNext(baseMover), 1) : 0; baseMover = baseMovernext_node) {
-    CMovement *mover = static_cast<CMovement *>(baseMover);
+  SAFEITERATELIST(CMovementData, globals->movers, baseMover) {
+    CMovement *mover = (CMovement *)baseMover;
     FATALASSERT(mover != ((CMovementGlobals *)MovementGetGlobals())->m_localMover);
 
     LPVOID obj = MovementTryLock(mover->GetGUID());
@@ -98,8 +97,8 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
                     "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                     "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                     "int(timeNow - moveStartTime) >= 0", mover->GetGUID(), mover->GetPosition().x, mover->GetPosition().y, mover->GetPosition().z,
-                    mover->GetFacing(), static_cast<int>(mover->GetPosition().x), static_cast<int>(mover->GetPosition().y),
-                    static_cast<int>(mover->GetPosition().z), static_cast<int>(mover->GetFacing())
+                    mover->GetFacing(), (int)mover->GetPosition().x, (int)mover->GetPosition().y,
+                    (int)mover->GetPosition().z, (int)mover->GetFacing()
                 )
               : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "int(timeNow - moveStartTime) >= 0", FALSE, 1);
       }
@@ -255,8 +254,8 @@ void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "elapsedMS > 0", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "elapsedMS > 0", FALSE, 1);
   }
@@ -438,8 +437,8 @@ void CMovement::PlotNormalLinearPosition(float secsElapsed, NTempest::C3Vector *
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -456,8 +455,8 @@ void CMovement::PlotStrafeLinearPosition(float secsElapsed, NTempest::C3Vector *
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsStrafing()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsStrafing()", FALSE, 1);
   }
@@ -474,8 +473,8 @@ void CMovement::PlotDiagonalLinearPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -485,8 +484,8 @@ void CMovement::PlotDiagonalLinearPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsStrafing()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsStrafing()", FALSE, 1);
   }
@@ -503,8 +502,8 @@ void CMovement::PlotUnitRotation(float elapsedSec) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsTurning()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsTurning()", FALSE, 1);
   }
@@ -525,8 +524,8 @@ void CMovement::PlotUnitPitch(float elapsedSec) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsPitching()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsPitching()", FALSE, 1);
   }
@@ -636,8 +635,8 @@ void CMovement::PlotNormalCircularPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsTurning()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsTurning()", FALSE, 1);
   }
@@ -647,8 +646,8 @@ void CMovement::PlotNormalCircularPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -665,8 +664,8 @@ void CMovement::PlotStrafeCircularPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsTurning()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsTurning()", FALSE, 1);
   }
@@ -676,8 +675,8 @@ void CMovement::PlotStrafeCircularPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsStrafing()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsStrafing()", FALSE, 1);
   }
@@ -694,8 +693,8 @@ void CMovement::PlotDiagonalCircularPosition(float secsElapsed, NTempest::C3Vect
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsTurning()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsTurning()", FALSE, 1);
   }
@@ -705,8 +704,8 @@ void CMovement::PlotDiagonalCircularPosition(float secsElapsed, NTempest::C3Vect
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -716,8 +715,8 @@ void CMovement::PlotDiagonalCircularPosition(float secsElapsed, NTempest::C3Vect
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsStrafing()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsStrafing()", FALSE, 1);
   }
@@ -734,8 +733,8 @@ void CMovement::PlotNormalPitchingCircularPosition(float secsElapsed, NTempest::
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -745,8 +744,8 @@ void CMovement::PlotNormalPitchingCircularPosition(float secsElapsed, NTempest::
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsPitching()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsPitching()", FALSE, 1);
   }
@@ -763,8 +762,8 @@ void CMovement::PlotDiagonalPitchingCircularPosition(float secsElapsed, NTempest
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -774,8 +773,8 @@ void CMovement::PlotDiagonalPitchingCircularPosition(float secsElapsed, NTempest
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsPitching()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsPitching()", FALSE, 1);
   }
@@ -792,8 +791,8 @@ void CMovement::PlotNormalSpiralPosition(float secsElapsed, NTempest::C3Vector *
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -803,8 +802,8 @@ void CMovement::PlotNormalSpiralPosition(float secsElapsed, NTempest::C3Vector *
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsPitching()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsPitching()", FALSE, 1);
   }
@@ -821,8 +820,8 @@ void CMovement::PlotDiagonalSpiralPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsMoving()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMoving()", FALSE, 1);
   }
@@ -832,8 +831,8 @@ void CMovement::PlotDiagonalSpiralPosition(float secsElapsed, NTempest::C3Vector
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsPitching()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsPitching()", FALSE, 1);
   }
@@ -850,8 +849,8 @@ BOOL CMovement::PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "move", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "move", FALSE, 1);
   }
@@ -866,7 +865,7 @@ BOOL CMovement::PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move) {
     IS_PITCHING = 8
   };
 
-  float secsElapsed = static_cast<float>(moveTime) * 0.001f;
+  float secsElapsed = (float)moveTime * 0.001f;
   UINT  actionFlags = 0;
   if (m_moveFlags & 0x30) {
     PlotUnitRotation(secsElapsed);
@@ -948,8 +947,8 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "move", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "move", FALSE, 1);
   }
@@ -959,8 +958,8 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsSplineMover()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsSplineMover()", FALSE, 1);
   }
@@ -976,11 +975,11 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
       time = 1.0f;
     } else if (timeUsed < 0) {
       time = 0.0f;
-    } else if (static_cast<UINT>(timeUsed) >= m_spline->time) {
+    } else if ((UINT)timeUsed >= m_spline->time) {
       m_spline->flags |= 1;
       time = 1.0f;
     } else {
-      time = static_cast<float>(timeUsed) / m_spline->time;
+      time = (float)timeUsed / m_spline->time;
     }
 
     NTempest::C34Matrix matrix;
@@ -997,7 +996,7 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
       NTempest::C34Matrix futureMatrix;
       *futureMatrix.Row0AsVec3() = m_direction;
 
-      float futureTime = CMath::clamp_(static_cast<float>(timeUsed + 1000) / m_spline->time, 0.0f, 1.0f);
+      float futureTime = CMath::clamp_((float)(timeUsed + 1000) / m_spline->time, 0.0f, 1.0f);
       m_spline->spline.Frame(futureTime, futureMatrix, NTempest::C3Spline::EVAL_ARCLENGTH);
 
       NTempest::C2Vector currentFacing;
@@ -1175,8 +1174,8 @@ CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, c
 }
 
 CMovementData::~CMovementData() {
-  if (MovementGetGlobals() && static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover == this) {
-    static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover = 0;
+  if (MovementGetGlobals() && ((CMovementGlobals *)MovementGetGlobals())->m_localMover == this) {
+    ((CMovementGlobals *)MovementGetGlobals())->m_localMover = 0;
     FATALASSERT(!m_spline);
     FATALASSERT(!IsSplineMover());
   } else {
@@ -1345,7 +1344,7 @@ BOOL CMovement::StartMove(DWORD eventTime, int forward) {
 }
 
 void CMovement::OnMoveStart(DWORD eventTime, int forward) {
-  if (StartMove(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime, forward)) {
+  if (StartMove(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime, forward)) {
     AddToMoversList();
   }
 }
@@ -1357,8 +1356,8 @@ void CMovement::AddPlayerMoveEvent(DWORD eventTime, int eventType, float facing)
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "uint(eventType) < NUM_PMOVE_EVTS", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "uint(eventType) < NUM_PMOVE_EVTS", FALSE, 1);
   }
@@ -1377,7 +1376,7 @@ void CMovement::AddPlayerMoveEvent(DWORD eventTime, int eventType, float facing)
     }
   }
 
-  event->eventType = static_cast<PLAYER_MOVE_EVT>(eventType);
+  event->eventType = (PLAYER_MOVE_EVT)eventType;
   event->timeStamp = eventTime;
   event->facing = facing;
 
@@ -1461,7 +1460,7 @@ void CMovement::OnJumpLocal(DWORD eventTime) {
 }
 
 void CMovement::OnJump(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (Jump(globals->m_lastUpdateTime)) {
     AddToMoversList();
   }
@@ -1562,7 +1561,7 @@ void CMovement::OnMoveStopLocal(DWORD eventTime) {
 }
 
 BOOL CMovement::OnMoveStop(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!StopMove(globals->m_lastUpdateTime) || (m_moveFlags & 0xC)) {
     return 0;
   }
@@ -1605,7 +1604,7 @@ void CMovement::OnStrafeStopLocal(DWORD eventTime) {
 }
 
 BOOL CMovement::OnStrafeStop(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!StopStrafe(globals->m_lastUpdateTime) || (m_moveFlags & 3)) {
     return 0;
   }
@@ -1650,7 +1649,7 @@ void CMovement::OnTurnStopLocal(DWORD eventTime) {
 }
 
 void CMovement::OnTurnStop(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StopTurn(globals->m_lastUpdateTime);
   if (!(m_moveFlags & 0x40FF)) {
     RemoveFromMoversList();
@@ -1673,7 +1672,7 @@ void CMovement::SetRunMode(DWORD eventTime, int run) {
 }
 
 void CMovement::OnSetRunMode(DWORD eventTime, int run) {
-  SetRunMode(static_cast<CMovementGlobals *>(MovementGetGlobals())->m_lastUpdateTime, run);
+  SetRunMode(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime, run);
 }
 
 void CMovement::Teleport(DWORD eventTime, const NTempest::C3Vector &position, float facing) {
@@ -1750,8 +1749,8 @@ void CMovement::OnSplineDoneFace(const NTempest::C3Vector &spot) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsSpline()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsSpline()", FALSE, 1);
   }
@@ -1766,8 +1765,8 @@ void CMovement::OnSplineDoneFace(const DWORDLONG &guid) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsSpline()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsSpline()", FALSE, 1);
   }
@@ -1782,8 +1781,8 @@ void CMovement::OnSplineDoneFace(float facing) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsSpline()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsSpline()", FALSE, 1);
   }
@@ -2001,8 +2000,8 @@ void CMovement::UpdateStatusInternal(DWORD eventTime, const CMovementStatus &upd
                  "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                  "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                  "m_moveFlags & MOVEFLAG_TIME_VALID", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-                 static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-                 static_cast<int>(GetFacing())
+                 (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+                 (int)GetFacing()
              )
            : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "m_moveFlags & MOVEFLAG_TIME_VALID", FALSE, 1);
     }
@@ -2120,7 +2119,7 @@ void CMovement::SetUpdateInfo(DWORD eventTime, const CClientMoveUpdate &init, in
 }
 
 void CMovement::StartFallLogging() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   ASSERT(globals);
 
   char fileName[MAX_PATH];
@@ -2142,7 +2141,7 @@ void CMovement::StartFallLogging() {
 }
 
 int CMovement::ToggleFallLogging() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!globals) {
     return 0;
   }
@@ -2157,12 +2156,12 @@ int CMovement::ToggleFallLogging() {
 }
 
 BOOL CMovement::IsFallLoggingOn() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   return globals && globals->fallingLog;
 }
 
 void __cdecl CMovement::BothLogWrite(LPCSTR format, ...) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals) {
     va_list arglist;
     va_start(arglist, format);
@@ -2180,7 +2179,7 @@ void __cdecl CMovement::BothLogWrite(LPCSTR format, ...) {
 }
 
 void __cdecl CMovement::FallLogWrite(LPCSTR format, ...) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->fallingLog) {
     va_list arglist;
     va_start(arglist, format);
@@ -2192,7 +2191,7 @@ void __cdecl CMovement::FallLogWrite(LPCSTR format, ...) {
 }
 
 void CMovement::StopFallLogging() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->fallingLog) {
     fclose(globals->fallingLog);
     globals->fallingLog = 0;
@@ -2200,7 +2199,7 @@ void CMovement::StopFallLogging() {
 }
 
 void CMovement::StartLogging() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   ASSERT(globals);
 
   if (!globals->movementLog) {
@@ -2209,7 +2208,7 @@ void CMovement::StartLogging() {
 }
 
 int CMovement::ToggleLogging() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   ASSERT(globals);
 
   if (globals->movementLog) {
@@ -2222,13 +2221,13 @@ int CMovement::ToggleLogging() {
 }
 
 BOOL CMovement::IsLoggingOn() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   ASSERT(globals);
   return globals->movementLog != 0;
 }
 
 void __cdecl CMovement::LogWrite(LPCSTR format, ...) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->movementLog) {
     va_list arglist;
     va_start(arglist, format);
@@ -2245,7 +2244,7 @@ void CMovement::StopAllLogging() {
 }
 
 void CMovement::StopLogging() {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->movementLog) {
     fclose(globals->movementLog);
     globals->movementLog = 0;
@@ -2259,8 +2258,8 @@ BOOL CMovement::OnRunSpeedChange(DWORD eventTime, float speed) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "CMath::fnotequal_(speed,0)", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(speed,0)", FALSE, 1);
   }
@@ -2281,8 +2280,8 @@ BOOL CMovement::OnWalkSpeedChange(DWORD eventTime, float speed) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "CMath::fnotequal_(speed,0)", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(speed,0)", FALSE, 1);
   }
@@ -2303,8 +2302,8 @@ BOOL CMovement::OnSwimSpeedChange(DWORD eventTime, float speed) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "CMath::fnotequal_(speed,0)", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(speed,0)", FALSE, 1);
   }
@@ -2325,8 +2324,8 @@ BOOL CMovement::OnTurnRateChange(DWORD eventTime, float rate) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "CMath::fnotequal_(rate,0)", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(rate,0)", FALSE, 1);
   }
@@ -2406,13 +2405,13 @@ void CMovement::OnSetPitch(DWORD eventTime, float pitch) {
 }
 
 void MovementEnableCollision(int enable) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   FATALASSERT(globals);
   globals->ignoreObstacles = enable == 0;
 }
 
 void CMovement::OnDisableGravity(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!globals->ignoreObstacles) {
     UINT oldMoveFlags = m_moveFlags;
     StopFalling();
@@ -2422,7 +2421,7 @@ void CMovement::OnDisableGravity(DWORD eventTime) {
 }
 
 void CMovement::OnEnableGravity(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!globals->ignoreObstacles) {
     StartFalling(eventTime);
   }
@@ -2557,8 +2556,8 @@ void CMovement::AddToMoversList() {
                  "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                  "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                  "((CMovementGlobals *)MovementGetGlobals())->m_localMover != this", GetGUID(), GetPosition().x, GetPosition().y,
-                 GetPosition().z, GetFacing(), static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y),
-                 static_cast<int>(GetPosition().z), static_cast<int>(GetFacing())
+                 GetPosition().z, GetFacing(), (int)GetPosition().x, (int)GetPosition().y,
+                 (int)GetPosition().z, (int)GetFacing()
              )
            : SErrDisplayError(
                  STORM_ERROR_ASSERTION, __FILE__, __LINE__, "((CMovementGlobals *)MovementGetGlobals())->m_localMover != this", FALSE, 1
@@ -2587,7 +2586,7 @@ void CMovementData::RemoveFromMoversList() {
 
 UINT CMovement::FallTime() const {
   if (m_moveFlags & 0x4000) {
-    CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+    CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
     return globals->m_lastUpdateTime - m_fallStartTime;
   }
 
@@ -2675,7 +2674,7 @@ void CMovement::OnSwimStopLocal(DWORD eventTime) {
 }
 
 void CMovement::OnSwimStart(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StartSwim(globals->m_lastUpdateTime);
   if (!(m_moveFlags & 0x40FF)) {
     RemoveFromMoversList();
@@ -2683,7 +2682,7 @@ void CMovement::OnSwimStart(DWORD eventTime) {
 }
 
 void CMovement::OnSwimStop(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StopSwim(globals->m_lastUpdateTime);
   AddToMoversList();
 }
@@ -2691,13 +2690,13 @@ void CMovement::OnSwimStop(DWORD eventTime) {
 void CMovement::StartSwimLocal(DWORD eventTime) {
   StartSwim(eventTime);
   if (!(m_moveFlags & 0xF)) {
-    static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover = 0;
+    ((CMovementGlobals *)MovementGetGlobals())->m_localMover = 0;
   }
 }
 
 void CMovement::StopSwimLocal(DWORD eventTime) {
   StopSwim(eventTime);
-  static_cast<CMovementGlobals *>(MovementGetGlobals())->m_localMover = this;
+  ((CMovementGlobals *)MovementGetGlobals())->m_localMover = this;
 }
 
 void CMovement::StartSwim(DWORD eventTime) {
@@ -2723,8 +2722,8 @@ void CMovement::OnPitchStartLocal(DWORD eventTime, int up) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsSwimming()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsSwimming()", FALSE, 1);
   }
@@ -2743,8 +2742,8 @@ void CMovement::OnPitchStopLocal(DWORD eventTime) {
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
                "(0x%08X, 0x%08X, 0x%08X) (0x%08X)",
                "IsSwimming()", GetGUID(), GetPosition().x, GetPosition().y, GetPosition().z, GetFacing(),
-               static_cast<int>(GetPosition().x), static_cast<int>(GetPosition().y), static_cast<int>(GetPosition().z),
-               static_cast<int>(GetFacing())
+               (int)GetPosition().x, (int)GetPosition().y, (int)GetPosition().z,
+               (int)GetFacing()
            )
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsSwimming()", FALSE, 1);
   }
@@ -2752,7 +2751,7 @@ void CMovement::OnPitchStopLocal(DWORD eventTime) {
 }
 
 void CMovement::OnPitchStop(DWORD eventTime) {
-  CMovementGlobals *globals = static_cast<CMovementGlobals *>(MovementGetGlobals());
+  CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StopPitch(globals->m_lastUpdateTime);
   if (!(m_moveFlags & 0x40FF)) {
     RemoveFromMoversList();

@@ -408,38 +408,38 @@ void SFile::DoAsyncRead(ASYNCREAD *ptr) {
 
   switch (ptr->fileptr->m_type) {
     case 0:
-      savedOffset = (DWORD)ftell((FILE *)ptr->fileptr->m_fileptr);
-      fseek((FILE *)ptr->fileptr->m_fileptr, (long)ptr->overlapped->Offset, SEEK_SET);
+      savedOffset = ftell((FILE *)ptr->fileptr->m_fileptr);
+      fseek((FILE *)ptr->fileptr->m_fileptr, ptr->overlapped->Offset, SEEK_SET);
       fread(ptr->buffer, 1, ptr->bytestoread, (FILE *)ptr->fileptr->m_fileptr);
-      fseek((FILE *)ptr->fileptr->m_fileptr, (long)savedOffset, SEEK_SET);
+      fseek((FILE *)ptr->fileptr->m_fileptr, savedOffset, SEEK_SET);
       break;
 
     case 1:
       savedOffset = ptr->fileptr->m_curOffset;
       if (ptr->overlapped->Offset) {
-        SFile::SetFilePointer(ptr->fileptr, (LONG)ptr->overlapped->Offset, NULL, FILE_BEGIN);
+        SFile::SetFilePointer(ptr->fileptr, ptr->overlapped->Offset, NULL, FILE_BEGIN);
       }
       DoZRead(ptr->fileptr, ptr->buffer, ptr->bytestoread, NULL);
-      SFile::SetFilePointer(ptr->fileptr, (LONG)savedOffset, NULL, FILE_BEGIN);
+      SFile::SetFilePointer(ptr->fileptr, savedOffset, NULL, FILE_BEGIN);
       break;
 
     case 2:
     case 3:
       savedOffset = SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, 0, NULL, FILE_CURRENT);
       if (ptr->overlapped->Offset) {
-        SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, (LONG)ptr->overlapped->Offset, NULL, FILE_BEGIN);
+        SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, ptr->overlapped->Offset, NULL, FILE_BEGIN);
       }
       SFileReadFileEx2((HSFILE)ptr->fileptr->m_hsfile, ptr->buffer, ptr->bytestoread, NULL, NULL, 0, NULL);
-      SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, (LONG)savedOffset, NULL, FILE_BEGIN);
+      SFileSetFilePointer((HSFILE)ptr->fileptr->m_hsfile, savedOffset, NULL, FILE_BEGIN);
       break;
 
     case 4:
-      savedOffset = ZipFileGetFilePointer((ZipFileFCB *)ptr->fileptr->m_zipFile);
+      savedOffset = ZipFileGetFilePointer(ptr->fileptr->m_zipFile);
       if (ptr->overlapped->Offset) {
-        ZipFileSetFilePointer((ZipFileFCB *)ptr->fileptr->m_zipFile, (int)ptr->overlapped->Offset, FILE_BEGIN);
+        ZipFileSetFilePointer(ptr->fileptr->m_zipFile, ptr->overlapped->Offset, FILE_BEGIN);
       }
-      ZipFileReadFile((ZipFileFCB *)ptr->fileptr->m_zipFile, ptr->buffer, ptr->bytestoread, NULL);
-      ZipFileSetFilePointer((ZipFileFCB *)ptr->fileptr->m_zipFile, (int)savedOffset, FILE_BEGIN);
+      ZipFileReadFile(ptr->fileptr->m_zipFile, ptr->buffer, ptr->bytestoread, NULL);
+      ZipFileSetFilePointer(ptr->fileptr->m_zipFile, savedOffset, FILE_BEGIN);
       break;
   }
 
@@ -511,10 +511,10 @@ int SFile::DoZRead(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *byte
   fileptr->m_zstream->next_out = (Bytef *)buffer;
   for (;;) {
     if (!fileptr->m_zstream->avail_in) {
-      fileptr->m_zstream->next_in = (Bytef *)fileptr->m_zbuffer;
-      read = (int)fread(fileptr->m_zstream->next_in, 1, 0x1000, (FILE *)fileptr->m_fileptr);
+      fileptr->m_zstream->next_in = fileptr->m_zbuffer;
+      read = fread(fileptr->m_zstream->next_in, 1, 0x1000, (FILE *)fileptr->m_fileptr);
       if (read > 0) {
-        fileptr->m_zstream->avail_in = (uInt)read;
+        fileptr->m_zstream->avail_in = read;
       }
     }
 
@@ -734,7 +734,7 @@ SFile::Read(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, 
     lock->Enter();
     switch (fileptr->m_type) {
       case SFILE_PLAIN:
-        result = (int)fread(buffer, 1, bytestoread, (FILE *)fileptr->m_fileptr);
+        result = fread(buffer, 1, bytestoread, (FILE *)fileptr->m_fileptr);
         if (result >= 0) {
           if (bytesread) {
             *bytesread = result;
@@ -766,7 +766,7 @@ SFile::Read(SFile *fileptr, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, 
         DWORD localBytesRead;
 
         localBytesRead = 0;
-        result = ZipFileReadFile((ZipFileFCB *)fileptr->m_zipFile, buffer, bytestoread, (UINT *)&localBytesRead) || localBytesRead > 0;
+        result = ZipFileReadFile(fileptr->m_zipFile, buffer, bytestoread, (UINT *)&localBytesRead) || localBytesRead > 0;
         if (bytesread) {
           *bytesread = localBytesRead;
         }
@@ -839,7 +839,7 @@ DWORD APIENTRY SFile::Close(SFile *file) {
     SFileCloseFile((HSFILE)file->m_hsfile);
   }
   if (file->m_zipFile) {
-    ZipFileCloseFile((ZipFileFCB *)file->m_zipFile);
+    ZipFileCloseFile(file->m_zipFile);
   }
   if (file->m_archive) {
     if (file->m_archive->m_archive) {
@@ -885,7 +885,7 @@ DWORD APIENTRY SFile::GetFileSize(SFile *file, DWORD *filesizehigh) {
       return SFileGetFileSize((HSFILE)file->m_hsfile, filesizehigh);
 
     case SFILE_ZIP_FILE:
-      return ZipFileGetFileSize((ZipFileFCB *)file->m_zipFile);
+      return ZipFileGetFileSize(file->m_zipFile);
   }
   return 0;
 }
@@ -923,7 +923,7 @@ int APIENTRY SFile::SetDataPathAlternate(LPCSTR path) {
 int APIENTRY SFile::FileExists(LPCSTR filename) {
   char realname[MAX_PATH];
 
-  return FindFile(filename, realname, MAX_PATH, BuildDefaultOpenFlags(), reinterpret_cast<SFILE_TYPE *>(&filename));
+  return FindFile(filename, realname, MAX_PATH, BuildDefaultOpenFlags(), (SFILE_TYPE *)&filename);
 }
 
 DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod) {
@@ -948,7 +948,7 @@ DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *dis
           ASSERT(0);
           break;
       }
-      result = (DWORD)ftell((FILE *)file->m_fileptr);
+      result = ftell((FILE *)file->m_fileptr);
       break;
 
     case SFILE_COMPRESSED:
@@ -957,7 +957,7 @@ DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *dis
           if (distancetomove < (LONG)file->m_curOffset) {
             inflateEnd(file->m_zstream);
             file->m_zstream->avail_in = 0;
-            file->m_zstream->next_in = (Bytef *)file->m_zbuffer;
+            file->m_zstream->next_in = file->m_zbuffer;
             int err = inflateInit_(file->m_zstream, "1.1.3", sizeof(z_stream));
             ASSERT(err == 0);
             fseek((FILE *)file->m_fileptr, sizeof(NoPaqCompHdr), SEEK_SET);
@@ -993,7 +993,7 @@ DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *dis
       break;
 
     case SFILE_ZIP_FILE:
-      result = (DWORD)ZipFileSetFilePointer((ZipFileFCB *)file->m_zipFile, distancetomove, movemethod);
+      result = ZipFileSetFilePointer(file->m_zipFile, distancetomove, movemethod);
       break;
 
     default:

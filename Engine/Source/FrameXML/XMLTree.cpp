@@ -13,7 +13,7 @@ struct XMLTree {
 };
 
 void __cdecl begin_element(LPVOID userData, LPCSTR name, LPCSTR *attributes) {
-  XMLTree *tree = static_cast<XMLTree *>(userData);
+  XMLTree *tree = (XMLTree *)userData;
   XMLNode *node = new (ALLOC(sizeof(XMLNode))) XMLNode(tree->current, name);
   XMLNode *child;
   LPCSTR  *attribute;
@@ -41,7 +41,7 @@ void __cdecl begin_element(LPVOID userData, LPCSTR name, LPCSTR *attributes) {
     attribute += 2;
   }
 
-  node->m_attributes = static_cast<XMLNode::XMLAttribute *>(ALLOC(sizeof(XMLNode::XMLAttribute) * node->m_num_attributes));
+  node->m_attributes = (XMLNode::XMLAttribute *)ALLOC(sizeof(XMLNode::XMLAttribute) * node->m_num_attributes);
 
   for (index = 0; index < node->m_num_attributes; ++index) {
     node->m_attributes[index].name = SStrDupA(attributes[index * 2], __FILE__, __LINE__);
@@ -50,12 +50,12 @@ void __cdecl begin_element(LPVOID userData, LPCSTR name, LPCSTR *attributes) {
 }
 
 void __cdecl end_element(LPVOID userData, LPCSTR) {
-  XMLTree *tree = static_cast<XMLTree *>(userData);
+  XMLTree *tree = (XMLTree *)userData;
   tree->current = tree->current->m_parent;
 }
 
 void __cdecl handle_body(LPVOID userData, LPCSTR body, int length) {
-  XMLTree *tree = static_cast<XMLTree *>(userData);
+  XMLTree *tree = (XMLTree *)userData;
   XMLNode *node = tree->current;
   int      bodyLength;
   char    *output;
@@ -74,7 +74,7 @@ void __cdecl handle_body(LPVOID userData, LPCSTR body, int length) {
   }
 
   bodyLength = node->m_body ? SStrLen(node->m_body) : 0;
-  node->m_body = static_cast<char *>(SMemReAlloc(node->m_body, bodyLength + length + 2, __FILE__, __LINE__, 0));
+  node->m_body = (char *)SMemReAlloc(node->m_body, bodyLength + length + 2, __FILE__, __LINE__, 0);
   output = node->m_body + bodyLength;
 
   if (bodyLength > 0) {
@@ -96,7 +96,7 @@ XMLTree *XMLTree_Load(LPCSTR buffer, UINT bytes) {
     return 0;
   }
 
-  tree = static_cast<XMLTree *>(ALLOC(sizeof(XMLTree)));
+  tree = (XMLTree *)ALLOC(sizeof(XMLTree));
   tree->root = 0;
   tree->current = 0;
 

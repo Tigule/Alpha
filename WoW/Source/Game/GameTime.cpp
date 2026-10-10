@@ -7,6 +7,8 @@
 
 #include <time.h>
 
+static const float MAXMINUTES_PER_SECOND = 60.0f;
+
 CGameTime::CGameTime()
     : m_timeBias(0),
       m_dateBias(0),
@@ -58,7 +60,7 @@ void CGameTime::GameTimeSetTime(const WowTime &time) {
     if (minutes < 0) {
       minutes += 1440;
     } else {
-      minutes = static_cast<UINT>(minutes) % 1440;
+      minutes = (UINT)minutes % 1440;
     }
 
     biasTime.SetHourAndMinutes(minutes);
@@ -68,7 +70,7 @@ void CGameTime::GameTimeSetTime(const WowTime &time) {
     biasTime.SetDaysSinceEpoch(biasTime.GetDaysSinceEpoch() + m_dateBias);
   }
 
-  static_cast<WowTime &>(*this) = biasTime;
+  (WowTime &)*this = biasTime;
 
   if (!m_minute) {
     m_minute = 59;
@@ -89,7 +91,7 @@ void CGameTime::GameTimeUpdate(float elapsedSeconds) {
   m_gameMinutesThisTick = elapsedSeconds * m_gameMinutesPerRealSecond + m_gameMinutesThisTick;
 
   if (timeDifferential && m_gameMinutesThisTick >= 1.0) {
-    UINT correction = static_cast<UINT>(m_gameMinutesThisTick);
+    UINT correction = m_gameMinutesThisTick;
     if (timeDifferential < correction) {
       correction = timeDifferential;
     }
@@ -113,7 +115,7 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
     if (minutes < 0) {
       minutes += 1440;
     } else {
-      minutes = static_cast<UINT>(minutes) % 1440;
+      minutes = (UINT)minutes % 1440;
     }
 
     biasTime.SetHourAndMinutes(minutes);
@@ -125,7 +127,7 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
 
   int delta = biasTime.GetHourAndMinutes() - GetHourAndMinutes();
   if (reset || delta > 0) {
-    UINT forward = static_cast<UINT>(delta + 1440) % 1440;
+    UINT forward = (UINT)(delta + 1440) % 1440;
     while (forward > 0) {
       TickMinute();
       --forward;
@@ -135,11 +137,11 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
     delta = -delta;
   }
 
-  static_cast<WowTime &>(*this) = biasTime;
+  (WowTime &)*this = biasTime;
 
   if (delta) {
     m_timeDifferential += delta;
-    SetHourAndMinutes(static_cast<UINT>(GetHourAndMinutes() + delta) % 1440);
+    SetHourAndMinutes((UINT)(GetHourAndMinutes() + delta) % 1440);
   }
 }
 
@@ -203,16 +205,8 @@ void CGameTime::GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle) {
 
 float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {
   float oldMinutesPerSecond = m_gameMinutesPerRealSecond;
-  float clamped = minutesPerSecond;
+  m_gameMinutesPerRealSecond = min(MAXMINUTES_PER_SECOND, max(1.0f / 60.0f, minutesPerSecond));
 
-  if (clamped < 1.0f / 60.0f) {
-    clamped = 1.0f / 60.0f;
-  }
-  if (clamped > 60.0f) {
-    clamped = 60.0f;
-  }
-
-  m_gameMinutesPerRealSecond = clamped;
   return oldMinutesPerSecond;
 }
 
@@ -227,7 +221,7 @@ float CGameTime::GameTimeGetDayProgression() {
 }
 
 void CGameTime::TickMinute() {
-  int minutes = static_cast<UINT>(GetHourAndMinutes() + 1) % 1440;
+  int minutes = (UINT)(GetHourAndMinutes() + 1) % 1440;
 
   SetHourAndMinutes(minutes);
   ++m_gameMinutesElapsed;

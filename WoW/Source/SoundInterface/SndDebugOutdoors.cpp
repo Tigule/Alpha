@@ -151,7 +151,7 @@ BOOL SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   float value;
   _FSOUND_REVERB_PROPERTIES *desc = &obj->desc;
   sscanf(arguments, "%d %f", &prefNumber, &value);
-  int intValue = static_cast<int>(value);
+  int intValue = value;
 
   switch (prefNumber) {
     case 1:
@@ -261,7 +261,7 @@ BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
 
   NTempest::C3Vector location = object->GetPosition();
   UINT               count = CWorld::QueryAreaId(location.x, location.y);
-  AREAHASHKEY        key(s_currentContinent, count >> 16, static_cast<WORD>(count));
+  AREAHASHKEY        key(s_currentContinent, count >> 16, (WORD)count);
 
   OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(count, key);
   if (!chunk) {

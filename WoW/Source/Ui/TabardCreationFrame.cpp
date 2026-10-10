@@ -51,7 +51,7 @@ static int Script_CloseTabardCreation(lua_State *) {
 }
 
 static int Script_GetTabardCreationCost(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(GuildGetTabardCost()));
+  lua_pushnumber(L, GuildGetTabardCost());
   return 1;
 }
 

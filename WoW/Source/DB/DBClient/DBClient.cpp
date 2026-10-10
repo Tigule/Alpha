@@ -430,21 +430,21 @@ WEAPONPARRYSEQ
 ClientDBGetWeaponSubclassParrySeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
-  return static_cast<WEAPONPARRYSEQ>(s_weaponSubClasses[subclassID]->m_weaponParrySeq);
+  return (WEAPONPARRYSEQ)s_weaponSubClasses[subclassID]->m_weaponParrySeq;
 }
 
 WEAPONREADYSEQ
 ClientDBGetWeaponSubclassReadySeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
-  return static_cast<WEAPONREADYSEQ>(s_weaponSubClasses[subclassID]->m_weaponReadySeq);
+  return (WEAPONREADYSEQ)s_weaponSubClasses[subclassID]->m_weaponReadySeq;
 }
 
 WEAPONATTACKSEQ
 ClientDBGetWeaponSubclassWeaponSeq(UINT subclassID) {
   ASSERT(subclassID < s_weaponSubClasses.Count());
   ASSERT(s_weaponSubClasses[subclassID]);
-  return static_cast<WEAPONATTACKSEQ>(s_weaponSubClasses[subclassID]->m_weaponAttackSeq);
+  return (WEAPONATTACKSEQ)s_weaponSubClasses[subclassID]->m_weaponAttackSeq;
 }
 
 UINT ClientDBGetNumWeaponSubclasses() {

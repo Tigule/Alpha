@@ -46,14 +46,15 @@ class CGTradeInfo {
     return m_tradingPlayer;
   }
   static BOOL      SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot);
-  static DWORDLONG GetPlayerTradeSlot(int index);
-  static void            GetPlayerItemInfo(int index, DWORDLONG &guid, DWORDLONG &bag, BYTE &slot) {
-    if (index >= 0 && index < 8) {
-      guid = m_playerItems[index];
+  static DWORDLONG GetPlayerTradeSlot(int index) {
+    return index >= 0 && index < 8 ? m_playerItems[index] : 0;
+  }
+  static void      GetPlayerItemInfo(int index, DWORDLONG &guid, DWORDLONG &bag, BYTE &slot) {
+    guid = GetPlayerTradeSlot(index);
+    if (guid) {
       bag = m_playerItemBag[index];
       slot = m_playerItemSlot[index];
     } else {
-      guid = 0;
       bag = 0;
       slot = 0;
     }
@@ -62,7 +63,10 @@ class CGTradeInfo {
     return index >= 0 && index < 8 ? m_targetItems[index] : 0;
   }
   static int GetTargetTradeItemCount(int index) {
-    return index >= 0 && index < 8 ? m_targetItemCount[index] : 0;
+    if (index >= 0 && index < 8) {
+      return m_targetItemCount[index];
+    }
+    return 0;
   }
   static int GetTargetTradeItemEnachantment(int index) {
     return index >= 0 && index < 8 ? m_targetItemEnchantment[index] : 0;

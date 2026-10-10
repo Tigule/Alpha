@@ -499,11 +499,11 @@ extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, LPVOI
   if (rgnptr) {
     if (combinemode == 2 || combinemode == 6) {
       if (!IsNullRect(rect)) {
-        AddSourceRect(&rgnptr->source, const_cast<RECTF *>(rect), param, ++rgnptr->sequence, combinemode == 6 ? SRGN_SOURCE_PARAMONLY : 0);
+        AddSourceRect(&rgnptr->source, rect, param, ++rgnptr->sequence, combinemode == 6 ? SRGN_SOURCE_PARAMONLY : 0);
       }
     } else {
       if (!IsNullRect(rect)) {
-        FragmentSourceRectangles(&rgnptr->source, 0, rgnptr->source.NumElements(), FALSE, const_cast<RECTF *>(rect), param, ++rgnptr->sequence);
+        FragmentSourceRectangles(&rgnptr->source, 0, rgnptr->source.NumElements(), FALSE, rect, param, ++rgnptr->sequence);
       }
       ProcessBooleanOperation(&rgnptr->source, combinemode);
       OptimizeSource(&rgnptr->source);
@@ -521,10 +521,10 @@ extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, LPVOID
   VALIDATE(rect);
   VALIDATEENDVOID;
 
-  rectf.left = (float)rect->left;
-  rectf.bottom = (float)rect->top;
-  rectf.right = (float)rect->right;
-  rectf.top = (float)rect->bottom;
+  rectf.left = rect->left;
+  rectf.bottom = rect->top;
+  rectf.right = rect->right;
+  rectf.top = rect->bottom;
   SRgnCombineRectf(handle, &rectf, param, combinemode);
 }
 
@@ -622,10 +622,10 @@ extern "C" void APIENTRY SRgnGetBoundingRecti(HSRGN handle, RECT *rect) {
   VALIDATEENDVOID;
 
   SRgnGetBoundingRectf(handle, &rectf);
-  rect->left = (LONG)rectf.left;
-  rect->top = (LONG)rectf.bottom;
-  rect->right = (LONG)rectf.right;
-  rect->bottom = (LONG)rectf.top;
+  rect->left = rectf.left;
+  rect->top = rectf.bottom;
+  rect->right = rectf.right;
+  rect->bottom = rectf.top;
 }
 
 extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWORD *numparams, LPVOID *buffer) {
@@ -680,10 +680,10 @@ extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWOR
   VALIDATE(rect);
   VALIDATEENDVOID;
 
-  rectf.left = (float)rect->left;
-  rectf.bottom = (float)rect->top;
-  rectf.right = (float)rect->right;
-  rectf.top = (float)rect->bottom;
+  rectf.left = rect->left;
+  rectf.bottom = rect->top;
+  rectf.right = rect->right;
+  rectf.top = rect->bottom;
   SRgnGetRectParamsf(handle, &rectf, numparams, buffer);
 }
 
@@ -730,10 +730,10 @@ extern "C" void APIENTRY SRgnGetRectsi(HSRGN handle, DWORD *numrects, RECT *buff
       float  bottom = rectf->bottom;
       float  top = rectf->top;
 
-      buffer[loop].left = (LONG)rectf->left;
-      buffer[loop].top = (LONG)bottom;
-      buffer[loop].right = (LONG)rectf->right;
-      buffer[loop].bottom = (LONG)top;
+      buffer[loop].left = rectf->left;
+      buffer[loop].top = bottom;
+      buffer[loop].right = rectf->right;
+      buffer[loop].bottom = top;
     }
   }
 }
@@ -773,7 +773,7 @@ extern "C" BOOL APIENTRY SRgnIsPointInRegionf(HSRGN handle, float x, float y) {
 }
 
 extern "C" BOOL APIENTRY SRgnIsPointInRegioni(HSRGN handle, int x, int y) {
-  return SRgnIsPointInRegionf(handle, (float)x, (float)y);
+  return SRgnIsPointInRegionf(handle, x, y);
 }
 
 extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
@@ -814,10 +814,10 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegioni(HSRGN handle, const RECT *rect) {
   VALIDATE(rect);
   VALIDATEEND;
 
-  rectf.left = (float)rect->left;
-  rectf.bottom = (float)rect->top;
-  rectf.right = (float)rect->right;
-  rectf.top = (float)rect->bottom;
+  rectf.left = rect->left;
+  rectf.bottom = rect->top;
+  rectf.right = rect->right;
+  rectf.top = rect->bottom;
   return SRgnIsRectInRegionf(handle, &rectf);
 }
 
@@ -848,5 +848,5 @@ extern "C" void APIENTRY SRgnOffsetf(HSRGN handle, float xoffset, float yoffset)
 }
 
 extern "C" void APIENTRY SRgnOffseti(HSRGN handle, int xoffset, int yoffset) {
-  SRgnOffsetf(handle, (float)xoffset, (float)yoffset);
+  SRgnOffsetf(handle, xoffset, yoffset);
 }

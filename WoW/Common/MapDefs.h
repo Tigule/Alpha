@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Tempest/c2ivector.h"
 #include "Tempest/c3vector.h"
 #include "Tempest/cimvector.h"
 
@@ -84,4 +85,43 @@ struct SMOLightmap {
   BYTE y;
   char width;
   char height;
+};
+
+#define MD_LIQUID_NPOLY 8U
+
+struct SWVert {
+  BYTE  depth;
+  BYTE  flow0Pct;
+  BYTE  flow1Pct;
+  BYTE  filler;
+  float height;
+};
+
+struct SOVert {
+  BYTE depth;
+  BYTE foam;
+  BYTE wet;
+  BYTE filler;
+};
+
+struct SMVert {
+  WORD  s;
+  WORD  t;
+  float height;
+};
+
+struct SLTiles {
+ private:
+  BYTE tiles[8][8];
+
+ public:
+  int GetLiquid(const NTempest::C2iVector &pos, UINT &liquid, int &fishable, int &deep) const {
+    ASSERT(pos.x >= 0 && pos.x < MD_LIQUID_NPOLY && pos.y >= 0 && pos.y < MD_LIQUID_NPOLY);
+    const BYTE &tile = tiles[pos.y][pos.x];
+    liquid = tile & 0xF;
+    fishable = (tile >> 6) & 1;
+    deep = tile >> 7;
+    return liquid != 0xF;
+  }
+  void SetLiquid(const NTempest::C2iVector &pos, UINT liquid, int fishable, int deep);
 };

@@ -119,7 +119,7 @@ PLAYERNAMEDESC::~PLAYERNAMEDESC() {
 
 static void PlayerNameRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   FATALASSERT(param);
-  static_cast<PLAYERNAMEDESC *>(param)->Render(basis);
+  ((PLAYERNAMEDESC *)param)->Render(basis);
 }
 
 static const CVARINFO s_cvarInfo[8] = {
@@ -307,20 +307,22 @@ static void TriggerNameRegenerate() {
 }
 
 static bool UnitNameShowTypeCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
-  UINT index = reinterpret_cast<UINT>(arg);
+  UINT index = (UINT)arg;
   ASSERT(index < (sizeof(s_cvarInfo) / sizeof(s_cvarInfo[0])));
 
-  UNITNAME_SHOWTYPE_GROUPS group = s_cvarInfo[index].group;
-  UINT                     oldFlags = s_showTypeFlags[group];
   UINT                     showTypeFlag = 1 << s_cvarInfo[index].showType;
+  UNITNAME_SHOWTYPE_GROUPS group = s_cvarInfo[index].group;
+
+  UINT &flags = s_showTypeFlags[group];
+  UINT  oldFlags = flags;
 
   if (SStrToInt(newValue)) {
-    s_showTypeFlags[group] |= showTypeFlag;
+    flags |= showTypeFlag;
   } else {
-    s_showTypeFlags[group] &= ~showTypeFlag;
+    flags &= ~showTypeFlag;
   }
 
-  if (oldFlags != s_showTypeFlags[group]) {
+  if (oldFlags != flags) {
     TriggerNameRegenerate();
   }
 
@@ -344,7 +346,7 @@ void PlayerNameInitialize() {
     if (s_cvarStrings[i].cvarName) {
       s_showTypeCVars[i] = CVar::Register(
           s_cvarStrings[i].cvarName, s_cvarStrings[i].cvarHelp, 0, s_cvarStrings[i].cvarDefaultValue, UnitNameShowTypeCallback, GRAPHICS, false,
-          reinterpret_cast<LPVOID>(i)
+          (LPVOID)i
       );
     }
   }
@@ -379,7 +381,7 @@ HPLAYERNAME PlayerNameCreate(CGUnit_C *unitPtr) {
   }
 
   NTempest::C3Vector namePosition(0.0f);
-  ModelGetModelSpacePivot(model, 1, &namePosition);
+  ModelGetModelSpacePivot(model, 22 | unitPtr->IsMounted(), &namePosition);
   ModelCustGeosetAdd(model, namePosition, PlayerNameRenderCallback, desc, &desc->m_customGeosetID);
   HandleClose(model);
   return CREATEHANDLE(HPLAYERNAME, desc);
@@ -387,7 +389,7 @@ HPLAYERNAME PlayerNameCreate(CGUnit_C *unitPtr) {
 
 void PlayerNameTriggerColorUpdate(HPLAYERNAME name) {
   if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 2;
+    ((PLAYERNAMEDESC *)name)->m_flags |= 2;
   }
 }
 
@@ -398,13 +400,13 @@ void PlayerNameCreateText(HPLAYERNAME name, WORLDTEXTTYPE type, LPCSTR text, con
 
   FATALASSERT(type < NUM_WORLDTEXTTYPES);
   if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->CreateWorldText(type, text, colorOverride);
+    ((PLAYERNAMEDESC *)name)->CreateWorldText(type, text, colorOverride);
   }
 }
 
 void PlayerNameUpdateWorldText(HPLAYERNAME name) {
   if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->UpdateWorldText();
+    ((PLAYERNAMEDESC *)name)->UpdateWorldText();
   }
 }
 
@@ -413,22 +415,22 @@ void PlayerNameUpdateEarly() {
 }
 
 void PlayerNameUpdateLate() {
-  ITERATELIST(PLAYERNAMEDESC, s_playerNames, desc) {
-    if (desc->m_lastRenderFrame != s_lastRenderFrame) {
-      desc->ShowWorldText(0);
+  SAFEITERATELIST(PLAYERNAMEDESC, s_playerNames, node) {
+    if (node->m_lastRenderFrame != s_lastRenderFrame) {
+      node->ShowWorldText(0);
     }
   }
 }
 
 void PlayerNameTriggerNameRegenerate(HPLAYERNAME name) {
   if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->m_flags |= 1;
+    ((PLAYERNAMEDESC *)name)->m_flags |= 1;
   }
 }
 
 void PlayerNameChangeLocation(HPLAYERNAME name, const NTempest::C3Vector &namePosition) {
   if (name) {
-    reinterpret_cast<PLAYERNAMEDESC *>(name)->MoveGeoset(namePosition);
+    ((PLAYERNAMEDESC *)name)->MoveGeoset(namePosition);
   }
 }
 

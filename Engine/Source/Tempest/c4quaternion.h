@@ -16,8 +16,7 @@ namespace NTempest {
     C4Quaternion(float w, float x, float y, float z) : C4Vector(x, y, z, w) {
     }
 
-    C4Quaternion(float angle, const C3Vector &axis) {
-      FromAngleAxis(angle, axis);
+    C4Quaternion(float real, const C3Vector &vector) : C4Vector(vector.x, vector.y, vector.z, real) {
     }
 
     ~C4Quaternion() {
@@ -79,7 +78,7 @@ namespace NTempest {
     C4Quaternion &operator*=(const C4Quaternion &a);
 
     C3Vector operator*(const C3Vector &vector) const {
-      return static_cast<C33Matrix>(*this) * vector;
+      return (C33Matrix)*this * vector;
     }
 
     C4Quaternion operator*(float a) const {
@@ -97,10 +96,10 @@ namespace NTempest {
     void FromRotationMatrix(const C33Matrix &r);
     void FromRotationMatrixInv(const C33Matrix &r);
     void ToRotationMatrix(C33Matrix &r) const {
-      r = static_cast<C33Matrix>(*this);
+      r = (C33Matrix)*this;
     }
     void ToRotationMatrixInv(C33Matrix &r) const {
-      r = static_cast<C33Matrix>(*this).Transpose();
+      r = ((C33Matrix)*this).Transpose();
     }
     void         FromAngleAxis(const float angle, const C3Vector &axis);
     void         ToAngleAxis(float &angle, C3Vector &axis) const;

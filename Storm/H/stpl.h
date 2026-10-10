@@ -23,7 +23,7 @@ class TSStackArray {
   }
  public:
 
-  TSStackArray(LPVOID data, UINT maxCount, int count) : m_maxCount(maxCount), m_data(static_cast<T *>(data)) {
+  TSStackArray(LPVOID data, UINT maxCount, int count) : m_maxCount(maxCount), m_data((T *)data) {
     m_count = count;
     for (UINT index = 0; index < count; ++index) {
       new (&m_data[index]) T;
@@ -254,7 +254,7 @@ class TSBaseArray {
  protected:
   void CheckArrayBounds(UINT index) const {
     if (index >= m_count) {
-      SErrDisplayErrorFmt(0x85100080, MemFileName(), MemLineNo(), TRUE, 1, "index (0x%08X), array size (0x%08X)", index, m_count);
+      SErrDisplayErrorFmt(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, MemFileName(), MemLineNo(), TRUE, 1, "index (0x%08X), array size (0x%08X)", index, m_count);
     }
   }
 
@@ -314,7 +314,7 @@ class TSFixedArray : public TSBaseArray<T> {
 
     this->m_alloc = count;
     if (this->m_data || count) {
-      this->m_data = static_cast<T *>(SMemReAlloc(this->m_data, count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0));
+      this->m_data = (T *)SMemReAlloc(this->m_data, count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0);
     }
   }
   void ReallocData(UINT count) {
@@ -326,9 +326,9 @@ class TSFixedArray : public TSBaseArray<T> {
     }
 
     this->m_alloc = count;
-    this->m_data = static_cast<T *>(SMemReAlloc(oldData, count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0x10));
+    this->m_data = (T *)SMemReAlloc(oldData, count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0x10);
     if (!this->m_data) {
-      this->m_data = static_cast<T *>(SMemAlloc(count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0));
+      this->m_data = (T *)SMemAlloc(count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0);
       if (oldData) {
         UINT copyCount = min(count, this->m_count);
 
@@ -611,7 +611,7 @@ class TSFixedArray_ : public TSFixedArray<T> {
 
 template <class T, UINT TAG, int LINE>
 char TSFixedArray_<T, TAG, LINE>::s_name[5] = {
-    static_cast<char>((TAG >> 24) & 0xFF), static_cast<char>((TAG >> 16) & 0xFF), static_cast<char>((TAG >> 8) & 0xFF), static_cast<char>(TAG & 0xFF),
+    (char)((TAG >> 24) & 0xFF), (char)((TAG >> 16) & 0xFF), (char)((TAG >> 8) & 0xFF), (char)(TAG & 0xFF),
     0
 };
 
@@ -642,7 +642,7 @@ class TSGrowableArray_ : public TSGrowableArray<T> {
 
 template <class T, UINT TAG, int LINE>
 char TSGrowableArray_<T, TAG, LINE>::s_name[5] = {
-    static_cast<char>((TAG >> 24) & 0xFF), static_cast<char>((TAG >> 16) & 0xFF), static_cast<char>((TAG >> 8) & 0xFF), static_cast<char>(TAG & 0xFF),
+    (char)((TAG >> 24) & 0xFF), (char)((TAG >> 16) & 0xFF), (char)((TAG >> 8) & 0xFF), (char)(TAG & 0xFF),
     0
 };
 
@@ -691,8 +691,8 @@ class TSTimerPriority : public CSBasePriority {
   }
 
   BOOL Compare(CSBasePriority *priority) const {
-    TSTimerPriority<T> *timerPriority = static_cast<TSTimerPriority<T> *>(priority);
-    return static_cast<long>(m_val - timerPriority->m_val) <= 0;
+    TSTimerPriority<T> *timerPriority = (TSTimerPriority<T> *)priority;
+    return (long)(m_val - timerPriority->m_val) <= 0;
   }
 
   T Get() const {
@@ -726,7 +726,7 @@ class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
   }
 
   CSBasePriority *Link(LPVOID value) const {
-    return reinterpret_cast<CSBasePriority *>(reinterpret_cast<BYTE *>(value) + m_linkOffset);
+    return (CSBasePriority *)((BYTE *)value + m_linkOffset);
   }
 
   CSBasePriority *Link(UINT index) const {
@@ -823,23 +823,23 @@ template <class T>
 class TSPriorityQueue : public CSBasePriorityQueue {
  public:
   T *operator[](UINT index) {
-    return static_cast<T *>(CSBasePriorityQueue::operator[](index));
+    return (T *)CSBasePriorityQueue::operator[](index);
   }
 
   const T *operator[](UINT index) const {
     this->CheckArrayBounds(index);
-    return static_cast<const T *>(this->m_data[index]);
+    return (const T *)this->m_data[index];
   }
 
   TSPriorityQueue(int linkOffset) : CSBasePriorityQueue(linkOffset) {
   }
 
   T *Root() {
-    return static_cast<T *>(CSBasePriorityQueue::Root());
+    return (T *)CSBasePriorityQueue::Root();
   }
 
   T *Dequeue() {
-    return static_cast<T *>(CSBasePriorityQueue::Dequeue());
+    return (T *)CSBasePriorityQueue::Dequeue();
   }
 
   void Enqueue(T *value) {
@@ -911,13 +911,13 @@ class TSLink {
   }
 
   TSLink<T> *NextLink(int linkoffset) const {
-    if (reinterpret_cast<int>(m_next) <= 0)
-      return reinterpret_cast<TSLink<T> *>(~reinterpret_cast<int>(m_next));
+    if ((int)m_next <= 0)
+      return (TSLink<T> *)(~(int)m_next);
 
     if (linkoffset < 0)
-      linkoffset = reinterpret_cast<int>(this) - reinterpret_cast<int>(m_prevlink->m_next);
+      linkoffset = (int)this - (int)m_prevlink->m_next;
 
-    return reinterpret_cast<TSLink<T> *>(reinterpret_cast<int>(m_next) + linkoffset);
+    return (TSLink<T> *)((int)m_next + linkoffset);
   }
 
  public:
@@ -942,11 +942,11 @@ class TSLink {
   }
 
   T *Next() {
-    return reinterpret_cast<int>(m_next) > 0 ? m_next : 0;
+    return (int)m_next > 0 ? m_next : 0;
   }
 
   const T *Next() const {
-    return reinterpret_cast<int>(m_next) > 0 ? m_next : 0;
+    return (int)m_next > 0 ? m_next : 0;
   }
 
   T *Prev() {
@@ -1024,7 +1024,7 @@ template <class T>
 class TSGetLink {
  public:
   static TSLink<T> *Link(const TSLinkedNode<T> *instance, int) {
-    return &const_cast<TSLinkedNode<T> *>(instance)->m_link;
+    return &((TSLinkedNode<T> *)instance)->m_link;
   }
 };
 
@@ -1032,7 +1032,7 @@ template <class T>
 class TSGetExplicitLink {
  public:
   static TSLink<T> *Link(LPCVOID instance, int linkoffset) {
-    return reinterpret_cast<TSLink<T> *>(reinterpret_cast<BYTE *>(const_cast<LPVOID>(instance)) + linkoffset);
+    return (TSLink<T> *)((BYTE *)((LPVOID)instance) + linkoffset);
   }
 };
 
@@ -1054,11 +1054,11 @@ class TSList {
 
   void InitializeTerminator() {
     m_terminator.m_prevlink = &m_terminator;
-    m_terminator.m_next = reinterpret_cast<T *>(~reinterpret_cast<DWORD>(&m_terminator));
+    m_terminator.m_next = (T *)(~(DWORD)&m_terminator);
   }
 
   TSLink<T> *Link(const T *ptr) const {
-    return ptr ? GETLINK::Link(ptr, m_linkoffset) : const_cast<TSLink<T> *>(&m_terminator);
+    return ptr ? GETLINK::Link(ptr, m_linkoffset) : (TSLink<T> *)&m_terminator;
   }
 
  protected:
@@ -1230,7 +1230,7 @@ class TSList {
   const T *Prev(const T *instance) const {
     TSLink<T> *link = Link(instance);
     const T   *previous = link->m_prevlink->m_prevlink->m_next;
-    return reinterpret_cast<long>(previous) > 0 ? previous : 0;
+    return (long)previous > 0 ? previous : 0;
   }
 
   T *RawNext(const T *instance) {
@@ -1316,6 +1316,20 @@ class TSExplicitList : public TSList<T, TSGetExplicitLink<T> > {
 #define ITERATEPARTIALLISTREVERSE(structname, listname, start, ptrname) ITERATEREVERSETEMPLATE(structname, listname, start, ptrname, .)
 
 #define ITERATEPARTIALLISTREVERSEPTR(structname, listname, start, ptrname) ITERATEREVERSETEMPLATE(structname, listname, start, ptrname, ->)
+
+// todo: unconfirmed name
+#define SAFEITERATELIST(structname, listname, ptrname)                                                                         \
+  for (structname *ptrname = (listname).Head(), *ptrname##next_node;                                                           \
+       (int)ptrname > 0 ? ((ptrname##next_node = (listname).RawNext(ptrname)), 1) : 0; ptrname = ptrname##next_node)
+
+// todo: unconfirmed name
+#define SAFEITERATELISTPTR(structname, listname, ptrname)                                                                      \
+  for (structname *ptrname = (listname)->Head(), *ptrname##next_node;                                                          \
+       (int)ptrname > 0 ? ((ptrname##next_node = (listname)->RawNext(ptrname)), 1) : 0; ptrname = ptrname##next_node)
+
+// todo: unconfirmed name
+#define CONSTITERATELIST(structname, listname, ptrname) \
+  for (const structname *ptrname = (listname).Head(); (int)ptrname > 0; ptrname = (listname).RawNext(ptrname))
 
 #define ITERATE_DELETE \
   {                    \
@@ -1711,19 +1725,19 @@ class TSHashTable {
   }
 
   TSHashTable<T, KEY> &NonConst() const {
-    return const_cast<TSHashTable<T, KEY> &>(*this);
+    return (TSHashTable<T, KEY> &)*this;
   }
 
  protected:
   int GetLinkOffset() const {
-    return reinterpret_cast<int>(&((T *)0)->m_linktoslot);
+    return (int)(&((T *)0)->m_linktoslot);
   }
 
  public:
   TSHashTable(const TSHashTable<T, KEY> &);
   TSHashTable() {
     m_fullnessIndicator = 0;
-    m_fulllist.ChangeLinkOffset(reinterpret_cast<int>(&((T *)0)->m_linktofull));
+    m_fulllist.ChangeLinkOffset((int)(&((T *)0)->m_linktofull));
     m_slotmask = 0xFFFFFFFF;
   }
   TSHashTable<T, KEY> &operator=(const TSHashTable<T, KEY> &);
@@ -2034,14 +2048,14 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
         m_wrapped = 1;
         continue;
       }
-      if (!m_wrapped || !Ptr(reinterpret_cast<HANDLE>(m_sequence))) {
-        return reinterpret_cast<HANDLE>(m_sequence);
+      if (!m_wrapped || !Ptr((HANDLE)m_sequence)) {
+        return (HANDLE)m_sequence;
       }
     }
   }
 
  public:
-  TSExportTableSimple() : m_sequence(~reinterpret_cast<UINT>(this) & 0x0FFFFFFF) {
+  TSExportTableSimple() : m_sequence(~(UINT)this & 0x0FFFFFFF) {
     m_wrapped = 0;
   }
 
@@ -2053,10 +2067,10 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
     HANDLE newhandle = GenerateUniqueHandle();
 
     *handle = newhandle;
-    return TSHashTable<T, HASHKEY_NONE>::New(reinterpret_cast<UINT>(newhandle), m_key, 0, 0);
+    return TSHashTable<T, HASHKEY_NONE>::New((UINT)newhandle, m_key, 0, 0);
   }
   T *Ptr(HANDLE handle) {
-    return TSHashTable<T, HASHKEY_NONE>::Ptr(reinterpret_cast<UINT>(handle), m_key);
+    return TSHashTable<T, HASHKEY_NONE>::Ptr((UINT)handle, m_key);
   }
 };
 
@@ -2066,11 +2080,11 @@ class TSExportTableSync : public TSExportTableSimple<T, HANDLE, REUSE> {
   SYNC m_sync;
 
   int IsForWriting(LOCKED lockedhandle) {
-    return reinterpret_cast<DWORD>(lockedhandle) == 1;
+    return (DWORD)lockedhandle == 1;
   }
   void SyncEnterLock(LOCKED *lockedhandle, int forwriting) {
     m_sync.Enter(forwriting);
-    *lockedhandle = forwriting ? reinterpret_cast<LOCKED>(1) : reinterpret_cast<LOCKED>(-1);
+    *lockedhandle = forwriting ? (LOCKED)1 : (LOCKED)-1;
   }
   void SyncLeaveLock(LOCKED lockedhandle) {
     if (lockedhandle) {

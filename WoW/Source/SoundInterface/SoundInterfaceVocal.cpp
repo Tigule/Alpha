@@ -28,13 +28,13 @@ static TSGrowableArray<MACRODESC> s_macroRaceDescs;
 
 static int Script_PlayVocalCategory(lua_State *L) {
   if (!lua_isnumber(L, 1)) {
-    luaL_error(L, "Usage: PlayVocalCategory(category)");
-    return 0;
-  }
-
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    player->PlayVocalMacro(static_cast<int>(lua_tonumber(L, 1)));
+    lua_pushfstring(L, "Usage: PlayVocalCategory(category)");
+    lua_error(L);
+  } else {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      player->PlayMacroSound(lua_tonumber(L, 1));
+    }
   }
   return 0;
 }
@@ -45,9 +45,9 @@ static FrameScript_Method s_ScriptFunctions[1] = {
 
 void SndInterfaceRegisterVocalScriptFunctions() {
   s_macroRaceDescs.SetCount(g_chrRacesDB.GetMaxID() + 1);
-  for (int i = 0; i < g_soundCharacterMacroLinesDB.GetNumRecords(); ++i) {
+  for (int i = g_soundCharacterMacroLinesDB.GetNumRecords(); i--;) {
     const SoundCharacterMacroLinesRec *record = g_soundCharacterMacroLinesDB.GetRecordByIndex(i);
-    if (record && record->m_Category < 12 && record->m_Race < static_cast<int>(s_macroRaceDescs.Count()) && record->m_Sex < 3) {
+    if (record && record->m_Category < 12 && record->m_Race < (int)s_macroRaceDescs.Count() && record->m_Sex < 3) {
       s_macroRaceDescs[record->m_Race].soundID[record->m_Category][record->m_Sex] = record->m_SoundID;
     }
   }
@@ -60,10 +60,8 @@ void SndInterfaceUnregisterVocalScriptFunctions() {
 }
 
 void SoundInterfacePlayVocalMacro(const CGPlayer_C *player, int category) {
-  if (player && (player->GetType() & TYPE_PLAYER) && category < 12) {
-    UINT race = player->GetRace();
-    UINT sex = player->GetSex();
-    UINT              soundID = s_macroRaceDescs[race].soundID[category][sex];
+  if (player && player->IsA(TYPE_PLAYER) && category < 12) {
+    UINT soundID = s_macroRaceDescs[player->GetRace()].soundID[category][player->GetSex()];
     SndInterfacePlaySound(soundID, player->GetPosition(), -1, 1.0f);
   }
 }

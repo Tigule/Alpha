@@ -56,8 +56,8 @@ namespace NTempest {
 
     long difference;
     do {
-      difference = static_cast<long>(estimate - a / estimate) / 2;
-      estimate = static_cast<long>(a / estimate + estimate) / 2;
+      difference = (long)(estimate - a / estimate) / 2;
+      estimate = (long)(a / estimate + estimate) / 2;
     } while (difference);
     return estimate;
   }
@@ -91,41 +91,41 @@ namespace NTempest {
     if (x <= 1.0e-307) {
       return 0.0;
     }
-    DWORD *words = reinterpret_cast<DWORD *>(&x);
+    DWORD *words = (DWORD *)&x;
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
-    return (static_cast<long>(exponent) + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
+    return ((long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
   }
 
   double CMath::logoid2_(double x, const double _a, const double _b, const double _c, const double _d) {
     if (x <= 1.0e-307) {
       return 0.0;
     }
-    DWORD *words = reinterpret_cast<DWORD *>(&x);
+    DWORD *words = (DWORD *)&x;
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
-    return static_cast<long>(exponent) + ((_a * x + _b) * (x * x) + (x * _c + _d));
+    return (long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d));
   }
 
   double CMath::logoid10_(double x, const double _a, const double _b, const double _c, const double _d, const double _ln10) {
     if (x <= 1.0e-307) {
       return 0.0;
     }
-    DWORD *words = reinterpret_cast<DWORD *>(&x);
+    DWORD *words = (DWORD *)&x;
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
-    return (static_cast<long>(exponent) + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
+    return ((long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
   }
 
   double CMath::log2_(double y) {
     double q = y;
-    DWORD  high = reinterpret_cast<DWORD *>(&q)[1];
-    reinterpret_cast<DWORD *>(&q)[1] = high & 0xFFFFF | 0x3FF00000;
-    DWORD  index = high >> 14 & 0x3F;
-    double v = q * logmul_[index] - 1.0;
+    DWORD  high = ((DWORD *)&q)[1];
+    ((DWORD *)&q)[1] = high & 0xFFFFF | 0x3FF00000;
+    DWORD  index = high >> 11 & 0x1F8;
+    double v = q * *(const double *)((const BYTE *)logmul_ + index) - 1.0;
     double v2 = v * v;
     if (!(y > 1.0e-307)) {
     underflow:
@@ -133,23 +133,23 @@ namespace NTempest {
     }
     return v * (((0.2883070248990067 - v * 0.22949900023246153) * v2 + (0.48089833404997356 - v * 0.36067132973951144)) * v2 +
                 (1.442695040888937 - v * 0.7213475204127876)) +
-           (static_cast<long>((high >> 20 & 0x7FF) - 1023) + logadd_[index]);
+           ((long)((high >> 20 & 0x7FF) - 1023) + *(const double *)((const BYTE *)logadd_ + index));
   }
 
   double CMath::exp2_(double x) {
-    long   exponent = static_cast<long>(x + 1023.0) - 1;
+    long   exponent = (long)(x + 1023.0) - 1;
     double base;
-    reinterpret_cast<DWORD *>(&base)[0] = 0;
-    double q = x + 1023.0 - static_cast<DWORD>(exponent);
-    DWORD  high = reinterpret_cast<DWORD *>(&q)[1];
+    ((DWORD *)&base)[0] = 0;
+    double q = x + 1023.0 - (DWORD)exponent;
+    DWORD  high = ((DWORD *)&q)[1];
     DWORD  index = high & 0xFC000;
-    reinterpret_cast<DWORD *>(&q)[1] = high ^ index;
-    reinterpret_cast<DWORD *>(&base)[1] = exponent << 20;
+    ((DWORD *)&q)[1] = high ^ index;
+    ((DWORD *)&base)[1] = exponent << 20;
     double q2 = q * q;
-    base *= expmul_[index >> 14];
-    if (static_cast<DWORD>(exponent) > 0x7FF) {
+    base *= *(const double *)((const BYTE *)expmul_ + (index >> 11));
+    if ((DWORD)exponent > 0x7FF) {
     illegal:
-      return exponent > 0 ? HUGE_VAL : 0.0f;
+      return exponent > 0 ? (float)HUGE_VAL : 0.0f;
     }
     return (((q * 0.0026811946517564956 + 0.005830032491308937) * q2 + (q * 0.06087614283854009 + 0.23603244393034895)) * q2 +
             (q * 0.6948749415195616 + 0.9997052445684839)) *
@@ -236,34 +236,44 @@ namespace NTempest {
     if (n < 4) {
       SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "n >= 4", 0, 1);
     }
-    DWORD segments = n - 3;
-    x = clamp_(x, 0.0, 1.0) * segments;
-    DWORD segment = static_cast<DWORD>(x);
-    if (segment > segments)
-      segment = segments;
-    double t = x - segment;
-    return t * (((k[segment + 3] * 0.5 - k[segment + 2] * 1.5 + k[segment + 1] * 1.5 - k[segment] * 0.5) * t + k[segment + 2] * 2.0 -
-                 k[segment + 3] * 0.5 - k[segment + 1] * 2.5 + k[segment]) *
-                    t +
-                k[segment + 2] * 0.5 - k[segment] * 0.5) +
-           k[segment + 1];
+    n -= 3;
+    x = clamp_(x, 0.0, 1.0) * n;
+    DWORD span = x;
+    if (span > n)
+      span = n;
+    x -= span;
+    double k0 = k[span];
+    double k1 = k[span + 1];
+    double k2 = k[span + 2];
+    double k3 = k[span + 3];
+    double c3 = k3 * 0.5 - k2 * 1.5 + k1 * 1.5 - k0 * 0.5;
+    double c2 = k2 * 2.0 - k3 * 0.5 - k1 * 2.5 + k0;
+    double c1 = k2 * 0.5 - k0 * 0.5;
+    double c0 = k1;
+
+    return ((c3 * x + c2) * x + c1) * x + c0;
   }
 
   float CMath::spline_(float x, float *k, DWORD n) {
     if (n < 4) {
       SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "n >= 4", 0, 1);
     }
-    DWORD segments = n - 3;
-    x = clamp_(x, 0.0f, 1.0f) * segments;
-    DWORD segment = static_cast<DWORD>(x);
-    if (segment > segments)
-      segment = segments;
-    float t = x - segment;
-    return t * (((k[segment + 3] * 0.5f - k[segment + 2] * 1.5f + k[segment + 1] * 1.5f - k[segment] * 0.5f) * t + k[segment + 2] * 2.0f -
-                 k[segment + 3] * 0.5f - k[segment + 1] * 2.5f + k[segment]) *
-                    t +
-                k[segment + 2] * 0.5f - k[segment] * 0.5f) +
-           k[segment + 1];
+    n -= 3;
+    x = clamp_(x, 0.0f, 1.0f) * n;
+    DWORD span = x;
+    if (span > n)
+      span = n;
+    x -= span;
+    float k0 = k[span];
+    float k1 = k[span + 1];
+    float k2 = k[span + 2];
+    float k3 = k[span + 3];
+    float c3 = k3 * 0.5f - k2 * 1.5f + k1 * 1.5f - k0 * 0.5f;
+    float c2 = k2 * 2.0f - k3 * 0.5f - k1 * 2.5f + k0;
+    float c1 = k2 * 0.5f - k0 * 0.5f;
+    float c0 = k1;
+
+    return ((c3 * x + c2) * x + c1) * x + c0;
   }
 
 }  // namespace NTempest

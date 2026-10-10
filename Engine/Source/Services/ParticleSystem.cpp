@@ -37,8 +37,8 @@ void CParticleEmitter::Init() {
   m_velocity = 0.0f;
   m_acceleration = 0.0f;
   m_scale = 1.0f;
-  m_latitude = 3.1415927f * 0.25f;
-  m_longitude = 3.1415927f * 0.25f;
+  m_latitude = PI * 0.25f;
+  m_longitude = PI * 0.25f;
   m_hmodel = 0;
 }
 
@@ -77,7 +77,7 @@ CParticleEmitter &CParticleEmitter::operator=(const CParticleEmitter &rhs) {
 }
 
 void CParticleEmitter::SyncAllocation() {
-  UINT count = static_cast<UINT>(m_particleLifeSpan * m_particleEmissionRate * 1.15f);
+  UINT count = (UINT)(m_particleLifeSpan * m_particleEmissionRate * 1.15f);
   UINT u = m_particles.Count();
   if (u >= count) {
     return;
@@ -86,7 +86,7 @@ void CParticleEmitter::SyncAllocation() {
   m_particles.SetCount(count);
   m_alive.SetCount(count);
   m_dead.SetCount(count);
-  for (; u < count; ++u) {
+  for (; u != count; ++u) {
     m_dead.Push(u);
   }
 }
@@ -100,16 +100,15 @@ void CParticleEmitter::CreateParticle(CParticle &p, float elapsedTime, const NTe
   p.m_position = 0.0f;
   WorldMatrixTransform(&p.m_position);
 
-  float theta = (NTempest::CRandom::real_(s_randSeed) * 2.0f - 1.0f) * m_latitude;
-  float longitude = (NTempest::CRandom::real_(s_randSeed) * 2.0f - 1.0f) * m_longitude;
-  p.m_velocity.x = NTempest::CMath::sin_(theta) * m_velocity;
-  p.m_velocity.z = NTempest::CMath::cos_(theta) * m_velocity;
+  float theta = 2.0f * (NTempest::CRandom::real_(s_randSeed) * m_latitude) - m_latitude;
+  float longitude = 2.0f * (NTempest::CRandom::real_(s_randSeed) * m_longitude) - m_longitude;
+  p.m_velocity = NTempest::C3Vector(0.0f, 0.0f, m_velocity);
+  p.m_velocity.x = NTempest::CMath::sin_(theta) * p.m_velocity.z;
+  p.m_velocity.z = NTempest::CMath::cos_(theta) * p.m_velocity.z;
   p.m_velocity.y = NTempest::CMath::sin_(longitude) * p.m_velocity.x;
   p.m_velocity.x = NTempest::CMath::cos_(longitude) * p.m_velocity.x;
   WorldMatrixTransform(&p.m_velocity);
-  p.m_velocity.x -= p.m_position.x;
-  p.m_velocity.y -= p.m_position.y;
-  p.m_velocity.z -= p.m_position.z;
+  p.m_velocity -= p.m_position;
   MoveParticle(p, p.m_elapsed);
   p.m_scale = m_scale;
   ASSERT(m_hmodel);
@@ -172,24 +171,21 @@ void CParticleEmitter::Enabled2(int enable2) {
 
 void CParticleEmitter::Update(float elapsedTime, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
   ActivityBegin(ACTIVITY_PARTICLE);
-  if (elapsedTime <= 0.0f) {
-    elapsedTime = 0.0f;
-  }
+  elapsedTime = max(elapsedTime, 0.0f);
 
   SyncAllocation();
   UINT numNew = 0;
-  UINT numEmitted = 0;
   if (m_enabled && m_enabled2) {
+    UINT numEmitted = 0;
     m_numNew += ParticleSystemManager::GetScaler() * m_particleEmissionRate * elapsedTime;
-    numNew = static_cast<UINT>(m_numNew);
-    while (numNew && !m_dead.IsEmpty()) {
-      --numNew;
+    numNew = (UINT)m_numNew;
+    while (!m_dead.IsEmpty() && numNew--) {
       UINT particle = m_dead.Pop();
       m_alive.Push(particle);
       CreateParticle(m_particles[particle], elapsedTime, cameraWorldPos);
       ++numEmitted;
     }
-    m_numNew -= static_cast<float>(numEmitted);
+    m_numNew -= (float)numEmitted;
   }
 
   for (UINT index = 0; index < m_alive.Count(); ++index) {

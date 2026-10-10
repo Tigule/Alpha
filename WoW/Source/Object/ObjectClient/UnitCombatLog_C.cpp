@@ -48,7 +48,7 @@ struct COMBATLOGDESC {
   UINT                                   totalAttemptsByEntity;
   UINT                                   totalMisses;
   UINT                                   totalHits;
-  UINT                                   totalVictimStatesByEntity[9];
+  UINT                                   totalVictimStatesByEntity[NUM_VICTIMSTATES];
   UINT                                   parryAttempts;
   UINT                                   dodgeAttempts;
   UINT                                   blockAttempts;
@@ -394,7 +394,7 @@ static bool IsSpellTeach(const SpellRec *rec) {
 }
 
 static bool IsSpellAbility(const SpellRec *rec) {
-  return (static_cast<UINT>(rec->m_attributes) >> 4) & 1;
+  return ((UINT)rec->m_attributes >> 4) & 1;
 }
 
 static bool IsSpellHarmful(const SpellRec *rec) {
@@ -418,7 +418,7 @@ static bool IsSpellOpenLock(const SpellRec *rec) {
 }
 
 static bool IsSpellQuiet(const SpellRec *rec) {
-  return (static_cast<UINT>(rec->m_attributes) >> 7) & 1;
+  return ((UINT)rec->m_attributes >> 7) & 1;
 }
 
 static float GetLogDistance(UNITAFFILIATION aff, bool suppressUnaffiliated) {
@@ -490,10 +490,10 @@ static BOOL ShouldLog(
   attackerPtr = 0;
   victimPtr = 0;
   if (objectPtr && objectPtr->IsA(TYPE_UNIT)) {
-    attackerPtr = static_cast<CGUnit_C *>(objectPtr);
+    attackerPtr = (CGUnit_C *)objectPtr;
   }
   if (subjectPtr && subjectPtr->IsA(TYPE_UNIT)) {
-    victimPtr = static_cast<CGUnit_C *>(subjectPtr);
+    victimPtr = (CGUnit_C *)subjectPtr;
   }
 
   float objRangeSquared = GetLogDistance(aAff, suppressIfAllUnaffiliated);
@@ -932,7 +932,7 @@ static void FormatSpellMissString(char *string, UINT size, const SPELLMISSLOG &l
   if (victimPtr && victimPtr->IsA(TYPE_UNIT) && attackerPtr && attackerPtr->IsA(TYPE_UNIT)) {
     SStrPrintf(
         string, size, "(%s) The attack of %s on %s was %s%s%s", rec ? rec->m_name_lang[CURRENT_LANGUAGE] : "Unknown Spell",
-        static_cast<CGUnit_C *>(attackerPtr)->GetUnitName(), static_cast<CGUnit_C *>(victimPtr)->GetUnitName(),
+        ((CGUnit_C *)attackerPtr)->GetUnitName(), ((CGUnit_C *)victimPtr)->GetUnitName(),
         s_missTypesInfo[log.reason].actionString, hitString, s_missTypesInfo[log.reason].optionalString
     );
   }
@@ -986,7 +986,7 @@ static void FormatSpellString(char *string, UINT size, const SPELLLOG &log) {
         string, size,
         "(%s) %s %s %s %s for %d points (type/min/max/base/scaled/net/bonus/modTaken/modDone) (%s/%d/%d/%g/%g/%g/%g) (DR: "
         "%g/%g(coeff=%g))%s%s",
-        spellName, attackerPtr->GetUnitName(), actionString, chanceString, static_cast<CGUnit_C *>(victimPtr)->GetUnitName(), log.dmg.totalDamage,
+        spellName, attackerPtr->GetUnitName(), actionString, chanceString, ((CGUnit_C *)victimPtr)->GetUnitName(), log.dmg.totalDamage,
         damageTypeString, log.dmg.minDamage[0], log.dmg.maxDamage[0], log.scaledDamage, log.dmg.damageFloat[0], log.modDamageTaken,
         log.modDamageDone, log.scaledArmorReduction, log.maxDamageReduction, log.resistanceCoefficient, critString, auraString
     );
@@ -1124,14 +1124,14 @@ static void GeneratePronouns(COMBATMESSAGEPRONOUNS &pronouns, const ATTACKROUNDI
   if (activePlayer == info.attacker) {
     SStrPrintf(pronouns.attackerName, sizeof(pronouns.attackerName), buf);
   } else if (attackerPtr && attackerPtr->IsA(TYPE_UNIT)) {
-    SStrCopy(pronouns.attackerName, static_cast<CGUnit_C *>(attackerPtr)->GetUnitName(), sizeof(pronouns.attackerName));
+    SStrCopy(pronouns.attackerName, ((CGUnit_C *)attackerPtr)->GetUnitName(), sizeof(pronouns.attackerName));
   } else {
     SStrCopy(pronouns.attackerName, "NONAME", sizeof(pronouns.attackerName));
   }
   if (activePlayer == info.victim) {
     SStrPrintf(pronouns.victimName, sizeof(pronouns.victimName), buf);
   } else if (victimPtr && victimPtr->IsA(TYPE_UNIT)) {
-    SStrCopy(pronouns.victimName, static_cast<CGUnit_C *>(victimPtr)->GetUnitName(), sizeof(pronouns.victimName));
+    SStrCopy(pronouns.victimName, ((CGUnit_C *)victimPtr)->GetUnitName(), sizeof(pronouns.victimName));
   } else {
     SStrCopy(pronouns.victimName, "NONAME", sizeof(pronouns.victimName));
   }
@@ -1273,7 +1273,7 @@ static void UnitCombatLogEnchantmentRemoved(const ENCHANTMENTLOG &log, bool isCa
     return;
   }
 
-  LPCSTR                         attackerName = static_cast<CGUnit_C *>(attackerObjPtr)->GetUnitName();
+  LPCSTR                         attackerName = ((CGUnit_C *)attackerObjPtr)->GetUnitName();
   const SpellItemEnchantmentRec *rec = g_spellItemEnchantmentDB.GetRecord(log.enchantment);
   LPCSTR                         enchantmentName;
   if (rec) {
@@ -1414,7 +1414,7 @@ static void WriteString(int writeToConsole, TSGrowableArray<char> &array, LPCSTR
 }
 
 static void WriteSpellInfo(const COMBATLOGDESC &unit) {
-  float critRate = unit.spellCritsAttempted ? static_cast<float>(unit.spellCritsSucceeded) / unit.spellCritsAttempted * 100.0f : 0.0f;
+  float critRate = unit.spellCritsAttempted ? (float)unit.spellCritsSucceeded / unit.spellCritsAttempted * 100.0f : 0.0f;
   WriteString(
       1, s_charArray, "%s: %d/%d crits/attempts (suffered %d), %02f%% crit rate\r\n", unit.m_name, unit.spellCritsSucceeded, unit.spellCritsAttempted,
       unit.spellCritsSuffered, critRate
@@ -1445,13 +1445,13 @@ static void WriteAttemptsHitsMisses(const COMBATLOGDESC &attacker) {
   );
   UINT hitPercent = attacker.totalAttemptsByEntity ? 100 * attacker.totalHits / attacker.totalAttemptsByEntity : 0;
   WriteString(1, s_charArray, "%s percentage hits: %d\r\n", attacker.m_name, hitPercent);
-  float critRate = attacker.totalAttemptsByEntity ? static_cast<float>(attacker.criticalHits) / attacker.totalAttemptsByEntity * 100.0f : 0.0f;
+  float critRate = attacker.totalAttemptsByEntity ? (float)attacker.criticalHits / attacker.totalAttemptsByEntity * 100.0f : 0.0f;
   WriteString(1, s_charArray, "%d/%d crits/attempts, %02f%% crit rate\r\n", attacker.criticalHits, attacker.totalHits, critRate);
 }
 
 static void WriteVictimStates(const COMBATLOGDESC &victim, LPCSTR name, UINT attempts, UINT successes) {
   WriteString(1, s_charArray, "%s %s Attempts/Success/Failure: %d/%d/%d\r\n", victim.m_name, name, attempts, successes, attempts - successes);
-  float successRate = attempts ? static_cast<float>(successes) * 100.0f / attempts : 0.0f;
+  float successRate = attempts ? (float)successes * 100.0f / attempts : 0.0f;
   WriteString(1, s_charArray, "%s Percentage %s successes: %g%%\r\n", victim.m_name, name, successRate);
 }
 
@@ -1469,7 +1469,7 @@ static float RoundTo(float roundThis, float toThis) {
     toThis *= -1.0f;
   }
 
-  UINT count = static_cast<UINT>(roundThis / toThis);
+  UINT count = roundThis / toThis;
   if (fmod(roundThis, toThis) >= toThis * 0.5) {
     ++count;
   }
@@ -1640,12 +1640,12 @@ void COMBATLOGDESC::LogVictim(const ATTACKROUNDINFO &info) {
 }
 
 void COMBATLOGDESC::LogUnitGUID(DWORDLONG guid, TSHashTable<UNITHASHOBJ, CHashKeyGUID> &theTable) {
-  UNITHASHOBJ *unit = theTable.Ptr(static_cast<UINT>(guid), guid);
+  UNITHASHOBJ *unit = theTable.Ptr(guid, guid);
   if (unit) {
     ++unit->count;
     return;
   }
-  unit = theTable.New(static_cast<UINT>(guid), guid, 0, 0);
+  unit = theTable.New(guid, guid, 0, 0);
   ++unit->count;
 }
 
@@ -1766,7 +1766,7 @@ void UnitCombatLog(const SPELLLOG &log) {
     UNITAFFILIATION aAff;
     CGObject_C     *attackerObjPtr;
     bool            result = ShouldLogAttacker(log.attacker, aAff, attackerObjPtr, 0, 0, -1);
-    CGUnit_C       *attackerPtr = static_cast<CGUnit_C *>(attackerObjPtr);
+    CGUnit_C       *attackerPtr = (CGUnit_C *)attackerObjPtr;
     if (result) {
       HandleSpellLogTerse(attackerPtr, aAff, spellName);
     }
@@ -1856,7 +1856,7 @@ void UnitCombatLog(const MIRRORTIMERDAMAGE &log) {
     if (aff == AFFILIATION_YOURSELF) {
       GeneralLogPrintf(s_affiliationLogType[aff], format, log.amount);
     } else {
-      GeneralLogPrintf(s_affiliationLogType[aff], format, static_cast<CGUnit_C *>(objPtr)->GetUnitName(), log.amount);
+      GeneralLogPrintf(s_affiliationLogType[aff], format, ((CGUnit_C *)objPtr)->GetUnitName(), log.amount);
     }
   } else {
     ReportError(s_affStrings[aff][log.damage]);
@@ -1886,7 +1886,7 @@ void UnitCombatLog(const ENVIRONMENTALDAMAGE &log) {
     if (aff == AFFILIATION_YOURSELF) {
       GeneralLogPrintf(s_affiliationLogType[aff], format, log.amount);
     } else {
-      GeneralLogPrintf(s_affiliationLogType[aff], format, static_cast<CGUnit_C *>(objPtr)->GetUnitName(), log.amount);
+      GeneralLogPrintf(s_affiliationLogType[aff], format, ((CGUnit_C *)objPtr)->GetUnitName(), log.amount);
     }
   } else {
     ReportError(buffer);
@@ -2028,7 +2028,7 @@ void UnitCombatLogCastStart(UINT spellID, DWORDLONG caster) {
     return;
   }
 
-  LPCSTR casterName = static_cast<CGUnit_C *>(casterObjPtr)->GetUnitName();
+  LPCSTR casterName = ((CGUnit_C *)casterObjPtr)->GetUnitName();
   LPCSTR spellName = rec->m_name_lang[CURRENT_LANGUAGE];
   bool   selfCasting = caster == ClntObjMgrGetActivePlayer();
   bool   ability = IsSpellAbility(rec);
@@ -2209,11 +2209,11 @@ void UnitCombatLogUnitDead(DWORDLONG unit) {
 
   UNITAFFILIATION aAff;
   CGObject_C     *unitObjPtr;
-  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || (static_cast<CGUnit_C *>(unitObjPtr)->GetUnitFlags() & 0x80)) {
+  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || (((CGUnit_C *)unitObjPtr)->GetUnitFlags() & 0x80)) {
     return;
   }
 
-  LPCSTR unitName = static_cast<CGUnit_C *>(unitObjPtr)->GetUnitName();
+  LPCSTR unitName = ((CGUnit_C *)unitObjPtr)->GetUnitName();
   LPCSTR templateTag = aAff ? "UNITDIESOTHER" : "UNITDIESSELF";
   LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
@@ -2263,7 +2263,7 @@ void UnitCombatLogXPGain(const DWORDLONG &victim, CDataStore *msg, UINT count) {
     if (playerPtr->GetGUID() == ClntObjMgrGetActivePlayer()) {
       CGObject_C *victimPtr = ClntObjMgrObjectPtr(victim, __FILE__, __LINE__);
       if (victimPtr && victimPtr->IsA(TYPE_UNIT)) {
-        static_cast<CGUnit_C *>(victimPtr)->StoreXPGain(xp);
+        ((CGUnit_C *)victimPtr)->StoreXPGain(xp);
       }
     }
   }
@@ -2417,7 +2417,7 @@ void UnitCombatLogPartyKill(const PARTYKILLLOG &log) {
   }
   if (victimPtr && victimPtr->IsA(TYPE_UNIT)) {
     GeneralLogPrintf(
-        SLASH_CMD_COMBAT_LOG_PARTY, format, static_cast<CGUnit_C *>(victimPtr)->GetUnitName(), static_cast<CGUnit_C *>(objPtr)->GetUnitName()
+        SLASH_CMD_COMBAT_LOG_PARTY, format, ((CGUnit_C *)victimPtr)->GetUnitName(), ((CGUnit_C *)objPtr)->GetUnitName()
     );
   }
 }
@@ -2427,7 +2427,7 @@ void UnitCombatLogShowXPGained(const DWORDLONG &victim, int xp) {
   if (victimPtr && victimPtr->IsA(TYPE_UNIT)) {
     GeneralLogPrintf(
         SLASH_CMD_COMBAT_LOG_SELF, FrameScript_GetText("COMBATLOG_XPGAIN_FIRSTPERSON", -1, GENDER_NOT_APPLICABLE),
-        static_cast<CGUnit_C *>(victimPtr)->GetUnitName(), xp
+        ((CGUnit_C *)victimPtr)->GetUnitName(), xp
     );
   }
 }

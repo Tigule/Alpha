@@ -13,7 +13,7 @@ namespace MDL {
 
   BOOL ReadVersion(Parser &parse, MDLDATA &data, CMDLStatus *status) {
     TSet errors;
-    errors.Add(0x14C, 1, 0);
+    errors.Add(MDLTOK_FORMATVERSION, 1, 0);
     parse.Expect('{');
 
     LPCSTR tokentext;
@@ -22,7 +22,7 @@ namespace MDL {
       if (!errors.Check(token)) {
         parse.FatalDuplicate(tokentext);
       }
-      if (token == 0x14C) {
+      if (token == MDLTOK_FORMATVERSION) {
         data.version = parse.ExpectInt();
       } else {
         parse.FatalUnexpected(tokentext);
@@ -33,7 +33,7 @@ namespace MDL {
     parse.Expect('}', token, tokentext);
     errors.Complete(status);
 
-    if (errors.Found(0x14C) && data.version > 0x514) {
+    if (errors.Found(MDLTOK_FORMATVERSION) && data.version > 0x514) {
       status->Add(STATUS_FATAL, "Error: File version (%u) is newer than newest version (%u) supported by app\n", data.version, 0x514);
       return 0;
     }
@@ -41,8 +41,8 @@ namespace MDL {
   }
 
   BOOL WriteVersion(const MDLDATA &, TSGrowableArray<char> &buffer, CMDLStatus *) {
-    WriteLine(buffer, "%s {\n", TokenText(0x103));
-    WriteLine(buffer, "\t%s %d,\n", TokenText(0x14C), 0x514);
+    WriteLine(buffer, "%s {\n", TokenText(MDLTOK_VERSION));
+    WriteLine(buffer, "\t%s %d,\n", TokenText(MDLTOK_FORMATVERSION), 0x514);
     WriteLine(buffer, "}\n");
     return 1;
   }

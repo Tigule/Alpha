@@ -124,7 +124,7 @@ namespace NTempest {
   }
 
   void C33Matrix::Rotate(const C4Quaternion &rotation) {
-    *this = static_cast<C33Matrix>(rotation) * *this;
+    *this = (C33Matrix)rotation * *this;
   }
 
   void C33Matrix::Translate(const C2Vector &move) {
@@ -151,168 +151,191 @@ namespace NTempest {
   bool C33Matrix::ToEulerAnglesXYZ(float &x, float &y, float &z) const {
     if (c0 < 1.0f) {
       if (c0 > -1.0f) {
-        x = static_cast<float>(atan2(-c1, c2));
-        y = static_cast<float>(asin(c0));
-        z = static_cast<float>(atan2(-b0, a0));
+        x = atan2f(-c1, c2);
+        y = asinf(c0);
+        z = atan2f(-b0, a0);
         return true;
       } else {
-        x = -static_cast<float>(atan2(a1, b1));
+        x = -atan2f(a1, b1);
         y = -1.5707964f;
         z = 0.0f;
-        return false;
       }
     } else {
-      x = static_cast<float>(atan2(a1, b1));
+      x = atan2f(a1, b1);
       y = 1.5707964f;
       z = 0.0f;
-      return false;
     }
+    return false;
   }
 
   bool C33Matrix::ToEulerAnglesXZY(float &x, float &z, float &y) const {
     if (b0 < 1.0f) {
       if (b0 > -1.0f) {
-        x = static_cast<float>(atan2(b2, b1));
-        z = static_cast<float>(asin(-b0));
-        y = static_cast<float>(atan2(c0, a0));
+        x = atan2f(b2, b1);
+        z = asinf(-b0);
+        y = atan2f(c0, a0);
         return true;
       } else {
-        x = static_cast<float>(atan2(a2, c2));
+        x = atan2f(a2, c2);
         z = 1.5707964f;
         y = 0.0f;
-        return false;
       }
     } else {
-      x = static_cast<float>(atan2(-a2, c2));
+      x = atan2f(-a2, c2);
       z = -1.5707964f;
       y = 0.0f;
-      return false;
     }
+    return false;
   }
 
   bool C33Matrix::ToEulerAnglesYXZ(float &y, float &x, float &z) const {
     if (c1 < 1.0f) {
       if (c1 > -1.0f) {
-        y = static_cast<float>(atan2(c0, c2));
-        x = static_cast<float>(asin(-c1));
-        z = static_cast<float>(atan2(a1, b1));
+        y = atan2f(c0, c2);
+        x = asinf(-c1);
+        z = atan2f(a1, b1);
         return true;
       } else {
-        y = static_cast<float>(atan2(b0, a0));
+        y = atan2f(b0, a0);
         x = 1.5707964f;
         z = 0.0f;
-        return false;
       }
     } else {
-      y = static_cast<float>(atan2(-b0, a0));
+      y = atan2f(-b0, a0);
       x = -1.5707964f;
       z = 0.0f;
-      return false;
     }
+    return false;
   }
 
   bool C33Matrix::ToEulerAnglesYZX(float &y, float &z, float &x) const {
     if (a1 < 1.0f) {
       if (a1 > -1.0f) {
-        y = static_cast<float>(atan2(-a2, a0));
-        z = static_cast<float>(asin(a1));
-        x = static_cast<float>(atan2(-c1, b1));
+        y = atan2f(-a2, a0);
+        z = asinf(a1);
+        x = atan2f(-c1, b1);
         return true;
       } else {
-        y = -static_cast<float>(atan2(b2, c2));
+        y = -atan2f(b2, c2);
         z = -1.5707964f;
         x = 0.0f;
-        return false;
       }
     } else {
-      y = static_cast<float>(atan2(b2, c2));
+      y = atan2f(b2, c2);
       z = 1.5707964f;
       x = 0.0f;
-      return false;
     }
+    return false;
   }
 
   bool C33Matrix::ToEulerAnglesZXY(float &z, float &x, float &y) const {
     if (b2 < 1.0f) {
       if (b2 > -1.0f) {
-        z = static_cast<float>(atan2(-b0, b1));
-        x = static_cast<float>(asin(b2));
-        y = static_cast<float>(atan2(-a2, c2));
+        z = atan2f(-b0, b1);
+        x = asinf(b2);
+        y = atan2f(-a2, c2);
         return true;
       } else {
-        z = -static_cast<float>(atan2(c0, a0));
+        z = -atan2f(c0, a0);
         x = -1.5707964f;
         y = 0.0f;
-        return false;
       }
     } else {
-      z = static_cast<float>(atan2(c0, a0));
+      z = atan2f(c0, a0);
       x = 1.5707964f;
       y = 0.0f;
-      return false;
     }
+    return false;
   }
 
   bool C33Matrix::ToEulerAnglesZYX(float &z, float &y, float &x) const {
     if (a2 < 1.0f) {
       if (a2 > -1.0f) {
-        z = static_cast<float>(atan2(a1, a0));
-        y = static_cast<float>(asin(-a2));
-        x = static_cast<float>(atan2(b2, c2));
+        z = atan2f(a1, a0);
+        y = asinf(-a2);
+        x = atan2f(b2, c2);
         return true;
       } else {
-        z = -static_cast<float>(atan2(b0, c0));
+        z = -atan2f(b0, c0);
         y = 1.5707964f;
         x = 0.0f;
-        return false;
       }
     } else {
-      z = static_cast<float>(atan2(-b0, -c0));
+      z = atan2f(-b0, -c0);
       y = -1.5707964f;
       x = 0.0f;
-      return false;
     }
+    return false;
   }
 
-  void C33Matrix::FromEulerAnglesXYZ(float x, float y, float z) {
-    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
-    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
-    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
+  void C33Matrix::FromEulerAnglesXYZ(float yaw, float pitch, float roll) {
+    float s, c;
+    CMath::sincos_(yaw, s, c);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, s, c);
+    CMath::sincos_(pitch, s, c);
+    C33Matrix y_(c, 0.0f, s, 0.0f, 1.0f, 0.0f, -s, 0.0f, c);
+    CMath::sincos_(roll, s, c);
+    C33Matrix z_(c, -s, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 1.0f);
+
     *this = (x_ * (y_ * z_)).Transpose();
   }
 
-  void C33Matrix::FromEulerAnglesXZY(float x, float z, float y) {
-    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
-    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
-    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
+  void C33Matrix::FromEulerAnglesXZY(float yaw, float pitch, float roll) {
+    float s, c;
+    CMath::sincos_(yaw, s, c);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, s, c);
+    CMath::sincos_(pitch, s, c);
+    C33Matrix z_(c, -s, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 1.0f);
+    CMath::sincos_(roll, s, c);
+    C33Matrix y_(c, 0.0f, s, 0.0f, 1.0f, 0.0f, -s, 0.0f, c);
+
     *this = (x_ * (z_ * y_)).Transpose();
   }
 
-  void C33Matrix::FromEulerAnglesYXZ(float y, float x, float z) {
-    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
-    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
-    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
+  void C33Matrix::FromEulerAnglesYXZ(float yaw, float pitch, float roll) {
+    float s, c;
+    CMath::sincos_(yaw, s, c);
+    C33Matrix y_(c, 0.0f, s, 0.0f, 1.0f, 0.0f, -s, 0.0f, c);
+    CMath::sincos_(pitch, s, c);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, s, c);
+    CMath::sincos_(roll, s, c);
+    C33Matrix z_(c, -s, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 1.0f);
+
     *this = (y_ * (x_ * z_)).Transpose();
   }
 
-  void C33Matrix::FromEulerAnglesYZX(float y, float z, float x) {
-    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
-    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
-    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
+  void C33Matrix::FromEulerAnglesYZX(float yaw, float pitch, float roll) {
+    float s, c;
+    CMath::sincos_(yaw, s, c);
+    C33Matrix y_(c, 0.0f, s, 0.0f, 1.0f, 0.0f, -s, 0.0f, c);
+    CMath::sincos_(pitch, s, c);
+    C33Matrix z_(c, -s, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 1.0f);
+    CMath::sincos_(roll, s, c);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, s, c);
+
     *this = (y_ * (z_ * x_)).Transpose();
   }
 
-  void C33Matrix::FromEulerAnglesZXY(float z, float x, float y) {
-    C33Matrix z_(CMath::cos_(z), -CMath::sin_(z), 0.0f, CMath::sin_(z), CMath::cos_(z), 0.0f, 0.0f, 0.0f, 1.0f);
-    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(x), -CMath::sin_(x), 0.0f, CMath::sin_(x), CMath::cos_(x));
-    C33Matrix y_(CMath::cos_(y), 0.0f, CMath::sin_(y), 0.0f, 1.0f, 0.0f, -CMath::sin_(y), 0.0f, CMath::cos_(y));
+  void C33Matrix::FromEulerAnglesZXY(float yaw, float pitch, float roll) {
+    float s, c;
+    CMath::sincos_(yaw, s, c);
+    C33Matrix z_(c, -s, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 1.0f);
+    CMath::sincos_(pitch, s, c);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, s, c);
+    CMath::sincos_(roll, s, c);
+    C33Matrix y_(c, 0.0f, s, 0.0f, 1.0f, 0.0f, -s, 0.0f, c);
+
     *this = (z_ * (x_ * y_)).Transpose();
   }
 
   void C33Matrix::FromEulerAnglesZYX(float yaw, float pitch, float roll) {
-    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, CMath::cos_(roll), -CMath::sin_(roll), 0.0f, CMath::sin_(roll), CMath::cos_(roll));
-    C33Matrix z_(CMath::cos_(yaw), -CMath::sin_(yaw), 0.0f, CMath::sin_(yaw), CMath::cos_(yaw), 0.0f, 0.0f, 0.0f, 1.0f);
-    C33Matrix y_(CMath::cos_(pitch), 0.0f, CMath::sin_(pitch), 0.0f, 1.0f, 0.0f, -CMath::sin_(pitch), 0.0f, CMath::cos_(pitch));
+    float s, c;
+    CMath::sincos_(yaw, s, c);
+    C33Matrix z_(c, -s, 0.0f, s, c, 0.0f, 0.0f, 0.0f, 1.0f);
+    CMath::sincos_(pitch, s, c);
+    C33Matrix y_(c, 0.0f, s, 0.0f, 1.0f, 0.0f, -s, 0.0f, c);
+    CMath::sincos_(roll, s, c);
+    C33Matrix x_(1.0f, 0.0f, 0.0f, 0.0f, c, -s, 0.0f, s, c);
 
     *this = (z_ * (y_ * x_)).Transpose();
   }

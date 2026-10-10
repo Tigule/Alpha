@@ -12,7 +12,7 @@
 static void FailureMessage(LPCSTR title) {
   char *msgBuffer;
 
-  FormatMessageA(0x1300, 0, GetLastError(), 0x400, reinterpret_cast<char *>(&msgBuffer), 0, 0);
+  FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, 0, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (char *)&msgBuffer, 0, 0);
   OsOutputDebugString("OsClipboard.cpp: %s failed: %s", title, msgBuffer);
   LocalFree(msgBuffer);
 }
@@ -39,7 +39,7 @@ BOOL OsClipboardGetString(char *buf, UINT bufSize) {
     return 0;
   }
 
-  clipboardString = static_cast<char *>(GlobalLock(globalObjectHandle));
+  clipboardString = (char *)GlobalLock(globalObjectHandle);
   if (!clipboardString) {
     FailureMessage("GlobalLock");
     CloseClipboard();
@@ -47,8 +47,8 @@ BOOL OsClipboardGetString(char *buf, UINT bufSize) {
   }
 
   wideChars = MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, 0, 0);
-  wideString = static_cast<WORD *>(_alloca(wideChars * sizeof(WORD)));
-  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, reinterpret_cast<wchar_t *>(wideString), wideChars);
+  wideString = (WORD *)_alloca(wideChars * sizeof(WORD));
+  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, wideString, wideChars);
 
   ConvertUTF16toUTF8(buf, bufSize - 1, wideString, wideChars, &written, 0);
   buf[written] = 0;
@@ -81,7 +81,7 @@ char *OsClipboardGetString() {
     return 0;
   }
 
-  clipboardString = static_cast<char *>(GlobalLock(globalObjectHandle));
+  clipboardString = (char *)GlobalLock(globalObjectHandle);
   if (!clipboardString) {
     FailureMessage("GlobalLock");
     CloseClipboard();
@@ -89,10 +89,10 @@ char *OsClipboardGetString() {
   }
 
   wideChars = MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, 0, 0);
-  wideString = static_cast<WORD *>(_alloca(wideChars * sizeof(WORD)));
-  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, reinterpret_cast<wchar_t *>(wideString), wideChars);
+  wideString = (WORD *)_alloca(wideChars * sizeof(WORD));
+  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, wideString, wideChars);
 
-  buffer = static_cast<char *>(ALLOC(3 * wideChars));
+  buffer = (char *)ALLOC(3 * wideChars);
   ConvertUTF16toUTF8(buffer, 3 * wideChars, wideString, wideChars, &written, 0);
   buffer[written] = 0;
 
@@ -121,16 +121,16 @@ BOOL OsClipboardPutString(LPCSTR string) {
     return 0;
   }
 
-  globalString = static_cast<char *>(GlobalLock(clipboardData));
+  globalString = (char *)GlobalLock(clipboardData);
   if (!globalString) {
     FailureMessage("GlobalLock");
     CloseClipboard();
     return 0;
   }
 
-  wideString = static_cast<WORD *>(_alloca(stringBytes * sizeof(WORD)));
+  wideString = (WORD *)_alloca(stringBytes * sizeof(WORD));
   ConvertUTF8toUTF16(wideString, stringBytes, string, 0x7FFFFFFF, 0, 0);
-  WideCharToMultiByte(OsInputGetCodePage(), 0, reinterpret_cast<const wchar_t *>(wideString), -1, globalString, stringBytes, 0, 0);
+  WideCharToMultiByte(OsInputGetCodePage(), 0, wideString, -1, globalString, stringBytes, 0, 0);
   GlobalUnlock(clipboardData);
 
   if (!OpenClipboard(hWnd)) {

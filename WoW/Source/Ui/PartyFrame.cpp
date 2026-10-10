@@ -216,13 +216,13 @@ void CGPartyInfo::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
     m_lootMethod = method;
     switch (method) {
       case LOOT_METHOD_FREEFORALL:
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(209));
+        CGGameUI::DisplayError(GERR_SET_LOOT_FREEFORALL);
         break;
       case LOOT_METHOD_ROUNDROBIN:
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(210));
+        CGGameUI::DisplayError(GERR_SET_LOOT_ROUNDROBIN);
         break;
       case LOOT_METHOD_MASTERLOOTER:
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(211));
+        CGGameUI::DisplayError(GERR_SET_LOOT_MASTER);
         break;
     }
   }
@@ -231,7 +231,7 @@ void CGPartyInfo::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
     if (master && method == LOOT_METHOD_MASTERLOOTER) {
       const NameCache *name = g_nameDBCache.GetRecord(master, 0, 0, 0);
       if (name) {
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(212), name->m_name);
+        CGGameUI::DisplayError(GERR_NEW_LOOT_MASTER_S, name->m_name);
       }
     }
     m_lootMaster = master;
@@ -265,13 +265,13 @@ void CGPartyInfo::SetLookingForGroup(int looking) {
 }
 
 static int Script_GetNumPartyMembers(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGPartyInfo::NumMembers()));
+  lua_pushnumber(L, CGPartyInfo::NumMembers());
   return 1;
 }
 
 static int Script_GetPartyMember(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    UINT index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    UINT index = (int)lua_tonumber(L, 1) - 1;
     if (index < 4) {
       if (CGPartyInfo::GetMember(index)) {
         lua_pushnumber(L, 1.0);
@@ -286,7 +286,7 @@ static int Script_GetPartyMember(lua_State *L) {
 }
 
 static int Script_GetPartyLeaderIndex(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGPartyInfo::GetLeaderIndex() + 1));
+  lua_pushnumber(L, CGPartyInfo::GetLeaderIndex() + 1);
   return 1;
 }
 
@@ -338,7 +338,7 @@ static int Script_GetLootMethod(lua_State *L) {
   }
   for (int i = 0; i < 4; ++i) {
     if (master == CGPartyInfo::GetMember(i)) {
-      lua_pushnumber(L, static_cast<double>(i + 1));
+      lua_pushnumber(L, i + 1);
       return 2;
     }
   }
@@ -348,11 +348,11 @@ static int Script_GetLootMethod(lua_State *L) {
 
 static int Script_SetLootMethod(lua_State *L) {
   if (!CGPartyInfo::GetMember(0)) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(64));
+    CGGameUI::DisplayError(GERR_NOT_IN_GROUP);
     return 0;
   }
   if (CGPartyInfo::GetLeader() != ClntObjMgrGetActivePlayer()) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(67));
+    CGGameUI::DisplayError(GERR_NOT_LEADER);
     return 0;
   }
   if (!lua_isstring(L, 1)) {
@@ -379,12 +379,12 @@ static int Script_SetLootMethod(lua_State *L) {
       if (!master) {
         master = CGGameUI::ClosestObjectMatch(name, TYPE_PLAYER);
         if (!master || !CGPartyInfo::IsMember(master)) {
-          CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(65), name);
+          CGGameUI::DisplayError(GERR_TARGET_NOT_IN_GROUP_S, name);
           return 0;
         }
       }
     } else {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(213));
+      CGGameUI::DisplayError(GERR_SPECIFY_MASTER_LOOTER);
       return 0;
     }
   }
@@ -407,7 +407,7 @@ static int Script_GetLookingForGroup(lua_State *L) {
 static int Script_SetLookingForGroup(lua_State *L) {
   int looking = 0;
   if (lua_isnumber(L, 1)) {
-    looking = static_cast<int>(lua_tonumber(L, 1));
+    looking = lua_tonumber(L, 1);
   } else if (lua_isstring(L, 1)) {
     looking = StringToBOOL(lua_tostring(L, 1));
   }

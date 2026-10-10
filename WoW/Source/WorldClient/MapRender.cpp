@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -77,7 +77,7 @@ void CMap::RenderAreaLow(CMapAreaLow *areaLow) {
 }
 
 void CMap::GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf) {
-  CMapAreaLow *areaLow = static_cast<CMapAreaLow *>(buf->UserArg());
+  CMapAreaLow *areaLow = (CMapAreaLow *)buf->UserArg();
 
   ASSERT(areaLow);
   CreateAreaLowDetailVertices(areaLow, cmd, buf);
@@ -85,22 +85,22 @@ void CMap::GxBufDynLowDetailCallback(CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPC *vtxBase = 0;
-  UINT         row;
-  UINT         column;
+  UINT row;
+  UINT column;
 
   ASSERT(areaLow);
 
+  CGxVertexPC *vtxBase = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      vtxBase = static_cast<CGxVertexPC *>(*cmd.vertex.mem[GxVM_Position]);
+      vtxBase = (CGxVertexPC *)*cmd.vertex.mem[GxVM_Position];
       break;
 
     case GxBufOp_Assign:
-      vtxBase = static_cast<CGxVertexPC *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPC)));
+      vtxBase = (CGxVertexPC *)GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPC));
       *cmd.vertex.mem[GxVM_Position] = &vtxBase->p;
       *cmd.vertex.mem[GxVM_Color] = &vtxBase->c;
       break;
@@ -145,51 +145,48 @@ void CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand
 }
 
 void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand &cmd, CGxBuf *buf) {
-  WORD *idx = 0;
-  UINT  row;
-  UINT  column;
+  UINT row;
+  UINT column;
 
   ASSERT(areaLow);
 
+  WORD *idx = 0;
   switch (cmd.index.op) {
     case GxBufOp_Nop:
       return;
 
     case GxBufOp_Fill:
-      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      idx = (WORD *)*cmd.index.mem[GxVM_Indices];
       break;
 
     case GxBufOp_Assign:
-      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
+      idx = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(WORD));
       *cmd.index.mem[GxVM_Indices] = idx;
       break;
   }
 
   ASSERT(idx);
 
-  for (row = 0; row < 16; ++row) {
-    for (column = 0; column < 16; ++column) {
-      WORD topLeft = row * 17 + column;
-      WORD topRight = topLeft + 1;
-      WORD bottomLeft = topLeft + 17;
-      WORD bottomRight = topLeft + 18;
-      WORD center = 289 + row * 16 + column;
-
+  UINT center = 289;
+  UINT topLeft = 0;
+  for (row = 0; row < 16; ++row, ++topLeft) {
+    UINT bottomRight = topLeft + 18;
+    for (column = 0; column < 16; ++column, ++center, ++topLeft, ++bottomRight) {
       *idx++ = center;
-      *idx++ = topRight;
+      *idx++ = bottomRight - 17;
       *idx++ = topLeft;
 
       *idx++ = center;
       *idx++ = bottomRight;
-      *idx++ = topRight;
+      *idx++ = bottomRight - 17;
 
       *idx++ = center;
-      *idx++ = bottomLeft;
+      *idx++ = bottomRight - 1;
       *idx++ = bottomRight;
 
       *idx++ = center;
       *idx++ = topLeft;
-      *idx++ = bottomLeft;
+      *idx++ = bottomRight - 1;
     }
   }
 }
@@ -364,10 +361,7 @@ void DNSky::Render() {
 
 void DNStars::Render() {
   if (m_color.a > 1) {
-    NTempest::C34Matrix orientation;
-    NTempest::C3Vector  cameraPos;
-    NTempest::C3Vector  cameraVector;
-    ModelAnimate(m_hModel, orientation, 1.0f, cameraPos, cameraVector);
+    ModelAnimate(m_hModel, NTempest::C34Matrix(), 1.0f, NTempest::C3Vector(), NTempest::C3Vector());
     ModelSetVertexAlpha(m_hModel, m_color.a, 0);
     ModelRender(m_hModel, 0, 0);
   }

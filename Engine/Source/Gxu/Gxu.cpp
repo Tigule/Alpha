@@ -265,8 +265,8 @@ void GxuTexScale(
   VALIDATE(dstFormat < GxTexFormats_Last);
   VALIDATEENDVOID;
 
-  const BYTE *src = static_cast<const BYTE *>(srcPixels);
-  BYTE       *dst = const_cast<BYTE *>(static_cast<const BYTE *>(dstPixels));
+  const BYTE *src = (const BYTE *)srcPixels;
+  BYTE       *dst = (BYTE *)dstPixels;
   UINT        stepX = (srcW << 16) / dstW;
   UINT        stepY = (srcH << 16) / dstH;
   UINT        srcY = 0;
@@ -275,9 +275,9 @@ void GxuTexScale(
     UINT srcX = 0;
     for (UINT x = 0; x < dstW; ++x) {
       if (pixelSize == 4) {
-        *reinterpret_cast<UINT *>(dst + x * 4) = *reinterpret_cast<const UINT *>(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 4);
+        *(UINT *)(dst + x * 4) = *(const UINT *)(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 4);
       } else {
-        *reinterpret_cast<WORD *>(dst + x * 2) = *reinterpret_cast<const WORD *>(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 2);
+        *(WORD *)(dst + x * 2) = *(const WORD *)(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 2);
       }
       srcX += stepX;
     }
@@ -302,7 +302,7 @@ void GxuUpdateSingleColorTexture(
   switch (cmd) {
     case GxTex_Lock:
       for (index = 0; index < 64; ++index) {
-        image[index].Set(reinterpret_cast<DWORD>(userArg));
+        image[index].Set((DWORD)userArg);
       }
       break;
 
@@ -431,14 +431,14 @@ BOOL GxuTestRayAndMesh(
   UINT vndx;
   if (!bone) {
     for (vndx = 0; vndx != posCount; ++vndx) {
-      tmpVtx[vndx] = *reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(pos) + vndx * posStride) * modelToWorldMatrices[0];
+      tmpVtx[vndx] = *(const NTempest::C3Vector *)((const BYTE *)pos + vndx * posStride) * modelToWorldMatrices[0];
     }
   } else {
     for (vndx = 0; vndx != posCount; ++vndx) {
       FATALASSERT(boneStride ? vndx < boneCount : 1);
       BYTE id = bone[vndx * boneStride];
       FATALASSERT(id < matrixCount);
-      tmpVtx[vndx] = *reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(pos) + vndx * posStride) * modelToWorldMatrices[id];
+      tmpVtx[vndx] = *(const NTempest::C3Vector *)((const BYTE *)pos + vndx * posStride) * modelToWorldMatrices[id];
     }
   }
 
@@ -556,12 +556,12 @@ UINT GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vect
   cc[4] = clipVert.w - clipVert.z;
   cc[5] = clipVert.z + clipVert.w;
   UINT code = 0;
-  code = (code >> 1) | (*reinterpret_cast<UINT *>(&cc[0]) & 0x80000000);
-  code = (code >> 1) | (*reinterpret_cast<UINT *>(&cc[1]) & 0x80000000);
-  code = (code >> 1) | (*reinterpret_cast<UINT *>(&cc[2]) & 0x80000000);
-  code = (code >> 1) | (*reinterpret_cast<UINT *>(&cc[3]) & 0x80000000);
-  code = (code >> 1) | (*reinterpret_cast<UINT *>(&cc[4]) & 0x80000000);
-  code = (code >> 1) | (*reinterpret_cast<UINT *>(&cc[5]) & 0x80000000);
+  code = (code >> 1) | (*(UINT *)&cc[0] & 0x80000000);
+  code = (code >> 1) | (*(UINT *)&cc[1] & 0x80000000);
+  code = (code >> 1) | (*(UINT *)&cc[2] & 0x80000000);
+  code = (code >> 1) | (*(UINT *)&cc[3] & 0x80000000);
+  code = (code >> 1) | (*(UINT *)&cc[4] & 0x80000000);
+  code = (code >> 1) | (*(UINT *)&cc[5] & 0x80000000);
   return code >> 26;
 }
 
@@ -589,7 +589,7 @@ void GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector te
       texScr[1].y = tex[i].y;
   }
 
-  float texArea = (texScr[1].x - texScr[0].x) * (texScr[1].y - texScr[0].y) * static_cast<float>(texW) * static_cast<float>(texH);
+  float texArea = (texScr[1].x - texScr[0].x) * (texScr[1].y - texScr[0].y) * (float)texW * (float)texH;
   for (i = 0; i < 4; ++i) {
     if (iposScr[i].x > iposCntr.x)
       iposScr[i].x -= 1.0f;
@@ -616,11 +616,11 @@ void GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector te
     return;
   }
 
-  float texCenterX = (texScr[1].x + texScr[0].x) * static_cast<float>(mipW) * 0.5f;
-  float texCenterY = (texScr[1].y + texScr[0].y) * static_cast<float>(mipH) * 0.5f;
+  float texCenterX = (texScr[1].x + texScr[0].x) * (float)mipW * 0.5f;
+  float texCenterY = (texScr[1].y + texScr[0].y) * (float)mipH * 0.5f;
   for (i = 0; i < 4; ++i) {
-    texScr[i].x = tex[i].x * static_cast<float>(mipW);
-    texScr[i].y = tex[i].y * static_cast<float>(mipH);
+    texScr[i].x = tex[i].x * (float)mipW;
+    texScr[i].y = tex[i].y * (float)mipH;
     texScr[i].z = 1.0f;
     texScr[i].x += texScr[i].x >= texCenterX ? -0.5f : 0.5f;
     texScr[i].y += texScr[i].y >= texCenterY ? -0.5f : 0.5f;
@@ -631,7 +631,7 @@ void GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector te
   NTempest::C33Matrix fromPixToTexM33 = iposM33.Inverse(iposM33.Determinant()) * texM33;
   for (i = 0; i < 4; ++i) {
     NTempest::C3Vector snapped = fromPixToTexM33 * posScr[i];
-    tex[i].x = snapped.x / static_cast<float>(mipW);
-    tex[i].y = snapped.y / static_cast<float>(mipH);
+    tex[i].x = snapped.x / (float)mipW;
+    tex[i].y = snapped.y / (float)mipH;
   }
 }

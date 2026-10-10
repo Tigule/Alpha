@@ -77,14 +77,14 @@ class WowConnection {
 
         if (s <= 0x7fff) {
           headerSize = 2;
-          data[0] = static_cast<BYTE>(s >> 8);
-          data[1] = static_cast<BYTE>(s);
+          data[0] = (BYTE)(s >> 8);
+          data[1] = (BYTE)s;
         } else {
           ASSERT(s <= 0x7fffffff);
           headerSize = 3;
-          data[0] = static_cast<BYTE>((s >> 16) | 0x80);
-          data[1] = static_cast<BYTE>(s >> 8);
-          data[2] = static_cast<BYTE>(s);
+          data[0] = (BYTE)((s >> 16) | 0x80);
+          data[1] = (BYTE)(s >> 8);
+          data[2] = (BYTE)s;
         }
 
         memcpy(data + headerSize, p, s);

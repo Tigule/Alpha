@@ -100,22 +100,22 @@ class TInstanceIdTable {
       m_idLock[slot].Enter(forWriting);
       ITERATELIST(T, m_idList[slot], instance) {
         if (instance->Id() == id) {
-          instanceLock = reinterpret_cast<INSTANCELOCK>(forWriting ? slot + SLOTCOUNT : slot);
+          instanceLock = (INSTANCELOCK)(forWriting ? slot + SLOTCOUNT : slot);
           return instance;
         }
       }
       m_idLock[slot].Leave(forWriting);
     }
-    instanceLock = reinterpret_cast<INSTANCELOCK>(-1);
+    instanceLock = (INSTANCELOCK)-1;
     return 0;
   }
 
   void Unlock(INSTANCELOCK instanceLock, LPCSTR, DWORD) {
-    UINT encoded = reinterpret_cast<UINT>(instanceLock);
+    UINT encoded = (UINT)instanceLock;
     UINT slot;
     int  forWriting;
 
-    if (encoded == static_cast<UINT>(-1)) {
+    if (encoded == (UINT)-1) {
       return;
     }
 

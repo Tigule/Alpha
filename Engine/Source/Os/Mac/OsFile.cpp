@@ -88,9 +88,9 @@ int OsSetArgs(LPCSTR *argv, bool resolveRealPath, bool writeDataPath) {
   bundleUrl = CFBundleCopyBundleURL(bundle);
   if (bundleUrl) {
     if (CFURLGetFileSystemRepresentation(bundleUrl, 0, bundlePath, sizeof(bundlePath))) {
-      DWORD chars = SStrLen(reinterpret_cast<LPCSTR>(bundlePath));
-      if (chars > 4 && !SStrCmp(reinterpret_cast<LPCSTR>(bundlePath) + chars - 4, ".app", 0x7FFFFFFF)) {
-        command = reinterpret_cast<LPCSTR>(bundlePath);
+      DWORD chars = SStrLen((LPCSTR)bundlePath);
+      if (chars > 4 && !SStrCmp((LPCSTR)bundlePath + chars - 4, ".app", 0x7FFFFFFF)) {
+        command = (LPCSTR)bundlePath;
       }
     }
   }
@@ -262,12 +262,12 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
     return 0;
   }
 
-  return reinterpret_cast<HOSFILE>(file);
+  return (HOSFILE)file;
 }
 
 void OsCloseFile(HOSFILE fileHandle) {
   if (fileHandle) {
-    fclose(reinterpret_cast<FILE *>(fileHandle));
+    fclose((FILE *)fileHandle);
   }
 }
 
@@ -281,8 +281,8 @@ BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *byt
     return 0;
   }
 
-  read = fread(buffer, 1, bytesToRead, reinterpret_cast<FILE *>(fileHandle));
-  *bytesRead = static_cast<DWORD>(read);
+  read = fread(buffer, 1, bytesToRead, (FILE *)fileHandle);
+  *bytesRead = (DWORD)read;
   return read != 0;
 }
 
@@ -296,8 +296,8 @@ BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *
     return 0;
   }
 
-  written = fwrite(buffer, 1, bytesToWrite, reinterpret_cast<FILE *>(fileHandle));
-  *bytesWritten = static_cast<DWORD>(written);
+  written = fwrite(buffer, 1, bytesToWrite, (FILE *)fileHandle);
+  *bytesWritten = (DWORD)written;
   return written != 0;
 }
 
@@ -309,17 +309,17 @@ DWORDLONG OsGetFileSize(HOSFILE fileHandle) {
   }
 
   stats.st_size = 0;
-  fstat(fileno(reinterpret_cast<FILE *>(fileHandle)), &stats);
+  fstat(fileno((FILE *)fileHandle), &stats);
   return stats.st_size;
 }
 
 DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD moveMethod) {
   if (!fileHandle) {
-    return static_cast<DWORDLONG>(-1);
+    return (DWORDLONG)-1;
   }
 
-  fseek(reinterpret_cast<FILE *>(fileHandle), static_cast<long>(distanceToMove), moveMethod);
-  return ftell(reinterpret_cast<FILE *>(fileHandle));
+  fseek((FILE *)fileHandle, (long)distanceToMove, moveMethod);
+  return ftell((FILE *)fileHandle);
 }
 
 DWORD OsGetFileAttributes(LPCSTR fileName) {
@@ -418,7 +418,7 @@ BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
     return 0;
   }
 
-  for (curr = pathName; *curr && static_cast<DWORD>(curr - pathName) < pathLen - 1; ++curr) {
+  for (curr = pathName; *curr && (DWORD)(curr - pathName) < pathLen - 1; ++curr) {
     if (*curr == '/') {
       *curr = curr[1] ? '\\' : 0;
     }

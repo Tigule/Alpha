@@ -31,7 +31,7 @@ namespace NTempest {
     BYTE         NotEmpty() const;
     BYTE         Empty() const;
     BYTE         Intersects(const C3Vector &p) const {
-      return SquaredD(p) <= r * r;
+      return SquaredD(p) <= r * r ? 1 : 0;
     }
     BYTE         Intersects(const CAaSphere &sphere) const;
     BYTE         Encloses(const C3Vector &point) const;

@@ -27,26 +27,19 @@ int OsNumJoysticks() {
   int          id;
   W32Joystick *joystick;
 
-  if (s_joystick.Count()) {
-    return s_joystick.Count();
-  }
-
-  maxdevs = joyGetNumDevs();
-  for (id = 0; id < maxdevs; ++id) {
-    joyinfo.dwSize = sizeof(joyinfo);
-    joyinfo.dwFlags = JOY_RETURNALL;
-
-    if (joyGetPosEx(id, &joyinfo) != JOYERR_NOERROR) {
-      continue;
+  if (!s_joystick.Count()) {
+    maxdevs = joyGetNumDevs();
+    for (id = 0; id < maxdevs; ++id) {
+      joyinfo.dwSize = sizeof(joyinfo);
+      joyinfo.dwFlags = JOY_RETURNALL;
+      if (joyGetPosEx(id, &joyinfo) == JOYERR_NOERROR) {
+        if (joyGetDevCaps(id, &joycaps, sizeof(joycaps)) == JOYERR_NOERROR) {
+          joystick = s_joystick.New();
+          joystick->id = id;
+          joystick->caps = joycaps;
+        }
+      }
     }
-
-    if (joyGetDevCaps(id, &joycaps, sizeof(joycaps)) != JOYERR_NOERROR) {
-      continue;
-    }
-
-    joystick = s_joystick.New();
-    joystick->id = id;
-    joystick->caps = joycaps;
   }
 
   return s_joystick.Count();
@@ -115,11 +108,12 @@ UINT OsGetButtonState(OsJoystickID id) {
   joyinfo.dwSize = sizeof(joyinfo);
   joyinfo.dwFlags = JOY_RETURNBUTTONS;
 
+  UINT buttons = 0;
   if (joyGetPosEx(s_joystick[id].id, &joyinfo) == JOYERR_NOERROR) {
-    return joyinfo.dwButtons;
+    buttons = joyinfo.dwButtons;
   }
 
-  return 0;
+  return buttons;
 }
 
 int OsGetButtonState(OsJoystickID id, int index) {
@@ -130,29 +124,25 @@ int OsGetAxisState(OsJoystickID id, int index) {
   DWORD flags[6] = {
       JOY_RETURNX, JOY_RETURNY, JOY_RETURNZ, JOY_RETURNR, JOY_RETURNU, JOY_RETURNV,
   };
-  JOYINFOEX                joyinfo;
-  DWORD                    pos[6];
-  W32Joystick::_transaxis *transaxis;
+  JOYINFOEX joyinfo;
 
   joyinfo.dwSize = sizeof(joyinfo);
   joyinfo.dwFlags = flags[index];
 
-  if (joyGetPosEx(s_joystick[id].id, &joyinfo) != JOYERR_NOERROR) {
-    return 0;
+  if (joyGetPosEx(s_joystick[id].id, &joyinfo) == JOYERR_NOERROR) {
+    DWORD pos[6];
+    pos[0] = joyinfo.dwXpos;
+    pos[1] = joyinfo.dwYpos;
+    pos[2] = joyinfo.dwZpos;
+    pos[3] = joyinfo.dwRpos;
+    pos[4] = joyinfo.dwUpos;
+    pos[5] = joyinfo.dwVpos;
+
+    W32Joystick::_transaxis *transaxis = s_joystick[id].transaxis;
+    if (joyinfo.dwFlags & flags[index]) {
+      return (int)(((double)pos[index] + transaxis[index].offset) * transaxis[index].scale);
+    }
   }
 
-  pos[0] = joyinfo.dwXpos;
-  pos[1] = joyinfo.dwYpos;
-  pos[2] = joyinfo.dwZpos;
-  pos[3] = joyinfo.dwRpos;
-  pos[4] = joyinfo.dwUpos;
-  pos[5] = joyinfo.dwVpos;
-
-  transaxis = &s_joystick[id].transaxis[index];
-
-  if (!(joyinfo.dwFlags & flags[index])) {
-    return 0;
-  }
-
-  return static_cast<int>((static_cast<double>(pos[index]) + transaxis->offset) * transaxis->scale);
+  return 0;
 }

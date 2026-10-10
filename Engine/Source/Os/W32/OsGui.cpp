@@ -118,7 +118,7 @@ static HWND__ *sCreateTooltips(HWND__ *inOwner) {
       sAppInstance, 0
   );
   SetWindowPos(tips, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-  SendMessageA(tips, 0x418, 0, 300);
+  SendMessageA(tips, TTM_SETMAXTIPWIDTH, 0, 300);
   SendMessageA(tips, TTM_ACTIVATE, sMasterTooltipsEnabled, 0);
   return tips;
 }
@@ -221,7 +221,7 @@ static void sCiRectToWinRect(const NTempest::CiRect *inRect, tagRECT *outRect) {
 NTempest::CiRect OsGuiGetWindowRect(LPVOID inWindow, int inClientOnly) {
   WINDOWINFO windInfo;
   windInfo.cbSize = sizeof(windInfo);
-  GetWindowInfo(static_cast<HWND>(inWindow), &windInfo);
+  GetWindowInfo((HWND)inWindow, &windInfo);
 
   RECT             wRect = inClientOnly ? windInfo.rcClient : windInfo.rcWindow;
   NTempest::CiRect outRect;
@@ -232,7 +232,7 @@ NTempest::CiRect OsGuiGetWindowRect(LPVOID inWindow, int inClientOnly) {
 NTempest::CiRect OsGuiGetWindowRestoredRect(LPVOID inWindow) {
   WINDOWPLACEMENT wp;
   wp.length = sizeof(wp);
-  GetWindowPlacement(static_cast<HWND>(inWindow), &wp);
+  GetWindowPlacement((HWND)inWindow, &wp);
 
   NTempest::CiRect restRect;
   sWinRectToCiRect(&wp.rcNormalPosition, &restRect);
@@ -284,11 +284,11 @@ void OsGuiDestroy() {
 }
 
 void OsGuiSetApplicationInfo(LPVOID inData) {
-  sAppInstance = static_cast<HINSTANCE>(inData);
+  sAppInstance = (HINSTANCE)inData;
 }
 
 BOOL OsGuiProcessMessage(LPVOID inMsgData) {
-  MSG *message = static_cast<MSG *>(inMsgData);
+  MSG *message = (MSG *)inMsgData;
 
   if (!sAppInstance) {
     return 0;
@@ -297,13 +297,13 @@ BOOL OsGuiProcessMessage(LPVOID inMsgData) {
   int handled = 0;
   if (sMenuHotkeysEnabled) {
     for (UINT index = 0; index < sMenubars.Count(); ++index) {
-      HACCEL accelTable = static_cast<HACCEL>(sMenubars[index]->GetAccelerators());
+      HACCEL accelTable = (HACCEL)sMenubars[index]->GetAccelerators();
       if (accelTable) {
-        HWND menuWindow = static_cast<HWND>(sMenubars[index]->GetWindow());
-        HWND activeWindow = static_cast<HWND>(OsGuiGetWindow(1));
+        HWND menuWindow = (HWND)sMenubars[index]->GetWindow();
+        HWND activeWindow = (HWND)OsGuiGetWindow(1);
         BOOL canTranslate = menuWindow == activeWindow;
         if (!canTranslate) {
-          COsDialog *dialog = static_cast<COsDialog *>(sGetOsGuiPointer(activeWindow));
+          COsDialog *dialog = (COsDialog *)sGetOsGuiPointer(activeWindow);
           if (dialog && dialog->HasFlag(0x10)) {
             canTranslate = menuWindow == dialog->GetParentWindow();
           }
@@ -327,7 +327,7 @@ BOOL OsGuiProcessMessage(LPVOID inMsgData) {
   }
 
   if (sGlobalTips) {
-    SendMessageA(static_cast<HWND>(sGlobalTips), 0x407, 0, reinterpret_cast<LPARAM>(message));
+    SendMessageA((HWND)sGlobalTips, TTM_RELAYEVENT, 0, (LPARAM)message);
   }
 
   return handled;
@@ -423,7 +423,7 @@ static void sHotkeyToAccel(OsGuiMenuHotkey *hotkey, tagACCEL *accel) {
   if (hotkey->modKeyID & 4) {
     accel->fVirt |= FALT;
   }
-  accel->key = static_cast<WORD>(sKeyToVirtKey(hotkey->keyID));
+  accel->key = (WORD)sKeyToVirtKey(hotkey->keyID);
 }
 
 static void sGetHotkeyText(int keyID, int modID, char *buf, int bufSize) {
@@ -443,7 +443,7 @@ static void sGetHotkeyText(int keyID, int modID, char *buf, int bufSize) {
   char keyText[50];
   keyText[0] = 0;
   if ((keyID >= '0' && keyID <= '9') || (keyID >= 'A' && keyID <= 'Z')) {
-    keyText[0] = static_cast<char>(keyID);
+    keyText[0] = (char)keyID;
     keyText[1] = 0;
   } else if (keyID >= 768 && keyID <= 779) {
     SStrPrintf(keyText, sizeof(keyText), "F%1d", keyID - 767);
@@ -532,8 +532,8 @@ static int sNCodeToItemCode(int nCode, int ctrlType) {
 }
 
 static int sHandleDrawItem(long lParam) {
-  DRAWITEMSTRUCT *draw = reinterpret_cast<DRAWITEMSTRUCT *>(lParam);
-  COsControl     *control = static_cast<COsControl *>(sGetOsGuiPointer(draw->hwndItem));
+  DRAWITEMSTRUCT *draw = (DRAWITEMSTRUCT *)lParam;
+  COsControl     *control = (COsControl *)sGetOsGuiPointer(draw->hwndItem);
   if (!control) {
     return 0;
   }
@@ -555,15 +555,15 @@ static int sHandleDrawItem(long lParam) {
 }
 
 static LPVOID sHandleCtlColor(UINT wParam, long lParam) {
-  COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(reinterpret_cast<HWND>(lParam)));
+  COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
   if (!control) {
     return 0;
   }
-  return control->OnSetColors(reinterpret_cast<LPVOID>(wParam));
+  return control->OnSetColors((LPVOID)wParam);
 }
 
 static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
-  COsDialog *dialog = static_cast<COsDialog *>(sGetOsGuiPointer(hdlg));
+  COsDialog *dialog = (COsDialog *)sGetOsGuiPointer(hdlg);
   switch (msg) {
     case WM_ACTIVATE:
       if (dialog && LOWORD(wParam)) {
@@ -585,7 +585,7 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
         int minX;
         int minY;
         dialog->GetMinSize(&minX, &minY);
-        MINMAXINFO *minMaxInfo = reinterpret_cast<MINMAXINFO *>(lParam);
+        MINMAXINFO *minMaxInfo = (MINMAXINFO *)lParam;
         if (minX != -1) {
           minMaxInfo->ptMinTrackSize.x = minX;
         }
@@ -597,8 +597,8 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
     case WM_DRAWITEM:
       return sHandleDrawItem(lParam);
     case WM_NOTIFY: {
-      NMHDR      *notify = reinterpret_cast<NMHDR *>(lParam);
-      COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(notify->hwndFrom));
+      NMHDR      *notify = (NMHDR *)lParam;
+      COsControl *control = (COsControl *)sGetOsGuiPointer(notify->hwndFrom);
       if (control) {
         return control->OnNotify(notify->code, notify);
       }
@@ -610,7 +610,7 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
     case WM_HSCROLL:
     case WM_VSCROLL:
       if (lParam) {
-        COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(reinterpret_cast<HWND>(lParam)));
+        COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
         if (control) {
           return control->OnScroll(wParam);
         }
@@ -619,10 +619,10 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
     case WM_CONTEXTMENU: {
       int x = LOWORD(lParam);
       int y = HIWORD(lParam);
-      if (reinterpret_cast<HWND>(wParam) == hdlg && dialog) {
+      if ((HWND)wParam == hdlg && dialog) {
         return dialog->OnContextMenu(x, y);
       } else {
-        COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(reinterpret_cast<HWND>(wParam)));
+        COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)wParam);
         if (control) {
           return control->OnContextMenu(x, y);
         }
@@ -642,13 +642,13 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
           }
           return accept ? dialog->OnAccept() : dialog->OnCancel();
         }
-        if (dialog && GetMenu(static_cast<HWND>(dialog->GetHandle()))) {
+        if (dialog && GetMenu((HWND)dialog->GetHandle())) {
           int command = sMenuRaw2RealID(LOWORD(wParam));
           return dialog->OnEvent(-2, command, 0);
         }
         return 0;
       } else {
-        COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(reinterpret_cast<HWND>(lParam)));
+        COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
         if (control) {
           return control->OnCommand(wParam);
         }
@@ -661,7 +661,7 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
     case WM_CTLCOLORLISTBOX:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-      return reinterpret_cast<int>(sHandleCtlColor(wParam, lParam));
+      return (int)sHandleCtlColor(wParam, lParam);
     case WM_LBUTTONDOWN:
       if (dialog) {
         return dialog->OnMouseDown();
@@ -680,7 +680,7 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
     case 0x20A: {
       COsControl *control = dialog->FindControl(GetFocus());
       if (control) {
-        control->OnMouseWheel(static_cast<short>(HIWORD(wParam)) / 120);
+        control->OnMouseWheel((short)HIWORD(wParam) / 120);
       }
       return 0;
     }
@@ -702,8 +702,8 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
 }
 
 static int CALLBACK sDisableWindow(HWND__ *hwnd, long param) {
-  TSGrowableArray<LPVOID> *windows = reinterpret_cast<TSGrowableArray<LPVOID> *>(param);
-  if (reinterpret_cast<HINSTANCE>(GetWindowLongA(hwnd, GWL_HINSTANCE)) == sAppInstance && IsWindowEnabled(hwnd)) {
+  TSGrowableArray<LPVOID> *windows = (TSGrowableArray<LPVOID> *)param;
+  if ((HINSTANCE)GetWindowLongA(hwnd, GWL_HINSTANCE) == sAppInstance && IsWindowEnabled(hwnd)) {
     EnableWindow(hwnd, FALSE);
     *windows->New() = hwnd;
   }
@@ -824,7 +824,7 @@ void COsControl::Initialize(LPVOID inWindow, int inType, short inID, UINT inFlag
 
   ASSERT(sAppInstance != 0);
   mHandle = CreateWindowExA(
-      extFlags, ControlClassName[mType], "", style, 0, 0, 0, 0, static_cast<HWND>(inWindow), reinterpret_cast<HMENU>(static_cast<int>(mID)),
+      extFlags, ControlClassName[mType], "", style, 0, 0, 0, 0, (HWND)inWindow, (HMENU)((int)mID),
       sAppInstance, 0
   );
   if (!mHandle) {
@@ -841,13 +841,13 @@ void COsControl::Initialize(LPVOID inWindow, int inType, short inID, UINT inFlag
   }
 
   SetFont(ControlFont[mType]);
-  sSetOsGuiPointer(static_cast<HWND>(mHandle), this);
+  sSetOsGuiPointer((HWND)mHandle, this);
 }
 
 COsControl::~COsControl() {
   if (!mDialog) {
-    sRemoveOsGuiPointer(static_cast<HWND>(mHandle));
-    DestroyWindow(static_cast<HWND>(mHandle));
+    sRemoveOsGuiPointer((HWND)mHandle);
+    DestroyWindow((HWND)mHandle);
   }
   DELIFUSED(mContextMenu);
 }
@@ -864,12 +864,12 @@ void COsControl::SetRedraw(int inVal) {
     }
   }
   if (send) {
-    SendMessageA(static_cast<HWND>(mHandle), WM_SETREDRAW, inVal, 0);
+    SendMessageA((HWND)mHandle, WM_SETREDRAW, inVal, 0);
   }
 }
 
 void COsControl::Refresh(int inErase) {
-  InvalidateRect(static_cast<HWND>(mHandle), 0, inErase);
+  InvalidateRect((HWND)mHandle, 0, inErase);
 }
 
 void COsControl::SetCallback(void (*inFunc)(const OsGuiCallbackParams &), LPVOID inParam) {
@@ -908,19 +908,19 @@ void COsControl::SetFont(int inFont) {
       return;
   }
   if (font) {
-    SendMessageA(static_cast<HWND>(mHandle), WM_SETFONT, reinterpret_cast<WPARAM>(font), 1);
+    SendMessageA((HWND)mHandle, WM_SETFONT, (WPARAM)font, 1);
   }
 }
 
 void COsControl::SetInputFocus() {
   if (mDialog->GetHandle() == OsGuiGetWindow(1)) {
-    SetFocus(static_cast<HWND>(mHandle));
+    SetFocus((HWND)mHandle);
   }
 }
 
 void COsControl::LoseInputFocus() {
   if (HasInputFocus()) {
-    SetFocus(GetParent(static_cast<HWND>(mHandle)));
+    SetFocus(GetParent((HWND)mHandle));
   }
 }
 
@@ -929,26 +929,26 @@ BOOL COsControl::HasInputFocus() {
 }
 
 void COsControl::SetText(LPCSTR inText) {
-  SetWindowTextA(static_cast<HWND>(mHandle), inText);
+  SetWindowTextA((HWND)mHandle, inText);
   OnTextChange();
 }
 
 void COsControl::GetText(char *outText, int inBufSize) {
-  GetWindowTextA(static_cast<HWND>(mHandle), outText, inBufSize);
+  GetWindowTextA((HWND)mHandle, outText, inBufSize);
 }
 
 int COsControl::GetTextLength() {
-  return GetWindowTextLengthA(static_cast<HWND>(mHandle));
+  return GetWindowTextLengthA((HWND)mHandle);
 }
 
 void COsControl::GetTextSize(LPCSTR inText, int *outW, int *outH) {
-  HDC     dc = GetDC(static_cast<HWND>(mHandle));
-  HFONT oldFont = static_cast<HFONT>(SelectObject(dc, reinterpret_cast<HFONT>(SendMessageA(static_cast<HWND>(mHandle), WM_GETFONT, 0, 0))));
+  HDC     dc = GetDC((HWND)mHandle);
+  HFONT oldFont = (HFONT)SelectObject(dc, (HFONT)SendMessageA((HWND)mHandle, WM_GETFONT, 0, 0));
   SIZE  size;
   int   textLen = SStrLen(inText);
   GetTextExtentPoint32A(dc, inText, textLen, &size);
   SelectObject(dc, oldFont);
-  ReleaseDC(static_cast<HWND>(mHandle), dc);
+  ReleaseDC((HWND)mHandle, dc);
   *outW = size.cx;
   if (outH) {
     *outH = size.cy;
@@ -962,32 +962,32 @@ void COsControl::GetTextSize(int *outW, int *outH) {
 }
 
 void COsControl::Show(int inVal) {
-  ShowWindow(static_cast<HWND>(mHandle), inVal ? SW_SHOW : SW_HIDE);
+  ShowWindow((HWND)mHandle, inVal ? SW_SHOW : SW_HIDE);
 }
 
 BOOL COsControl::IsShowing() {
-  return IsWindowVisible(static_cast<HWND>(mHandle));
+  return IsWindowVisible((HWND)mHandle);
 }
 
 void COsControl::Enable(int inVal) {
-  EnableWindow(static_cast<HWND>(mHandle), inVal);
+  EnableWindow((HWND)mHandle, inVal);
 }
 
 BOOL COsControl::IsEnabled() {
-  return IsWindowEnabled(static_cast<HWND>(mHandle));
+  return IsWindowEnabled((HWND)mHandle);
 }
 
 void COsControl::SetPosition(int inX, int inY) {
-  SetWindowPos(static_cast<HWND>(mHandle), 0, inX, inY, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+  SetWindowPos((HWND)mHandle, 0, inX, inY, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
 }
 
 void COsControl::GetPosition(int *outX, int *outY, int inParentRelative) {
   RECT rect;
-  GetWindowRect(static_cast<HWND>(mHandle), &rect);
+  GetWindowRect((HWND)mHandle, &rect);
   int x = rect.left;
   int y = rect.top;
   if (inParentRelative) {
-    HWND parent = GetParent(static_cast<HWND>(mHandle));
+    HWND parent = GetParent((HWND)mHandle);
     if (parent) {
       NTempest::CiRect prect = OsGuiGetWindowRect(parent, 1);
       x -= prect.l;
@@ -999,13 +999,13 @@ void COsControl::GetPosition(int *outX, int *outY, int inParentRelative) {
 }
 
 void COsControl::SetSize(int inW, int inH) {
-  SetWindowPos(static_cast<HWND>(mHandle), 0, 0, 0, inW, inH, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+  SetWindowPos((HWND)mHandle, 0, 0, 0, inW, inH, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
   OnSizeChange();
 }
 
 void COsControl::GetSize(int *outW, int *outH) {
   RECT rect;
-  GetWindowRect(static_cast<HWND>(mHandle), &rect);
+  GetWindowRect((HWND)mHandle, &rect);
   *outW = rect.right - rect.left;
   *outH = rect.bottom - rect.top;
 }
@@ -1015,20 +1015,20 @@ void COsControl::SetTooltip(LPCSTR inText) {
   HWND owner;
   if (!mDialog) {
     tips = sGetGlobalTips();
-    owner = GetParent(static_cast<HWND>(mHandle));
+    owner = GetParent((HWND)mHandle);
   } else {
-    tips = static_cast<HWND>(mDialog->GetTooltips());
-    owner = static_cast<HWND>(mDialog->GetHandle());
+    tips = (HWND)mDialog->GetTooltips();
+    owner = (HWND)mDialog->GetHandle();
   }
   if (tips) {
     TOOLINFOA toolinfo;
     toolinfo.cbSize = sizeof(toolinfo);
     toolinfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
     toolinfo.hwnd = owner;
-    toolinfo.uId = reinterpret_cast<UINT_PTR>(mHandle);
+    toolinfo.uId = (UINT_PTR)mHandle;
     toolinfo.hinst = sAppInstance;
-    toolinfo.lpszText = const_cast<char *>(inText);
-    if (!SendMessageA(tips, TTM_ADDTOOLA, 0, reinterpret_cast<LPARAM>(&toolinfo))) {
+    toolinfo.lpszText = (char *)inText;
+    if (!SendMessageA(tips, TTM_ADDTOOLA, 0, (LPARAM)&toolinfo)) {
       OsOutputDebugString("Warning: COsControl::SetTooltip - TTM_ADDTOOL failed\n");
     }
   }
@@ -1047,7 +1047,7 @@ COsMenu::COsMenu() {
 }
 
 COsMenu::~COsMenu() {
-  DestroyMenu(static_cast<HMENU>(mMenuHandle));
+  DestroyMenu((HMENU)mMenuHandle);
 }
 
 void COsMenu::Clear() {
@@ -1058,12 +1058,12 @@ void COsMenu::Clear() {
 }
 
 void COsMenu::RemoveItem(int inPos) {
-  DeleteMenu(static_cast<HMENU>(mMenuHandle), inPos, MF_BYPOSITION);
+  DeleteMenu((HMENU)mMenuHandle, inPos, MF_BYPOSITION);
   RemoveHotkey(inPos);
 }
 
 int COsMenu::GetNumItems() {
-  return GetMenuItemCount(static_cast<HMENU>(mMenuHandle));
+  return GetMenuItemCount((HMENU)mMenuHandle);
 }
 
 BOOL COsMenu::GetHotkey(int inPos, OsGuiMenuHotkey *outHotkey) {
@@ -1111,7 +1111,7 @@ void COsMenu::AddTextItem(int inPos, LPCSTR inText, OsGuiMenuHotkey *inHotkey) {
   menuInfo.fType = MFT_STRING;
   menuInfo.dwTypeData = itemText;
   menuInfo.wID = sMenuReal2RawID((mID << 8) | inPos);
-  InsertMenuItemA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  InsertMenuItemA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
 
   AddHotkey(inPos);
   if (inHotkey) {
@@ -1125,8 +1125,8 @@ void COsMenu::AddSubMenu(int inPos, LPCSTR inTitle, COsMenu *inMenu) {
   MENUITEMINFOA menuInfo;
   menuInfo.cbSize = sizeof(menuInfo);
   menuInfo.fMask = MIIM_SUBMENU;
-  menuInfo.hSubMenu = static_cast<HMENU>(inMenu->GetMenuHandle());
-  SetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  menuInfo.hSubMenu = (HMENU)inMenu->GetMenuHandle();
+  SetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
   AddHotkey(inPos);
 }
 
@@ -1136,7 +1136,7 @@ void COsMenu::AddSeparator(int inPos) {
   menuInfo.fMask = MIIM_TYPE | MIIM_ID;
   menuInfo.fType = MFT_SEPARATOR;
   menuInfo.wID = 0xFFFF;
-  InsertMenuItemA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  InsertMenuItemA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
   AddHotkey(inPos);
 }
 
@@ -1144,26 +1144,26 @@ void COsMenu::EnableItem(int inPos, int inVal) {
   MENUITEMINFOA menuInfo;
   menuInfo.cbSize = sizeof(menuInfo);
   menuInfo.fMask = MIIM_STATE;
-  GetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  GetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
   if (inVal) {
     menuInfo.fState &= ~(MFS_DISABLED | MFS_GRAYED);
   } else {
     menuInfo.fState |= MFS_DISABLED | MFS_GRAYED;
   }
-  SetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  SetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
 }
 
 void COsMenu::CheckItem(int inPos, int inVal) {
   MENUITEMINFOA menuInfo;
   menuInfo.cbSize = sizeof(menuInfo);
   menuInfo.fMask = MIIM_STATE;
-  GetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  GetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
   if (inVal) {
     menuInfo.fState |= MFS_CHECKED;
   } else {
     menuInfo.fState &= ~MFS_CHECKED;
   }
-  SetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  SetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
 }
 
 void COsMenu::SetItemText(int inPos, LPCSTR inText) {
@@ -1180,29 +1180,29 @@ void COsMenu::SetItemText(int inPos, LPCSTR inText) {
   menuInfo.fMask = 0x40;
   menuInfo.dwTypeData = oldText;
   menuInfo.cch = sizeof(oldText);
-  GetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+  GetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
   if (SStrCmp(oldText, itemText, 0x7FFFFFFF)) {
     menuInfo.dwTypeData = itemText;
-    SetMenuItemInfoA(static_cast<HMENU>(mMenuHandle), inPos, TRUE, &menuInfo);
+    SetMenuItemInfoA((HMENU)mMenuHandle, inPos, TRUE, &menuInfo);
   }
 }
 
 COsMenuBar::COsMenuBar(LPVOID inWindowHandle) {
   mWindowHandle = inWindowHandle;
   mMenuBarHandle = CreateMenu();
-  SetMenu(static_cast<HWND>(mWindowHandle), static_cast<HMENU>(mMenuBarHandle));
+  SetMenu((HWND)mWindowHandle, (HMENU)mMenuBarHandle);
   mAccelerators = 0;
   *sMenubars.New() = this;
 }
 
 COsMenuBar::~COsMenuBar() {
-  DestroyMenu(static_cast<HMENU>(mMenuBarHandle));
+  DestroyMenu((HMENU)mMenuBarHandle);
   if (mAccelerators) {
-    DestroyAcceleratorTable(static_cast<HACCEL>(mAccelerators));
+    DestroyAcceleratorTable((HACCEL)mAccelerators);
   }
 
   int id = -1;
-  for (int i = 0; i < static_cast<int>(sMenubars.Count()); ++i) {
+  for (int i = 0; i < (int)sMenubars.Count(); ++i) {
     if (sMenubars[i] == this) {
       id = i;
       break;
@@ -1224,10 +1224,10 @@ void COsMenuBar::Set(TSGrowableArray<COsMenu *> &inMenus) {
     menuInfo.fMask = MIIM_TYPE;
     menuInfo.fType = MFT_STRING;
     menuInfo.dwTypeData = menu->GetTitle();
-    InsertMenuItemA(static_cast<HMENU>(mMenuBarHandle), i, TRUE, &menuInfo);
+    InsertMenuItemA((HMENU)mMenuBarHandle, i, TRUE, &menuInfo);
     menuInfo.fMask = MIIM_SUBMENU;
-    menuInfo.hSubMenu = static_cast<HMENU>(menu->GetMenuHandle());
-    SetMenuItemInfoA(static_cast<HMENU>(mMenuBarHandle), i, TRUE, &menuInfo);
+    menuInfo.hSubMenu = (HMENU)menu->GetMenuHandle();
+    SetMenuItemInfoA((HMENU)mMenuBarHandle, i, TRUE, &menuInfo);
   }
   UpdateAccelerators();
   Refresh();
@@ -1235,19 +1235,19 @@ void COsMenuBar::Set(TSGrowableArray<COsMenu *> &inMenus) {
 
 void COsMenuBar::UpdateAccelerators() {
   if (mAccelerators) {
-    DestroyAcceleratorTable(static_cast<HACCEL>(mAccelerators));
+    DestroyAcceleratorTable((HACCEL)mAccelerators);
     mAccelerators = 0;
   }
 
   TSGrowableArray<ACCEL> accels;
-  for (int index = 0; index < static_cast<int>(mMenus.Count()); ++index) {
+  for (int index = 0; index < (int)mMenus.Count(); ++index) {
     COsMenu *menu = mMenus[index];
     for (int m = 0; m < menu->GetNumItems(); ++m) {
       OsGuiMenuHotkey hotkey;
       if (menu->GetHotkey(m, &hotkey)) {
         ACCEL accEntry;
         sHotkeyToAccel(&hotkey, &accEntry);
-        accEntry.cmd = static_cast<WORD>((menu->GetID() << 8) | m);
+        accEntry.cmd = (WORD)((menu->GetID() << 8) | m);
         *accels.New() = accEntry;
       }
     }
@@ -1260,7 +1260,7 @@ void COsMenuBar::UpdateAccelerators() {
 }
 
 void COsMenuBar::Refresh() {
-  DrawMenuBar(static_cast<HWND>(mWindowHandle));
+  DrawMenuBar((HWND)mWindowHandle);
 }
 
 COsDialog::COsDialog(LPVOID inWindowHandle, UINT inFlags) {
@@ -1288,8 +1288,8 @@ COsDialog::COsDialog(LPVOID inWindowHandle, UINT inFlags) {
   }
 
   ASSERT(sAppInstance != 0);
-  mHandle = CreateDialogIndirectParamA(sAppInstance, &dlgTemplate.header, static_cast<HWND>(inWindowHandle), sDlgProc, 0);
-  sSetOsGuiPointer(static_cast<HWND>(mHandle), this);
+  mHandle = CreateDialogIndirectParamA(sAppInstance, &dlgTemplate.header, (HWND)inWindowHandle, sDlgProc, 0);
+  sSetOsGuiPointer((HWND)mHandle, this);
   *sDialogs.New() = this;
   ApplyModality(1);
 }
@@ -1305,10 +1305,10 @@ COsDialog::~COsDialog() {
 
   DELIFUSED(mContextMenu);
   if (mTooltips) {
-    DestroyWindow(static_cast<HWND>(mTooltips));
+    DestroyWindow((HWND)mTooltips);
   }
-  sRemoveOsGuiPointer(static_cast<HWND>(mHandle));
-  DestroyWindow(static_cast<HWND>(mHandle));
+  sRemoveOsGuiPointer((HWND)mHandle);
+  DestroyWindow((HWND)mHandle);
 
   int id = -1;
   for (i = 0; i < sDialogs.Count(); ++i) {
@@ -1329,14 +1329,14 @@ void COsDialog::ApplyModality(int inVal) {
     VALIDATE(mDisabledWindows.Count() == 0);
     VALIDATEENDVOID;
     if (mFlags & 0x4) {
-      HWND parent = static_cast<HWND>(GetParentWindow());
+      HWND parent = (HWND)GetParentWindow();
       if (parent) {
-        sDisableWindow(parent, reinterpret_cast<long>(&mDisabledWindows));
+        sDisableWindow(parent, (long)&mDisabledWindows);
       }
     }
   } else {
     for (UINT i = 0; i < mDisabledWindows.Count(); ++i) {
-      EnableWindow(static_cast<HWND>(mDisabledWindows[i]), TRUE);
+      EnableWindow((HWND)mDisabledWindows[i], TRUE);
     }
     mDisabledWindows.Clear();
   }
@@ -1344,23 +1344,23 @@ void COsDialog::ApplyModality(int inVal) {
 
 LPVOID COsDialog::GetTooltips() {
   if (!mTooltips) {
-    mTooltips = sCreateTooltips(static_cast<HWND>(mHandle));
+    mTooltips = sCreateTooltips((HWND)mHandle);
   }
   return mTooltips;
 }
 
 void COsDialog::AddControl(COsControl *inControl) {
   *mControls.New() = inControl;
-  HWND parent = GetParent(static_cast<HWND>(inControl->GetHandle()));
+  HWND parent = GetParent((HWND)inControl->GetHandle());
   if (parent != mHandle) {
-    SetParent(static_cast<HWND>(inControl->GetHandle()), static_cast<HWND>(mHandle));
+    SetParent((HWND)inControl->GetHandle(), (HWND)mHandle);
   }
 }
 
 void COsDialog::EnableTooltips(int inVal) {
   mTooltipsEnabled = inVal;
   if (mTooltips) {
-    SendMessageA(static_cast<HWND>(mTooltips), TTM_ACTIVATE, inVal, 0);
+    SendMessageA((HWND)mTooltips, TTM_ACTIVATE, inVal, 0);
   }
 }
 
@@ -1376,8 +1376,8 @@ int COsDialog::FindControl(COsControl *inControl) {
 void COsDialog::DeleteControl(COsControl *inControl) {
   DetachControl(inControl);
   inControl->OnDestroy();
-  sRemoveOsGuiPointer(static_cast<HWND>(inControl->mHandle));
-  DestroyWindow(static_cast<HWND>(inControl->mHandle));
+  sRemoveOsGuiPointer((HWND)inControl->mHandle);
+  DestroyWindow((HWND)inControl->mHandle);
   DEL(inControl);
 }
 
@@ -1391,7 +1391,7 @@ void COsDialog::DetachControl(COsControl *inControl) {
 }
 
 LPVOID COsDialog::GetParentWindow() {
-  return GetParent(static_cast<HWND>(mHandle));
+  return GetParent((HWND)mHandle);
 }
 
 COsControl *COsDialog::FindControl(LPVOID inHandle) {
@@ -1404,12 +1404,12 @@ COsControl *COsDialog::FindControl(LPVOID inHandle) {
 }
 
 int COsDialog::ProcessMessage(LPVOID inMsgData) {
-  MSG        *message = static_cast<MSG *>(inMsgData);
+  MSG        *message = (MSG *)inMsgData;
   COsControl *control;
 
   if (message->wParam == VK_ESCAPE && message->message == WM_KEYDOWN) {
     control = FindControl(message->hwnd);
-    if (control && control->GetType() == 4 && (GetWindowLongA(static_cast<HWND>(control->GetHandle()), GWL_STYLE) & 0x04)) {
+    if (control && control->GetType() == 4 && (GetWindowLongA((HWND)control->GetHandle(), GWL_STYLE) & 0x04)) {
       return OnCancel();
     }
   }
@@ -1417,13 +1417,13 @@ int COsDialog::ProcessMessage(LPVOID inMsgData) {
   if (message->message == WM_CHAR) {
     control = FindControl(message->hwnd);
     if (control) {
-      char c = static_cast<char>(message->wParam);
+      char c = (char)message->wParam;
       int  allowed;
 
       if (control->GetType() == 4) {
-        allowed = static_cast<COsEditBox *>(control)->IsCharacterAllowed(c);
+        allowed = ((COsEditBox *)control)->IsCharacterAllowed(c);
       } else if (control->GetType() == 10) {
-        allowed = static_cast<COsTreeView *>(control)->IsCharacterAllowed(c);
+        allowed = ((COsTreeView *)control)->IsCharacterAllowed(c);
       } else {
         allowed = 1;
       }
@@ -1447,7 +1447,7 @@ int COsDialog::ProcessMessage(LPVOID inMsgData) {
     return 1;
   }
 
-  return IsDialogMessageA(static_cast<HWND>(mHandle), message);
+  return IsDialogMessageA((HWND)mHandle, message);
 }
 
 void COsDialog::CheckEvents() {
@@ -1469,7 +1469,7 @@ void COsDialog::SetTrackMouse(int inVal) {
 BOOL COsDialog::IsMouseInside() {
   POINT cursPoint;
   RECT  dlgRect;
-  return GetCursorPos(&cursPoint) && GetWindowRect(static_cast<HWND>(mHandle), &dlgRect) && cursPoint.x > dlgRect.left &&
+  return GetCursorPos(&cursPoint) && GetWindowRect((HWND)mHandle, &dlgRect) && cursPoint.x > dlgRect.left &&
          cursPoint.x < dlgRect.right && cursPoint.y > dlgRect.top && cursPoint.y < dlgRect.bottom;
 }
 
@@ -1479,9 +1479,9 @@ void COsDialog::SetCallback(void (*inFunc)(const OsGuiCallbackParams &), LPVOID 
 }
 
 void COsDialog::BringToFront() {
-  HWND window = GetWindow(static_cast<HWND>(mHandle), 6);
+  HWND window = GetWindow((HWND)mHandle, 6);
   if (!window) {
-    window = static_cast<HWND>(mHandle);
+    window = (HWND)mHandle;
   }
   OsGuiBringWindowToFront(window);
 }
@@ -1491,39 +1491,39 @@ BOOL COsDialog::IsInFront() {
 }
 
 void COsDialog::SetInputFocus() {
-  SetFocus(static_cast<HWND>(mHandle));
+  SetFocus((HWND)mHandle);
 }
 
 void COsDialog::Show(int inVal) {
-  ShowWindow(static_cast<HWND>(mHandle), inVal ? SW_SHOW : SW_HIDE);
+  ShowWindow((HWND)mHandle, inVal ? SW_SHOW : SW_HIDE);
 }
 
 BOOL COsDialog::IsShowing() {
-  return IsWindowVisible(static_cast<HWND>(mHandle));
+  return IsWindowVisible((HWND)mHandle);
 }
 
 BOOL COsDialog::IsEnabled() {
-  return IsWindowEnabled(static_cast<HWND>(mHandle));
+  return IsWindowEnabled((HWND)mHandle);
 }
 
 void COsDialog::SetRedraw(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), WM_SETREDRAW, inVal, 0);
+  SendMessageA((HWND)mHandle, WM_SETREDRAW, inVal, 0);
 }
 
 void COsDialog::Refresh(int inErase) {
   if (IsShowing()) {
-    InvalidateRect(static_cast<HWND>(mHandle), 0, inErase);
+    InvalidateRect((HWND)mHandle, 0, inErase);
   }
 }
 
 void COsDialog::SetPosition(int inX, int inY) {
-  SetWindowPos(static_cast<HWND>(mHandle), 0, inX, inY, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
+  SetWindowPos((HWND)mHandle, 0, inX, inY, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE);
 }
 
 void COsDialog::GetPosition(int *outX, int *outY, int inClient) {
   WINDOWINFO wInfo;
   wInfo.cbSize = sizeof(wInfo);
-  GetWindowInfo(static_cast<HWND>(mHandle), &wInfo);
+  GetWindowInfo((HWND)mHandle, &wInfo);
   if (inClient) {
     *outX = wInfo.rcClient.left;
     *outY = wInfo.rcClient.top;
@@ -1534,7 +1534,7 @@ void COsDialog::GetPosition(int *outX, int *outY, int inClient) {
 }
 
 void COsDialog::SetSize(int inW, int inH) {
-  SetWindowPos(static_cast<HWND>(mHandle), 0, 0, 0, inW, inH, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+  SetWindowPos((HWND)mHandle, 0, 0, 0, inW, inH, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
 }
 
 void COsDialog::GetSize(int *outW, int *outH, int inClientOnly) {
@@ -1555,7 +1555,7 @@ BOOL COsDialog::GetMinSize(int *outW, int *outH) {
 }
 
 void COsDialog::SetTitle(LPCSTR inText) {
-  SetWindowTextA(static_cast<HWND>(mHandle), inText);
+  SetWindowTextA((HWND)mHandle, inText);
 }
 
 BOOL COsDialog::OnAccept() {
@@ -1611,7 +1611,7 @@ BOOL COsDialog::OnMouseMove(int inX, int inY) {
     TRACKMOUSEEVENT trackInfo;
     trackInfo.cbSize = sizeof(trackInfo);
     trackInfo.dwFlags = TME_LEAVE;
-    trackInfo.hwndTrack = static_cast<HWND>(mHandle);
+    trackInfo.hwndTrack = (HWND)mHandle;
     BOOL success = _TrackMouseEvent(&trackInfo);
     ASSERT(success);
     mNeedNewTrack = 0;
@@ -1624,7 +1624,7 @@ BOOL COsDialog::OnMouseMove(int inX, int inY) {
 }
 
 BOOL COsDialog::OnControlTab() {
-  int         controlCount = static_cast<int>(mControls.Count());
+  int         controlCount = (int)mControls.Count();
   COsControl *control = 0;
 
   for (int index = 0; index < controlCount; ++index) {
@@ -1637,7 +1637,7 @@ BOOL COsDialog::OnControlTab() {
   if (!control) {
     return 0;
   }
-  return static_cast<COsTabControl *>(control)->OnControlTab();
+  return ((COsTabControl *)control)->OnControlTab();
 }
 
 BOOL COsDialog::HasFlag(UINT inFlag) {
@@ -1656,7 +1656,7 @@ int COsDialog::OnContextMenu(int inX, int inY) {
   }
 
   int itemID =
-      TrackPopupMenu(static_cast<HMENU>(mContextMenu->GetMenuHandle()), TPM_RETURNCMD | TPM_NONOTIFY, inX, inY, 0, static_cast<HWND>(mHandle), 0);
+      TrackPopupMenu((HMENU)mContextMenu->GetMenuHandle(), TPM_RETURNCMD | TPM_NONOTIFY, inX, inY, 0, (HWND)mHandle, 0);
   return itemID ? OnEvent(-3, itemID | 0xFFFF0000, 0) : 0;
 }
 
@@ -1675,7 +1675,7 @@ COsButton::COsButton(COsDialog *inDialog, short inID, UINT inFlags) : COsControl
 
 void COsButton::SetDefaultButton() {
   if (mDialog) {
-    SendMessageA(static_cast<HWND>(mDialog->GetHandle()), DM_SETDEFID, mID, 0);
+    SendMessageA((HWND)mDialog->GetHandle(), DM_SETDEFID, mID, 0);
   }
 }
 
@@ -1688,7 +1688,7 @@ void COsButton::SetCancelButton() {
 void COsButton::SetHighlight(int inVal) {
   int enabled = IsEnabled();
   Enable(0);
-  SendMessageA(static_cast<HWND>(mHandle), BM_SETSTATE, inVal, 0);
+  SendMessageA((HWND)mHandle, BM_SETSTATE, inVal, 0);
   Enable(enabled);
 }
 
@@ -1710,19 +1710,19 @@ void COsCheckbox::SetMaxWidth(int inWidth) {
 }
 
 void COsCheckbox::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), BM_SETCHECK, inVal != 0, 0);
+  SendMessageA((HWND)mHandle, BM_SETCHECK, inVal != 0, 0);
 }
 
 BOOL COsCheckbox::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), BM_GETCHECK, 0, 0) == BST_CHECKED;
+  return SendMessageA((HWND)mHandle, BM_GETCHECK, 0, 0) == BST_CHECKED;
 }
 
 void COsCheckbox::ClearValue() {
-  SendMessageA(static_cast<HWND>(mHandle), BM_SETCHECK, BST_INDETERMINATE, 0);
+  SendMessageA((HWND)mHandle, BM_SETCHECK, BST_INDETERMINATE, 0);
 }
 
 BOOL COsCheckbox::HasValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), BM_GETCHECK, 0, 0) != BST_INDETERMINATE;
+  return SendMessageA((HWND)mHandle, BM_GETCHECK, 0, 0) != BST_INDETERMINATE;
 }
 
 BOOL COsCheckbox::OnEvent(int inItemID, int inNotifyCode, int inCode) {
@@ -1771,7 +1771,7 @@ void COsEditBox::Initialize() {
   mFiltersEnabled = 0;
   mFilters = 0;
   mSelSize = 0;
-  SetWindowLongA(static_cast<HWND>(mHandle), GWL_WNDPROC, reinterpret_cast<LONG>(sEditBoxProc));
+  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sEditBoxProc);
 }
 
 void COsEditBox::UpdateSelection() {
@@ -1787,17 +1787,17 @@ BOOL COsEditBox::OnReturn() {
 }
 
 void COsEditBox::SetTextLimit(int inSize) {
-  SendMessageA(static_cast<HWND>(mHandle), EM_LIMITTEXT, inSize, 0);
+  SendMessageA((HWND)mHandle, EM_LIMITTEXT, inSize, 0);
 }
 
 void COsEditBox::SelectAll() {
-  SendMessageA(static_cast<HWND>(mHandle), EM_SETSEL, 0, -1);
+  SendMessageA((HWND)mHandle, EM_SETSEL, 0, -1);
 }
 
 int COsEditBox::GetSelectionSize() {
   UINT selStart;
   UINT selEnd;
-  SendMessageA(static_cast<HWND>(mHandle), EM_GETSEL, reinterpret_cast<WPARAM>(&selStart), reinterpret_cast<LPARAM>(&selEnd));
+  SendMessageA((HWND)mHandle, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
   return selEnd - selStart;
 }
 
@@ -1820,7 +1820,7 @@ BOOL COsEditBox::CanDoClipboardAction(int inAction) {
     case 3:
       return GetSelectionSize() > 0;
     case 2: {
-      if (!OpenClipboard(static_cast<HWND>(mHandle))) {
+      if (!OpenClipboard((HWND)mHandle)) {
         return 0;
       }
       int result = GetClipboardData(CF_TEXT) != 0;
@@ -1830,7 +1830,7 @@ BOOL COsEditBox::CanDoClipboardAction(int inAction) {
     case 4:
       return 1;
     case 5:
-      return SendMessageA(static_cast<HWND>(mHandle), EM_CANUNDO, 0, 0);
+      return SendMessageA((HWND)mHandle, EM_CANUNDO, 0, 0);
     default:
       return 0;
   }
@@ -1839,22 +1839,22 @@ BOOL COsEditBox::CanDoClipboardAction(int inAction) {
 BOOL COsEditBox::DoClipboardAction(int inAction) {
   switch (inAction) {
     case 0:
-      SendMessageA(static_cast<HWND>(mHandle), WM_CUT, 0, 0);
+      SendMessageA((HWND)mHandle, WM_CUT, 0, 0);
       return 1;
     case 1:
-      SendMessageA(static_cast<HWND>(mHandle), WM_COPY, 0, 0);
+      SendMessageA((HWND)mHandle, WM_COPY, 0, 0);
       return 1;
     case 3:
-      SendMessageA(static_cast<HWND>(mHandle), WM_CLEAR, 0, 0);
+      SendMessageA((HWND)mHandle, WM_CLEAR, 0, 0);
       return 1;
     case 2:
-      SendMessageA(static_cast<HWND>(mHandle), WM_PASTE, 0, 0);
+      SendMessageA((HWND)mHandle, WM_PASTE, 0, 0);
       return 1;
     case 4:
       SelectAll();
       return 1;
     case 5:
-      SendMessageA(static_cast<HWND>(mHandle), EM_UNDO, 0, 0);
+      SendMessageA((HWND)mHandle, EM_UNDO, 0, 0);
       return 1;
     default:
       return 0;
@@ -1871,7 +1871,7 @@ void COsListBox::SetValue(int inVal) {
   VALIDATEBEGIN;
   VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) == 0);
   VALIDATEENDVOID;
-  SendMessageA(static_cast<HWND>(mHandle), LB_SETCURSEL, inVal, 0);
+  SendMessageA((HWND)mHandle, LB_SETCURSEL, inVal, 0);
 }
 
 int COsListBox::GetValue() {
@@ -1880,21 +1880,21 @@ int COsListBox::GetValue() {
     SErrSetLastError(ERROR_INVALID_PARAMETER);
     return -1;
   }
-  return SendMessageA(static_cast<HWND>(mHandle), LB_GETCURSEL, 0, 0);
+  return SendMessageA((HWND)mHandle, LB_GETCURSEL, 0, 0);
 }
 
 void COsListBox::SelectItem(int inPos, int inVal) {
   VALIDATEBEGIN;
   VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
   VALIDATEENDVOID;
-  SendMessageA(static_cast<HWND>(mHandle), LB_SETSEL, inVal, inPos);
+  SendMessageA((HWND)mHandle, LB_SETSEL, inVal, inPos);
 }
 
 BOOL COsListBox::IsItemSelected(int inPos) {
   VALIDATEBEGIN;
   VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
   VALIDATEEND;
-  return SendMessageA(static_cast<HWND>(mHandle), LB_GETSEL, inPos, 0);
+  return SendMessageA((HWND)mHandle, LB_GETSEL, inPos, 0);
 }
 
 void COsListBox::SelectAll(int inVal) {
@@ -1908,22 +1908,22 @@ void COsListBox::SelectAll(int inVal) {
 }
 
 void COsListBox::ClearItems() {
-  SendMessageA(static_cast<HWND>(mHandle), LB_RESETCONTENT, 0, 0);
+  SendMessageA((HWND)mHandle, LB_RESETCONTENT, 0, 0);
 }
 
 int COsListBox::GetNumItems() {
-  return SendMessageA(static_cast<HWND>(mHandle), LB_GETCOUNT, 0, 0);
+  return SendMessageA((HWND)mHandle, LB_GETCOUNT, 0, 0);
 }
 
 void COsListBox::InsertItem(LPCSTR inText, int inPos) {
-  SendMessageA(static_cast<HWND>(mHandle), LB_INSERTSTRING, inPos, reinterpret_cast<LPARAM>(inText));
+  SendMessageA((HWND)mHandle, LB_INSERTSTRING, inPos, (LPARAM)inText);
 }
 
 void COsListBox::DeleteItem(int inPos) {
   if (inPos == -1) {
     inPos = GetNumItems() - 1;
   }
-  SendMessageA(static_cast<HWND>(mHandle), LB_DELETESTRING, inPos, 0);
+  SendMessageA((HWND)mHandle, LB_DELETESTRING, inPos, 0);
 }
 
 void COsListBox::SetItemText(int inPos, LPCSTR inText) {
@@ -1932,7 +1932,7 @@ void COsListBox::SetItemText(int inPos, LPCSTR inText) {
 }
 
 int COsListBox::GetItemTextLength(int inPos) {
-  return SendMessageA(static_cast<HWND>(mHandle), LB_GETTEXTLEN, inPos, 0);
+  return SendMessageA((HWND)mHandle, LB_GETTEXTLEN, inPos, 0);
 }
 
 void COsListBox::GetItemText(int inPos, char *inBuf, int inBufSize) {
@@ -1940,15 +1940,15 @@ void COsListBox::GetItemText(int inPos, char *inBuf, int inBufSize) {
   VALIDATEBEGIN;
   VALIDATE(inBufSize > textLen);
   VALIDATEENDVOID;
-  SendMessageA(static_cast<HWND>(mHandle), LB_GETTEXT, inPos, reinterpret_cast<LPARAM>(inBuf));
+  SendMessageA((HWND)mHandle, LB_GETTEXT, inPos, (LPARAM)inBuf);
 }
 
 void COsListBox::SetItemHeight(int inHeight) {
-  SendMessageA(static_cast<HWND>(mHandle), LB_SETITEMHEIGHT, 0, inHeight);
+  SendMessageA((HWND)mHandle, LB_SETITEMHEIGHT, 0, inHeight);
 }
 
 int COsListBox::GetItemHeight() {
-  return SendMessageA(static_cast<HWND>(mHandle), LB_GETITEMHEIGHT, 0, 0);
+  return SendMessageA((HWND)mHandle, LB_GETITEMHEIGHT, 0, 0);
 }
 
 int COsListBox::OnContextMenu(int inX, int inY) {
@@ -1957,7 +1957,7 @@ int COsListBox::OnContextMenu(int inX, int inY) {
   GetPosition(&posX, &posY, 0);
   posX = inX - posX;
   posY = inY - posY;
-  int item = SendMessageA(static_cast<HWND>(mHandle), LB_ITEMFROMPOINT, 0, MAKELPARAM(posX, posY));
+  int item = SendMessageA((HWND)mHandle, LB_ITEMFROMPOINT, 0, MAKELPARAM(posX, posY));
   if (item >= 0 && item < GetNumItems()) {
     if (!(mFlags & 0x10000)) {
       int oldItem = GetValue();
@@ -1980,9 +1980,9 @@ BOOL COsListBox::OnReturn() {
 }
 
 COsListView::COsListView(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 16, inID, inFlags) {
-  SendMessageA(static_cast<HWND>(mHandle), 0x1036, 0x20, 0x20);
+  SendMessageA((HWND)mHandle, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
 
-  HWND header = reinterpret_cast<HWND>(SendMessageA(static_cast<HWND>(mHandle), 0x101F, 0, 0));
+  HWND header = (HWND)SendMessageA((HWND)mHandle, LVM_GETHEADER, 0, 0);
   sSetOsGuiPointer(header, this);
   if (!(mFlags & 0x10000)) {
     SetWindowLongA(header, GWL_STYLE, GetWindowLongA(header, GWL_STYLE) & ~2);
@@ -2005,12 +2005,12 @@ void COsListView::InsertColumn(int inPos) {
   colInfo.cx = 50;
   colInfo.iSubItem = inPos;
   colInfo.pszText = "";
-  SendMessageA(static_cast<HWND>(mHandle), LVM_INSERTCOLUMNA, inPos, reinterpret_cast<LPARAM>(&colInfo));
+  SendMessageA((HWND)mHandle, LVM_INSERTCOLUMNA, inPos, (LPARAM)&colInfo);
   ++mNumCols;
 }
 
 void COsListView::DeleteColumn(int inPos) {
-  SendMessageA(static_cast<HWND>(mHandle), LVM_DELETECOLUMN, inPos, 0);
+  SendMessageA((HWND)mHandle, LVM_DELETECOLUMN, inPos, 0);
   --mNumCols;
 }
 
@@ -2028,19 +2028,19 @@ void COsListView::InsertRow(int inPos) {
   item.iItem = inPos;
   item.iSubItem = 0;
   item.lParam = 0;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_INSERTITEMA, 0, reinterpret_cast<LPARAM>(&item));
+  SendMessageA((HWND)mHandle, LVM_INSERTITEMA, 0, (LPARAM)&item);
 }
 
 void COsListView::DeleteRow(int inPos) {
-  SendMessageA(static_cast<HWND>(mHandle), LVM_DELETEITEM, inPos, 0);
+  SendMessageA((HWND)mHandle, LVM_DELETEITEM, inPos, 0);
 }
 
 void COsListView::ClearRows() {
-  SendMessageA(static_cast<HWND>(mHandle), LVM_DELETEALLITEMS, 0, 0);
+  SendMessageA((HWND)mHandle, LVM_DELETEALLITEMS, 0, 0);
 }
 
 int COsListView::GetNumRows() {
-  return SendMessageA(static_cast<HWND>(mHandle), LVM_GETITEMCOUNT, 0, 0);
+  return SendMessageA((HWND)mHandle, LVM_GETITEMCOUNT, 0, 0);
 }
 
 void COsListView::SetRowColor(int inPos, const NTempest::CImVector &inColor) {
@@ -2049,7 +2049,7 @@ void COsListView::SetRowColor(int inPos, const NTempest::CImVector &inColor) {
   item.mask = LVIF_PARAM;
   item.iItem = inPos;
   item.iSubItem = 0;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&item));
+  SendMessageA((HWND)mHandle, LVM_SETITEMA, 0, (LPARAM)&item);
 }
 
 NTempest::CImVector COsListView::GetRowColor(int inPos) {
@@ -2057,17 +2057,17 @@ NTempest::CImVector COsListView::GetRowColor(int inPos) {
   item.mask = LVIF_PARAM;
   item.iItem = inPos;
   item.iSubItem = 0;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&item));
-  return NTempest::CImVector(static_cast<DWORD>(item.lParam));
+  SendMessageA((HWND)mHandle, LVM_GETITEMA, 0, (LPARAM)&item);
+  return NTempest::CImVector((DWORD)item.lParam);
 }
 
 void COsListView::SetItemText(int inRow, int inCol, LPCSTR inText) {
   LVITEMA item;
   item.mask = LVIF_TEXT;
-  item.pszText = const_cast<char *>(inText);
+  item.pszText = (char *)inText;
   item.iItem = inRow;
   item.iSubItem = inCol;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&item));
+  SendMessageA((HWND)mHandle, LVM_SETITEMA, 0, (LPARAM)&item);
 }
 
 void COsListView::GetItemText(int inRow, int inCol, char *inBuf, int inBufSize) {
@@ -2077,22 +2077,22 @@ void COsListView::GetItemText(int inRow, int inCol, char *inBuf, int inBufSize) 
   item.cchTextMax = inBufSize;
   item.iItem = inRow;
   item.iSubItem = inCol;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&item));
+  SendMessageA((HWND)mHandle, LVM_GETITEMA, 0, (LPARAM)&item);
 }
 
 void COsListView::SetColumnWidth(int inCol, int inWidth) {
-  SendMessageA(static_cast<HWND>(mHandle), LVM_SETCOLUMNWIDTH, inCol, static_cast<WORD>(inWidth));
+  SendMessageA((HWND)mHandle, LVM_SETCOLUMNWIDTH, inCol, (WORD)inWidth);
 }
 
 int COsListView::GetColumnWidth(int inCol) {
-  return SendMessageA(static_cast<HWND>(mHandle), LVM_GETCOLUMNWIDTH, inCol, 0);
+  return SendMessageA((HWND)mHandle, LVM_GETCOLUMNWIDTH, inCol, 0);
 }
 
 void COsListView::SetColumnTitle(int inCol, LPCSTR inText) {
   LVCOLUMNA colInfo;
   colInfo.mask = LVCF_TEXT;
-  colInfo.pszText = const_cast<char *>(inText);
-  SendMessageA(static_cast<HWND>(mHandle), LVM_SETCOLUMNA, inCol, reinterpret_cast<LPARAM>(&colInfo));
+  colInfo.pszText = (char *)inText;
+  SendMessageA((HWND)mHandle, LVM_SETCOLUMNA, inCol, (LPARAM)&colInfo);
 }
 
 void COsListView::GetColumnTitle(int inCol, char *inBuf, int inBufSize) {
@@ -2100,7 +2100,7 @@ void COsListView::GetColumnTitle(int inCol, char *inBuf, int inBufSize) {
   colInfo.mask = LVCF_TEXT;
   colInfo.pszText = inBuf;
   colInfo.cchTextMax = inBufSize;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_GETCOLUMNA, inCol, reinterpret_cast<LPARAM>(&colInfo));
+  SendMessageA((HWND)mHandle, LVM_GETCOLUMNA, inCol, (LPARAM)&colInfo);
 }
 
 void COsListView::SetColumnJustification(int inCol, int inJustify) {
@@ -2122,11 +2122,11 @@ void COsListView::SetColumnJustification(int inCol, int inJustify) {
   LVCOLUMNA colInfo;
   colInfo.mask = LVCF_FMT;
   colInfo.fmt = format;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_SETCOLUMNA, inCol, reinterpret_cast<LPARAM>(&colInfo));
+  SendMessageA((HWND)mHandle, LVM_SETCOLUMNA, inCol, (LPARAM)&colInfo);
 }
 
 void COsListView::EnsureRowVisible(int inRow) {
-  SendMessageA(static_cast<HWND>(mHandle), LVM_ENSUREVISIBLE, inRow, 0);
+  SendMessageA((HWND)mHandle, LVM_ENSUREVISIBLE, inRow, 0);
 }
 
 void COsListView::SetValue(int inVal) {
@@ -2140,13 +2140,13 @@ void COsListView::SetValue(int inVal) {
   item.mask = LVIF_STATE;
   item.stateMask = LVIS_FOCUSED | LVIS_SELECTED;
   item.state = inVal == -1 ? 0 : LVIS_FOCUSED | LVIS_SELECTED;
-  SendMessageA(static_cast<HWND>(mHandle), LVM_SETITEMSTATE, inVal, reinterpret_cast<LPARAM>(&item));
+  SendMessageA((HWND)mHandle, LVM_SETITEMSTATE, inVal, (LPARAM)&item);
 }
 
 int COsListView::GetValue() {
   int numRows = GetNumRows();
   for (int i = 0; i < numRows; ++i) {
-    if (SendMessageA(static_cast<HWND>(mHandle), LVM_GETITEMSTATE, i, LVIS_SELECTED)) {
+    if (SendMessageA((HWND)mHandle, LVM_GETITEMSTATE, i, LVIS_SELECTED)) {
       return i;
     }
   }
@@ -2167,7 +2167,7 @@ void COsListView::OnColumnClick(int inCol) {
 int COsListView::OnNotify(int inCode, LPVOID inParam) {
   switch (inCode) {
     case LVN_KEYDOWN:
-      switch (static_cast<NMLVKEYDOWN *>(inParam)->wVKey) {
+      switch (((NMLVKEYDOWN *)inParam)->wVKey) {
         case VK_DELETE:
           return SendEvent(10, 0);
         case VK_RETURN:
@@ -2177,18 +2177,18 @@ int COsListView::OnNotify(int inCode, LPVOID inParam) {
     case -301:
       return SendEvent(16, 0);
     case LVN_COLUMNCLICK:
-      OnColumnClick(static_cast<NMLISTVIEW *>(inParam)->iSubItem);
+      OnColumnClick(((NMLISTVIEW *)inParam)->iSubItem);
       return 1;
     case NM_CUSTOMDRAW: {
-      NMLVCUSTOMDRAW *drawInfo = static_cast<NMLVCUSTOMDRAW *>(inParam);
+      NMLVCUSTOMDRAW *drawInfo = (NMLVCUSTOMDRAW *)inParam;
       switch (drawInfo->nmcd.dwDrawStage) {
         case CDDS_PREPAINT:
           if (mDialog) {
-            SetWindowLongA(static_cast<HWND>(mDialog->GetHandle()), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+            SetWindowLongA((HWND)mDialog->GetHandle(), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
           }
           return CDRF_NOTIFYITEMDRAW;
         case CDDS_ITEMPREPAINT: {
-          NTempest::CImVector color = GetRowColor(static_cast<int>(drawInfo->nmcd.dwItemSpec));
+          NTempest::CImVector color = GetRowColor((int)drawInfo->nmcd.dwItemSpec);
           if (color.a) {
             drawInfo->clrText = RGB(color.r, color.g, color.b);
           }
@@ -2198,7 +2198,7 @@ int COsListView::OnNotify(int inCode, LPVOID inParam) {
       break;
     }
     case LVN_ITEMCHANGED: {
-      NMLISTVIEW *listInfo = static_cast<NMLISTVIEW *>(inParam);
+      NMLISTVIEW *listInfo = (NMLISTVIEW *)inParam;
       if ((listInfo->uChanged & LVIF_STATE) && ((listInfo->uOldState ^ listInfo->uNewState) & LVIS_SELECTED)) {
         OnSelectionChange();
         return 1;
@@ -2223,21 +2223,21 @@ COsToolBar::COsToolBar(LPVOID inWindow, short inID, UINT inFlags) : COsControl(i
 }
 
 COsToolBar::~COsToolBar() {
-  ImageList_Destroy(static_cast<HIMAGELIST>(mImageList));
+  ImageList_Destroy((HIMAGELIST)mImageList);
 }
 
 void COsToolBar::InitializeToolBar() {
-  SendMessageA(static_cast<HWND>(mHandle), 0x454, 0, 8);
+  SendMessageA((HWND)mHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_MIXEDBUTTONS);
   mImageList = ImageList_Create(16, 16, 0x21, 1, 1);
-  SendMessageA(static_cast<HWND>(mHandle), 0x430, 0, reinterpret_cast<LPARAM>(mImageList));
+  SendMessageA((HWND)mHandle, TB_SETIMAGELIST, 0, (LPARAM)mImageList);
 }
 
 void COsToolBar::SetButtonSize(int inW, int inH) {
-  SendMessageA(static_cast<HWND>(mHandle), 0x41F, 0, MAKELPARAM(inW, inH));
+  SendMessageA((HWND)mHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(inW, inH));
 }
 
 void COsToolBar::GetButtonSize(int *outW, int *outH) {
-  UINT size = SendMessageA(static_cast<HWND>(mHandle), 0x43A, 0, 0);
+  UINT size = SendMessageA((HWND)mHandle, TB_GETBUTTONSIZE, 0, 0);
   *outW = LOWORD(size);
   *outH = HIWORD(size);
 }
@@ -2260,7 +2260,7 @@ void COsToolBar::AddButton(int inPos) {
   buttonInfo.fsStyle = TBSTYLE_BUTTON;
   buttonInfo.dwData = 0;
   buttonInfo.iString = 0;
-  SendMessageA(static_cast<HWND>(mHandle), 0x415, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_INSERTBUTTON, inPos, (LPARAM)&buttonInfo);
 }
 
 void COsToolBar::AddSeparator(int inPos) {
@@ -2275,48 +2275,48 @@ void COsToolBar::AddSeparator(int inPos) {
   buttonInfo.fsStyle = TBSTYLE_SEP;
   buttonInfo.dwData = 0;
   buttonInfo.iString = -1;
-  SendMessageA(static_cast<HWND>(mHandle), 0x415, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_INSERTBUTTON, inPos, (LPARAM)&buttonInfo);
 }
 
 void COsToolBar::RemoveButton(int inPos) {
-  SendMessageA(static_cast<HWND>(mHandle), 0x416, inPos, 0);
+  SendMessageA((HWND)mHandle, TB_DELETEBUTTON, inPos, 0);
 }
 
 int COsToolBar::GetNumButtons() {
-  return SendMessageA(static_cast<HWND>(mHandle), 0x418, 0, 0);
+  return SendMessageA((HWND)mHandle, TB_BUTTONCOUNT, 0, 0);
 }
 
 void COsToolBar::SetButtonImage(int inPos, int inWidth, int inHeight, LPVOID inData) {
   TBBUTTONINFOA buttonInfo;
   buttonInfo.cbSize = sizeof(buttonInfo);
   buttonInfo.dwMask = 0x80000001;
-  SendMessageA(static_cast<HWND>(mHandle), 0x441, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_GETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
 
-  HDC     dc = GetDC(static_cast<HWND>(mHandle));
+  HDC     dc = GetDC((HWND)mHandle);
   HBITMAP bitmap = sBitmapFromImageData(inWidth, inHeight, inData, dc);
   HBITMAP hmask = sMaskFromImageData(inWidth, inHeight, inData, dc);
   if (buttonInfo.iImage != -2) {
-    ImageList_Replace(static_cast<HIMAGELIST>(mImageList), buttonInfo.iImage, bitmap, hmask);
+    ImageList_Replace((HIMAGELIST)mImageList, buttonInfo.iImage, bitmap, hmask);
     Refresh(1);
   } else {
-    int imageIndex = ImageList_Add(static_cast<HIMAGELIST>(mImageList), bitmap, hmask);
+    int imageIndex = ImageList_Add((HIMAGELIST)mImageList, bitmap, hmask);
     if (imageIndex != -1) {
       buttonInfo.iImage = imageIndex;
-      SendMessageA(static_cast<HWND>(mHandle), 0x442, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+      SendMessageA((HWND)mHandle, TB_SETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
     }
   }
 
   DeleteObject(bitmap);
   DeleteObject(hmask);
-  ReleaseDC(static_cast<HWND>(mHandle), dc);
+  ReleaseDC((HWND)mHandle, dc);
 }
 
 void COsToolBar::SetButtonText(int inPos, LPCSTR inText) {
   TBBUTTONINFOA buttonInfo;
   buttonInfo.cbSize = sizeof(buttonInfo);
   buttonInfo.dwMask = 0x80000002;
-  buttonInfo.pszText = const_cast<char *>(inText);
-  SendMessageA(static_cast<HWND>(mHandle), 0x442, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  buttonInfo.pszText = (char *)inText;
+  SendMessageA((HWND)mHandle, TB_SETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
 }
 
 void COsToolBar::GetButtonText(int inPos, char *inBuf, int inBufSize) {
@@ -2325,33 +2325,33 @@ void COsToolBar::GetButtonText(int inPos, char *inBuf, int inBufSize) {
   buttonInfo.dwMask = 2;
   buttonInfo.pszText = inBuf;
   buttonInfo.cchText = inBufSize;
-  SendMessageA(static_cast<HWND>(mHandle), 0x441, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_GETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
 }
 
 void COsToolBar::EnableButton(int inPos, int inVal) {
   TBBUTTONINFOA buttonInfo;
   buttonInfo.cbSize = sizeof(buttonInfo);
   buttonInfo.dwMask = 0x80000004;
-  SendMessageA(static_cast<HWND>(mHandle), 0x441, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_GETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
   if (inVal) {
     buttonInfo.fsState |= TBSTATE_ENABLED;
   } else {
     buttonInfo.fsState &= ~TBSTATE_ENABLED;
   }
-  SendMessageA(static_cast<HWND>(mHandle), 0x442, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_SETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
 }
 
 void COsToolBar::CheckButton(int inPos, int inVal) {
   TBBUTTONINFOA buttonInfo;
   buttonInfo.cbSize = sizeof(buttonInfo);
   buttonInfo.dwMask = 0x80000004;
-  SendMessageA(static_cast<HWND>(mHandle), 0x441, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_GETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
   if (inVal) {
     buttonInfo.fsState |= TBSTATE_CHECKED;
   } else {
     buttonInfo.fsState &= ~TBSTATE_CHECKED;
   }
-  SendMessageA(static_cast<HWND>(mHandle), 0x442, inPos, reinterpret_cast<LPARAM>(&buttonInfo));
+  SendMessageA((HWND)mHandle, TB_SETBUTTONINFO, inPos, (LPARAM)&buttonInfo);
 }
 
 int COsToolBar::OnCommand(int inParam) {
@@ -2374,24 +2374,24 @@ void COsPopupMenu::SetSize(int inW, int inH) {
 }
 
 void COsPopupMenu::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), CB_SETCURSEL, inVal, 0);
+  SendMessageA((HWND)mHandle, CB_SETCURSEL, inVal, 0);
 }
 
 int COsPopupMenu::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), CB_GETCURSEL, 0, 0);
+  return SendMessageA((HWND)mHandle, CB_GETCURSEL, 0, 0);
 }
 
 void COsPopupMenu::ClearItems() {
-  SendMessageA(static_cast<HWND>(mHandle), CB_RESETCONTENT, 0, 0);
+  SendMessageA((HWND)mHandle, CB_RESETCONTENT, 0, 0);
 }
 
 int COsPopupMenu::GetNumItems() {
-  return SendMessageA(static_cast<HWND>(mHandle), CB_GETCOUNT, 0, 0);
+  return SendMessageA((HWND)mHandle, CB_GETCOUNT, 0, 0);
 }
 
 void COsPopupMenu::InsertItem(LPCSTR inText, int inPos) {
   BOOL wasEmpty = GetNumItems() == 0;
-  SendMessageA(static_cast<HWND>(mHandle), CB_INSERTSTRING, inPos, reinterpret_cast<LPARAM>(inText));
+  SendMessageA((HWND)mHandle, CB_INSERTSTRING, inPos, (LPARAM)inText);
   AdjustHeight();
   if (wasEmpty) {
     SetValue(0);
@@ -2399,12 +2399,12 @@ void COsPopupMenu::InsertItem(LPCSTR inText, int inPos) {
 }
 
 void COsPopupMenu::SetItemHeight(int inHeight) {
-  SendMessageA(static_cast<HWND>(mHandle), CB_SETITEMHEIGHT, 0, inHeight);
+  SendMessageA((HWND)mHandle, CB_SETITEMHEIGHT, 0, inHeight);
   AdjustHeight();
 }
 
 int COsPopupMenu::GetItemHeight() {
-  return SendMessageA(static_cast<HWND>(mHandle), CB_GETITEMHEIGHT, 0, 0);
+  return SendMessageA((HWND)mHandle, CB_GETITEMHEIGHT, 0, 0);
 }
 
 void COsPopupMenu::AdjustHeight() {
@@ -2425,7 +2425,7 @@ void COsPopupMenu::SetMaxHeight(int inHeight) {
 }
 
 void COsPopupMenu::DeleteItem(int inPos) {
-  SendMessageA(static_cast<HWND>(mHandle), CB_DELETESTRING, inPos, 0);
+  SendMessageA((HWND)mHandle, CB_DELETESTRING, inPos, 0);
   AdjustHeight();
 }
 
@@ -2438,41 +2438,41 @@ COsProgressBar::COsProgressBar(COsDialog *inDialog, short inID) : COsControl(inD
 }
 
 void COsProgressBar::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), PBM_SETPOS, inVal, 0);
+  SendMessageA((HWND)mHandle, PBM_SETPOS, inVal, 0);
 }
 
 int COsProgressBar::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), PBM_GETPOS, 0, 0);
+  return SendMessageA((HWND)mHandle, PBM_GETPOS, 0, 0);
 }
 
 COsRadioButton::COsRadioButton(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 14, inID, inFlags) {
 }
 
 void COsRadioButton::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), BM_SETCHECK, inVal != 0, 0);
+  SendMessageA((HWND)mHandle, BM_SETCHECK, inVal != 0, 0);
 }
 
 BOOL COsRadioButton::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), BM_GETCHECK, 0, 0) == BST_CHECKED;
+  return SendMessageA((HWND)mHandle, BM_GETCHECK, 0, 0) == BST_CHECKED;
 }
 
 COsSlider::COsSlider(COsDialog *inDialog, short inID) : COsControl(inDialog, 9, inID, 0) {
 }
 
 void COsSlider::SetMinValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), TBM_SETRANGEMIN, 1, inVal);
+  SendMessageA((HWND)mHandle, TBM_SETRANGEMIN, 1, inVal);
 }
 
 void COsSlider::SetMaxValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), TBM_SETRANGEMAX, 1, inVal);
+  SendMessageA((HWND)mHandle, TBM_SETRANGEMAX, 1, inVal);
 }
 
 void COsSlider::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), TBM_SETPOS, 1, inVal);
+  SendMessageA((HWND)mHandle, TBM_SETPOS, 1, inVal);
 }
 
 int COsSlider::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), TBM_GETPOS, 0, 0);
+  return SendMessageA((HWND)mHandle, TBM_GETPOS, 0, 0);
 }
 
 void COsControl::SetContextMenu(COsMenu *inMenu) {
@@ -2488,7 +2488,7 @@ int COsControl::OnContextMenu(int inX, int inY) {
 
   SendEvent(17, 0);
   int result =
-      TrackPopupMenu(static_cast<HMENU>(mContextMenu->GetMenuHandle()), TPM_RETURNCMD | TPM_NONOTIFY, inX, inY, 0, static_cast<HWND>(mHandle), 0);
+      TrackPopupMenu((HMENU)mContextMenu->GetMenuHandle(), TPM_RETURNCMD | TPM_NONOTIFY, inX, inY, 0, (HWND)mHandle, 0);
   if (!result) {
     return 0;
   }
@@ -2545,9 +2545,9 @@ static HBITMAP__ *sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData,
 
 static HBITMAP__ *sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, HDC__ *inDC) {
   int   rowBytes = (inWidth - 1) / 8 + 1;
-  BYTE *bits = static_cast<BYTE *>(_alloca(rowBytes * inHeight * 2));
+  BYTE *bits = (BYTE *)_alloca(rowBytes * inHeight * 2);
   memset(bits, 0, rowBytes * inHeight * 2);
-  BYTE *rgba = static_cast<BYTE *>(inData);
+  BYTE *rgba = (BYTE *)inData;
   for (int y = 0; y < inHeight; ++y) {
     for (int x = 0; x < inWidth; ++x) {
       if (!rgba[(y * inWidth + x) * 4 + 3]) {
@@ -2556,7 +2556,7 @@ static HBITMAP__ *sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, H
     }
   }
 
-  BITMAPINFO *info = static_cast<BITMAPINFO *>(ALLOC(sizeof(BITMAPINFOHEADER) + 2 * sizeof(RGBQUAD)));
+  BITMAPINFO *info = (BITMAPINFO *)ALLOC(sizeof(BITMAPINFOHEADER) + 2 * sizeof(RGBQUAD));
   info->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
   info->bmiHeader.biWidth = inWidth;
   info->bmiHeader.biHeight = -inHeight;
@@ -2587,32 +2587,32 @@ COsImageButton::~COsImageButton() {
 }
 
 void COsImageButton::OnDestroy() {
-  HBITMAP bitmap = reinterpret_cast<HBITMAP>(SendMessageA(static_cast<HWND>(mHandle), BM_GETIMAGE, IMAGE_BITMAP, 0));
+  HBITMAP bitmap = (HBITMAP)SendMessageA((HWND)mHandle, BM_GETIMAGE, IMAGE_BITMAP, 0);
   if (bitmap) {
     DeleteObject(bitmap);
   }
 }
 
 void COsImageButton::SetImage(int inWidth, int inHeight, LPVOID inData) {
-  HDC     dc = GetDC(static_cast<HWND>(mHandle));
+  HDC     dc = GetDC((HWND)mHandle);
   HBITMAP bitmap = sBitmapFromImageData(inWidth, inHeight, inData, dc);
   HBITMAP oldBitmap =
-      reinterpret_cast<HBITMAP>(SendMessageA(static_cast<HWND>(mHandle), BM_SETIMAGE, IMAGE_BITMAP, reinterpret_cast<LPARAM>(bitmap)));
+      (HBITMAP)SendMessageA((HWND)mHandle, BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)bitmap);
   if (oldBitmap) {
     DeleteObject(oldBitmap);
   }
-  ReleaseDC(static_cast<HWND>(mHandle), dc);
+  ReleaseDC((HWND)mHandle, dc);
 }
 
 void COsImageButton::SetHighlight(int inVal) {
   int enabled = IsEnabled();
   Enable(0);
-  SendMessageA(static_cast<HWND>(mHandle), BM_SETSTATE, inVal, 0);
+  SendMessageA((HWND)mHandle, BM_SETSTATE, inVal, 0);
   Enable(enabled);
 }
 
 BOOL COsImageButton::IsPushed() {
-  return SendMessageA(static_cast<HWND>(mHandle), BM_GETSTATE, 0, 0) == BST_PUSHED;
+  return SendMessageA((HWND)mHandle, BM_GETSTATE, 0, 0) == BST_PUSHED;
 }
 
 COsTextButton::COsTextButton(COsDialog *inDialog, short inID) : COsControl(inDialog, 11, inID, 0) {
@@ -2623,7 +2623,7 @@ COsTextButton::COsTextButton(COsDialog *inDialog, short inID) : COsControl(inDia
 }
 
 BOOL COsTextButton::OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inRect) {
-  HDC                 dc = static_cast<HDC>(inContext);
+  HDC                 dc = (HDC)inContext;
   NTempest::CImVector color = mActiveColor;
   if (inState & 1) {
     color = mGreyedColor;
@@ -2633,7 +2633,7 @@ BOOL COsTextButton::OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inR
 
   COLORREF winColor = RGB(color.r, color.g, color.b);
   HPEN     pen = CreatePen(PS_SOLID, 1, winColor);
-  HPEN     oldPen = static_cast<HPEN>(SelectObject(dc, pen));
+  HPEN     oldPen = (HPEN)SelectObject(dc, pen);
   COLORREF oldColor = SetTextColor(dc, winColor);
 
   RECT drawRect;
@@ -2644,7 +2644,7 @@ BOOL COsTextButton::OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inR
   char text[MAX_PATH];
   GetText(text, sizeof(text));
   int textLength = SStrLen(text);
-  DrawTextA(dc, text, textLength, &drawRect, 0x10);
+  DrawTextA(dc, text, textLength, &drawRect, DT_WORDBREAK);
 
   if (mUnderline) {
     SIZE textSize;
@@ -2673,7 +2673,7 @@ void COsStaticBox::AddTransparentRect(const NTempest::CiRect &inRect) {
 }
 
 BOOL COsStaticBox::OnDraw(LPVOID inContext, UINT, NTempest::CiRect &inRect) {
-  HDC  dc = static_cast<HDC>(inContext);
+  HDC  dc = (HDC)inContext;
   RECT drawRect;
   sCiRectToWinRect(&inRect, &drawRect);
   HRGN drawRgn = CreateRectRgnIndirect(&drawRect);
@@ -2708,7 +2708,7 @@ void COsStaticText::Initialize() {
 }
 
 void COsStaticText::SetJustification(int inJust) {
-  LONG style = GetWindowLongA(static_cast<HWND>(mHandle), GWL_STYLE);
+  LONG style = GetWindowLongA((HWND)mHandle, GWL_STYLE);
   style &= ~3;
   switch (inJust) {
     case 0:
@@ -2721,7 +2721,7 @@ void COsStaticText::SetJustification(int inJust) {
       style |= SS_RIGHT;
       break;
   }
-  SetWindowLongA(static_cast<HWND>(mHandle), GWL_STYLE, style);
+  SetWindowLongA((HWND)mHandle, GWL_STYLE, style);
 }
 
 void COsStaticText::SetTextColor(const NTempest::CImVector &inColor) {
@@ -2738,7 +2738,7 @@ LPVOID COsStaticText::OnSetColors(LPVOID inContext) {
     return 0;
   }
 
-  HDC dc = static_cast<HDC>(inContext);
+  HDC dc = (HDC)inContext;
   ::SetTextColor(dc, RGB(mTextColor.r, mTextColor.g, mTextColor.b));
   SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
   return GetSysColorBrush(COLOR_BTNFACE);
@@ -2751,28 +2751,28 @@ COsStaticImage::~COsStaticImage() {
 }
 
 void COsStaticImage::OnDestroy() {
-  HBITMAP bitmap = reinterpret_cast<HBITMAP>(SendMessageA(static_cast<HWND>(mHandle), STM_GETIMAGE, IMAGE_BITMAP, 0));
+  HBITMAP bitmap = (HBITMAP)SendMessageA((HWND)mHandle, STM_GETIMAGE, IMAGE_BITMAP, 0);
   if (bitmap) {
     DeleteObject(bitmap);
   }
 }
 
 void COsStaticImage::SetImage(int inWidth, int inHeight, LPVOID inData) {
-  HDC     dc = GetDC(static_cast<HWND>(mHandle));
+  HDC     dc = GetDC((HWND)mHandle);
   HBITMAP bitmap = sBitmapFromImageData(inWidth, inHeight, inData, dc);
   HBITMAP oldBitmap =
-      reinterpret_cast<HBITMAP>(SendMessageA(static_cast<HWND>(mHandle), STM_SETIMAGE, IMAGE_BITMAP, reinterpret_cast<LPARAM>(bitmap)));
+      (HBITMAP)SendMessageA((HWND)mHandle, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)bitmap);
   if (oldBitmap) {
     DeleteObject(oldBitmap);
   }
-  ReleaseDC(static_cast<HWND>(mHandle), dc);
+  ReleaseDC((HWND)mHandle, dc);
 }
 
 void COsStaticImage::ClearImage() {
   int sizeX;
   int sizeY;
   GetSize(&sizeX, &sizeY);
-  HBITMAP bitmap = reinterpret_cast<HBITMAP>(SendMessageA(static_cast<HWND>(mHandle), STM_SETIMAGE, IMAGE_BITMAP, 0));
+  HBITMAP bitmap = (HBITMAP)SendMessageA((HWND)mHandle, STM_SETIMAGE, IMAGE_BITMAP, 0);
   if (bitmap) {
     DeleteObject(bitmap);
   }
@@ -2780,7 +2780,7 @@ void COsStaticImage::ClearImage() {
 }
 
 static int CALLBACK sEditBoxProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
-  COsEditBox *editBox = static_cast<COsEditBox *>(sGetOsGuiPointer(hwnd));
+  COsEditBox *editBox = (COsEditBox *)sGetOsGuiPointer(hwnd);
   if (editBox) {
     switch (msg) {
       case WM_KEYDOWN:
@@ -2794,7 +2794,7 @@ static int CALLBACK sEditBoxProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPara
         break;
     }
   }
-  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 static BOOL sIsCharacterAllowed(char inChar, UINT inFilters) {
@@ -2855,25 +2855,25 @@ BOOL COsEditBox::IsCharacterAllowed(char inChar) {
 }
 
 void COsTabControl::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), TCM_SETCURSEL, inVal, 0);
+  SendMessageA((HWND)mHandle, TCM_SETCURSEL, inVal, 0);
 }
 
 int COsTabControl::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), TCM_GETCURSEL, 0, 0);
+  return SendMessageA((HWND)mHandle, TCM_GETCURSEL, 0, 0);
 }
 
 void COsTabControl::InsertItem(LPCSTR inText, int inPos) {
   TCITEMA itemInfo;
   itemInfo.mask = TCIF_TEXT;
-  itemInfo.pszText = const_cast<char *>(inText);
+  itemInfo.pszText = (char *)inText;
   if (inPos == -1) {
     inPos = GetNumItems();
   }
-  SendMessageA(static_cast<HWND>(mHandle), TCM_INSERTITEMA, inPos, reinterpret_cast<LPARAM>(&itemInfo));
+  SendMessageA((HWND)mHandle, TCM_INSERTITEMA, inPos, (LPARAM)&itemInfo);
 }
 
 int COsTabControl::GetNumItems() {
-  return static_cast<int>(SendMessageA(static_cast<HWND>(mHandle), 0x1304, 0, 0));
+  return (int)SendMessageA((HWND)mHandle, TCM_GETITEMCOUNT, 0, 0);
 }
 
 BOOL COsTabControl::OnControlTab() {
@@ -2915,7 +2915,7 @@ BOOL COsDialog::OnEvent(int inItemID, int inNotifyCode, int inCode) {
 }
 
 static int CALLBACK sTreeViewProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
-  COsTreeView *tree = static_cast<COsTreeView *>(sGetOsGuiPointer(hwnd));
+  COsTreeView *tree = (COsTreeView *)sGetOsGuiPointer(hwnd);
   if (tree) {
     BOOL handled = 0;
     switch (msg) {
@@ -2930,7 +2930,7 @@ static int CALLBACK sTreeViewProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPar
       return 0;
     }
   }
-  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 COsTreeView::COsTreeView(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 10, inID, inFlags) {
@@ -2943,7 +2943,7 @@ COsTreeView::COsTreeView(LPVOID inWindow, short inID, UINT inFlags) : COsControl
 
 COsTreeView::~COsTreeView() {
   DestroyDragImage();
-  ImageList_Destroy(static_cast<HIMAGELIST>(mImages));
+  ImageList_Destroy((HIMAGELIST)mImages);
 }
 
 void COsTreeView::InitializeTreeView() {
@@ -2960,10 +2960,10 @@ void COsTreeView::InitializeTreeView() {
   mTextLimit = -1;
   mFiltersEnabled = 0;
   mFilters = 0;
-  SetWindowLongA(static_cast<HWND>(mHandle), GWL_WNDPROC, reinterpret_cast<LONG>(sTreeViewProc));
+  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sTreeViewProc);
 
   mImages = ImageList_Create(16, 16, 0x21, 1, 1);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_SETIMAGELIST, TVSIL_NORMAL, reinterpret_cast<LPARAM>(mImages));
+  SendMessageA((HWND)mHandle, TVM_SETIMAGELIST, TVSIL_NORMAL, (LPARAM)mImages);
 
   BYTE blank[1024];
   memset(blank, 0, sizeof(blank));
@@ -2971,30 +2971,30 @@ void COsTreeView::InitializeTreeView() {
 }
 
 void COsTreeView::SetBackgroundColor(const NTempest::CImVector &inColor) {
-  SendMessageA(static_cast<HWND>(mHandle), TVM_SETBKCOLOR, 0, RGB(inColor.r, inColor.g, inColor.b));
+  SendMessageA((HWND)mHandle, TVM_SETBKCOLOR, 0, RGB(inColor.r, inColor.g, inColor.b));
 }
 
 void COsTreeView::ClearItems() {
-  SendMessageA(static_cast<HWND>(mHandle), TVM_DELETEITEM, 0, reinterpret_cast<LPARAM>(TVI_ROOT));
+  SendMessageA((HWND)mHandle, TVM_DELETEITEM, 0, (LPARAM)TVI_ROOT);
 }
 
 void COsTreeView::DeleteItem(LPVOID inItem) {
-  SendMessageA(static_cast<HWND>(mHandle), TVM_DELETEITEM, 0, reinterpret_cast<LPARAM>(inItem));
+  SendMessageA((HWND)mHandle, TVM_DELETEITEM, 0, (LPARAM)inItem);
 }
 
 LPVOID COsTreeView::InsertItem(LPVOID inParent, LPVOID inAfter, LPCSTR inText) {
   TVINSERTSTRUCTA insertInfo;
-  insertInfo.hParent = static_cast<HTREEITEM>(inParent);
-  insertInfo.hInsertAfter = static_cast<HTREEITEM>(inAfter);
+  insertInfo.hParent = (HTREEITEM)inParent;
+  insertInfo.hInsertAfter = (HTREEITEM)inAfter;
   if (!inAfter) {
     insertInfo.hInsertAfter = TVI_FIRST;
-  } else if (inAfter == reinterpret_cast<LPVOID>(0xFFFF)) {
+  } else if (inAfter == (LPVOID)0xFFFF) {
     insertInfo.hInsertAfter = TVI_LAST;
   }
   insertInfo.item.mask = TVIF_TEXT;
-  insertInfo.item.pszText = const_cast<char *>(inText);
+  insertInfo.item.pszText = (char *)inText;
 
-  LPVOID item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_INSERTITEMA, 0, reinterpret_cast<LPARAM>(&insertInfo)));
+  LPVOID item = (LPVOID)SendMessageA((HWND)mHandle, TVM_INSERTITEMA, 0, (LPARAM)&insertInfo);
   InitParams(item);
   return item;
 }
@@ -3002,9 +3002,9 @@ LPVOID COsTreeView::InsertItem(LPVOID inParent, LPVOID inAfter, LPCSTR inText) {
 void COsTreeView::SetItemText(LPVOID inItem, LPCSTR inText) {
   TVITEMA itemInfo;
   itemInfo.mask = TVIF_TEXT;
-  itemInfo.pszText = const_cast<char *>(inText);
-  itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+  itemInfo.pszText = (char *)inText;
+  itemInfo.hItem = (HTREEITEM)inItem;
+  SendMessageA((HWND)mHandle, TVM_SETITEMA, 0, (LPARAM)&itemInfo);
 }
 
 void COsTreeView::GetItemText(LPVOID inItem, char *inBuf, int inBufSize) {
@@ -3012,8 +3012,8 @@ void COsTreeView::GetItemText(LPVOID inItem, char *inBuf, int inBufSize) {
   itemInfo.mask = TVIF_TEXT;
   itemInfo.pszText = inBuf;
   itemInfo.cchTextMax = inBufSize;
-  itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+  itemInfo.hItem = (HTREEITEM)inItem;
+  SendMessageA((HWND)mHandle, TVM_GETITEMA, 0, (LPARAM)&itemInfo);
 }
 
 void COsTreeView::SetItemParam(LPVOID inItem, LPVOID inParam) {
@@ -3048,14 +3048,14 @@ NTempest::CImVector COsTreeView::GetItemColor(LPVOID inItem) {
 }
 
 LPVOID COsTreeView::GetItemParent(LPVOID inItem) {
-  return reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_PARENT, reinterpret_cast<LPARAM>(inItem)));
+  return (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_PARENT, (LPARAM)inItem);
 }
 
 BOOL COsTreeView::GetItemNumChildren(LPVOID inItem) {
   int    count = 0;
-  LPVOID item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_CHILD, reinterpret_cast<LPARAM>(inItem)));
+  LPVOID item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)inItem);
   while (item) {
-    item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_NEXT, reinterpret_cast<LPARAM>(item)));
+    item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)item);
     ++count;
   }
   return count;
@@ -3063,12 +3063,12 @@ BOOL COsTreeView::GetItemNumChildren(LPVOID inItem) {
 
 LPVOID COsTreeView::GetItemChild(LPVOID inItem, int inIndex) {
   int    index = 0;
-  LPVOID item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_CHILD, reinterpret_cast<LPARAM>(inItem)));
+  LPVOID item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)inItem);
   while (item) {
     if (index == inIndex) {
       return item;
     }
-    item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_NEXT, reinterpret_cast<LPARAM>(item)));
+    item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)item);
     ++index;
   }
   return 0;
@@ -3076,15 +3076,15 @@ LPVOID COsTreeView::GetItemChild(LPVOID inItem, int inIndex) {
 
 void COsTreeView::EnumerateItems(LPVOID inParent, void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam) {
   inFunc(this, inParent, inParam);
-  LPVOID item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_CHILD, reinterpret_cast<LPARAM>(inParent)));
+  LPVOID item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_CHILD, (LPARAM)inParent);
   while (item) {
     EnumerateItems(item, inFunc, inParam);
-    item = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_NEXT, reinterpret_cast<LPARAM>(item)));
+    item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)item);
   }
 }
 
 void COsTreeView::EnumerateAllItems(void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam) {
-  LPVOID root = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_ROOT, 0));
+  LPVOID root = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_ROOT, 0);
   if (root) {
     EnumerateItems(root, inFunc, inParam);
   }
@@ -3096,58 +3096,58 @@ void COsTreeView::SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID 
   VALIDATE(inHeight == 16);
   VALIDATEENDVOID;
 
-  HDC     dc = GetDC(static_cast<HWND>(mHandle));
+  HDC     dc = GetDC((HWND)mHandle);
   HBITMAP hbmp = sBitmapFromImageData(16, 16, inData, dc);
   HBITMAP hmask = sMaskFromImageData(16, 16, inData, dc);
-  int     numImages = ImageList_GetImageCount(static_cast<HIMAGELIST>(mImages));
+  int     numImages = ImageList_GetImageCount((HIMAGELIST)mImages);
 
   if (!inItem) {
     if (!numImages) {
-      ImageList_Add(static_cast<HIMAGELIST>(mImages), hbmp, hmask);
+      ImageList_Add((HIMAGELIST)mImages, hbmp, hmask);
     } else {
-      ImageList_Replace(static_cast<HIMAGELIST>(mImages), 0, hbmp, hmask);
+      ImageList_Replace((HIMAGELIST)mImages, 0, hbmp, hmask);
       Refresh(1);
     }
   } else {
     TVITEMA itemInfo;
     itemInfo.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
-    itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-    SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+    itemInfo.hItem = (HTREEITEM)inItem;
+    SendMessageA((HWND)mHandle, TVM_GETITEMA, 0, (LPARAM)&itemInfo);
 
     if (itemInfo.iImage > 0 && itemInfo.iImage < numImages) {
-      ImageList_Replace(static_cast<HIMAGELIST>(mImages), itemInfo.iImage, hbmp, hmask);
+      ImageList_Replace((HIMAGELIST)mImages, itemInfo.iImage, hbmp, hmask);
       Refresh(1);
     } else {
       int image;
-      if (static_cast<int>(mUnusedImageIDs.Count()) > 0) {
+      if ((int)mUnusedImageIDs.Count() > 0) {
         image = *mUnusedImageIDs.Top();
         mUnusedImageIDs.SetCount(mUnusedImageIDs.Count() - 1);
-        ImageList_Replace(static_cast<HIMAGELIST>(mImages), image, hbmp, hmask);
+        ImageList_Replace((HIMAGELIST)mImages, image, hbmp, hmask);
       } else {
-        image = ImageList_Add(static_cast<HIMAGELIST>(mImages), hbmp, hmask);
+        image = ImageList_Add((HIMAGELIST)mImages, hbmp, hmask);
       }
 
       if (image != -1) {
         itemInfo.iSelectedImage = image;
         itemInfo.iImage = image;
         itemInfo.mask = TVIF_IMAGE | TVIF_SELECTEDIMAGE;
-        itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-        SendMessageA(static_cast<HWND>(mHandle), TVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+        itemInfo.hItem = (HTREEITEM)inItem;
+        SendMessageA((HWND)mHandle, TVM_SETITEMA, 0, (LPARAM)&itemInfo);
       }
     }
   }
 
   DeleteObject(hbmp);
   DeleteObject(hmask);
-  ReleaseDC(static_cast<HWND>(mHandle), dc);
+  ReleaseDC((HWND)mHandle, dc);
 }
 
 void COsTreeView::ExpandItem(LPVOID inItem, int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), TVM_EXPAND, inVal ? TVE_EXPAND : TVE_COLLAPSE, reinterpret_cast<LPARAM>(inItem));
+  SendMessageA((HWND)mHandle, TVM_EXPAND, inVal ? TVE_EXPAND : TVE_COLLAPSE, (LPARAM)inItem);
 }
 
 BOOL COsTreeView::IsItemExpanded(LPVOID inItem) {
-  return (SendMessageA(static_cast<HWND>(mHandle), 0x1127, reinterpret_cast<WPARAM>(inItem), TVIS_EXPANDED) & TVIS_EXPANDED) != 0;
+  return (SendMessageA((HWND)mHandle, TVM_GETITEMSTATE, (WPARAM)inItem, TVIS_EXPANDED) & TVIS_EXPANDED) != 0;
 }
 
 void COsTreeView::OnSizeChange() {
@@ -3160,12 +3160,12 @@ void COsTreeView::OnExpandedItem(LPVOID inItem) {
 }
 
 void COsTreeView::EnsureItemVisible(LPVOID inItem) {
-  SendMessageA(static_cast<HWND>(mHandle), TVM_ENSUREVISIBLE, 0, reinterpret_cast<LPARAM>(inItem));
+  SendMessageA((HWND)mHandle, TVM_ENSUREVISIBLE, 0, (LPARAM)inItem);
 }
 
 void COsTreeView::EditItem(LPVOID inItem) {
   SetInputFocus();
-  SendMessageA(static_cast<HWND>(mHandle), TVM_EDITLABELA, 0, reinterpret_cast<LPARAM>(inItem));
+  SendMessageA((HWND)mHandle, TVM_EDITLABELA, 0, (LPARAM)inItem);
 }
 
 struct OsGuiTVSIResults {
@@ -3175,13 +3175,11 @@ struct OsGuiTVSIResults {
 };
 
 static void sTVGetSelectInfo(COsTreeView *inView, LPVOID inItem, LPVOID inParam) {
-  OsGuiTVSIResults *info = static_cast<OsGuiTVSIResults *>(inParam);
+  OsGuiTVSIResults *info = (OsGuiTVSIResults *)inParam;
   if (inView->IsItemSelected(inItem)) {
     ++info->info.numSelected;
     if (info->info.numSelected == 1) {
       info->info.firstSelection = inItem;
-      info->lastSelected = inItem;
-      info->lastProcessed = inItem;
       info->info.flags |= 3;
     } else {
       if (info->info.flags & 1) {
@@ -3190,31 +3188,31 @@ static void sTVGetSelectInfo(COsTreeView *inView, LPVOID inItem, LPVOID inParam)
           info->info.flags &= ~1U;
         }
       }
-      if ((info->info.flags & 2) && info->lastSelected != info->lastProcessed) {
-        info->info.flags &= ~2U;
+      if (info->info.flags & 2) {
+        if (info->lastSelected != info->lastProcessed) {
+          info->info.flags &= ~2U;
+        }
       }
-      info->lastSelected = inItem;
-      info->lastProcessed = inItem;
     }
-  } else {
-    info->lastProcessed = inItem;
+    info->lastSelected = inItem;
   }
+  info->lastProcessed = inItem;
 }
 
 static void sTVSelect(COsTreeView *inView, LPVOID inItem, LPVOID inParam) {
-  inView->SelectItem(inItem, *static_cast<int *>(inParam));
+  inView->SelectItem(inItem, *(int *)inParam);
 }
 
 void COsTreeView::SelectItem(LPVOID inItem, int inVal) {
   if (!(mFlags & 0x40000)) {
-    SendMessageA(static_cast<HWND>(mHandle), TVM_SELECTITEM, TVGN_CARET, inVal ? reinterpret_cast<LPARAM>(inItem) : 0);
+    SendMessageA((HWND)mHandle, TVM_SELECTITEM, TVGN_CARET, inVal ? (LPARAM)inItem : 0);
   } else {
     TVITEMA itemInfo;
     itemInfo.mask = TVIF_STATE;
     itemInfo.state = inVal ? TVIS_SELECTED : 0;
     itemInfo.stateMask = TVIS_SELECTED;
-    itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-    SendMessageA(static_cast<HWND>(mHandle), TVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+    itemInfo.hItem = (HTREEITEM)inItem;
+    SendMessageA((HWND)mHandle, TVM_SETITEMA, 0, (LPARAM)&itemInfo);
     SendEvent(2, 0);
   }
 }
@@ -3223,7 +3221,7 @@ BOOL COsTreeView::IsItemSelected(LPVOID inItem) {
   if (!(mFlags & 0x40000)) {
     return GetSelectedItem() == inItem;
   }
-  return (SendMessageA(static_cast<HWND>(mHandle), 0x1127, reinterpret_cast<WPARAM>(inItem), TVIS_SELECTED) & TVIS_SELECTED) != 0;
+  return (SendMessageA((HWND)mHandle, TVM_GETITEMSTATE, (WPARAM)inItem, TVIS_SELECTED) & TVIS_SELECTED) != 0;
 }
 
 LPVOID COsTreeView::GetSelectedItem() {
@@ -3233,7 +3231,7 @@ LPVOID COsTreeView::GetSelectedItem() {
     return info.firstSelection;
   }
 
-  return reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_CARET, 0));
+  return (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_CARET, 0);
 }
 
 void COsTreeView::GetSelectionInfo(OsGuiTVSelectionInfo *outInfo) {
@@ -3253,7 +3251,7 @@ BOOL COsTreeView::OnMouseDown() {
   }
   LPVOID item = FindItemUnderCursor();
   SetInputFocus();
-  SendMessageA(static_cast<HWND>(mHandle), TVM_SELECTITEM, TVGN_CARET, 0);
+  SendMessageA((HWND)mHandle, TVM_SELECTITEM, TVGN_CARET, 0);
   return item != 0;
 }
 
@@ -3294,7 +3292,7 @@ LPVOID COsTreeView::FindItemUnderCursor() {
   TVHITTESTINFO htInfo;
   htInfo.pt.x = cursX - ctrlX;
   htInfo.pt.y = cursY - ctrlY;
-  SendMessageA(static_cast<HWND>(mHandle), TVM_HITTEST, 0, reinterpret_cast<LPARAM>(&htInfo));
+  SendMessageA((HWND)mHandle, TVM_HITTEST, 0, (LPARAM)&htInfo);
   if (htInfo.flags & TVHT_ONITEM) {
     return htInfo.hItem;
   }
@@ -3303,7 +3301,7 @@ LPVOID COsTreeView::FindItemUnderCursor() {
 
 BOOL COsTreeView::OnReturn() {
   if (GetEditControl()) {
-    SendMessageA(static_cast<HWND>(mHandle), TVM_ENDEDITLABELNOW, 0, 0);
+    SendMessageA((HWND)mHandle, TVM_ENDEDITLABELNOW, 0, 0);
     return 1;
   }
   return SendEvent(9, 0);
@@ -3311,7 +3309,7 @@ BOOL COsTreeView::OnReturn() {
 
 BOOL COsTreeView::OnEscape() {
   if (GetEditControl()) {
-    SendMessageA(static_cast<HWND>(mHandle), TVM_ENDEDITLABELNOW, 1, 0);
+    SendMessageA((HWND)mHandle, TVM_ENDEDITLABELNOW, 1, 0);
     return 1;
   }
   return 0;
@@ -3321,7 +3319,7 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
   switch (inCode) {
     case TVN_BEGINLABELEDITA:
     case TVN_ENDLABELEDITA: {
-      NMTVDISPINFOA *editInfo = static_cast<NMTVDISPINFOA *>(inParam);
+      NMTVDISPINFOA *editInfo = (NMTVDISPINFOA *)inParam;
       int accepted;
       if (inCode == TVN_ENDLABELEDITA) {
         accepted = OnEndEdit(editInfo->item.hItem, editInfo->item.pszText);
@@ -3339,15 +3337,15 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
       break;
     }
     case TVN_BEGINDRAGA: {
-      NMTREEVIEWA *treeInfo = static_cast<NMTREEVIEWA *>(inParam);
+      NMTREEVIEWA *treeInfo = (NMTREEVIEWA *)inParam;
       OnBeginDrag(treeInfo->itemNew.hItem, treeInfo->ptDrag.x, treeInfo->ptDrag.y);
       return 1;
     }
     case TVN_ITEMEXPANDEDA:
-      OnExpandedItem(static_cast<NMTREEVIEWA *>(inParam)->itemNew.hItem);
+      OnExpandedItem(((NMTREEVIEWA *)inParam)->itemNew.hItem);
       return 1;
     case TVN_KEYDOWN:
-      switch (static_cast<NMTVKEYDOWN *>(inParam)->wVKey) {
+      switch (((NMTVKEYDOWN *)inParam)->wVKey) {
         case VK_ESCAPE:
           return OnEscape();
         case VK_RETURN:
@@ -3359,7 +3357,7 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
       }
       break;
     case TVN_DELETEITEMA:
-      OnDeleteItem(static_cast<NMTREEVIEWA *>(inParam)->itemOld.hItem);
+      OnDeleteItem(((NMTREEVIEWA *)inParam)->itemOld.hItem);
       break;
     case TVN_SELCHANGINGA:
       if (mFlags & 0x40000) {
@@ -3367,15 +3365,15 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
       }
       break;
     case NM_CUSTOMDRAW: {
-      NMTVCUSTOMDRAW *drawInfo = static_cast<NMTVCUSTOMDRAW *>(inParam);
+      NMTVCUSTOMDRAW *drawInfo = (NMTVCUSTOMDRAW *)inParam;
       switch (drawInfo->nmcd.dwDrawStage) {
         case CDDS_PREPAINT:
           if (mDialog) {
-            SetWindowLongA(static_cast<HWND>(mDialog->GetHandle()), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+            SetWindowLongA((HWND)mDialog->GetHandle(), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
           }
           return CDRF_NOTIFYITEMDRAW;
         case CDDS_ITEMPREPAINT: {
-          LPVOID item = reinterpret_cast<LPVOID>(drawInfo->nmcd.dwItemSpec);
+          LPVOID item = (LPVOID)drawInfo->nmcd.dwItemSpec;
           if (!IsItemSelected(item)) {
             NTempest::CImVector color(&GetParams(item)->color);
             if (color.a) {
@@ -3401,13 +3399,13 @@ BOOL COsTreeView::IsHandleFromControl(LPVOID inHandle) {
 }
 
 void COsTreeView::EnableDragDrop(int inVal) {
-  LONG style = GetWindowLongA(static_cast<HWND>(mHandle), GWL_STYLE);
+  LONG style = GetWindowLongA((HWND)mHandle, GWL_STYLE);
   if (inVal) {
     style &= ~TVS_DISABLEDRAGDROP;
   } else {
     style |= TVS_DISABLEDRAGDROP;
   }
-  SetWindowLongA(static_cast<HWND>(mHandle), GWL_STYLE, style);
+  SetWindowLongA((HWND)mHandle, GWL_STYLE, style);
 }
 
 void COsTreeView::SetDragDropHandler(int (*inFunc)(const OsGuiTVDDInfo &, LPVOID), LPVOID inParam) {
@@ -3417,12 +3415,12 @@ void COsTreeView::SetDragDropHandler(int (*inFunc)(const OsGuiTVDDInfo &, LPVOID
 
 void COsTreeView::CreateDragImage(LPVOID inItem) {
   DestroyDragImage();
-  mDragImage = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_CREATEDRAGIMAGE, 0, reinterpret_cast<LPARAM>(inItem)));
+  mDragImage = (LPVOID)SendMessageA((HWND)mHandle, TVM_CREATEDRAGIMAGE, 0, (LPARAM)inItem);
 }
 
 void COsTreeView::DestroyDragImage() {
   if (mDragImage) {
-    ImageList_Destroy(static_cast<HIMAGELIST>(mDragImage));
+    ImageList_Destroy((HIMAGELIST)mDragImage);
     mDragImage = 0;
   }
 }
@@ -3430,26 +3428,26 @@ void COsTreeView::DestroyDragImage() {
 NTempest::CiRect COsTreeView::GetItemRect(LPVOID inItem) {
   NTempest::CiRect itemRect(0);
   RECT             wRect;
-  wRect.left = reinterpret_cast<LONG>(inItem);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMRECT, 1, reinterpret_cast<LPARAM>(&wRect));
+  wRect.left = (LONG)inItem;
+  SendMessageA((HWND)mHandle, TVM_GETITEMRECT, 1, (LPARAM)&wRect);
   sWinRectToCiRect(&wRect, &itemRect);
   return itemRect;
 }
 
 void COsTreeView::RefreshItem(LPVOID inItem) {
   RECT wRect;
-  wRect.left = reinterpret_cast<LONG>(inItem);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMRECT, 1, reinterpret_cast<LPARAM>(&wRect));
-  InvalidateRect(static_cast<HWND>(mHandle), &wRect, 0);
+  wRect.left = (LONG)inItem;
+  SendMessageA((HWND)mHandle, TVM_GETITEMRECT, 1, (LPARAM)&wRect);
+  InvalidateRect((HWND)mHandle, &wRect, 0);
 }
 
 LPVOID COsTreeView::GetFirstVisibleItem() {
-  return reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_FIRSTVISIBLE, 0));
+  return (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_FIRSTVISIBLE, 0);
 }
 
 void COsTreeView::SetFirstVisibleItem(LPVOID inItem) {
   SetRedraw(0);
-  LPVOID lastVisible = reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), TVM_GETNEXTITEM, TVGN_LASTVISIBLE, 0));
+  LPVOID lastVisible = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_LASTVISIBLE, 0);
   EnsureItemVisible(lastVisible);
   EnsureItemVisible(inItem);
   SetRedraw(1);
@@ -3486,9 +3484,9 @@ void COsTreeView::OnBeginDrag(LPVOID inItem, int inX, int inY) {
   int              cx;
   int              cy;
   mDialog->GetPosition(&cx, &cy, 0);
-  ImageList_BeginDrag(static_cast<HIMAGELIST>(mDragImage), 0, dragX, dragY);
-  ImageList_DragEnter(static_cast<HWND>(mDialog->GetHandle()), mx - cx, my - cy);
-  SetCapture(static_cast<HWND>(mDialog->GetHandle()));
+  ImageList_BeginDrag((HIMAGELIST)mDragImage, 0, dragX, dragY);
+  ImageList_DragEnter((HWND)mDialog->GetHandle(), mx - cx, my - cy);
+  SetCapture((HWND)mDialog->GetHandle());
   mDragInfo.dragItem = inItem;
   mDragging = 1;
 }
@@ -3514,7 +3512,7 @@ void COsTreeView::OnMouseMove(int inX, int inY) {
   TVHITTESTINFO hitTest;
   hitTest.pt.x = x - cx;
   hitTest.pt.y = y - cy;
-  SendMessageA(static_cast<HWND>(mHandle), TVM_HITTEST, 0, reinterpret_cast<LPARAM>(&hitTest));
+  SendMessageA((HWND)mHandle, TVM_HITTEST, 0, (LPARAM)&hitTest);
   mDragInfo.targItem = hitTest.hItem;
   mDragInfo.targX = 0;
   mDragInfo.targY = 0;
@@ -3529,19 +3527,19 @@ void COsTreeView::OnMouseMove(int inX, int inY) {
 
 void COsTreeView::SetDropTarget(LPVOID inItem) {
   ImageList_DragShowNolock(0);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_SELECTITEM, TVGN_DROPHILITE, reinterpret_cast<LPARAM>(inItem));
+  SendMessageA((HWND)mHandle, TVM_SELECTITEM, TVGN_DROPHILITE, (LPARAM)inItem);
   ImageList_DragShowNolock(1);
 }
 
 void COsTreeView::SetInsertionMark(LPVOID inItem, int inAfter) {
   ImageList_DragShowNolock(0);
-  SendMessageA(static_cast<HWND>(mHandle), 0x111A, inAfter, reinterpret_cast<LPARAM>(inItem));
+  SendMessageA((HWND)mHandle, TVM_SETINSERTMARK, inAfter, (LPARAM)inItem);
   ImageList_DragShowNolock(1);
 }
 
 void COsTreeView::OnEndDrag() {
   ImageList_EndDrag();
-  ImageList_DragLeave(static_cast<HWND>(mDialog->GetHandle()));
+  ImageList_DragLeave((HWND)mDialog->GetHandle());
   DestroyDragImage();
   ReleaseCapture();
   SetDropTarget(0);
@@ -3557,7 +3555,7 @@ int COsTreeView::OnBeginEdit(LPVOID inItem) {
     return result;
   }
   if (mTextLimit != -1) {
-    HWND editControl = static_cast<HWND>(GetEditControl());
+    HWND editControl = (HWND)GetEditControl();
     if (editControl) {
       SendMessageA(editControl, EM_LIMITTEXT, mTextLimit, 0);
     }
@@ -3602,9 +3600,9 @@ void COsTreeView::SetExpandFunction(void (*inFunc)(LPVOID, LPVOID), LPVOID inPar
 void COsTreeView::OnDeleteItem(LPVOID inItem) {
   TVITEMA itemInfo;
   itemInfo.mask = TVIF_IMAGE;
-  itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
-  int imageCount = ImageList_GetImageCount(static_cast<HIMAGELIST>(mImages));
+  itemInfo.hItem = (HTREEITEM)inItem;
+  SendMessageA((HWND)mHandle, TVM_GETITEMA, 0, (LPARAM)&itemInfo);
+  int imageCount = ImageList_GetImageCount((HIMAGELIST)mImages);
   if (itemInfo.iImage > 0 && itemInfo.iImage < imageCount) {
     *mUnusedImageIDs.New() = itemInfo.iImage;
   }
@@ -3633,16 +3631,16 @@ void COsTreeView::InitParams(LPVOID inItem) {
 
   TVITEMA itemInfo;
   itemInfo.mask = TVIF_PARAM;
-  itemInfo.hItem = static_cast<HTREEITEM>(inItem);
+  itemInfo.hItem = (HTREEITEM)inItem;
   itemInfo.lParam = paramID;
-  SendMessageA(static_cast<HWND>(mHandle), TVM_SETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+  SendMessageA((HWND)mHandle, TVM_SETITEMA, 0, (LPARAM)&itemInfo);
 }
 
 OsGuiTreeItemParams *COsTreeView::GetParams(LPVOID inItem) {
   TVITEMA itemInfo;
   itemInfo.mask = TVIF_PARAM;
-  itemInfo.hItem = static_cast<HTREEITEM>(inItem);
-  SendMessageA(static_cast<HWND>(mHandle), TVM_GETITEMA, 0, reinterpret_cast<LPARAM>(&itemInfo));
+  itemInfo.hItem = (HTREEITEM)inItem;
+  SendMessageA((HWND)mHandle, TVM_GETITEMA, 0, (LPARAM)&itemInfo);
   int paramID = itemInfo.lParam;
   VALIDATEBEGIN;
   VALIDATE(paramID >= 0 && paramID < (int)mItemParams.Count());
@@ -3651,15 +3649,15 @@ OsGuiTreeItemParams *COsTreeView::GetParams(LPVOID inItem) {
 }
 
 LPVOID COsTreeView::GetEditControl() {
-  return reinterpret_cast<LPVOID>(SendMessageA(static_cast<HWND>(mHandle), 0x110F, 0, 0));
+  return (LPVOID)SendMessageA((HWND)mHandle, TVM_GETEDITCONTROL, 0, 0);
 }
 
 static int CALLBACK sSpinButtonProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
-  COsSpinButton *spin = static_cast<COsSpinButton *>(sGetOsGuiPointer(hwnd));
+  COsSpinButton *spin = (COsSpinButton *)sGetOsGuiPointer(hwnd);
   if (spin && msg == WM_LBUTTONUP) {
     spin->OnSpinMouseUp();
   }
-  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 COsSpinButton::COsSpinButton(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 13, inID, inFlags) {
@@ -3671,7 +3669,7 @@ COsSpinButton::COsSpinButton(LPVOID inWindow, short inID, UINT inFlags) : COsCon
 }
 
 void COsSpinButton::Initialize() {
-  SetWindowLongA(static_cast<HWND>(mHandle), GWL_WNDPROC, reinterpret_cast<LONG>(sSpinButtonProc));
+  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sSpinButtonProc);
 }
 
 void COsSpinButton::OnSpinMouseUp() {
@@ -3679,15 +3677,15 @@ void COsSpinButton::OnSpinMouseUp() {
 }
 
 void COsSpinButton::SetValueRange(int inMinVal, int inMaxVal) {
-  SendMessageA(static_cast<HWND>(mHandle), UDM_SETRANGE32, inMinVal, inMaxVal);
+  SendMessageA((HWND)mHandle, UDM_SETRANGE32, inMinVal, inMaxVal);
 }
 
 void COsSpinButton::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), 0x471, 0, inVal);
+  SendMessageA((HWND)mHandle, UDM_SETPOS32, 0, inVal);
 }
 
 int COsSpinButton::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), 0x472, 0, 0);
+  return SendMessageA((HWND)mHandle, UDM_GETPOS32, 0, 0);
 }
 
 static int sConvertScrollMsg(int inWParam) {
@@ -3725,7 +3723,7 @@ static int sProcessScrollMessage(LPVOID inWindow, int inBarType, int inScrollMsg
   SCROLLINFO info;
   info.cbSize = sizeof(info);
   info.fMask = SIF_ALL;
-  GetScrollInfo(static_cast<HWND>(inWindow), inBarType, &info);
+  GetScrollInfo((HWND)inWindow, inBarType, &info);
 
   int oldPos = info.nPos;
   int newPos = oldPos;
@@ -3762,7 +3760,7 @@ static int sProcessScrollMessage(LPVOID inWindow, int inBarType, int inScrollMsg
     newPos = info.nMin;
   }
   if (newPos != oldPos) {
-    SetScrollPos(static_cast<HWND>(inWindow), inBarType, newPos, TRUE);
+    SetScrollPos((HWND)inWindow, inBarType, newPos, TRUE);
   }
   return oldPos - newPos;
 }
@@ -3794,35 +3792,35 @@ void COsScrollBar::SetPageSize(int inVal) {
   info.cbSize = sizeof(info);
   info.fMask = SIF_PAGE;
   info.nPage = inVal;
-  SetScrollInfo(static_cast<HWND>(mHandle), SB_CTL, &info, TRUE);
+  SetScrollInfo((HWND)mHandle, SB_CTL, &info, TRUE);
   UpdateRangeValues();
 }
 
 void COsScrollBar::UpdateRangeValues() {
   int scrollMin = mRealMin;
   int scrollMax = mRealMax + (mPageSize - 1 > 0 ? mPageSize - 1 : 0);
-  SendMessageA(static_cast<HWND>(mHandle), SBM_SETRANGEREDRAW, scrollMin, scrollMax);
+  SendMessageA((HWND)mHandle, SBM_SETRANGEREDRAW, scrollMin, scrollMax);
 
   SCROLLINFO info;
   info.cbSize = sizeof(info);
   info.fMask = SIF_RANGE;
   info.nMin = scrollMin;
   info.nMax = scrollMax;
-  SetScrollInfo(static_cast<HWND>(mHandle), SB_CTL, &info, TRUE);
+  SetScrollInfo((HWND)mHandle, SB_CTL, &info, TRUE);
 }
 
 void COsScrollBar::SetValue(int inVal) {
-  SendMessageA(static_cast<HWND>(mHandle), SBM_SETPOS, inVal, TRUE);
+  SendMessageA((HWND)mHandle, SBM_SETPOS, inVal, TRUE);
 
   SCROLLINFO info;
   info.cbSize = sizeof(info);
   info.fMask = SIF_POS;
   info.nPos = inVal;
-  SetScrollInfo(static_cast<HWND>(mHandle), SB_CTL, &info, TRUE);
+  SetScrollInfo((HWND)mHandle, SB_CTL, &info, TRUE);
 }
 
 int COsScrollBar::GetValue() {
-  return SendMessageA(static_cast<HWND>(mHandle), SBM_GETPOS, 0, 0);
+  return SendMessageA((HWND)mHandle, SBM_GETPOS, 0, 0);
 }
 
 int COsScrollBar::OnScroll(int inParam) {
@@ -3861,7 +3859,7 @@ void COsDivider::Initialize() {
   mTracking = 0;
   mMaxPos = 100000;
   mMinPos = -100000;
-  SetWindowLongA(static_cast<HWND>(mHandle), GWL_WNDPROC, reinterpret_cast<LONG>(sDividerProc));
+  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sDividerProc);
 }
 
 void COsDivider::UpdateCursor() {
@@ -3873,11 +3871,11 @@ void COsDivider::UpdateCursor() {
 }
 
 void COsDivider::OnDivMouseDown() {
-  SetCapture(static_cast<HWND>(mHandle));
+  SetCapture((HWND)mHandle);
   mDragging = 1;
   OsGuiGetCursorPosition(&mDragStartMouseX, &mDragStartMouseY);
 
-  NTempest::CiRect parentRect = OsGuiGetWindowRect(GetParent(static_cast<HWND>(mHandle)), 1);
+  NTempest::CiRect parentRect = OsGuiGetWindowRect(GetParent((HWND)mHandle), 1);
   NTempest::CiRect controlRect = OsGuiGetWindowRect(mHandle, 0);
   mDragStartPos = controlRect;
   mDragStartPos.l -= parentRect.l;
@@ -3892,7 +3890,7 @@ void COsDivider::OnDivMouseMove(int, int) {
   if (!mTracking) {
     track.cbSize = sizeof(track);
     track.dwFlags = TME_LEAVE;
-    track.hwndTrack = static_cast<HWND>(mHandle);
+    track.hwndTrack = (HWND)mHandle;
     mTracking = _TrackMouseEvent(&track);
   }
   UpdateCursor();
@@ -3950,14 +3948,14 @@ void COsDivider::SetPositionRange(int inMin, int inMax) {
 }
 
 static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
-  COsDivider *divider = static_cast<COsDivider *>(sGetOsGuiPointer(hwnd));
+  COsDivider *divider = (COsDivider *)sGetOsGuiPointer(hwnd);
   if (divider) {
     switch (msg) {
       case WM_LBUTTONDOWN:
         divider->OnDivMouseDown();
         break;
       case WM_MOUSEMOVE:
-        divider->OnDivMouseMove(static_cast<short>(LOWORD(lParam)), static_cast<short>(HIWORD(lParam)));
+        divider->OnDivMouseMove((short)LOWORD(lParam), (short)HIWORD(lParam));
         break;
       case WM_LBUTTONUP:
         divider->OnDivMouseUp();
@@ -3967,18 +3965,18 @@ static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPara
         break;
     }
   }
-  return CallWindowProcA(reinterpret_cast<WNDPROC>(GetClassLongA(hwnd, GCL_WNDPROC)), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 COsWindow::COsWindow(LPVOID inWindow) {
   mHandle = inWindow;
   mMinSize.x = -1;
   mMinSize.y = -1;
-  sSetOsGuiPointer(static_cast<HWND>(inWindow), this);
+  sSetOsGuiPointer((HWND)inWindow, this);
 }
 
 COsWindow::~COsWindow() {
-  sRemoveOsGuiPointer(static_cast<HWND>(mHandle));
+  sRemoveOsGuiPointer((HWND)mHandle);
 }
 
 void COsWindow::SetMinSize(int inW, int inH) {
@@ -3994,7 +3992,7 @@ void COsWindow::GetMinSize(int *outW, int *outH) {
 void COsWindow::SetCursor(int inCursor) {
   HCURSOR cursor = sWinCursor(inCursor);
   if (cursor) {
-    SetClassLongA(static_cast<HWND>(mHandle), GCL_HCURSOR, reinterpret_cast<LONG>(cursor));
+    SetClassLongA((HWND)mHandle, GCL_HCURSOR, (LONG)cursor);
   }
 }
 
@@ -4003,7 +4001,7 @@ void COsWindow::SetIcon(LPCSTR inName) {
 }
 
 void COsWindow::SetInputFocus() {
-  SetFocus(static_cast<HWND>(mHandle));
+  SetFocus((HWND)mHandle);
 }
 
 void COsWindow::OnResize() {
@@ -4058,42 +4056,38 @@ void OsGuiGetCursorPosition(int *outX, int *outY) {
 }
 
 void OsGuiSetWindowTitle(LPVOID inWindow, LPCSTR inText) {
-  SetWindowTextA(static_cast<HWND>(inWindow), inText);
+  SetWindowTextA((HWND)inWindow, inText);
 }
 
 void OsGuiSetWindowIcon(LPVOID inWindow, LPCSTR inName) {
-  HICON oldIcon = reinterpret_cast<HICON>(
-      SetClassLongA(static_cast<HWND>(inWindow), GCL_HICON, reinterpret_cast<LONG>(LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 32, 32, 0)))
-  );
+  HICON oldIcon = (HICON)SetClassLongA((HWND)inWindow, GCL_HICON, (LONG)LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 32, 32, 0));
   if (oldIcon) {
     DestroyIcon(oldIcon);
   }
-  oldIcon = reinterpret_cast<HICON>(
-      SetClassLongA(static_cast<HWND>(inWindow), GCL_HICONSM, reinterpret_cast<LONG>(LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 16, 16, 0)))
-  );
+  oldIcon = (HICON)SetClassLongA((HWND)inWindow, GCL_HICONSM, (LONG)LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 16, 16, 0));
   if (oldIcon) {
     DestroyIcon(oldIcon);
   }
 }
 
 void OsGuiSetWindowRect(LPVOID inWindow, const NTempest::CiRect &inRect) {
-  SetWindowPos(static_cast<HWND>(inWindow), 0, inRect.l, inRect.t, inRect.Width(), inRect.Height(), SWP_NOZORDER | SWP_NOACTIVATE);
+  SetWindowPos((HWND)inWindow, 0, inRect.l, inRect.t, inRect.Width(), inRect.Height(), SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void OsGuiBringWindowToFront(LPVOID inWindow) {
-  BringWindowToTop(static_cast<HWND>(inWindow));
+  BringWindowToTop((HWND)inWindow);
 }
 
 void OsGuiShowWindow(LPVOID inWindow, int inVal) {
-  SetWindowPos(static_cast<HWND>(inWindow), 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | (inVal ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
+  SetWindowPos((HWND)inWindow, 0, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | (inVal ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
 }
 
 void OsGuiEnableWindow(LPVOID inWindow, int inVal) {
-  EnableWindow(static_cast<HWND>(inWindow), inVal);
+  EnableWindow((HWND)inWindow, inVal);
 }
 
 int OsGuiWindowEnabled(LPVOID inWindow) {
-  return IsWindowEnabled(static_cast<HWND>(inWindow));
+  return IsWindowEnabled((HWND)inWindow);
 }
 
 LPVOID OsGuiGetWindow(int inWindowType) {
@@ -4117,37 +4111,37 @@ void OsGuiSetGxWindow(LPVOID window) {
 }
 
 void OsGuiMaximizeWindow(LPVOID inWindow, int inVal) {
-  HWND wnd = static_cast<HWND>(inWindow);
+  HWND wnd = (HWND)inWindow;
   ShowWindow(wnd, IsWindowVisible(wnd) ? (inVal ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL) : (inVal ? SW_SHOWMAXIMIZED : SW_HIDE));
 }
 
 BOOL OsGuiWindowMaximized(LPVOID inWindow) {
   WINDOWPLACEMENT wp;
   wp.length = sizeof(wp);
-  GetWindowPlacement(static_cast<HWND>(inWindow), &wp);
+  GetWindowPlacement((HWND)inWindow, &wp);
   return wp.showCmd == SW_SHOWMAXIMIZED;
 }
 
 void OsGuiMinimizeWindow(LPVOID inWindow, int inVal) {
-  HWND wnd = static_cast<HWND>(inWindow);
+  HWND wnd = (HWND)inWindow;
   ShowWindow(wnd, IsWindowVisible(wnd) ? (inVal ? SW_SHOWMINIMIZED : SW_SHOWNORMAL) : (inVal ? SW_MINIMIZE : SW_HIDE));
 }
 
 BOOL OsGuiWindowMinimized(LPVOID inWindow) {
   WINDOWPLACEMENT wp;
   wp.length = sizeof(wp);
-  GetWindowPlacement(static_cast<HWND>(inWindow), &wp);
+  GetWindowPlacement((HWND)inWindow, &wp);
   return wp.showCmd == SW_SHOWMINIMIZED;
 }
 void OsGuiSetWindowRestoredRect(LPVOID inWindow, const NTempest::CiRect &inRect) {
   WINDOWPLACEMENT wp;
   wp.length = sizeof(wp);
-  GetWindowPlacement(static_cast<HWND>(inWindow), &wp);
+  GetWindowPlacement((HWND)inWindow, &wp);
   RECT winRect;
   sCiRectToWinRect(&inRect, &winRect);
   wp.rcNormalPosition = winRect;
-  wp.showCmd = IsWindowVisible(static_cast<HWND>(inWindow)) ? SW_SHOWNA : SW_HIDE;
-  SetWindowPlacement(static_cast<HWND>(inWindow), &wp);
+  wp.showCmd = IsWindowVisible((HWND)inWindow) ? SW_SHOWNA : SW_HIDE;
+  SetWindowPlacement((HWND)inWindow, &wp);
 }
 
 BOOL OsGuiWindowIsCursorInside(LPVOID inWindow, int inClientOnly) {
@@ -4155,14 +4149,17 @@ BOOL OsGuiWindowIsCursorInside(LPVOID inWindow, int inClientOnly) {
   int cy = 0;
   OsGuiGetCursorPosition(&cx, &cy);
   POINT cursor = {cx, cy};
-  if (WindowFromPoint(cursor) != static_cast<HWND>(inWindow)) {
-    return 0;
+  BOOL result;
+  if (WindowFromPoint(cursor) == inWindow) {
+    result = 1;
+    if (inClientOnly) {
+      NTempest::CiRect winRect = OsGuiGetWindowRect(inWindow, 1);
+      result = winRect.Contains(NTempest::C2iVector(cx, cy));
+    }
+  } else {
+    result = 0;
   }
-  if (inClientOnly) {
-    NTempest::CiRect winRect = OsGuiGetWindowRect(inWindow, 1);
-    return cx >= winRect.l && cx <= winRect.r && cy >= winRect.t && cy <= winRect.b;
-  }
-  return 1;
+  return result;
 }
 
 NTempest::CiRect OsGuiGetScreenBounds() {
@@ -4200,7 +4197,7 @@ int OsGuiMessageBox(LPVOID inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR
     inTitle = "";
   }
   result = 2;
-  switch (MessageBoxA(static_cast<HWND>(inParentWindow), inMessage, inTitle, messageBoxStyle)) {
+  switch (MessageBoxA((HWND)inParentWindow, inMessage, inTitle, messageBoxStyle)) {
     case IDOK:
     case IDYES:
       result = 0;
@@ -4243,7 +4240,7 @@ void OsGuiGetHotkeyText(const OsGuiMenuHotkey &inHotkey, char *inBuf, int inBufS
 }
 
 long OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam) {
-  HWND hwnd = static_cast<HWND>(_hWnd);
+  HWND hwnd = (HWND)_hWnd;
   switch (uMsg) {
     case WM_COMMAND:
       if (!lParam) {
@@ -4253,15 +4250,15 @@ long OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam) {
         }
         break;
       } else {
-        COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(reinterpret_cast<HWND>(lParam)));
+        COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
         if (!control) {
           return 0;
         }
         return control->OnCommand(wParam);
       }
     case WM_NOTIFY: {
-      NMHDR      *notify = reinterpret_cast<NMHDR *>(lParam);
-      COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(notify->hwndFrom));
+      NMHDR      *notify = (NMHDR *)lParam;
+      COsControl *control = (COsControl *)sGetOsGuiPointer(notify->hwndFrom);
       if (!control) {
         return 0;
       }
@@ -4273,7 +4270,7 @@ long OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam) {
     case WM_HSCROLL:
     case WM_VSCROLL:
       if (lParam) {
-        COsControl *control = static_cast<COsControl *>(sGetOsGuiPointer(reinterpret_cast<HWND>(lParam)));
+        COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
         if (!control) {
           return 0;
         }
@@ -4295,17 +4292,17 @@ long OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam) {
     case WM_CTLCOLORLISTBOX:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-      return reinterpret_cast<long>(sHandleCtlColor(wParam, lParam));
+      return (long)sHandleCtlColor(wParam, lParam);
   }
 
-  COsWindow *window = static_cast<COsWindow *>(sGetOsGuiPointer(hwnd));
+  COsWindow *window = (COsWindow *)sGetOsGuiPointer(hwnd);
   if (window) {
     switch (uMsg) {
       case WM_GETMINMAXINFO: {
         int minX;
         int minY;
         window->GetMinSize(&minX, &minY);
-        MINMAXINFO *minMaxInfo = reinterpret_cast<MINMAXINFO *>(lParam);
+        MINMAXINFO *minMaxInfo = (MINMAXINFO *)lParam;
         if (minX != -1) {
           minMaxInfo->ptMinTrackSize.x = minX;
         }

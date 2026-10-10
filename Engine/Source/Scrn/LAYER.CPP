@@ -26,8 +26,6 @@ class CILayer : public CHandleObject {
   LINKDECLEX(CILayer, zorderlink);
 };
 
-typedef char CILayerSizeCheck[sizeof(CILayer) == 0x40 ? 1 : -1];
-
 static const RECTF defaultrect = {0.0f, 0.0f, 1.0f, 1.0f};
 static float       s_elapsedSec;
 static void (*s_captureScreen)(int);
@@ -61,7 +59,6 @@ static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
 }
 
 static BOOL OnPaint(LPCVOID, LPVOID) {
-  CILayer *layer;
   CILayer *nextLayer;
   HSRGN    rgn;
   RECTF    baseRect;
@@ -83,62 +80,51 @@ static BOOL OnPaint(LPCVOID, LPVOID) {
   baseRect.top = 1.0f;
   SRgnCombineRectf(rgn, &baseRect, 0, 2);
 
-  layer = s_zorderlist.Tail();
-
-  while (layer) {
-    CILayer *previousLayer;
-
+  ITERATELISTREVERSE(CILayer, s_zorderlist, layer) {
     SRgnGetBoundingRectf(rgn, &layer->visible);
-    layer->visible.left = layer->rect.left < layer->visible.left ? layer->visible.left : layer->rect.left;
-    layer->visible.bottom = layer->rect.bottom < layer->visible.bottom ? layer->visible.bottom : layer->rect.bottom;
-    layer->visible.right = layer->rect.right > layer->visible.right ? layer->visible.right : layer->rect.right;
-    layer->visible.top = layer->rect.top > layer->visible.top ? layer->visible.top : layer->rect.top;
+    layer->visible.left = max(layer->visible.left, layer->rect.left);
+    layer->visible.bottom = max(layer->visible.bottom, layer->rect.bottom);
+    layer->visible.right = min(layer->visible.right, layer->rect.right);
+    layer->visible.top = min(layer->visible.top, layer->rect.top);
 
     if (!(layer->flags & 1)) {
       SRgnCombineRectf(rgn, &layer->rect, 0, 4);
     }
-
-    previousLayer = s_zorderlist.Prev(layer);
-    layer = previousLayer;
   }
 
   SRgnDelete(rgn);
   GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
-  layer = s_zorderlist.Head();
-  while (layer) {
-    nextLayer = s_zorderlist.Next(layer);
+  for (layer = s_zorderlist.Head(); (int)layer > 0 ? ((nextLayer = s_zorderlist.RawNext(layer)), 1) : 0; layer = nextLayer) {
 
-    if (!(layer->visible.right <= layer->visible.left) && !(layer->visible.top <= layer->visible.bottom)) {
-      if (layer->flags & 4) {
-        GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-      } else {
-        GxXformSetViewport(layer->visible.left, layer->visible.right, layer->visible.bottom, layer->visible.top, 0.0f, 1.0f);
-      }
-
-      if (layer->flags & 2) {
-        NTempest::C44Matrix identity;
-        NTempest::C44Matrix orthoProj;
-
-        GxuXformCreateOrtho(layer->visible.left, layer->visible.right, layer->visible.bottom, layer->visible.top, 0.0f, 500.0f, orthoProj);
-        GxXformSetView(identity);
-        GxXformSetProjection(orthoProj);
-      }
-
-      layer->paintfunc(layer->param, &layer->rect, &layer->visible, s_elapsedSec);
+    if (layer->visible.right <= layer->visible.left || layer->visible.top <= layer->visible.bottom) {
+      continue;
     }
 
-    layer = nextLayer;
+    if (layer->flags & 4) {
+      GxXformSetViewport(0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+    } else {
+      GxXformSetViewport(layer->visible.left, layer->visible.right, layer->visible.bottom, layer->visible.top, 0.0f, 1.0f);
+    }
+
+    if (layer->flags & 2) {
+      NTempest::C44Matrix identity;
+      NTempest::C44Matrix orthoProj;
+
+      GxuXformCreateOrtho(layer->visible.left, layer->visible.right, layer->visible.bottom, layer->visible.top, 0.0f, 500.0f, orthoProj);
+      GxXformSetView(identity);
+      GxXformSetProjection(orthoProj);
+    }
+
+    layer->paintfunc(layer->param, &layer->rect, &layer->visible, s_elapsedSec);
   }
 
   GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
   if (s_captureScreen) {
-    void (*callback)(int) = s_captureScreen;
-
     GxDevTakeScreenShot();
     GxScenePresent(3);
-    callback(CaptureScreen());
+    s_captureScreen(CaptureScreen());
     GxDevClearScreenShot();
     s_captureScreen = 0;
   } else {
@@ -173,14 +159,12 @@ void ScrnLayerCreate(
 ) {
   CILayer *newLayer;
   CILayer *existingLayer;
-  LPVOID   memory;
 
   if (!rect) {
     rect = &defaultrect;
   }
 
-  memory = SMemAlloc(sizeof(CILayer), "HLAYER", SERR_LINECODE_OBJECT, 0);
-  newLayer = memory ? new (memory) CILayer : 0;
+  newLayer = NEWHANDLE(HLAYER, CILayer);
   newLayer->rect = *rect;
   newLayer->zorder = zorder;
   newLayer->flags = flags;
@@ -190,24 +174,23 @@ void ScrnLayerCreate(
   existingLayer = s_zorderlist.Tail();
 
   while (existingLayer && existingLayer->zorder > zorder) {
-    CILayer *previousLayer = s_zorderlist.Prev(existingLayer);
-    existingLayer = previousLayer;
+    existingLayer = s_zorderlist.Prev(existingLayer);
   }
 
   s_zorderlist.LinkNode(newLayer, LIST_LINK_AFTER, existingLayer);
-  *layer = static_cast<HLAYER>(HandleCreate(newLayer, "HLAYER"));
+  *layer = CREATEHANDLE(HLAYER, newLayer);
 }
 
 void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {
-  reinterpret_cast<CILayer *>(layer)->rect = *rect;
+  ((CILayer *)layer)->rect = *rect;
 }
 
 UINT ScrnLayerGetFlags(HLAYER__ *layer) {
-  return reinterpret_cast<CILayer *>(layer)->flags;
+  return ((CILayer *)layer)->flags;
 }
 
 void ScrnLayerSetFlags(HLAYER__ *layer, UINT flags) {
-  reinterpret_cast<CILayer *>(layer)->flags = flags;
+  ((CILayer *)layer)->flags = flags;
 }
 
 void ScrnLayerDisable(int disable) {

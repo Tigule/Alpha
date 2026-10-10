@@ -51,7 +51,7 @@ float ScreenToPixelHeight(int billboarded, float height) {
   }
 
   pixelCoords = g_heightPixels * height;
-  return static_cast<float>(static_cast<int>(pixelCoords + SignOf(pixelCoords) * 0.5f));
+  return (int)(pixelCoords + SignOf(pixelCoords) * 0.5f);
 }
 float ScreenToPixelWidth(int billboarded, float width) {
   float pixelCoords;
@@ -61,7 +61,7 @@ float ScreenToPixelWidth(int billboarded, float width) {
   }
 
   pixelCoords = g_widthPixels * width;
-  return static_cast<float>(static_cast<int>(pixelCoords + SignOf(pixelCoords) * 0.5f));
+  return (int)(pixelCoords + SignOf(pixelCoords) * 0.5f);
 }
 void GxuFontWindowSizeChanged() {
   static NTempest::CRect s_currentRect;
@@ -69,10 +69,7 @@ void GxuFontWindowSizeChanged() {
 
   GxCapsWindowSize(rect);
   if (rect.r - rect.l == 0.0f || rect.b - rect.t == 0.0f) {
-    rect.t = 0.0f;
-    rect.l = 0.0f;
-    rect.b = 480.0f;
-    rect.r = 640.0f;
+    rect = NTempest::CRect(0.0f, 0.0f, 480.0f, 640.0f);
   }
 
   if (rect.t == s_currentRect.t && rect.l == s_currentRect.l && rect.b == s_currentRect.b && rect.r == s_currentRect.r) {
@@ -80,8 +77,8 @@ void GxuFontWindowSizeChanged() {
   }
 
   s_currentRect = rect;
-  g_widthPixels = static_cast<UINT>(rect.r - rect.l);
-  g_heightPixels = static_cast<UINT>(rect.b - rect.t);
+  g_widthPixels = rect.r - rect.l;
+  g_heightPixels = rect.b - rect.t;
   s_pixelWidth = g_widthPixels ? 1.0f / g_widthPixels : 0.0f;
   s_pixelHeight = g_heightPixels ? 1.0f / g_heightPixels : 0.0f;
 
@@ -125,7 +122,7 @@ int GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags)
 
   ASSERT(s_FTLibrary);
 
-  newFace = NEWZERO(CGxFont);
+  newFace = new (SMemAlloc(sizeof(CGxFont), typeid(CGxFont).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, SMEM_FLAG_ZEROMEMORY)) CGxFont;
   s_fonts.LinkNode(newFace, LIST_TAIL, 0);
   ASSERT(newFace);
 
@@ -265,12 +262,11 @@ CGxStringBatch *GxuFontCreateBatch() {
   CGxStringBatch *batch = s_unusedBatches.Head();
 
   if (batch) {
-    batch->Unlink();
-  } else {
-    batch = NEWZERO(CGxStringBatch);
+    s_unusedBatches.UnlinkNode(batch);
+    return batch;
   }
 
-  return batch;
+  return s_unusedBatches.NewNode(LIST_UNLINKED, 0, 0);
 }
 BOOL GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string) {
   if (!batch || !string) {
@@ -380,7 +376,7 @@ float GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, 
     }
   } while (text);
 
-  return static_cast<float>(lines - 1) * lineSpacing + static_cast<float>(lines) * fontHeight;
+  return (float)(lines - 1) * lineSpacing + (float)lines * fontHeight;
 }
 UINT GxuFontGetMaxCharsWithinWidth(
     CGxFont *face,
@@ -410,6 +406,7 @@ UINT GxuFontGetMaxCharsWithinWidthFromEnd(
   float *widthArray;
   float *currentWidth;
   UINT   charsToRemove;
+  UINT   numChars;
 
   ASSERT(font);
 
@@ -417,35 +414,32 @@ UINT GxuFontGetMaxCharsWithinWidthFromEnd(
     return 0;
   }
 
-  widthArray = static_cast<float *>(_alloca(sizeof(float) * lineBytes));
-  bytesInString =
-      InternalGetMaxCharsWithinWidth(font, text, fontHeight, 10000.0f, lineBytes, &textExtent, flags, 0, widthArray, widthArray + lineBytes);
+  widthArray = (float *)_alloca(sizeof(float) * lineBytes);
+  numChars = InternalGetMaxCharsWithinWidth(
+      font, text, fontHeight, 10000.0f, lineBytes, &textExtent, flags, &bytesInString, widthArray, widthArray + lineBytes
+  );
   if (textExtent <= width) {
     if (extent) {
       *extent = textExtent;
     }
-    return bytesInString;
+    return numChars;
   }
 
   remaining = textExtent - width;
   currentWidth = widthArray;
-  charsToRemove = 0;
-  while (charsToRemove < bytesInString && *currentWidth <= remaining) {
-    ++charsToRemove;
-    ++currentWidth;
-  }
-
-  if (charsToRemove >= bytesInString) {
-    if (extent) {
-      *extent = 0.0f;
+  for (charsToRemove = 0; charsToRemove < numChars; ++charsToRemove, ++currentWidth) {
+    if (*currentWidth > remaining) {
+      if (extent) {
+        *extent = textExtent - *currentWidth;
+      }
+      return numChars - charsToRemove;
     }
-    return 0;
   }
 
   if (extent) {
-    *extent = textExtent - *currentWidth;
+    *extent = 0.0f;
   }
-  return bytesInString - charsToRemove;
+  return 0;
 }
 UINT GxuFontWrapText(
     CGxFont *font,
@@ -458,14 +452,12 @@ UINT GxuFontWrapText(
     float    charSpacing,
     UINT     flags
 ) {
-  LPCSTR currentText = text;
   UINT   unusedNumBytes;
   float  unusedExtents;
   UINT   advance;
   LPCSTR nextText;
   UINT   wide;
   LPCSTR originalText;
-  LPCSTR textEnd;
   UINT   lines;
 
   ASSERT(font);
@@ -481,30 +473,25 @@ UINT GxuFontWrapText(
 
   originalText = text;
   lines = 0;
-  textEnd = text + lineBytes;
 
-  while (currentText < textEnd) {
+  while (text && text < originalText + lineBytes) {
     QUOTEDCODE quoted;
 
     if (lines < outputListElements) {
-      outputList[lines] = static_cast<UINT>(currentText - originalText);
+      outputList[lines] = text - originalText;
     }
     ++lines;
 
-    quoted = GxuDetermineQuotedCode(currentText, advance, 0, flags, wide, SStrLen(currentText));
+    quoted = GxuDetermineQuotedCode(text, advance, 0, flags, wide, SStrLen(text));
     if (wide == '\n' || quoted == CODE_NEWLINE) {
-      currentText += advance;
+      text += advance;
     } else {
-      CalcWrapPoint(font, currentText, fontHeight, blockWidth, &unusedNumBytes, &unusedExtents, &nextText, flags);
-      currentText = nextText;
-    }
-
-    if (!currentText) {
-      break;
+      CalcWrapPoint(font, text, fontHeight, blockWidth, &unusedNumBytes, &unusedExtents, &nextText, flags);
+      text = nextText;
     }
   }
 
-  if (textEnd[-1] == '\n') {
+  if (originalText[lineBytes - 1] == '\n') {
     if (lines < outputListElements) {
       outputList[lines] = lineBytes;
     }
@@ -521,7 +508,7 @@ float GxuFontGetOneToOneHeight(CGxFont *font) {
   ASSERT(font->m_cellHeight);
   ASSERT(font->m_cellHeight <= 32);
 
-  return static_cast<float>(font->m_pixelSize) / static_cast<float>(g_heightPixels);
+  return (float)font->m_pixelSize / (float)g_heightPixels;
 }
 LPCSTR
 GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buffer, UINT bufferSize) {
@@ -538,11 +525,12 @@ GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buf
       {0x400,  'h', 1},
       {0x000,  '-', 1}
   };
-  UINT   wide;
-  LPCSTR originalString;
   UINT   advance;
+  LPCSTR originalString;
+  UINT   wide;
   UINT   remainingBytes;
   UINT   outputBytes;
+  UINT   i;
 
   FATALASSERT(buffer);
 
@@ -568,50 +556,45 @@ GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buf
         if (flags & s_stripFlags[quoted].stripFlags) {
           inputString += advance;
           remainingBytes -= advance;
-          break;
+          continue;
         }
         if (outputBytes >= bufferSize - advance) {
-          goto done;
+          break;
         }
-        while (advance) {
+        for (i = 0; i < advance; ++i) {
           buffer[outputBytes++] = *inputString++;
-          --remainingBytes;
-          --advance;
         }
-        break;
+        remainingBytes -= advance;
+        continue;
 
       case CODE_NEWLINE:
       case CODE_PIPE:
       case CODE_HYPERLINKSTOP:
-        inputString += advance;
         remainingBytes -= advance;
+        inputString += advance;
         if (flags & s_stripFlags[quoted].stripFlags) {
-          break;
+          continue;
         }
         if (outputBytes >= bufferSize - advance) {
-          goto copyOriginal;
+          break;
         }
         if (s_stripFlags[quoted].addEscapeChar) {
           buffer[outputBytes++] = '|';
         }
-        buffer[outputBytes++] = static_cast<char>(s_stripFlags[quoted].charCode);
-        break;
-
-      default:
-      copyOriginal:
-        if (outputBytes >= bufferSize - advance) {
-          goto done;
-        }
-        for (wide = 0; wide < advance; ++wide) {
-          buffer[outputBytes++] = originalString[wide];
-        }
-        inputString += advance;
-        remainingBytes -= advance;
-        break;
+        buffer[outputBytes++] = s_stripFlags[quoted].charCode;
+        continue;
     }
+
+    if (outputBytes >= bufferSize - advance) {
+      break;
+    }
+    for (i = 0; i < advance; ++i) {
+      buffer[outputBytes++] = originalString[i];
+    }
+    inputString += advance;
+    remainingBytes -= advance;
   }
 
-done:
   buffer[outputBytes] = 0;
   return buffer;
 }

@@ -16,7 +16,6 @@ EGxTexFormat CGxDeviceD3d::s_GxTexFmtToUse[GxTexFormats_Last] = {GxTex_Unknown, 
                                                                  GxTex_Rgb565,  GxTex_Dxt1,     GxTex_Dxt3,     GxTex_Dxt5};
 
 static NTempest::CiRect emptyRect;
-static NTempest::CiRect lockRect;
 
 void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
   UINT i = m_textures.Count();
@@ -24,7 +23,7 @@ void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
   while (i) {
     CGxTex *texture = m_textures[--i];
     if (texture && texture->m_apiSpecificData && (freeTextures || texture->m_flags.m_renderTarget)) {
-      static_cast<IUnknown *>(texture->m_apiSpecificData)->Release();
+      ((IUnknown *)texture->m_apiSpecificData)->Release();
       texture->m_apiSpecificData = 0;
       texture->m_needsCreation = 1;
       TexMarkForUpdate(texture, emptyRect, 0);
@@ -61,7 +60,7 @@ BOOL CGxDeviceD3d::TexCreate(
 
 void CGxDeviceD3d::TexDestroy(CGxTex *texId) {
   if (texId->m_apiSpecificData) {
-    static_cast<IUnknown *>(texId->m_apiSpecificData)->Release();
+    ((IUnknown *)texId->m_apiSpecificData)->Release();
   }
 
   CGxDevice::TexDestroy(texId);
@@ -111,7 +110,7 @@ void CGxDeviceD3d::ITexCreate(CGxTex *gxTex, UINT w, UINT h, UINT startLevel, UI
 }
 
 void CGxDeviceD3d::ITexUpload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UINT endLevel) {
-  IDirect3DTexture9 *texD3d = static_cast<IDirect3DTexture9 *>(texId->m_apiSpecificData);
+  IDirect3DTexture9 *texD3d = (IDirect3DTexture9 *)texId->m_apiSpecificData;
   UINT               texelStrideInBytes;
   LPCVOID            texels;
 
@@ -133,16 +132,17 @@ void CGxDeviceD3d::ITexUpload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UI
         break;
       }
 
+      static NTempest::CiRect lockRect;
       lockRect = texId->m_updateRect;
       lockRect.l >>= startLevel;
       lockRect.t >>= startLevel;
       lockRect.b = (lockRect.b >> startLevel) + 1;
       lockRect.r = (lockRect.r >> startLevel) + 1;
 
-      if (lockRect.b >= static_cast<long>(h)) {
+      if (lockRect.b >= (long)h) {
         lockRect.b = h;
       }
-      if (lockRect.r >= static_cast<long>(w)) {
+      if (lockRect.r >= (long)w) {
         lockRect.r = w;
       }
 
@@ -160,7 +160,7 @@ void CGxDeviceD3d::ITexUpload(CGxTex *texId, UINT w, UINT h, UINT startLevel, UI
       }
 
       __try {
-        LPVOID corner = reinterpret_cast<BYTE *>(const_cast<LPVOID>(texels)) + ((lockRect.l * s_texFormatBitDepth[texId->m_dataFormat]) >> 3) +
+        LPVOID corner = (BYTE *)texels + ((lockRect.l * s_texFormatBitDepth[texId->m_dataFormat]) >> 3) +
                         texelStrideInBytes * lockRect.t;
         Blit(
             NTempest::C2iVector(lockRect.Width(), lockRect.Height()), BlitAlpha_0, corner, texelStrideInBytes, GxGetBlitFormat(texId->m_dataFormat),
@@ -199,25 +199,25 @@ void CGxDeviceD3d::ITexMarkAsUpdated(CGxTex *texId) {
   if (texId->m_needsUpdate) {
     UINT w = texId->m_width;
     UINT h = texId->m_height;
-    UINT startLevel = 0;
-    UINT endLevel = 1;
+    UINT startLevel;
+    UINT endLevel;
 
-    if ((texId->m_flags.m_filter >= 2 && !texId->m_flags.m_generateMipMaps) || texId->m_flags.m_forceMipTracking) {
+    if (texId->m_flags.m_filter == GxTex_Nearest || texId->m_flags.m_filter == GxTex_Linear || (texId->m_flags.m_generateMipMaps && !texId->m_flags.m_forceMipTracking)) {
+      startLevel = 0;
+      endLevel = 1;
+    } else {
       UINT dimension = w > h ? w : h;
-
-      for (endLevel = 1; dimension != 1; ++endLevel) {
+      endLevel = 1;
+      while (dimension != 1) {
         dimension >>= 1;
+        ++endLevel;
       }
 
-      startLevel = m_baseMipLevel;
-      if (startLevel >= endLevel - 1) {
-        startLevel = endLevel - 1;
-      }
+      startLevel = m_baseMipLevel < endLevel - 1 ? m_baseMipLevel : endLevel - 1;
 
       w >>= startLevel;
       h >>= startLevel;
-
-      if (texId->m_flags.m_forceMipTracking) {
+      if (texId->m_flags.m_forceMipTracking == 1) {
         endLevel = startLevel + 1;
       }
     }

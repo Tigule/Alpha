@@ -44,14 +44,12 @@ LPVOID CDataAllocator::GetData(int zero, LPCSTR fileName, int lineNumber) {
     Block *block;
     Data  *data;
 
-    block = static_cast<Block *>(
-        SMemAlloc(m_dataPerBlock * m_bytesPerData + sizeof(Block), fileName ? fileName : __FILE__, fileName ? lineNumber : __LINE__, 0)
-    );
-    data = reinterpret_cast<Data *>(block + 1);
+    block = (Block *)SMemAlloc(m_dataPerBlock * m_bytesPerData + sizeof(Block), fileName ? fileName : __FILE__, fileName ? lineNumber : __LINE__, 0);
+    data = (Data *)(block + 1);
     m_dataList = data;
 
     for (index = 0; index < m_dataPerBlock - 1; ++index) {
-      Data *next = reinterpret_cast<Data *>(reinterpret_cast<BYTE *>(data) + m_bytesPerData);
+      Data *next = (Data *)((BYTE *)data + m_bytesPerData);
       data->m_next = next;
       data = next;
     }
@@ -73,7 +71,7 @@ LPVOID CDataAllocator::GetData(int zero, LPCSTR fileName, int lineNumber) {
 void CDataAllocator::PutData(LPVOID data, LPCSTR fileName, int lineNumber) {
   ASSERT(m_dataUsed > 0);
 
-  Data *allocatorData = static_cast<Data *>(data);
+  Data *allocatorData = (Data *)data;
   allocatorData->m_next = m_dataList;
   m_dataList = allocatorData;
   --m_dataUsed;

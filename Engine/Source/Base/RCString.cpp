@@ -117,7 +117,7 @@ void RCString::Copy(LPCSTR source) {
 
 void RCString::Free() {
   if (*m_rep == CStringRep::s_nullRep) {
-    m_rep = static_cast<CStringRep *>(0);
+    m_rep = 0;
   }
 }
 
@@ -177,7 +177,7 @@ RCString &RCString::operator+=(const RCString &r) {
 }
 
 RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
-  char *str = const_cast<char *>(GetString());
+  char *str = (char *)GetString();
 
   if (str) {
     UINT len = SStrLen(str);
@@ -186,9 +186,9 @@ RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
     VALIDATE(len<(unsigned short)-1);
     VALIDATEEND;
 
-    if (len && start <= static_cast<RCStringIndex>(len)) {
-      if (end >= static_cast<RCStringIndex>(len)) {
-        end = static_cast<RCStringIndex>(len);
+    if (len && start <= (RCStringIndex)len) {
+      if (end >= (RCStringIndex)len) {
+        end = len;
       }
 
       char save = str[end];

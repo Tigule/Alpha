@@ -67,7 +67,7 @@ LPCSTR SOUNDDEFINITION::GetRandomFileName(int index) {
   }
 
   if (index != -1) {
-    m_lastPlayed = min(static_cast<int>(m_fileNames.Count()) - 1, index);
+    m_lastPlayed = min((int)m_fileNames.Count() - 1, index);
     m_loopCounter = 0;
   } else if (m_equalFreqs) {
     if (!(m_loopCounter++ % m_fileNames.Count())) {
@@ -78,7 +78,7 @@ LPCSTR SOUNDDEFINITION::GetRandomFileName(int index) {
   } else {
     targetFreq = NTempest::CRandom::dice_(m_totalFrequency, g_rndSeed);
     m_lastPlayed = 0;
-    for (int i = 0; i < static_cast<int>(m_fileNames.Count()); ++i) {
+    for (int i = 0; i < (int)m_fileNames.Count(); ++i) {
       if (targetFreq < m_fileNames[i].accumulatedFreq) {
         m_lastPlayed = i;
         break;
@@ -284,7 +284,7 @@ static void InitializeSheatheSounds() {
     }
 
     if (rec->m_checkMaterial) {
-      if (static_cast<UINT>(rec->m_material) < numMaterials) {
+      if ((UINT)rec->m_material < numMaterials) {
         hash->materialSheathSound[rec->m_material] = rec->m_sheatheSound;
         hash->materialUnsheathSound[rec->m_material] = rec->m_unsheatheSound;
       }
@@ -382,13 +382,13 @@ static bool InitializePrefTable(int index) {
   prefs->DirectHF = rec->m_EAX2SampleDirectHF;
   prefs->Room = rec->m_EAX2SampleRoom;
   prefs->RoomHF = rec->m_EAX2SampleRoomHF;
-  prefs->Obstruction = static_cast<int>(rec->m_EAX2SampleObstruction);
+  prefs->Obstruction = rec->m_EAX2SampleObstruction;
   prefs->ObstructionLFRatio = rec->m_EAX2SampleObstructionLFRatio;
-  prefs->Occlusion = static_cast<int>(rec->m_EAX2SampleOcclusion);
+  prefs->Occlusion = rec->m_EAX2SampleOcclusion;
   prefs->OcclusionLFRatio = rec->m_EAX2SampleOcclusionLFRatio;
   prefs->OcclusionRoomRatio = rec->m_EAX2SampleOcclusionRoomRatio;
   prefs->OcclusionDirectRatio = rec->m_EAX3SampleOcclusionDirectRatio;
-  prefs->Exclusion = static_cast<int>(rec->m_EAX3SampleExclusion);
+  prefs->Exclusion = rec->m_EAX3SampleExclusion;
   prefs->ExclusionLFRatio = rec->m_EAX3SampleExclusionLFRatio;
   prefs->OutsideVolumeHF = rec->m_EAX2SampleOutsideVolumeHF;
   prefs->DopplerFactor = rec->m_EAX3SampleDopplerFactor;

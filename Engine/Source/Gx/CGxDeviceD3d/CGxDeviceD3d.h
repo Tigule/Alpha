@@ -122,8 +122,8 @@ class CGxDeviceD3d : public CGxDevice {
   _D3DCAPS9            m_d3dCaps;
   int                  m_d3dIsHwDevice;
   BOOL                 m_d3dNeedsReset;
-  CVertexBufferList    m_VBL[4][9];
-  CGxIndexBuffer_D3d  *m_IB[4][9];
+  CVertexBufferList    m_VBL[GxBufWriteFreqs_Last][9];
+  CGxIndexBuffer_D3d  *m_IB[GxBufWriteFreqs_Last][9];
   CGxVertexBuffer_D3d *m_vertexBuffer;
 
   static CGxDeviceD3d *m_thisDevice;
@@ -150,6 +150,8 @@ class CGxDeviceD3d : public CGxDevice {
     UINT       chkSum;
 
     StateD3dLight() {
+      which = (DWORD)-1;
+      chkSum = 0;
     }
 
     int  InUse();
@@ -246,7 +248,7 @@ class CGxDeviceD3d : public CGxDevice {
     DeviceStates_Last = 34
   };
 
-  DWORD m_deviceState[34];
+  DWORD m_deviceState[DeviceStates_Last];
 
   void  DsSet(EDeviceState state, DWORD val);
   DWORD DsGet(EDeviceState state) {

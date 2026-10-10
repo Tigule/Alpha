@@ -124,8 +124,18 @@ struct CCustomGeoset {
 struct CModelTexture {
   CModelTexture() : handle(0), replaceableId(0) {
   }
-  CModelTexture(const CModelTexture &source);
-  CModelTexture &operator=(const CModelTexture &source);
+  CModelTexture(const CModelTexture &source) {
+    replaceableId = source.replaceableId;
+    handle = (HTEXTURE)HandleDuplicate(source.handle);
+  }
+  CModelTexture &operator=(const CModelTexture &source) {
+    replaceableId = source.replaceableId;
+    if (handle) {
+      HandleClose(handle);
+    }
+    handle = (HTEXTURE)HandleDuplicate(source.handle);
+    return *this;
+  }
   ~CModelTexture() {
     if (handle) {
       HandleClose(handle);
@@ -201,7 +211,7 @@ struct CModelShared : public CHandleObject {
   CModelShared(const CModelShared &source);
   ~CModelShared() {
     if (collision) {
-      HandleClose(reinterpret_cast<HOBJECT>(collision));
+      HandleClose((HOBJECT)collision);
     }
   }
 

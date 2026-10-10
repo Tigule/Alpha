@@ -136,7 +136,7 @@ void FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Va
   lua_State                  *state = FrameScript_GetContext();
   FrameScriptObject_Variable *entry = methodTable.Head();
 
-  while (reinterpret_cast<long>(entry) > 0) {
+  while ((long)entry > 0) {
     luaL_unref(state, LUA_REGISTRYINDEX, entry->reference);
     entry = methodTable.DeleteNode(entry);
   }
@@ -158,7 +158,7 @@ int FrameScript_Object::LookupScriptMethod(lua_State *state) {
 
   lua_rawgeti(state, 1, 0);
   if (lua_type(state, -1) == LUA_TLIGHTUSERDATA) {
-    object = static_cast<FrameScript_Object *>(lua_touserdata(state, -1));
+    object = (FrameScript_Object *)lua_touserdata(state, -1);
     lua_pop(state, 1);
 
     if (!object->LookupScriptMethod(state, lua_tostring(state, 2))) {
@@ -371,7 +371,7 @@ static void print_variable(lua_State *state, LPCSTR name, int depth) {
   LPCSTR              keyName;
   int                 type;
 
-  if (static_cast<UINT>(depth) < sizeof(s_debugIndent)) {
+  if ((UINT)depth < sizeof(s_debugIndent)) {
     if (depth > 0) {
       s_debugIndent[depth - 1] = ' ';
     }
@@ -400,7 +400,7 @@ static void print_variable(lua_State *state, LPCSTR name, int depth) {
 
       lua_rawgeti(state, -1, 0);
       if (lua_type(state, -1) == LUA_TLIGHTUSERDATA) {
-        object = static_cast<FrameScript_Object *>(lua_touserdata(state, -1));
+        object = (FrameScript_Object *)lua_touserdata(state, -1);
       }
       lua_pop(state, 1);
 
@@ -417,7 +417,7 @@ static void print_variable(lua_State *state, LPCSTR name, int depth) {
       lua_pushnil(state);
       while (lua_next(state, -2)) {
         if (lua_isnumber(state, -2)) {
-          SStrPrintf(keyBuffer, sizeof(keyBuffer), "%d", static_cast<int>(lua_tonumber(state, -2)));
+          SStrPrintf(keyBuffer, sizeof(keyBuffer), "%d", (int)lua_tonumber(state, -2));
           keyName = keyBuffer;
         } else {
           keyName = lua_tostring(state, -2);
@@ -445,7 +445,7 @@ static void print_variable(lua_State *state, LPCSTR name, int depth) {
       break;
   }
 
-  if (static_cast<UINT>(depth) < sizeof(s_debugIndent) && depth > 0) {
+  if ((UINT)depth < sizeof(s_debugIndent) && depth > 0) {
     s_debugIndent[depth - 1] = 0;
   }
 }
@@ -483,7 +483,7 @@ int FrameScript_Initialize() {
   luaopen_math(s_context);
 
   if (SFile::LoadFile("Interface\\FrameXML\\compat.lua", &buffer, &bytes, 0, 0)) {
-    luaL_loadbuffer(s_context, static_cast<LPCSTR>(buffer), bytes, "compat.lua");
+    luaL_loadbuffer(s_context, (LPCSTR)buffer, bytes, "compat.lua");
     SFile::Unload(buffer);
 
     if (lua_pcall(s_context, 0, 0, 0)) {
@@ -544,7 +544,7 @@ LPCSTR FrameScript_GetText(LPCSTR text, int unk, FRAMESCRIPT_GENDER gender) {
   lua_pushstring(state, text);
 
   if (gender != GENDER_NOT_APPLICABLE) {
-    lua_pushnumber(state, static_cast<int>(gender));
+    lua_pushnumber(state, (int)gender);
   } else {
     lua_pushnil(state);
   }
@@ -572,7 +572,7 @@ UINT FrameScript_GetPluralIndex(int value) {
   lua_pushnumber(state, value);
 
   if (!lua_pcall(state, 1, 1, -3) && lua_isnumber(state, -1)) {
-    result = static_cast<int>(lua_tonumber(state, -1)) - 1;
+    result = (int)lua_tonumber(state, -1) - 1;
   }
 
   lua_pop(state, 2);
@@ -671,7 +671,7 @@ int FrameScript_GetVariable(LPCSTR name, int &value) {
   lua_getglobal(state, name);
   if (lua_isnumber(state, -1)) {
     result = 1;
-    value = static_cast<int>(lua_tonumber(state, -1));
+    value = (int)lua_tonumber(state, -1);
   }
 
   lua_pop(state, 1);
@@ -692,7 +692,7 @@ int FrameScript_GetVariable(LPCSTR name, float &value) {
   lua_getglobal(state, name);
   if (lua_isnumber(state, -1)) {
     result = 1;
-    value = static_cast<float>(lua_tonumber(state, -1));
+    value = (float)lua_tonumber(state, -1);
   }
 
   lua_pop(state, 1);
@@ -748,7 +748,7 @@ int FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename) {
   lua_State *state = FrameScript_GetContext();
 
   GetErrorFunction(state);
-  if (luaL_loadbuffer(state, static_cast<LPCSTR>(buffer), bytes, filename)) {
+  if (luaL_loadbuffer(state, (LPCSTR)buffer, bytes, filename)) {
     if (lua_pcall(state, 1, 0, -2)) {
       lua_pop(state, 1);
     }
@@ -782,7 +782,7 @@ void FrameScript_ReleaseFunction(int function) {
 }
 
 void FrameScript_Execute(LPCSTR buffer, LPCSTR filename) {
-  FrameScript_ExecuteBuffer(const_cast<char *>(buffer), SStrLen(buffer), filename);
+  FrameScript_ExecuteBuffer((char *)buffer, SStrLen(buffer), filename);
 }
 
 void FrameScript_Execute(int function) {

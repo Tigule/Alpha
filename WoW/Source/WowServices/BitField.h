@@ -9,7 +9,9 @@ template <class ARRAY>
 class TSBitField {
  public:
   TSBitField(UINT numBits = 0) : m_numBits(0) {
-    SetCount(numBits);
+    if (numBits) {
+      SetCount(numBits);
+    }
   }
 
   void SetAll() {
@@ -25,17 +27,20 @@ class TSBitField {
   }
 
   void SetBit(UINT bitNum) {
-    FATALASSERT(bitNum < m_numBits);
-    m_array[bitNum >> 5] |= 1 << (bitNum & 31);
+    UINT arrayIndex;
+    UINT bitIndex;
+    ComputeIndices(bitNum, arrayIndex, bitIndex);
+    m_array[arrayIndex] |= 1 << bitIndex;
   }
 
   void ClearBit(UINT bitNum) {
-    FATALASSERT(bitNum < m_numBits);
-    m_array[bitNum >> 5] &= ~(1 << (bitNum & 31));
+    UINT arrayIndex;
+    UINT bitIndex;
+    ComputeIndices(bitNum, arrayIndex, bitIndex);
+    m_array[arrayIndex] &= ~(1 << bitIndex);
   }
 
   bool IsBitSet(UINT bitNum) const {
-    FATALASSERT(bitNum < m_numBits);
     UINT arrayIndex;
     UINT bitIndex;
     ComputeIndices(bitNum, arrayIndex, bitIndex);
@@ -48,22 +53,17 @@ class TSBitField {
 
   void SetCount(UINT numBits) {
     m_numBits = numBits;
-    if (numBits) {
-      m_array.SetCount((numBits - 1) / (m_array.SizeOfElement() * 8) + 1);
-    } else {
-      m_array.Clear();
-    }
+    m_array.SetCount((numBits - 1) / (m_array.SizeOfElement() * 8) + 1);
   }
 
   void Clear() {
     m_numBits = 0;
-    m_array.Clear();
+    m_array.SetCount(0);
   }
 
   void Load(LPCVOID data, UINT byteCount) {
     ASSERT((byteCount & (m_array.SizeOfElement() - 1)) == 0);
-    m_numBits = byteCount * 8;
-    m_array.SetCount((m_numBits - 1) / (m_array.SizeOfElement() * 8) + 1);
+    SetCount(byteCount * 8);
     memcpy(m_array.Ptr(), data, byteCount);
   }
 
@@ -74,6 +74,7 @@ class TSBitField {
 
  protected:
   void ComputeIndices(UINT bitNum, UINT &arrayIndex, UINT &bitIndex) const {
+    FATALASSERT(bitNum < m_numBits);
     arrayIndex = bitNum >> 5;
     bitIndex = bitNum & 31;
   }

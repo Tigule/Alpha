@@ -35,7 +35,7 @@ static void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
 
   OsGetDefaultWindowRect(&windowDim);
 
-  *clientx = windowDim.left + static_cast<int>(static_cast<float>(windowDim.right - windowDim.left) * x);
+  *clientx = windowDim.left + (int)((float)(windowDim.right - windowDim.left) * x);
   if (*clientx < windowDim.left) {
     *clientx = windowDim.left;
   }
@@ -43,7 +43,7 @@ static void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
     *clientx = windowDim.right - 1;
   }
 
-  *clienty = windowDim.top + static_cast<int>(static_cast<float>(windowDim.bottom - windowDim.top) * y);
+  *clienty = windowDim.top + (int)((float)(windowDim.bottom - windowDim.top) * y);
   if (*clienty < windowDim.top) {
     *clienty = windowDim.top;
   }
@@ -56,17 +56,17 @@ static void UnconvertPosition(float x, float y, int *clientx, int *clienty) {
 
 static void ConvertPosition(int clientx, int clienty, float *x, float *y) {
   if (s_boundingRect.r - s_boundingRect.l != 0.0f && s_boundingRect.b - s_boundingRect.t != 0.0f) {
-    if (!s_boundingRect.Encloses(NTempest::C2Vector(static_cast<float>(clientx), static_cast<float>(clienty)))) {
-      clientx = static_cast<int>(min(max(static_cast<float>(clientx), s_boundingRect.l + 1.0f), s_boundingRect.r - 1.0f));
-      clienty = static_cast<int>(min(max(static_cast<float>(clienty), s_boundingRect.t + 1.0f), s_boundingRect.b - 1.0f));
+    if (!s_boundingRect.Encloses(NTempest::C2Vector(clientx, clienty))) {
+      clientx = min(max(clientx, s_boundingRect.l + 1.0f), s_boundingRect.r - 1.0f);
+      clienty = min(max(clienty, s_boundingRect.t + 1.0f), s_boundingRect.b - 1.0f);
       OsInputSetMousePosition(clientx, clienty);
     }
   }
 
   RECT windowDim;
   OsGetDefaultWindowRect(&windowDim);
-  *x = static_cast<float>(clientx) / static_cast<float>(windowDim.right - windowDim.left);
-  *y = 1.0f - static_cast<float>(clienty) / static_cast<float>(windowDim.bottom - windowDim.top);
+  *x = (float)clientx / (float)(windowDim.right - windowDim.left);
+  *y = 1.0f - (float)clienty / (float)(windowDim.bottom - windowDim.top);
 }
 
 static UINT GenerateMouseFlags() {
@@ -104,7 +104,7 @@ static void PostString(EvtContext *context, int str, int num_chars) {
   data.repeat = 1;
 
   for (int index = 0; index < num_chars; ++index) {
-    data.ch = reinterpret_cast<const WORD *>(str)[index];
+    data.ch = ((const WORD *)str)[index];
     IEvtQueueDispatch(context, EVENT_ID_CHAR, &data);
   }
 }
@@ -142,7 +142,7 @@ static void PostKeyDown(EvtContext *context, int key, int repeat, int time) {
   if (key <= KEY_LASTMETAKEY) {
     s_metaKeyState |= 1 << key;
   }
-  data.key = static_cast<KEY>(key);
+  data.key = (KEY)key;
   data.metaKeyState = s_metaKeyState;
   data.repeat = repeat;
   data.time = time;
@@ -154,7 +154,7 @@ static void PostKeyUp(EvtContext *context, int key, int repeat, int time) {
   if (key <= KEY_LASTMETAKEY) {
     s_metaKeyState &= ~(1 << key);
   }
-  data.key = static_cast<KEY>(key);
+  data.key = (KEY)key;
   data.metaKeyState = s_metaKeyState;
   data.repeat = repeat;
   data.time = time;
@@ -163,7 +163,7 @@ static void PostKeyUp(EvtContext *context, int key, int repeat, int time) {
 
 static void PostMouseDown(EvtContext *context, int button, int x, int y, int time) {
   EVENT_DATA_MOUSE data;
-  data.button = static_cast<MOUSEBUTTON>(button);
+  data.button = (MOUSEBUTTON)button;
   s_buttonState |= button;
   data.mode = s_mouseMode;
   data.buttonState = s_buttonState;
@@ -193,17 +193,17 @@ static void PostMouseMoveRelative(EvtContext *context, int x, int y, int time) {
   data.buttonState = s_buttonState;
   data.metaKeyState = s_metaKeyState;
   data.flags = GenerateMouseFlags();
-  data.x = static_cast<float>(x);
-  data.y = static_cast<float>(y);
+  data.x = x;
+  data.y = y;
   data.time = time;
   IEvtQueueDispatch(context, EVENT_ID_MOUSEMOVE_RELATIVE, &data);
 }
 
 static void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time) {
   EVENT_DATA_MOUSE data;
-  s_buttonState &= ~static_cast<UINT>(button);
+  s_buttonState &= ~(UINT)button;
   data.mode = s_mouseMode;
-  data.button = static_cast<MOUSEBUTTON>(button);
+  data.button = (MOUSEBUTTON)button;
   data.buttonState = s_buttonState;
   data.metaKeyState = s_metaKeyState;
   data.flags = flags | GenerateMouseFlags();
@@ -425,8 +425,8 @@ void IEvtInputSetMouseBoundingRect(NTempest::CRect *rect) {
   UnconvertPosition(gL, gB, &l, &t);
   UnconvertPosition(gR, gT, &r, &b);
 
-  s_boundingRect.t = static_cast<float>(t);
-  s_boundingRect.l = static_cast<float>(l);
-  s_boundingRect.b = static_cast<float>(b);
-  s_boundingRect.r = static_cast<float>(r);
+  s_boundingRect.t = t;
+  s_boundingRect.l = l;
+  s_boundingRect.b = b;
+  s_boundingRect.r = r;
 }

@@ -91,8 +91,8 @@ namespace NTempest {
     void SetHeightTop(float value);
     void SetDepthTop(float value);
     void Enclose(const C3Vector &value) {
-      b = C3Vector::Min(b, value);
-      t = C3Vector::Max(t, value);
+      b.Minimize(value);
+      t.Maximize(value);
     }
     void SetWidthCenter(float value);
     void SetHeightCenter(float value);

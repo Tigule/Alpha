@@ -48,6 +48,7 @@ target_include_directories(StormStAE PRIVATE
 set_target_properties(StormStAE PROPERTIES ARCHIVE_OUTPUT_DIRECTORY StormStRelease_Assertions_Enabled)
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(StormStAE PRIVATE /Gr /Ob0 /Z7)
+    target_compile_options(StormStAE PRIVATE /Gr /Ob0 /Z7 /YX)
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES vc60.pch)
     target_compile_definitions(StormStAE PRIVATE Z_PREFIX)
 endif()

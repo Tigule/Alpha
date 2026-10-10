@@ -13,10 +13,10 @@ void CGxDeviceD3d::XformSetViewport(float minX, float maxX, float minY, float ma
 
   const NTempest::CRect &window = DeviceCurWindow();
   D3DVIEWPORT9           viewport;
-  viewport.X = static_cast<DWORD>(minX * window.r);
-  viewport.Y = static_cast<DWORD>((1.0f - maxY) * window.b);
-  viewport.Width = static_cast<DWORD>(maxX * window.r - viewport.X);
-  viewport.Height = static_cast<DWORD>((1.0f - minY) * window.b - viewport.Y);
+  viewport.X = minX * window.r;
+  viewport.Y = (1.0f - maxY) * window.b;
+  viewport.Width = maxX * window.r - viewport.X;
+  viewport.Height = (1.0f - minY) * window.b - viewport.Y;
   viewport.MinZ = minZ;
   viewport.MaxZ = maxZ;
 
@@ -26,7 +26,7 @@ void CGxDeviceD3d::XformSetViewport(float minX, float maxX, float minY, float ma
 void CGxDeviceD3d::XformSetProjection(const NTempest::C44Matrix &matrix) {
   CGxDevice::XformSetProjection(matrix);
 
-  D3DXMATRIX tmp = *reinterpret_cast<const D3DXMATRIX *>(&matrix);
+  D3DXMATRIX tmp = *(const D3DXMATRIX *)&matrix;
   if (!(fabsf(tmp._34 - 1.0f) < 0.00000023841858f) && !(fabsf(tmp._34) < 0.00000023841858f)) {
     tmp *= 1.0f / tmp._34;
   }
@@ -64,7 +64,7 @@ void CGxDeviceD3d::XformSetProjection(const NTempest::C44Matrix &matrix) {
 void CGxDeviceD3d::XformSetView(const NTempest::C44Matrix &matrix) {
   CGxDevice::XformSetView(matrix);
 
-  D3DXMATRIX matView = *reinterpret_cast<const D3DXMATRIX *>(&matrix);
+  D3DXMATRIX matView = *(const D3DXMATRIX *)&matrix;
   m_d3dDevice->SetTransform(D3DTS_VIEW, &matView);
 }
 
@@ -72,7 +72,7 @@ void CGxDeviceD3d::IXformSetWorld() {
   CGxMatrixStack &world = m_xforms[GxXform_World];
 
   if (!isIdent || !(world.m_flags[world.m_level] & CGxMatrixStack::F_Identity)) {
-    D3DXMATRIX matWorld = *reinterpret_cast<D3DXMATRIX *>(&world.m_mtx[world.m_level]);
+    D3DXMATRIX matWorld = *(D3DXMATRIX *)&world.m_mtx[world.m_level];
     m_d3dDevice->SetTransform(D3DTS_WORLD, &matWorld);
   }
 
@@ -85,46 +85,46 @@ void CGxDeviceD3d::IXformSetTex(UINT tmu) {
 
   DWORD ttfBits = D3DTTFF_DISABLE;
   int   ts;
-  GxRsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
+  GxRsGet((EGxRenderState)(GxRs_TextureShader0 + tmu), ts);
 
   switch (ts) {
     case GxTS_PassThru:
       if (m_texGen[tmu].Flags() & CGxMatrixStack::F_Identity) {
-        D3DXMATRIX matTex = *reinterpret_cast<const D3DXMATRIX *>(&m_texGen[tmu].TopConst());
-        m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
+        D3DXMATRIX matTex = *(const D3DXMATRIX *)&m_texGen[tmu].TopConst();
+        m_d3dDevice->SetTransform((D3DTRANSFORMSTATETYPE)(D3DTS_TEXTURE0 + tmu), &matTex);
       } else {
-        D3DXMATRIX matTex = *reinterpret_cast<const D3DXMATRIX *>(&m_texGen[tmu].TopConst());
-        m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
+        D3DXMATRIX matTex = *(const D3DXMATRIX *)&m_texGen[tmu].TopConst();
+        m_d3dDevice->SetTransform((D3DTRANSFORMSTATETYPE)(D3DTS_TEXTURE0 + tmu), &matTex);
         ttfBits = D3DTTFF_COUNT2;
       }
       break;
 
     case GxTS_Affine: {
       NTempest::C44Matrix concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
-      D3DXMATRIX          matTex = *reinterpret_cast<D3DXMATRIX *>(&concatMat);
+      D3DXMATRIX          matTex = *(D3DXMATRIX *)&concatMat;
 
       int texGen;
-      RsGet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), texGen);
+      RsGet((EGxRenderState)(GxRs_TexGen0 + tmu), texGen);
       if (texGen == GxTexGen_Disable) {
         matTex._31 = concatMat.d0;
         matTex._32 = concatMat.d1;
       }
 
-      m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
+      m_d3dDevice->SetTransform((D3DTRANSFORMSTATETYPE)(D3DTS_TEXTURE0 + tmu), &matTex);
       ttfBits = D3DTTFF_COUNT2;
       break;
     }
 
     case GxTS_Proj: {
       NTempest::C44Matrix concatMat = m_texGen[tmu].TopConst() * m_xforms[tmu].TopConst();
-      D3DXMATRIX          matTex = *reinterpret_cast<D3DXMATRIX *>(&concatMat);
-      m_d3dDevice->SetTransform(static_cast<D3DTRANSFORMSTATETYPE>(D3DTS_TEXTURE0 + tmu), &matTex);
+      D3DXMATRIX          matTex = *(D3DXMATRIX *)&concatMat;
+      m_d3dDevice->SetTransform((D3DTRANSFORMSTATETYPE)(D3DTS_TEXTURE0 + tmu), &matTex);
       ttfBits = D3DTTFF_COUNT3 | D3DTTFF_PROJECTED;
       break;
     }
   }
 
-  DsSet(static_cast<EDeviceState>(Ds_TssTTF0 + tmu), ttfBits);
+  DsSet((EDeviceState)(Ds_TssTTF0 + tmu), ttfBits);
   m_xforms[tmu].m_dirty = 0;
   m_texGen[tmu].m_dirty = 0;
 }

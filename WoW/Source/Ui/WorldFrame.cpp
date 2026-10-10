@@ -151,8 +151,24 @@ static float                                     s_spellShadowSize;
 static HTEXTURE                                  s_spellShadowTexture[2];
 static TSHashTable<FADEOUTHASHOBJ, CHashKeyGUID> s_fadeOutModelTable;
 
+inline BYTE CGUnit::IsAlive() const {
+  return GetHealth() > 0;
+}
+
 inline QUEST_GIVER_STATUS CGUnit_C::GetQuestGiverStatus() {
   return m_questGiverStatus;
+}
+
+inline float CGUnit::LinearDistanceSquared(const NTempest::C3Vector &position) const {
+  return (GetPosition() - position).SquaredMag();
+}
+
+inline NTempest::C3Vector CGCamera::Target() const {
+  return m_position + Forward();
+}
+
+inline NTempest::C3Vector CGCamera::Facing() const {
+  return Forward();
 }
 
 CGWorldFrame *CGWorldFrame::s_currentWorldFrame;
@@ -160,22 +176,17 @@ CGWorldFrame *CGWorldFrame::s_currentWorldFrame;
 BOOL CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter) {
   if (hitFilter & 0x70000) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if ((hitFilter & 0x10000) && player->IsUnitInGroup(unit)) {
-      return 1;
-    }
-    if ((hitFilter & 0x20000) && player->CanAssist(unit)) {
-      return 1;
-    }
-    if (!(hitFilter & 0x40000) || !player->CanAttack(unit)) {
+    if (!((hitFilter & 0x10000) && player->IsUnitInGroup(unit)) && !((hitFilter & 0x20000) && player->CanAssist(unit)) &&
+        !((hitFilter & 0x40000) && player->CanAttack(unit)))
+    {
       return 0;
     }
   }
-
   if (hitFilter & 0x300000) {
-    if (unit->GetHealth() <= 0) {
-      return (hitFilter & 0x200000) != 0;
+    int alive = unit->IsAlive();
+    if (!((alive && (hitFilter & 0x100000)) || (!alive && (hitFilter & 0x200000)))) {
+      return 0;
     }
-    return (hitFilter & 0x100000) != 0;
   }
   return 1;
 }
@@ -189,12 +200,12 @@ BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
       if (!(hitFilter & 8) || (!(hitFilter & 0x10) && object->GetGUID() == ClntObjMgrGetActivePlayer())) {
         return 0;
       }
-      return IsUnitLegalSelection(static_cast<CGUnit_C *>(object), hitFilter);
+      return IsUnitLegalSelection((CGUnit_C *)object, hitFilter);
     case HIER_TYPE_UNIT:
       if (!(hitFilter & 4)) {
         return 0;
       }
-      return IsUnitLegalSelection(static_cast<CGUnit_C *>(object), hitFilter);
+      return IsUnitLegalSelection((CGUnit_C *)object, hitFilter);
     case HIER_TYPE_GAMEOBJECT:
       if (!(hitFilter & 2)) {
         return 0;
@@ -232,8 +243,9 @@ UINT CGWorldFrame::SphereTestModels(const NTempest::C3Vector &aVector, const NTe
   UINT                      numHit = 0;
 
   ModelSceneCalcFrustumPlanes();
-  for (CModelRecord *record = m_models.Head(), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
+  SAFEITERATELIST(CModelRecord, m_models, record) {
     CGObject_C *object = ClntObjMgrObjectPtr(record->guid, __FILE__, __LINE__);
+    BOOL hit = 0;
     if (object && object->IsSolidSelectable()) {
       NTempest::C34Matrix worldMatrix;
       object->GetWorldMatrix(&worldMatrix);
@@ -244,23 +256,25 @@ UINT CGWorldFrame::SphereTestModels(const NTempest::C3Vector &aVector, const NTe
       if (ModelTestSphere(record->model, camRelativeMatrix, record->scale, 1) &&
           ModelHitTestSphere(record->model, record->scale, aVector, bVector, 1, &record->distance))
       {
-        if (IsLegalSelection(record, hitFilter)) {
-          ++numHit;
-        } else {
-          m_models.UnlinkNode(record);
-          m_filteredModels.LinkNode(record, LIST_TAIL, 0);
-        }
-        continue;
+        hit = 1;
       }
     }
-    MoveToFreeList(record);
+
+    if (!hit) {
+      MoveToFreeList(record);
+    } else if (IsLegalSelection(record, hitFilter)) {
+      ++numHit;
+    } else {
+      m_models.UnlinkNode(record);
+      m_filteredModels.LinkNode(record, LIST_TAIL, 0);
+    }
   }
   return numHit;
 }
 
 UINT CGWorldFrame::VolumeTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector) {
   UINT numHit = 0;
-  for (CModelRecord *record = m_models.Head(), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
+  SAFEITERATELIST(CModelRecord, m_models, record) {
     if (!ModelHasHitTestVolumes(record->model)) {
       ++numHit;
     } else if (ModelHitTestVolumes(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
@@ -274,7 +288,7 @@ UINT CGWorldFrame::VolumeTestModels(const NTempest::C3Vector &aVector, const NTe
 
 UINT CGWorldFrame::GeometryTestModels(const NTempest::C3Vector &aVector, const NTempest::C3Vector &bVector) {
   UINT numHit = 0;
-  for (CModelRecord *record = m_models.Head(), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
+  SAFEITERATELIST(CModelRecord, m_models, record) {
     if (ModelHitTestGeometry(record->model, record->scale, aVector, bVector, 1, &record->distance)) {
       ++numHit;
     } else {
@@ -294,31 +308,33 @@ static int GetObjectSelectCategory(CGObject_C *object) {
   switch (object->GetType()) {
     case HIER_TYPE_UNIT:
     case HIER_TYPE_PLAYER:
-      if (static_cast<CGUnit_C *>(object)->GetHealth() > 0) {
+      if (((CGUnit_C *)object)->GetHealth() > 0) {
         return PRIORITY_LIVING;
       }
-      return static_cast<CGUnit_C *>(object)->CanBeLooted(OsGetAsyncTimeMs()) ? PRIORITY_INTERACTABLE : PRIORITY_NON_INTERACTABLE;
+      return ((CGUnit_C *)object)->CanBeLooted(OsGetAsyncTimeMs()) ? PRIORITY_INTERACTABLE : PRIORITY_NON_INTERACTABLE;
     case HIER_TYPE_GAMEOBJECT:
-      return static_cast<CGGameObject_C *>(object)->CanUse() ? PRIORITY_INTERACTABLE : PRIORITY_NON_INTERACTABLE;
+      return ((CGGameObject_C *)object)->CanUse() ? PRIORITY_INTERACTABLE : PRIORITY_NON_INTERACTABLE;
   }
   return PRIORITY_NON_INTERACTABLE;
 }
 
 CModelRecord *CGWorldFrame::HigherPriorityModel(CModelRecord *a, CModelRecord *b) {
-  CGObject_C *aObject = ClntObjMgrObjectPtr(a->guid, __FILE__, __LINE__);
-  int         aCategory = GetObjectSelectCategory(aObject);
-  CGObject_C *bObject = ClntObjMgrObjectPtr(b->guid, __FILE__, __LINE__);
-  int         bCategory = GetObjectSelectCategory(bObject);
+  int aCategory = GetObjectSelectCategory(ClntObjMgrObjectPtr(a->guid, __FILE__, __LINE__));
+  int bCategory = GetObjectSelectCategory(ClntObjMgrObjectPtr(b->guid, __FILE__, __LINE__));
+  CModelRecord *higher;
+  CModelRecord *lower;
   if (aCategory > bCategory) {
-    MoveToFreeList(b);
-    return a;
+    higher = a;
+    lower = b;
+  } else if (aCategory >= bCategory && b->distance >= a->distance) {
+    higher = a;
+    lower = b;
+  } else {
+    higher = b;
+    lower = a;
   }
-  if (aCategory < bCategory || b->distance < a->distance) {
-    MoveToFreeList(a);
-    return b;
-  }
-  MoveToFreeList(b);
-  return a;
+  MoveToFreeList(lower);
+  return higher;
 }
 
 void CGWorldFrame::ReduceToClosestModel() {
@@ -330,7 +346,7 @@ void CGWorldFrame::ReduceToClosestModel() {
 
 void CGWorldFrame::HideObstructingModels(float maxDist) {
   DWORDLONG fade = 0;
-  for (CModelRecord *record = m_filteredModels.Head(), *next; (int)record > 0 ? ((next = m_filteredModels.RawNext(record)), 1) : 0; record = next) {
+  SAFEITERATELIST(CModelRecord, m_filteredModels, record) {
     if (record->guid == CGPlayer_C::GetActive()) {
       if (record->distance <= maxDist) {
         fade = record->guid;
@@ -509,15 +525,13 @@ void CGWorldFrame::UpdateObject(CGObject_C *object, DWORD status) {
         NTempest::C34Matrix worldMatrix;
         object->GetWorldMatrix(&worldMatrix);
         NTempest::C34Matrix camRelativeMatrix = worldMatrix;
-        camRelativeMatrix.d0 -= m_camera->Position().x;
-        camRelativeMatrix.d1 -= m_camera->Position().y;
-        camRelativeMatrix.d2 -= m_camera->Position().z;
+        *camRelativeMatrix.Row3AsVec3() -= m_camera->Position();
 
         object->Animate(camRelativeMatrix);
         ModelProcessEvents(model, worldMatrix);
         object->PostAnimate(this);
         AddModelToScene(object, model);
-        object->ObjectPostAnimate(camRelativeMatrix, m_camera->Position(), m_camera->Position() + m_camera->Forward());
+        object->ObjectPostAnimate(camRelativeMatrix, m_camera->Position(), m_camera->Target());
       }
     }
   }
@@ -533,7 +547,7 @@ void CGWorldFrame::AddModelToScene(CGObject_C *object, HMODEL model) {
     m_models.LinkNode(record, LIST_TAIL, 0);
   }
 
-  record->model = reinterpret_cast<HMODEL>(HandleDuplicate(reinterpret_cast<HOBJECT>(model)));
+  record->model = (HMODEL)HandleDuplicate(model);
   record->guid = object->GetGUID();
   record->scale = object->GetScale();
   ModelAddToScene(model, 0);
@@ -594,7 +608,7 @@ void CGWorldFrame::GetCameraFacing(NTempest::C3Vector *position) {
   FATALASSERT(s_currentWorldFrame);
   FATALASSERT(s_currentWorldFrame->m_camera);
 
-  *position = s_currentWorldFrame->m_camera->Forward();
+  *position = s_currentWorldFrame->m_camera->Facing();
 }
 
 static BOOL CheckFadeOutModels(LPCSTR command, LPCSTR arguments) {
@@ -626,9 +640,9 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
   s_currentWorldFrame = this;
 
   SetAllPoints(m_top, 1);
-  EnableEvent(SIMPLE_EVENT_KEY, static_cast<UINT>(-1));
-  EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
-  EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, static_cast<UINT>(-1));
+  EnableEvent(SIMPLE_EVENT_KEY, -1);
+  EnableEvent(SIMPLE_EVENT_MOUSE, -1);
+  EnableEvent(SIMPLE_EVENT_MOUSEWHEEL, -1);
   memset(m_lastKey, 0, sizeof(m_lastKey));
 
   m_camera = NEW(CGCamera);
@@ -795,23 +809,22 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
     return;
   }
 
-  float sqMag = (player->m_move.GetPosition() - unit->GetPosition()).SquaredMag();
+  float sqMag = player->LinearDistanceSquared(unit->GetPosition());
   if (player->CanInteract(unit) && unit->GetHealth() > 0) {
     int  outOfRange = sqMag > MAX_SHOP_DISTANCE_SQUARED;
-    UINT npcFlags = unit->GetUnitNPCFlags();
-    if (npcFlags & 0x1) {
+    if (unit->IsMerchant()) {
       CursorModelSetSequence(outOfRange ? PICKUP_ERROR_CURSOR : PICKUP_CURSOR);
-    } else if ((npcFlags & 0x2) && unit->GetQuestGiverStatus() != QUEST_GIVER_NONE && unit->GetQuestGiverStatus() != QUEST_GIVER_FUTURE) {
+    } else if (unit->IsQuestGiver() && unit->GetQuestGiverStatus() != QUEST_GIVER_NONE && unit->GetQuestGiverStatus() != QUEST_GIVER_FUTURE) {
       CursorModelSetSequence(outOfRange ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
-    } else if (npcFlags & 0x4) {
+    } else if (unit->IsTaxiNode()) {
       CursorModelSetSequence(outOfRange ? TAXI_ERROR_CURSOR : TAXI_CURSOR);
-    } else if (npcFlags & 0x8) {
+    } else if (unit->IsTrainer()) {
       CursorModelSetSequence(outOfRange ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
-    } else if (npcFlags & 0x10) {
+    } else if (unit->IsBinder()) {
       CursorModelSetSequence(outOfRange ? INTERACT_ERROR_CURSOR : INTERACT_CURSOR);
-    } else if (npcFlags & 0x20) {
+    } else if (unit->IsBanker()) {
       CursorModelSetSequence(outOfRange ? BUY_ERROR_CURSOR : BUY_CURSOR);
-    } else if ((npcFlags & 0xC0) || unit->IsGuildRegistrar()) {
+    } else if (unit->IsNpcPetition() || unit->IsTabardVendor() || unit->IsGuildRegistrar()) {
       CursorModelSetSequence(outOfRange ? SPEAK_ERROR_CURSOR : SPEAK_CURSOR);
     } else {
       CursorResetCursor(0);
@@ -820,15 +833,17 @@ void CGWorldFrame::CursorTrackUnit(CGUnit_C *unit) {
   }
 
   if (unit->CanBeLooted(m_updateTimeStamp)) {
-    CursorModelSetSequence(
-        player->CanLoot(unit) || unit->GetGUID() == player->m_lootingUnitSent || unit->GetGUID() == player->GetUnitBeingLooted() ? PICKUP_CURSOR
-                                                                                                                             : PICKUP_ERROR_CURSOR
-    );
-  } else if (
-      player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 && player->CanAttack(unit)
-  )
-  {
-    CursorModelSetSequence(sqMag <= 109.202499f ? ATTACK_CURSOR : ATTACK_ERROR_CURSOR);
+    if (player->CanLoot(unit) || player->m_lootingUnitSent == unit->GetGUID() || player->GetUnitBeingLooted() == unit->GetGUID()) {
+      CursorModelSetSequence(PICKUP_CURSOR);
+    } else {
+      CursorModelSetSequence(PICKUP_ERROR_CURSOR);
+    }
+  } else if (player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 && player->CanAttack(unit)) {
+    if (sqMag > 109.202499f) {
+      CursorModelSetSequence(ATTACK_ERROR_CURSOR);
+    } else {
+      CursorModelSetSequence(ATTACK_CURSOR);
+    }
   } else {
     CursorResetCursor(0);
   }
@@ -872,11 +887,11 @@ void CGWorldFrame::OnLayerTrackObject(const HitTestResult &hitTestResult, float 
     switch (object->GetType()) {
       case HIER_TYPE_UNIT:
       case HIER_TYPE_PLAYER:
-        CursorTrackUnit(static_cast<CGUnit_C *>(object));
+        CursorTrackUnit((CGUnit_C *)object);
         break;
 
       case HIER_TYPE_GAMEOBJECT:
-        CursorTrackObject(static_cast<CGGameObject_C *>(object));
+        CursorTrackObject((CGGameObject_C *)object);
         break;
 
       case HIER_TYPE_ITEM:
@@ -907,7 +922,7 @@ void CGWorldFrame::UpdateDayNightInfo(float elapsedSec) {
   dnInfo->nearClipScaled = m_camera->NearZ() * 3.0f;
   dnInfo->elapsedSec = elapsedSec;
   dnInfo->cameraPos = m_camera->Position();
-  dnInfo->cameraDir = m_camera->Forward();
+  dnInfo->cameraDir = m_camera->Facing();
   dnInfo->cameraDir.Normalize();
 
   DWORDLONG guid = ClntObjMgrGetActivePlayer();
@@ -920,7 +935,7 @@ void CGWorldFrame::UpdateDayNightInfo(float elapsedSec) {
 
   dnInfo->time = g_clientGameTime.GetHourAndMinutes();
   dnInfo->dayProgression = g_clientGameTime.GameTimeGetDayProgression();
-  dnInfo->day = static_cast<float>(g_clientGameTime.GetDaysSinceEpoch());
+  dnInfo->day = g_clientGameTime.GetDaysSinceEpoch();
 }
 
 void CGWorldFrame::SetPlayerFadeCameraValue(BYTE value) {
@@ -936,7 +951,7 @@ void CGWorldFrame::SetPlayerFadeCameraValue(BYTE value) {
 
 void CGWorldFrame::RefreshPlayerAlpha() {
   CGObject_C *object = ClntObjMgrObjectPtr(m_camera->m_target, __FILE__, __LINE__);
-  if (object && static_cast<bool>((static_cast<UINT>(object->GetType()) >> ID_UNIT) & 1)) {
+  if (object && (bool)(((UINT)object->GetType() >> ID_UNIT) & 1)) {
     object->SetMaxAlpha(__min(m_cameraAlpha, m_playerAlpha));
   }
 }
@@ -946,7 +961,7 @@ void CGWorldFrame::UpdatePlayerAlpha(float elapsedSeconds) {
     switch (m_playerFadeMode) {
       case PLAYERFADE_IN:
         FATALASSERT(s_playerFadeInRateCVar);
-        m_playerAlpha += static_cast<int>(s_playerFadeInRateCVar->GetFloat() * elapsedSeconds);
+        m_playerAlpha += (int)(s_playerFadeInRateCVar->GetFloat() * elapsedSeconds);
         if (m_playerAlpha > 255) {
           m_playerAlpha = 255;
           m_playerFadeMode = PLAYERFADE_NONE;
@@ -956,7 +971,7 @@ void CGWorldFrame::UpdatePlayerAlpha(float elapsedSeconds) {
       case PLAYERFADE_OUT: {
         FATALASSERT(s_playerFadeOutRateCVar);
         FATALASSERT(s_playerFadeOutAlphaCVar);
-        m_playerAlpha -= static_cast<int>(s_playerFadeOutRateCVar->GetFloat() * elapsedSeconds);
+        m_playerAlpha -= (int)(s_playerFadeOutRateCVar->GetFloat() * elapsedSeconds);
         int minAlpha = s_playerFadeOutAlphaCVar->GetInt();
         if (minAlpha <= 1) {
           minAlpha = 1;
@@ -992,12 +1007,12 @@ void CGWorldFrame::HandleUnitFade(int nowTracking, int immediateFade) {
 }
 
 static BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param) {
-  CGWorldFrame *pWorldFrame = static_cast<CGWorldFrame *>(param);
+  CGWorldFrame *pWorldFrame = (CGWorldFrame *)param;
   FATALASSERT(pWorldFrame);
 
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (static_cast<bool>((static_cast<UINT>(object->GetType()) >> ID_UNIT) & 1)) {
-    static_cast<CGUnit_C *>(object)->UpdateDisplay(pWorldFrame->m_updateTimeStamp);
+  if ((bool)(((UINT)object->GetType() >> ID_UNIT) & 1)) {
+    ((CGUnit_C *)object)->UpdateDisplay(pWorldFrame->m_updateTimeStamp);
   }
   return 1;
 }
@@ -1016,7 +1031,7 @@ void CGWorldFrame::OnFrameRender(CRenderBatch *batch, UINT layer) {
 }
 
 void CGWorldFrame::RenderWorld(LPVOID param) {
-  CGWorldFrame       *worldFrame = static_cast<CGWorldFrame *>(param);
+  CGWorldFrame       *worldFrame = (CGWorldFrame *)param;
   NTempest::C44Matrix saved_proj;
   NTempest::C44Matrix saved_view;
 
@@ -1033,10 +1048,10 @@ void CGWorldFrame::OnWorldUpdate() {
   float elapsedSec = m_elapsedSec;
 
   UINT idleTime = OsGetAsyncTimeMs() - m_top->m_eventTime;
-  if (static_cast<int>(idleTime - AUTO_SIT_IDLE_TIME) >= 0) {
-    if (static_cast<int>(idleTime - AUTO_LOGOUT_IDLE_TIME) >= 0) {
+  if ((int)(idleTime - AUTO_SIT_IDLE_TIME) >= 0) {
+    if ((int)(idleTime - AUTO_LOGOUT_IDLE_TIME) >= 0) {
       if (!ClientServices_CharacterLoggingOut()) {
-        CGChat::AddChatMessage(FrameScript_GetText("IDLE_MESSAGE", -1, GENDER_NOT_APPLICABLE), static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
+        CGChat::AddChatMessage(FrameScript_GetText("IDLE_MESSAGE", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
         ClientServices_CharacterLogout(false);
       }
     } else {
@@ -1049,10 +1064,10 @@ void CGWorldFrame::OnWorldUpdate() {
 
   CGInputControl *inputControl = CGInputControl::GetActive();
   FATALASSERT(inputControl);
-  if (!inputControl->HasPlayerMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - PLAYER_MOVE_TUTORIAL_TIME) >= 0) {
+  if (!inputControl->HasPlayerMoved() && (int)(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - PLAYER_MOVE_TUTORIAL_TIME) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_MOVEMENT);
   }
-  if (!inputControl->HasCameraMoved() && static_cast<int>(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - CAMERA_MOVE_TUTORIAL_TIME) >= 0) {
+  if (!inputControl->HasCameraMoved() && (int)(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - CAMERA_MOVE_TUTORIAL_TIME) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_CAMERA);
   }
 
@@ -1064,8 +1079,8 @@ void CGWorldFrame::OnWorldUpdate() {
   m_camera->SetupWorldProjection(projection);
 
   NTempest::C3Vector cameraPos = m_camera->Position();
-  NTempest::C3Vector target = m_camera->Position() + m_camera->Forward();
-  NTempest::C3Vector facing = m_camera->Forward();
+  NTempest::C3Vector target = m_camera->Target();
+  NTempest::C3Vector facing = m_camera->Facing();
   ModelScenePlaceCamera(cameraPos, facing);
   ModelSceneCalcFrustumPlanes();
   Sound::SetListenerAttributes(cameraPos, 0, m_camera->Forward(), m_camera->Up());
@@ -1080,12 +1095,12 @@ void CGWorldFrame::OnWorldUpdate() {
   CWorld::SetObjectHandler(ObjectEnumProc, this);
   CWorld::SetObjectCollisionHandler(ObjectCollisionProc);
 
-  CGObject_C *object = ClntObjMgrObjectPtr(m_camera->m_target, __FILE__, __LINE__);
+  CGObject_C *object = ClntObjMgrObjectPtr(m_camera->GetTarget(), __FILE__, __LINE__);
   if (!object && CGPlayer_C::GetActive()) {
     FATALASSERT(m_camera->GetTarget() != CGPlayer_C::GetActive());
     object = ClntObjMgrObjectPtr(CGPlayer_C::GetActive(), __FILE__, __LINE__);
     FATALASSERT(object);
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(object);
+    CGPlayer_C *player = (CGPlayer_C *)object;
     if (player->IsInFarSight()) {
       player->ToggleFarSight();
     }
@@ -1108,7 +1123,7 @@ void CGWorldFrame::OnWorldUpdate() {
 }
 
 static BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD param32) {
-  CGWorldFrame *pWorldFrame = static_cast<CGWorldFrame *>(param);
+  CGWorldFrame *pWorldFrame = (CGWorldFrame *)param;
   FATALASSERT(pWorldFrame);
 
   CGObject_C *object = ClntObjMgrObjectPtr(param64, __FILE__, __LINE__);
@@ -1132,11 +1147,11 @@ static BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollis
     return 0;
   }
 
-  if (!static_cast<bool>((static_cast<UINT>(object->GetType()) >> ID_GAMEOBJECT) & 1)) {
+  if (!(bool)(((UINT)object->GetType() >> ID_GAMEOBJECT) & 1)) {
     return 0;
   }
 
-  CGGameObject_C *gameObject = static_cast<CGGameObject_C *>(object);
+  CGGameObject_C *gameObject = (CGGameObject_C *)object;
   data->model = object->GetObjectModel();
   data->collideExt = gameObject->m_collideExtents;
   data->scale = object->GetScale() * object->GetRenderScale();
@@ -1147,26 +1162,19 @@ static BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollis
 
 static void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempest::C3Vector cameraTarg) {
   int currentTime = OsGetAsyncTimeMs();
-  for (FADEOUTHASHOBJ *curr = s_fadeOutModelTable.Head(); curr;) {
+  ITERATELIST(FADEOUTHASHOBJ, s_fadeOutModelTable, curr) {
     FATALASSERT(curr->model);
     int elapsed = currentTime - curr->startTime;
     if (elapsed > 2000) {
-      FADEOUTHASHOBJ *next = s_fadeOutModelTable.Next(curr);
-      s_fadeOutModelTable.Delete(curr);
-      curr = next;
-    } else {
-      float alpha = (1.0f - static_cast<float>(elapsed > 0 ? elapsed : 0) * 0.0005f) * static_cast<float>(curr->startAlpha) * (1.0f / 255.0f);
-      alpha = alpha < 0.0f ? 0.0f : (alpha > 1.0f ? 1.0f : alpha);
-      ModelSetVertexAlpha(curr->model, NTempest::CMath::ftol_0_256_(alpha * 255.0f), 1);
-
-      NTempest::C34Matrix camRelativeMatrix = curr->matrix;
-      camRelativeMatrix.d0 -= cameraPos.x;
-      camRelativeMatrix.d1 -= cameraPos.y;
-      camRelativeMatrix.d2 -= cameraPos.z;
-      ModelAnimate(curr->model, camRelativeMatrix, curr->renderScale, cameraPos, cameraTarg - cameraPos);
-      ModelAddToScene(curr->model, 0);
-      curr = s_fadeOutModelTable.Next(curr);
+      ITERATE_DELETE;
     }
+    float alpha = (1.0f - (float)(elapsed > 0 ? elapsed : 0) * 0.0005f) * (float)curr->startAlpha * (1.0f / 255.0f);
+    ModelSetVertexAlpha(curr->model, NTempest::CMath::ftol_0_1_(alpha), 1);
+
+    NTempest::C34Matrix camRelativeMatrix = curr->matrix;
+    *camRelativeMatrix.Row3AsVec3() -= cameraPos;
+    ModelAnimate(curr->model, camRelativeMatrix, curr->renderScale, cameraPos, cameraTarg - cameraPos);
+    ModelAddToScene(curr->model, 0);
   }
 }
 
@@ -1178,7 +1186,12 @@ static void DrawCursorShadow() {
     CWorld::ObjectGetExtents(cursor, extents);
 
     CStatus  status;
-    HTEXTURE texture = TextureCreateSolid(NTempest::CImVector(s_spellShadowStyle ? 0x40FF0000 : 0x4000FF00), &status);
+    HTEXTURE texture;
+    if (s_spellShadowStyle == SPELL_GOOD) {
+      texture = TextureCreateSolid(NTempest::CImVector(0x4000FF00), &status);
+    } else {
+      texture = TextureCreateSolid(NTempest::CImVector(0x40FF0000), &status);
+    }
     FATALASSERT(texture);
     HMODEL model = ModelCreateBox(extents, texture, GxBlend_Alpha);
     if (model) {
@@ -1191,7 +1204,7 @@ static void DrawCursorShadow() {
     HandleClose(texture);
   } else {
     float            z = CWorld::CalcAltitude(s_spellShadowPos.x, s_spellShadowPos.y, 1.0f);
-    float            r = s_spellShadowSize == 0.0f ? 1.3888888f : s_spellShadowSize;
+    float            r = s_spellShadowSize != 0.0f ? s_spellShadowSize : 1.3888888f;
     NTempest::CAaBox box;
     box.t = NTempest::C3Vector(s_spellShadowPos.x + r, s_spellShadowPos.y + r, z + 2.0f);
     box.b = NTempest::C3Vector(s_spellShadowPos.x - r, s_spellShadowPos.y - r, z - 2.0f);
@@ -1225,7 +1238,7 @@ void CGWorldFrame::OnWorldRender() {
   }
 
   UnitFootprintRenderSplats(m_camera->Position());
-  if (s_spellShadowStyle < 2 && s_spellShadowTexture[s_spellShadowStyle]) {
+  if (s_spellShadowStyle < NUM_SPELL_SHADOWS && s_spellShadowTexture[s_spellShadowStyle]) {
     DrawCursorShadow();
   }
 
@@ -1234,7 +1247,7 @@ void CGWorldFrame::OnWorldRender() {
   RibbonManager::GetInstance()->RenderEmitters();
 
   NTempest::C3Vector cameraPos = m_camera->Position();
-  NTempest::C3Vector target = cameraPos + m_camera->Forward();
+  NTempest::C3Vector target = m_camera->Target();
   RenderFadeOutModels(cameraPos, target);
   CGUnit_C_RenderBowStrings(cameraPos);
 
@@ -1293,7 +1306,7 @@ BOOL CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   DWORD       processTime = evt.time;
-  if (player && (player->m_move.GetMoveFlags() & 0x200) && static_cast<long>(processTime - player->m_move.GetMoveStartTime()) < 0) {
+  if (player && (player->m_move.GetMoveFlags() & 0x200) && (long)(processTime - player->m_move.GetMoveStartTime()) < 0) {
     processTime = player->m_move.GetMoveStartTime();
   }
 
@@ -1351,14 +1364,12 @@ BOOL CGWorldFrame::OnLayerMouseMoveRelative(CMouseEvent &evt) {
 }
 
 DWORDLONG CGWorldFrame::GetObjectUnderMouse() {
-  if (!m_models.Head()) {
-    return 0;
-  }
-  return m_models.Head()->guid;
+  return !m_models.Head() ? 0 : m_models.Head()->guid;
 }
 
 float CGWorldFrame::GetSkyProgress() {
-  return static_cast<int>((g_clientGameTime.GetHourAndMinutes() + 720) % 1440u) * 0.00069444446f * m_skyAnimDuration;
+  float progress = (int)((g_clientGameTime.GetHourAndMinutes() + 720) % 1440u) * 0.00069444446f;
+  return progress * m_skyAnimDuration;
 }
 
 BOOL CGWorldFrame::TogglePlayerRender() {
@@ -1459,7 +1470,7 @@ CModelRecord &CModelRecord::operator=(const CModelRecord &source) {
 }
 
 void CModelRecord::Copy(const CModelRecord &source) {
-  model = static_cast<HMODEL>(HandleDuplicate(source.model));
+  model = (HMODEL)HandleDuplicate(source.model);
   distance = source.distance;
   scale = source.scale;
   guid = source.guid;
@@ -1474,16 +1485,15 @@ void CGWorldFrame::RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT 
   }
 
   CHashKeyGUID key(object->GetGUID());
-  UINT         hash = static_cast<UINT>(object->GetGUID());
-  if (s_fadeOutModelTable.Ptr(hash, key)) {
+  if (s_fadeOutModelTable.Ptr(object->GetGUID(), key)) {
     return;
   }
 
   NTempest::C34Matrix worldMatrix;
   object->GetWorldMatrix(&worldMatrix);
-  FADEOUTHASHOBJ *fade = s_fadeOutModelTable.New(hash, key, 0, 0);
-  fade->model = static_cast<HMODEL>(HandleDuplicate(model));
-  fade->texture = texture ? static_cast<HTEXCOMPONENT>(HandleDuplicate(texture)) : 0;
+  FADEOUTHASHOBJ *fade = s_fadeOutModelTable.New(object->GetGUID(), key, 0, 0);
+  fade->model = (HMODEL)HandleDuplicate(model);
+  fade->texture = texture ? (HTEXCOMPONENT)HandleDuplicate(texture) : 0;
   fade->matrix = worldMatrix;
   fade->renderScale = object->GetScale() * object->GetRenderScale();
   fade->startTime = OsGetAsyncTimeMs();

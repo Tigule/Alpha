@@ -14,9 +14,9 @@ void CMsgBuffer::ReallocData(UINT count) {
   }
   m_alloc = count;
   if (m_freeData) {
-    m_data = static_cast<BYTE *>(SMemReAlloc(data, count, __FILE__, __LINE__, 0));
+    m_data = (BYTE *)SMemReAlloc(data, count, __FILE__, __LINE__, 0);
   } else {
-    m_data = static_cast<BYTE *>(SMemAlloc(count, __FILE__, __LINE__, 0));
+    m_data = (BYTE *)SMemAlloc(count, __FILE__, __LINE__, 0);
     memcpy(m_data, data, m_write);
   }
   m_freeData = 1;
@@ -25,7 +25,7 @@ void CMsgBuffer::ReallocData(UINT count) {
 #define DEFINE_ADD_SCALAR(functionName, valueType)          \
   void CMsgBuffer::functionName(valueType val) {            \
     Reserve(sizeof(val));                                   \
-    *reinterpret_cast<valueType *>(m_data + m_write) = val; \
+    *(valueType *)(m_data + m_write) = val; \
     m_write += sizeof(val);                                 \
   }
 
@@ -68,7 +68,7 @@ void CMsgBuffer::AddTcharString(LPCSTR str, int compress) {
     len = CMB_TCHARSTR_MAX_LONG_LEN;
   }
 
-  BYTE prefix = static_cast<BYTE>(len & 0x3F);
+  BYTE prefix = len & 0x3F;
   if (len > 0x3F) {
     prefix |= 0x40;
   }
@@ -84,7 +84,7 @@ void CMsgBuffer::AddTcharString(LPCSTR str, int compress) {
   }
   AddByte(prefix);
   if (prefix & 0x40) {
-    AddByte(static_cast<BYTE>(len >> 8));
+    AddByte(len >> 8);
   }
   if (prefix & 0x80) {
     AddTcharArray(str, len, 0);
@@ -139,7 +139,7 @@ void CMsgBuffer::AddFloatArray(const float *buffer, UINT count) {
   valueType CMsgBuffer::functionName() {                           \
     valueType val;                                                \
     ASSERT(Bytes() >= sizeof(val));                               \
-    val = *reinterpret_cast<valueType *>(m_data + m_read);         \
+    val = *(valueType *)(m_data + m_read);         \
     m_read += sizeof(val);                                        \
     return val;                                                   \
   }
@@ -172,7 +172,7 @@ UINT CMsgBuffer::GetTcharStringBufferLength(int *wide) {
   BYTE prefix = GetByte();
   UINT length = prefix & 0x3F;
   if (prefix & 0x40) {
-    length |= static_cast<UINT>(GetByte()) << 8;
+    length |= (UINT)GetByte() << 8;
   }
   if (wide) {
     *wide = (prefix & 0x80) == 0x80;

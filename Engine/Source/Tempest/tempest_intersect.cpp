@@ -102,7 +102,7 @@ namespace NTempest {
     }
 
     if (t) {
-      float offset = static_cast<float>(sqrt(radiusSquared - perpendicularSquared));
+      float offset = sqrt(radiusSquared - perpendicularSquared);
       if (centerDistanceSquared > radiusSquared) {
         *t = projection - offset;
       } else {
@@ -517,7 +517,7 @@ namespace NTempest {
         return false;
       }
       if (discriminant > 0.0f) {
-        float root = static_cast<float>(sqrt(discriminant));
+        float root = sqrt(discriminant);
         float inverseC2 = 1.0f / c2;
         float t0 = (-c1 - root) * inverseC2;
         float t1 = (root - c2) * inverseC2;

@@ -72,7 +72,7 @@ extern "C" int APIENTRY SUniConvertUTF16to8Len(const WORD *src, DWORD srcMaxChar
 
   srcStart = src;
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const WORD *>(-1);
+    srcEnd = (const WORD *)-1;
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -121,7 +121,7 @@ sourceExhausted:
 
 finished:
   if (srcChars) {
-    *srcChars = static_cast<UINT>(src - srcStart);
+    *srcChars = src - srcStart;
   }
 
   return result;
@@ -135,18 +135,24 @@ extern "C" int APIENTRY SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const 
   UINT        srcIndex;
   char       *dstEnd;
 
-  dstStart = dst;
   srcStart = src;
-  result = 0;
-  dstEnd = dst + dstMaxChars;
+  dstStart = dst;
 
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<const WORD *>(-1);
+    srcEnd = (const WORD *)-1;
   } else {
     srcEnd = src + srcMaxChars;
   }
 
-  while (src < srcEnd) {
+  result = 0;
+  dstEnd = dst + dstMaxChars;
+
+  for (;;) {
+    if (src >= srcEnd) {
+      result = -1;
+      break;
+    }
+
     UCS4 ch = src[0];
     UINT bytesToWrite;
 
@@ -157,7 +163,7 @@ extern "C" int APIENTRY SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const 
 
       if (src + 1 >= srcEnd) {
         result = -1;
-        goto finished;
+        break;
       }
 
       ch2 = src[1];
@@ -172,10 +178,11 @@ extern "C" int APIENTRY SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const 
       if (!ch) {
         if (dst < dstEnd) {
           *dst++ = 0;
-        } else {
-          result = 1;
+          break;
         }
-        goto finished;
+
+        result = 1;
+        break;
       }
     } else if (ch < 0x800) {
       bytesToWrite = 2;
@@ -188,47 +195,44 @@ extern "C" int APIENTRY SUniConvertUTF16to8(char *dst, DWORD dstMaxChars, const 
     } else if (ch <= 0x7FFFFFFF) {
       bytesToWrite = 6;
     } else {
-      ch = 0xFFFD;
       bytesToWrite = 2;
+      ch = 0xFFFD;
     }
 
     if (dst + bytesToWrite > dstEnd) {
       result = bytesToWrite;
-      goto finished;
+      break;
     }
 
     dst += bytesToWrite;
     switch (bytesToWrite) {
       case 6:
-        *--dst = static_cast<char>((ch | 0x80) & 0xBF);
+        *--dst = (ch | 0x80) & 0xBF;
         ch >>= 6;
       case 5:
-        *--dst = static_cast<char>((ch | 0x80) & 0xBF);
+        *--dst = (ch | 0x80) & 0xBF;
         ch >>= 6;
       case 4:
-        *--dst = static_cast<char>((ch | 0x80) & 0xBF);
+        *--dst = (ch | 0x80) & 0xBF;
         ch >>= 6;
       case 3:
-        *--dst = static_cast<char>((ch | 0x80) & 0xBF);
+        *--dst = (ch | 0x80) & 0xBF;
         ch >>= 6;
       case 2:
-        *--dst = static_cast<char>((ch | 0x80) & 0xBF);
+        *--dst = (ch | 0x80) & 0xBF;
         ch >>= 6;
       case 1:
-        *--dst = static_cast<char>(ch | firstByteMark[bytesToWrite]);
+        *--dst = ch | firstByteMark[bytesToWrite];
     }
     dst += bytesToWrite;
     src += srcIndex;
   }
 
-  result = -1;
-
-finished:
   if (srcChars) {
-    *srcChars = static_cast<UINT>(src - srcStart);
+    *srcChars = src - srcStart;
   }
   if (dstChars) {
-    *dstChars = static_cast<UINT>(dst - dstStart);
+    *dstChars = dst - dstStart;
   }
 
   return result;
@@ -249,22 +253,27 @@ extern "C" int APIENTRY SUniConvertUTF8to16Len(LPCSTR src, DWORD srcMaxChars, DW
 
   srcStart = src;
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<LPCSTR>(-1);
+    srcEnd = (LPCSTR)-1;
   } else {
     srcEnd = src + srcMaxChars;
   }
 
   result = 0;
 
-  while (src < srcEnd) {
-    UINT extraBytes = bytesFromUTF8[*src];
-    UCS4 ch = 0;
-
-    if (src + extraBytes >= srcEnd) {
-      result = -1 - static_cast<int>(extraBytes);
-      goto finished;
+  for (;;) {
+    if (src >= srcEnd) {
+      result = -1;
+      break;
     }
 
+    UINT extraBytes = bytesFromUTF8[*src];
+
+    if (src + extraBytes >= srcEnd) {
+      result = -1 - (int)extraBytes;
+      break;
+    }
+
+    UCS4 ch = 0;
     switch (extraBytes) {
       case 5:
         ch += *src++;
@@ -289,20 +298,17 @@ extern "C" int APIENTRY SUniConvertUTF8to16Len(LPCSTR src, DWORD srcMaxChars, DW
     if (ch <= 0xFFFF) {
       ++result;
       if (!ch) {
-        goto finished;
+        break;
       }
-    } else if (ch <= 0x10FFFF) {
-      result += 2;
-    } else {
+    } else if (ch > 0x10FFFF) {
       ++result;
+    } else {
+      result += 2;
     }
   }
 
-  result = -1;
-
-finished:
   if (srcChars) {
-    *srcChars = static_cast<UINT>(src - srcStart);
+    *srcChars = src - srcStart;
   }
 
   return result;
@@ -315,11 +321,11 @@ extern "C" int APIENTRY SUniConvertUTF8to16(WORD *dst, DWORD dstMaxChars, LPCSTR
   int    result;
   LPCSTR srcEnd;
 
-  dstStart = dst;
   srcStart = src;
+  dstStart = dst;
 
   if (srcMaxChars == 0x7FFFFFFF) {
-    srcEnd = reinterpret_cast<LPCSTR>(-1);
+    srcEnd = (LPCSTR)-1;
   } else {
     srcEnd = src + srcMaxChars;
   }
@@ -327,16 +333,21 @@ extern "C" int APIENTRY SUniConvertUTF8to16(WORD *dst, DWORD dstMaxChars, LPCSTR
   dstEnd = dst + dstMaxChars;
   result = 0;
 
-  while (src < srcEnd) {
+  for (;;) {
     UINT extraBytes;
     UINT srcIndex;
     UCS4 ch;
 
-    extraBytes = bytesFromUTF8[static_cast<BYTE>(*src)];
+    if (src >= srcEnd) {
+      result = -1;
+      break;
+    }
+
+    extraBytes = bytesFromUTF8[(BYTE)*src];
 
     if (src + extraBytes >= srcEnd) {
-      result = -1 - static_cast<int>(extraBytes);
-      goto finished;
+      result = -1 - (int)extraBytes;
+      break;
     }
 
     srcIndex = 0;
@@ -344,59 +355,56 @@ extern "C" int APIENTRY SUniConvertUTF8to16(WORD *dst, DWORD dstMaxChars, LPCSTR
 
     switch (extraBytes) {
       case 5:
-        ch += static_cast<BYTE>(src[srcIndex++]);
+        ch += (BYTE)src[srcIndex++];
         ch <<= 6;
       case 4:
-        ch += static_cast<BYTE>(src[srcIndex++]);
+        ch += (BYTE)src[srcIndex++];
         ch <<= 6;
       case 3:
-        ch += static_cast<BYTE>(src[srcIndex++]);
+        ch += (BYTE)src[srcIndex++];
         ch <<= 6;
       case 2:
-        ch += static_cast<BYTE>(src[srcIndex++]);
+        ch += (BYTE)src[srcIndex++];
         ch <<= 6;
       case 1:
-        ch += static_cast<BYTE>(src[srcIndex++]);
+        ch += (BYTE)src[srcIndex++];
         ch <<= 6;
       case 0:
-        ch += static_cast<BYTE>(src[srcIndex++]);
+        ch += (BYTE)src[srcIndex++];
     }
     ch -= offsetsFromUTF8[extraBytes];
 
     if (dst >= dstEnd) {
       result = 1;
-      goto finished;
+      break;
     }
 
     if (ch <= 0xFFFF) {
-      *dst++ = static_cast<WORD>(ch);
+      *dst++ = ch;
       if (!ch) {
-        goto finished;
+        break;
       }
     } else if (ch > 0x10FFFF) {
       *dst++ = 0xFFFD;
     } else {
       if (dst + 1 >= dstEnd) {
         result = 1;
-        goto finished;
+        break;
       }
 
       ch -= 0x10000;
-      *dst++ = static_cast<WORD>((ch >> 10) + 0xD800);
-      *dst++ = static_cast<WORD>((ch & 0x3FF) + 0xDC00);
+      *dst++ = (ch >> 10) + 0xD800;
+      *dst++ = (ch & 0x3FF) + 0xDC00;
     }
 
     src += srcIndex;
   }
 
-  result = -1;
-
-finished:
   if (srcChars) {
-    *srcChars = static_cast<UINT>(src - srcStart);
+    *srcChars = src - srcStart;
   }
   if (dstChars) {
-    *dstChars = static_cast<UINT>(dst - dstStart);
+    *dstChars = dst - dstStart;
   }
 
   return result;
@@ -410,12 +418,12 @@ extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
     *chars = 0;
   }
   if (!strptr) {
-    return static_cast<UINT>(-1);
+    return -1;
   }
 
   c = *strptr++;
   if (!c) {
-    return static_cast<UINT>(-1);
+    return -1;
   }
   if (chars) {
     ++*chars;
@@ -448,7 +456,7 @@ extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
     BYTE next = *strptr++;
 
     if (!next) {
-      return static_cast<UINT>(-1);
+      return -1;
     }
     if (chars) {
       ++*chars;
@@ -466,32 +474,32 @@ extern "C" UINT APIENTRY SUniSGetUTF8(const BYTE *strptr, int *chars) {
 extern "C" char *APIENTRY SUniSPutUTF8(DWORD c, char *strptr) {
   if (strptr) {
     if (c < 0x80) {
-      *strptr++ = static_cast<char>(c);
+      *strptr++ = c;
     } else if (c < 0x800) {
-      *strptr++ = static_cast<char>((c >> 6) | 0xC0);
-      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+      *strptr++ = (c >> 6) | 0xC0;
+      *strptr++ = (c & 0x3F) | 0x80;
     } else if (c < 0x10000) {
-      *strptr++ = static_cast<char>((c >> 12) | 0xE0);
-      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+      *strptr++ = (c >> 12) | 0xE0;
+      *strptr++ = ((c >> 6) & 0x3F) | 0x80;
+      *strptr++ = (c & 0x3F) | 0x80;
     } else if (c < 0x200000) {
-      *strptr++ = static_cast<char>((c >> 18) | 0xF0);
-      *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+      *strptr++ = (c >> 18) | 0xF0;
+      *strptr++ = ((c >> 12) & 0x3F) | 0x80;
+      *strptr++ = ((c >> 6) & 0x3F) | 0x80;
+      *strptr++ = (c & 0x3F) | 0x80;
     } else if (c < 0x400000) {
-      *strptr++ = static_cast<char>((c >> 24) | 0xF8);
-      *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+      *strptr++ = (c >> 24) | 0xF8;
+      *strptr++ = ((c >> 18) & 0x3F) | 0x80;
+      *strptr++ = ((c >> 12) & 0x3F) | 0x80;
+      *strptr++ = ((c >> 6) & 0x3F) | 0x80;
+      *strptr++ = (c & 0x3F) | 0x80;
     } else if (c < 0x80000000) {
-      *strptr++ = static_cast<char>((c >> 30) | 0xFC);
-      *strptr++ = static_cast<char>(((c >> 24) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>(((c >> 18) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>(((c >> 12) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>(((c >> 6) & 0x3F) | 0x80);
-      *strptr++ = static_cast<char>((c & 0x3F) | 0x80);
+      *strptr++ = (c >> 30) | 0xFC;
+      *strptr++ = ((c >> 24) & 0x3F) | 0x80;
+      *strptr++ = ((c >> 18) & 0x3F) | 0x80;
+      *strptr++ = ((c >> 12) & 0x3F) | 0x80;
+      *strptr++ = ((c >> 6) & 0x3F) | 0x80;
+      *strptr++ = (c & 0x3F) | 0x80;
     }
 
     *strptr = 0;
@@ -515,82 +523,65 @@ extern "C" int APIENTRY SUniFindAfterUTF8Chr(LPCSTR utf8String, int index) {
 }
 
 static DWORD SUniConvertUTF16ToCP(WORD *codepage, char *dest, const WORD *source, DWORD destsize) {
-  char *start = dest;
-
-  if (!destsize) {
+  if (!destsize)
     return 0;
-  }
 
+  char *curr = dest;
   while (*source && destsize) {
-    WORD ch;
-    UINT cp;
-
-    ch = *source;
-    if (ch < 0x100 && codepage[ch] == ch) {
-      cp = (BYTE)*source;
-    } else {
-      cp = 0xFF;
-      while (cp > 0 && codepage[cp] != ch) {
-        --cp;
-      }
-      if (!cp) {
-        cp = '?';
-      }
+    char ch;
+    if (*source < 0x100 && *source == codepage[*source])
+      ch = (char)*source;
+    else {
+      int cp = 0xFF;
+      while (*source != codepage[cp] && --cp > 0)
+        ;
+      ch = (char)(cp ? cp : '?');
     }
-
-    *dest++ = (char)cp;
-    ++source;
-    --destsize;
+    *curr++ = ch;
+    source++;
+    destsize--;
   }
 
-  if (destsize) {
-    *dest++ = 0;
-  }
-
-  return (DWORD)(dest - start);
+  if (destsize)
+    *curr++ = 0;
+  return curr - dest;
 }
 
 static DWORD SUniConvertCPToUTF16(WORD *codepage, WORD *dest, LPCSTR source, DWORD destsize) {
-  WORD *start;
-
-  if (!destsize) {
+  if (!destsize)
     return 0;
-  }
 
-  start = dest;
+  WORD *curr = dest;
   while (*source && destsize) {
-    *dest++ = codepage[(BYTE)*source];
-    ++source;
+    *curr++ = codepage[(BYTE)*source++];
     --destsize;
   }
 
-  if (destsize) {
-    *dest++ = 0;
-  }
-
-  return (DWORD)(dest - start);
+  if (destsize)
+    *curr++ = 0;
+  return curr - dest;
 }
 
 extern "C" DWORD APIENTRY SUniConvertUTF16ToWin(char *dest, const WORD *source, DWORD destsize) {
-  return SUniConvertUTF16ToCP(const_cast<WORD *>(CP1252), dest, source, destsize);
+  return SUniConvertUTF16ToCP((WORD *)CP1252, dest, source, destsize);
 }
 
 extern "C" DWORD APIENTRY SUniConvertUTF16ToMac(char *dest, const WORD *source, DWORD destsize) {
-  return SUniConvertUTF16ToCP(const_cast<WORD *>(CP10000), dest, source, destsize);
+  return SUniConvertUTF16ToCP((WORD *)CP10000, dest, source, destsize);
 }
 
 extern "C" DWORD APIENTRY SUniConvertUTF16ToDos(char *dest, const WORD *source, DWORD destsize) {
-  return SUniConvertUTF16ToCP(const_cast<WORD *>(CP437), dest, source, destsize);
+  return SUniConvertUTF16ToCP((WORD *)CP437, dest, source, destsize);
 }
 
 extern "C" DWORD APIENTRY SUniConvertWinToUTF16(WORD *dest, LPCSTR source, DWORD destsize) {
-  return SUniConvertCPToUTF16(const_cast<WORD *>(CP1252), dest, source, destsize);
+  return SUniConvertCPToUTF16((WORD *)CP1252, dest, source, destsize);
 }
 
 extern "C" DWORD APIENTRY SUniConvertMacToUTF16(WORD *dest, LPCSTR source, DWORD destsize) {
-  return SUniConvertCPToUTF16(const_cast<WORD *>(CP10000), dest, source, destsize);
+  return SUniConvertCPToUTF16((WORD *)CP10000, dest, source, destsize);
 }
 
 extern "C" DWORD APIENTRY SUniConvertDosToUTF16(WORD *dest, LPCSTR source, DWORD destsize) {
-  return SUniConvertCPToUTF16(const_cast<WORD *>(CP437), dest, source, destsize);
+  return SUniConvertCPToUTF16((WORD *)CP437, dest, source, destsize);
 }

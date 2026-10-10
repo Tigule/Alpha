@@ -65,7 +65,7 @@ class CDetailDoodadInst {
   void RenderAlpha();
   void FreeBufs();
   BOOL HasBufs() {
-    return reinterpret_cast<BOOL>(gxBuf[0]) | reinterpret_cast<BOOL>(gxBuf[1]);
+    return (BOOL)gxBuf[0] | (BOOL)gxBuf[1];
   }
 
   CDetailDoodadGeom *geom[2];

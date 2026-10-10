@@ -20,7 +20,7 @@ BOOL IEvtTimerDispatch(EvtContext *context) {
     EvtTimer *timer = (*queue)[0];
 
     if (timer->handler || timer->guidHandler) {
-      if (static_cast<LONG>(timer->targetTime.Get() - currTime) > 0) {
+      if ((LONG)(timer->targetTime.Get() - currTime) > 0) {
         break;
       }
 
@@ -132,7 +132,7 @@ void IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunctionPtr
 
   if (timer && (timer->handler || timer->guidHandler)) {
     if ((timer->handler && timer->handler != handlerFunctionPtr) ||
-        (timer->guidHandler && reinterpret_cast<LPVOID>(timer->guidHandler) != reinterpret_cast<LPVOID>(handlerFunctionPtr)))
+        (timer->guidHandler && (LPVOID)timer->guidHandler != (LPVOID)handlerFunctionPtr))
     {
       FATALERROR(("Error, attempt to kill eventID %d with mismatching handler (%s)!", id, functionName ? functionName : ""));
     }
@@ -186,7 +186,7 @@ UINT IEvtTimerSet(
     (*table)[id] = timer;
   }
 
-  timer->targetTime.Set(OsGetAsyncTimeMs() - static_cast<long>(timeout * -1000.0f));
+  timer->targetTime.Set(OsGetAsyncTimeMs() - (long)(timeout * -1000.0f));
   timer->id = id;
   timer->timeout = timeout;
   timer->handler = handler;

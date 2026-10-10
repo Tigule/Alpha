@@ -9,15 +9,15 @@ namespace NTempest {
     LONGLONG m_data;
 
     float GetX() const {
-      return static_cast<float>(static_cast<int>(m_data >> 42)) * 0.000000476837158203125f;
+      return (float)((int)(m_data >> 42)) * 0.000000476837158203125f;
     }
 
     float GetY() const {
-      return static_cast<float>(static_cast<int>((m_data << 22) >> 43)) * 0.00000095367431640625f;
+      return (float)((int)((m_data << 22) >> 43)) * 0.00000095367431640625f;
     }
 
     float GetZ() const {
-      return static_cast<float>(static_cast<int>((m_data << 43) >> 43)) * 0.00000095367431640625f;
+      return (float)((int)((m_data << 43) >> 43)) * 0.00000095367431640625f;
     }
 
     float GetW(float x, float y, float z) const {
@@ -54,7 +54,7 @@ namespace NTempest {
       int x = CMath::fint_(source.x * 2097152.0f) * sign;
       int y = CMath::fint_(source.y * 1048576.0f) * sign;
       int z = CMath::fint_(source.z * 1048576.0f) * sign;
-      m_data = (((static_cast<LONGLONG>(x) << 21) | (y & 0x1FFFFF)) << 21) | (z & 0x1FFFFF);
+      m_data = ((((LONGLONG)x << 21) | (y & 0x1FFFFF)) << 21) | (z & 0x1FFFFF);
     }
 
     operator C4Quaternion() const {
@@ -90,7 +90,7 @@ namespace NTempest {
     }
 
     static C4Quaternion Slerp(float ratio, const C4QuaternionCompressed &start, const C4QuaternionCompressed &end) {
-      return C4Quaternion::Slerp(ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(end));
+      return C4Quaternion::Slerp(ratio, (C4Quaternion)start, (C4Quaternion)end);
     }
 
     static C4Quaternion Squad(
@@ -101,8 +101,8 @@ namespace NTempest {
         const C4QuaternionCompressed &inTangent
     ) {
       return C4Quaternion::Squad(
-          ratio, static_cast<C4Quaternion>(start), static_cast<C4Quaternion>(outTangent), static_cast<C4Quaternion>(inTangent),
-          static_cast<C4Quaternion>(end)
+          ratio, (C4Quaternion)start, (C4Quaternion)outTangent, (C4Quaternion)inTangent,
+          (C4Quaternion)end
       );
     }
 

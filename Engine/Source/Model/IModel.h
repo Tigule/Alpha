@@ -140,7 +140,7 @@ void ModelDestroy();
 void ModelCacheFlush();
 void ModelRemoveFromCache(LPCSTR sourcefile);
 BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status);
-BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels);
+BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels = 1);
 void ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation);
 void ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale);
 void ModelGetStandingMatrix(

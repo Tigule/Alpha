@@ -29,7 +29,7 @@ UINT Parser::Token(LPCSTR *tokenText, UTokenData *data) {
   }
 
   if (tokenText) {
-    *tokenText = token == 0x1DF ? m_scanner.mdltext : MDL::TokenText(token);
+    *tokenText = token == MDLTOK_UNKNOWN ? m_scanner.mdltext : MDL::TokenText(token);
   }
   if (data) {
     data->lVal = m_scanner.tokendata.lVal;
@@ -95,10 +95,10 @@ void Parser::Expect(UINT what, UINT cachedToken, LPCSTR tokenText) {
 }
 
 long Parser::ExpectInt(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue) {
-  if (cachedToken == 0x100) {
+  if (cachedToken == MDLTOK_LONG) {
     return cachedValue->lVal;
   }
-  FatalExpected(MDL::TokenText(0x100), tokenText);
+  FatalExpected(MDL::TokenText(MDLTOK_LONG), tokenText);
   return 0;
 }
 
@@ -113,38 +113,38 @@ float Parser::ExpectFloat() {
   LPCSTR     tokentext;
   UTokenData value;
   UINT       token = Token(&tokentext, &value);
-  if (token == 0x101) {
+  if (token == MDLTOK_FLOAT) {
     return value.fVal;
   }
-  if (token == 0x100) {
-    return static_cast<float>(value.lVal);
+  if (token == MDLTOK_LONG) {
+    return value.lVal;
   }
-  FatalExpected(MDL::TokenText(0x101), tokentext);
+  FatalExpected(MDL::TokenText(MDLTOK_FLOAT), tokentext);
   return 0.0f;
 }
 
 LPCSTR Parser::ExpectString() {
   LPCSTR     tokentext;
   UTokenData value;
-  if (Token(&tokentext, &value) == 0x102) {
+  if (Token(&tokentext, &value) == MDLTOK_STRING) {
     return value.sVal;
   }
-  FatalExpected(MDL::TokenText(0x102), tokentext);
+  FatalExpected(MDL::TokenText(MDLTOK_STRING), tokentext);
   return 0;
 }
 
 LPCSTR Parser::ExpectString(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue) {
-  if (cachedToken == 0x102) {
+  if (cachedToken == MDLTOK_STRING) {
     return cachedValue->sVal;
   }
-  FatalExpected(MDL::TokenText(0x102), tokenText);
+  FatalExpected(MDL::TokenText(MDLTOK_STRING), tokenText);
   return 0;
 }
 
 long Parser::GetOptionalInt(UINT *token, LPCSTR *tokenText, UTokenData *savedValue) {
   UTokenData value;
   *token = Token(tokenText, &value);
-  if (*token != 0x100) {
+  if (*token != MDLTOK_LONG) {
     return -1;
   }
   long result = value.lVal;
@@ -153,7 +153,7 @@ long Parser::GetOptionalInt(UINT *token, LPCSTR *tokenText, UTokenData *savedVal
 }
 
 long Parser::GetOptionalInt(UINT cachedToken, UTokenData *cachedValue, UINT *token, LPCSTR *tokenText) {
-  if (cachedToken != 0x100) {
+  if (cachedToken != MDLTOK_LONG) {
     *token = cachedToken;
     return -1;
   }

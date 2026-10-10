@@ -14,12 +14,12 @@
 static int s_inCreateOrDestroy;
 
 static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
-  return reinterpret_cast<HWND>(GxMacWindowCreate(format.pos.x, format.pos.y, format.size.x, format.size.y, format.window));
+  return (HWND)GxMacWindowCreate(format.pos.x, format.pos.y, format.size.x, format.size.y, format.window);
 }
 
 static void WindowDestroy(HWND &hwnd) {
   if (hwnd) {
-    GxMacWindowDestroy(reinterpret_cast<LPVOID>(hwnd));
+    GxMacWindowDestroy((LPVOID)hwnd);
     hwnd = 0;
   }
 }
@@ -48,7 +48,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     return;
   }
 
-  GxMacWindowShow(reinterpret_cast<LPVOID>(m_hwnd), format.window, focus);
+  GxMacWindowShow((LPVOID)m_hwnd, format.window, focus);
 
   if (!format.window) {
     if (focus) {
@@ -78,8 +78,8 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   for (index = 0; index < count; ++index) {
     CGDisplayModeRef mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(modes, index);
 
-    if (static_cast<int>(CGDisplayModeGetWidth(mode)) == format.size.x && static_cast<int>(CGDisplayModeGetHeight(mode)) == format.size.y) {
-      format.apiSpecificModeID = static_cast<DWORD>(index);
+    if ((int)CGDisplayModeGetWidth(mode) == format.size.x && (int)CGDisplayModeGetHeight(mode) == format.size.y) {
+      format.apiSpecificModeID = (DWORD)index;
       CFRelease(modes);
       return 1;
     }
@@ -92,7 +92,7 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
 BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   FATALASSERT(m_hdc == 0 && m_hglrc == 0);
 
-  LPVOID view = GxMacWindowContentView(reinterpret_cast<LPVOID>(m_hwnd));
+  LPVOID view = GxMacWindowContentView((LPVOID)m_hwnd);
   LPVOID context;
 
   if (!view) {
@@ -110,8 +110,8 @@ BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
     return 0;
   }
 
-  m_hdc = reinterpret_cast<HDC>(view);
-  m_hglrc = reinterpret_cast<HGLRC>(context);
+  m_hdc = (HDC)view;
+  m_hglrc = (HGLRC)context;
 
   GxMacContextMakeCurrent(context);
 
@@ -137,7 +137,7 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
     UnbindGlExtensions();
 
     GxMacContextClearCurrent();
-    GxMacContextDestroy(reinterpret_cast<LPVOID>(m_hglrc));
+    GxMacContextDestroy((LPVOID)m_hglrc);
 
     CGDisplayShowCursor(kCGDirectMainDisplay);
 
@@ -155,7 +155,7 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
 void CGxDeviceOpenGl::DeviceWM(EGxWM wm, intptr_t param1, intptr_t param2) {
   switch (wm) {
     case GxWM_Size:
-      DeviceSetDefWindow(*reinterpret_cast<NTempest::CRect *>(param1));
+      DeviceSetDefWindow(*(NTempest::CRect *)param1);
       DeviceQueryPbuffer();
       break;
     case GxWM_Destroy:
@@ -198,7 +198,7 @@ BOOL CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   m_ownhwnd = 0;
   m_gammaRamp = m_systemGammaRamp;
-  m_hwnd = reinterpret_cast<HWND>(static_cast<uintptr_t>(clienthwnd));
+  m_hwnd = (HWND)((uintptr_t)clienthwnd);
 
   if (IDevAttachGlContext(format)) {
     s_inCreateOrDestroy = 0;
@@ -242,11 +242,11 @@ BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
       IDevSetFocus(1, format);
 
       if (IDevAttachGlContext(format)) {
-        NTempest::CRect rect(0.0f, 0.0f, static_cast<float>(format.size.y), static_cast<float>(format.size.x));
+        NTempest::CRect rect(0.0f, 0.0f, (float)format.size.y, (float)format.size.x);
 
         // cocoa has no window proc, so the size the window was made with is
         // reported the way WM_SIZE would have reported it
-        DeviceWM(GxWM_Size, reinterpret_cast<intptr_t>(&rect), 0);
+        DeviceWM(GxWM_Size, (intptr_t)&rect, 0);
         DeviceSetGamma(m_gammaRamp);
         s_inCreateOrDestroy = 0;
 
@@ -306,9 +306,9 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UIN
 
   CGxDevice::DeviceSetRenderTarget(buffer, gxTex, plane);
 
-  CGxTex *oldTex = static_cast<CGxTex *>(target.m_apiSpecific);
+  CGxTex *oldTex = (CGxTex *)target.m_apiSpecific;
   if (oldTex) {
-    BindTexture(oldTex, static_cast<UINT>(-1));
+    BindTexture(oldTex, (UINT)-1);
 
     if (oldTex->m_needsCreation) {
       glCopyTexImage2D(GL_TEXTURE_2D, 0, s_convertTexFmt[oldTex->m_format], 0, 0, oldTex->m_width, oldTex->m_height, 0);
@@ -322,7 +322,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UIN
 
   target.m_apiSpecific = gxTex;
 
-  GxMacContextMakeCurrent(reinterpret_cast<LPVOID>(m_hglrc));
+  GxMacContextMakeCurrent((LPVOID)m_hglrc);
 
   XformSetViewport(m_viewport.x.l, m_viewport.x.h, m_viewport.y.l, m_viewport.y.h, m_viewport.z.l, m_viewport.z.h);
   XformSetProjection(m_projection);
@@ -334,7 +334,7 @@ void CGxDeviceOpenGl::DeviceSetTextureQuality(int force32) {
 }
 
 uintptr_t CGxDeviceOpenGl::DeviceWindow() {
-  return reinterpret_cast<uintptr_t>(m_hwnd);
+  return (uintptr_t)m_hwnd;
 }
 
 void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
@@ -347,12 +347,12 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   double r;
   double b;
 
-  GxMacWindowContentRectInScreen(reinterpret_cast<LPVOID>(m_hwnd), windowRect.r, windowRect.b, &l, &t, &r, &b);
+  GxMacWindowContentRectInScreen((LPVOID)m_hwnd, windowRect.r, windowRect.b, &l, &t, &r, &b);
 
-  dst.l = static_cast<float>(l);
-  dst.t = static_cast<float>(t);
-  dst.r = static_cast<float>(r);
-  dst.b = static_cast<float>(b);
+  dst.l = (float)l;
+  dst.t = (float)t;
+  dst.r = (float)r;
+  dst.b = (float)b;
 }
 
 static BOOL IsGlDisplayModeGood(CGDisplayModeRef mode) {
@@ -379,10 +379,10 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
     }
 
     memset(&fmt, 0, sizeof(fmt));
-    fmt.apiSpecificModeID = static_cast<DWORD>(index);
-    fmt.size.x = static_cast<int>(CGDisplayModeGetWidth(mode));
-    fmt.size.y = static_cast<int>(CGDisplayModeGetHeight(mode));
-    fmt.refreshRate = static_cast<UINT>(CGDisplayModeGetRefreshRate(mode));
+    fmt.apiSpecificModeID = (DWORD)index;
+    fmt.size.x = (int)CGDisplayModeGetWidth(mode);
+    fmt.size.y = (int)CGDisplayModeGetHeight(mode);
+    fmt.refreshRate = (UINT)CGDisplayModeGetRefreshRate(mode);
     formats.Add(1, &fmt);
   }
 
@@ -426,10 +426,10 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
     CGDisplayModeRef mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(displayModes, index);
     CGxMonitorMode   monitorMode;
 
-    monitorMode.size.x = static_cast<int>(CGDisplayModeGetWidth(mode));
-    monitorMode.size.y = static_cast<int>(CGDisplayModeGetHeight(mode));
+    monitorMode.size.x = (int)CGDisplayModeGetWidth(mode);
+    monitorMode.size.y = (int)CGDisplayModeGetHeight(mode);
     monitorMode.bpp = 32;
-    monitorMode.refreshRate = static_cast<UINT>(CGDisplayModeGetRefreshRate(mode));
+    monitorMode.refreshRate = (UINT)CGDisplayModeGetRefreshRate(mode);
     modes.Add(1, &monitorMode);
   }
 
@@ -444,10 +444,10 @@ BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
     return 0;
   }
 
-  mode.size.x = static_cast<int>(CGDisplayModeGetWidth(displayMode));
-  mode.size.y = static_cast<int>(CGDisplayModeGetHeight(displayMode));
+  mode.size.x = (int)CGDisplayModeGetWidth(displayMode);
+  mode.size.y = (int)CGDisplayModeGetHeight(displayMode);
   mode.bpp = 32;
-  mode.refreshRate = static_cast<UINT>(CGDisplayModeGetRefreshRate(displayMode));
+  mode.refreshRate = (UINT)CGDisplayModeGetRefreshRate(displayMode);
 
   CGDisplayModeRelease(displayMode);
   return 1;

@@ -196,7 +196,7 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(LPCSTR fileName, TEXTUREINFO *info) {
   object->m_selfReference = CREATEHANDLE(HMIPPEDTEXTURE, object);
   ASSERT(object->m_selfReference);
   *info = object->m_textureInfo;
-  return reinterpret_cast<HMIPPEDTEXTURE>(HandleDuplicate(object->m_selfReference));
+  return (HMIPPEDTEXTURE)HandleDuplicate(object->m_selfReference);
 }
 
 HTEXTURECACHE TextureCacheCreateSizeCache(UINT cacheSize) {
@@ -257,7 +257,7 @@ HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds) {
 }
 
 HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, LPCSTR fileName, TEXTUREINFO *info) {
-  CACHEOBJECT *cacheObject = reinterpret_cast<CACHEOBJECT *>(cache);
+  CACHEOBJECT *cacheObject = (CACHEOBJECT *)cache;
 
   VALIDATEBEGIN;
   VALIDATE(cache);
@@ -270,7 +270,7 @@ HMIPPEDTEXTURE TextureCacheGetTexture(HTEXTURECACHE cache, LPCSTR fileName, TEXT
 }
 
 const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture) {
-  CACHEENTRY *object = reinterpret_cast<CACHEENTRY *>(texture);
+  CACHEENTRY *object = (CACHEENTRY *)texture;
 
   if (!object) {
     return 0;
@@ -280,7 +280,7 @@ const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture) {
 }
 
 BOOL TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, BOOL bForce) {
-  CACHEENTRY *object = reinterpret_cast<CACHEENTRY *>(texture);
+  CACHEENTRY *object = (CACHEENTRY *)texture;
 
   if (!object) {
     return 0;

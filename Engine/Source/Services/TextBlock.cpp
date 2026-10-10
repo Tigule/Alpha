@@ -71,7 +71,7 @@ LPCSTR TextBlockGetFontName(HTEXTFONT fontHandle) {
   VALIDATE(fontHandle);
   VALIDATEEND;
 
-  return GxuFontGetFontName(reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font);
+  return GxuFontGetFontName(((FONTHASHOBJ *)fontHandle)->font);
 }
 
 UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
@@ -82,7 +82,7 @@ UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
   VALIDATE(fontHandle);
   VALIDATEEND;
 
-  flags = GxuFontGetFontFlags(reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font);
+  flags = GxuFontGetFontFlags(((FONTHASHOBJ *)fontHandle)->font);
   textFlags = 0;
   if (flags & 0x1) {
     textFlags |= 0x1;
@@ -105,7 +105,7 @@ CGxFont *TextBlockGetFontPtr(HTEXTFONT fontHandle) {
   VALIDATE(fontHandle);
   VALIDATEEND;
 
-  return reinterpret_cast<FONTHASHOBJ *>(fontHandle)->font;
+  return ((FONTHASHOBJ *)fontHandle)->font;
 }
 
 CGxString *TextBlockGetStringPtr(HTEXTBLOCK text) {
@@ -113,12 +113,12 @@ CGxString *TextBlockGetStringPtr(HTEXTBLOCK text) {
   VALIDATE(text);
   VALIDATEEND;
 
-  return reinterpret_cast<TEXTBLOCK *>(text)->string;
+  return ((TEXTBLOCK *)text)->string;
 }
 
 float TextBlockGetOneToOneHeight(HTEXTFONT__ *fontHandle) {
   ASSERT(fontHandle);
-  FONTHASHOBJ *fontPtr = reinterpret_cast<FONTHASHOBJ *>(fontHandle);
+  FONTHASHOBJ *fontPtr = (FONTHASHOBJ *)fontHandle;
   ASSERT(fontPtr->font);
   float height = GxuFontGetOneToOneHeight(fontPtr->font);
   NDCToDDC(0.0f, height, 0, &height);
@@ -132,7 +132,7 @@ void TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempe
 
   NTempest::C2Vector offset = shadowOffset;
   DDCToNDC(offset.x, offset.y, &offset.x, &offset.y);
-  GxuFontAddShadow(reinterpret_cast<TEXTBLOCK *>(text)->string, color, offset);
+  GxuFontAddShadow(((TEXTBLOCK *)text)->string, color, offset);
 }
 
 HTEXTBLOCK TextBlockCreate(
@@ -218,7 +218,7 @@ HTEXTBLOCK TextBlockCreate(
   }
 
   GxuFontCreateString(
-      reinterpret_cast<FONTHASHOBJ *>(font)->font, text, fontHeight, position, blockWidth, blockHeight, lineSpacing, textPtr->string, vertJustification,
+      ((FONTHASHOBJ *)font)->font, text, fontHeight, position, blockWidth, blockHeight, lineSpacing, textPtr->string, vertJustification,
       horzJustification, gxFlags, color, charSpacing
   );
 
@@ -233,14 +233,14 @@ void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
   NTempest::C3Vector position;
   position.z = pos.z;
   DDCToNDC(pos.x, pos.y, &position.x, &position.y);
-  GxuFontSetStringPosition(reinterpret_cast<TEXTBLOCK *>(htb)->string, position);
+  GxuFontSetStringPosition(((TEXTBLOCK *)htb)->string, position);
 }
 
 void TextBlockRender(HTEXTBLOCK__ *htb) {
   VALIDATEBEGIN;
   VALIDATE(htb);
   VALIDATEENDVOID;
-  GxuFontRender(reinterpret_cast<TEXTBLOCK *>(htb)->string);
+  GxuFontRender(((TEXTBLOCK *)htb)->string);
 }
 
 void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
@@ -248,14 +248,14 @@ void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) 
   VALIDATE(htb);
   VALIDATEENDVOID;
 
-  GxuFontSetStringColor(reinterpret_cast<TEXTBLOCK *>(htb)->string, textColor);
+  GxuFontSetStringColor(((TEXTBLOCK *)htb)->string, textColor);
 }
 
 float TextBlockGetHeight(HTEXTBLOCK__ *htb) {
   VALIDATEBEGIN;
   VALIDATE(htb);
   VALIDATEEND;
-  float height = GxuFontGetStringHeight(reinterpret_cast<TEXTBLOCK *>(htb)->string);
+  float height = GxuFontGetStringHeight(((TEXTBLOCK *)htb)->string);
   NDCToDDC(0.0f, height, 0, &height);
   return height;
 }
@@ -269,7 +269,7 @@ void TextBlockGetTextExtent(HTEXTFONT font, LPCSTR text, UINT numChars, float fo
   VALIDATE(text);
   VALIDATE(extent);
   *extent = 0.0f;
-  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  fontPtr = (FONTHASHOBJ *)font;
   VALIDATE(fontPtr->font);
   VALIDATEENDVOID;
 
@@ -330,7 +330,7 @@ void TextBlockGetWrapPoint(
   VALIDATE(font);
   VALIDATE(text);
 
-  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  fontPtr = (FONTHASHOBJ *)font;
   VALIDATE(fontPtr->font);
   VALIDATEENDVOID;
 
@@ -349,7 +349,7 @@ float TextBlockGetWrappedTextHeight(HTEXTFONT font, LPCSTR text, float fontHeigh
   VALIDATE(font);
 
   VALIDATE(text);
-  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  fontPtr = (FONTHASHOBJ *)font;
   VALIDATE(fontPtr->font);
   VALIDATEEND;
 
@@ -412,7 +412,7 @@ UINT TextBlockGetMaxCharsWithinWidth(
   VALIDATE(font);
   VALIDATE(text);
 
-  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  fontPtr = (FONTHASHOBJ *)font;
   VALIDATE(fontPtr->font);
   VALIDATEEND;
 
@@ -476,7 +476,7 @@ UINT TextBlockGetMaxCharsWithinWidthFromEnd(
   VALIDATE(font);
 
   VALIDATE(text);
-  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  fontPtr = (FONTHASHOBJ *)font;
   VALIDATE(fontPtr->font);
   VALIDATEEND;
 
@@ -539,7 +539,7 @@ UINT TextBlockWrapText(
   VALIDATE(font);
   VALIDATE(text);
 
-  fontPtr = reinterpret_cast<FONTHASHOBJ *>(font);
+  fontPtr = (FONTHASHOBJ *)font;
   VALIDATE(fontPtr->font);
   VALIDATEEND;
 
@@ -586,7 +586,7 @@ UINT TextBlockWrapText(
 int TextBlockSetGradient(HTEXTBLOCK text, int startChar, int length) {
   ASSERT(text);
 
-  TEXTBLOCK *textPtr = reinterpret_cast<TEXTBLOCK *>(text);
+  TEXTBLOCK *textPtr = (TEXTBLOCK *)text;
   ASSERT(textPtr);
 
   return GxuFontStringSetGradient(textPtr->string, startChar, length);

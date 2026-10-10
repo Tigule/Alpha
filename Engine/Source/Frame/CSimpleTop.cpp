@@ -33,7 +33,7 @@ class CFrameStrataNode {
       DEL(frames.Head());
     }
 
-    for (CRenderBatch *node = renderList.Head(), *nodenext_node; (int)node > 0 ? ((nodenext_node = renderList.RawNext(node)), 1) : 0; node = nodenext_node) {
+    SAFEITERATELIST(CRenderBatch, renderList, node) {
       renderList.UnlinkNode(node);
     }
   }
@@ -230,41 +230,39 @@ class CFrameStrata {
   }
 
   void CompressLevels() {
-    UINT firstEmpty = static_cast<UINT>(-1);
+    UINT firstEmpty = (UINT)-1;
     UINT level = 0;
 
     while (level < topLevel) {
       if (levels[level]->IsEmpty()) {
-        if (firstEmpty == static_cast<UINT>(-1)) {
+        if (firstEmpty == (UINT)-1) {
           firstEmpty = level;
         }
-      } else if (firstEmpty != static_cast<UINT>(-1)) {
+      } else if (firstEmpty != (UINT)-1) {
         UINT delta = level - firstEmpty;
 
         for (UINT i = level; i < topLevel; ++i) {
-          for (CSimpleFrame *node = levels[i]->frames.Head(), *nodenext_node;
-               (int)node > 0 ? ((nodenext_node = levels[i]->frames.RawNext(node)), 1) : 0;
-               node = nodenext_node) {
+          SAFEITERATELIST(CSimpleFrame, levels[i]->frames, node) {
             node->SetFrameLevel(node->GetFrameLevel() - delta, 0);
           }
         }
 
         topLevel -= delta;
-        firstEmpty = static_cast<UINT>(-1);
+        firstEmpty = (UINT)-1;
         continue;
       }
 
       ++level;
     }
 
-    if (firstEmpty != static_cast<UINT>(-1)) {
+    if (firstEmpty != (UINT)-1) {
       topLevel = firstEmpty;
     }
   }
 
   BOOL FrameOccluded(CSimpleFrame *thisFrame) {
-    NTempest::CRect otherRect;
     NTempest::CRect thisRect;
+    NTempest::CRect otherRect;
     UINT            level = thisFrame->GetFrameLevel();
 
     while (level < topLevel) {
@@ -467,7 +465,7 @@ void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, U
   ASSERT(event < NUM_SIMPLE_EVENTS);
 
   queue = &m_eventqueue[event][frame->GetFrameStrata()];
-  if (priority == static_cast<UINT>(-1)) {
+  if (priority == (UINT)-1) {
     priority = frame->GetFrameLevel();
   }
 
@@ -739,7 +737,7 @@ void CSimpleTop::DrawCursor() {
 }
 
 BOOL CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
-  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop *top = (CSimpleTop *)param;
   int         eaten = 0;
   CCharEvent  charEvent(*pCharEvtData);
 
@@ -760,7 +758,7 @@ BOOL CSimpleTop::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
-  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop *top = (CSimpleTop *)param;
   int         eaten = 0;
   CImeEvent   imeEvent(*pImeData);
 
@@ -781,7 +779,7 @@ BOOL CSimpleTop::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
-  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop *top = (CSimpleTop *)param;
   int         eaten = 0;
   CKeyEvent   keyEvent(*pKeyData);
 
@@ -808,7 +806,7 @@ BOOL CSimpleTop::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
-  CSimpleTop   *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop   *top = (CSimpleTop *)param;
   int           eaten = 0;
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
 
@@ -831,7 +829,7 @@ BOOL CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
-  CSimpleTop   *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop   *top = (CSimpleTop *)param;
   CSimpleFrame *frame = top->m_keydownCapture[pKeyData->key];
   int           eaten = 0;
 
@@ -848,7 +846,7 @@ BOOL CSimpleTop::OnKeyDownRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop  *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop  *top = (CSimpleTop *)param;
   CMouseEvent  mouseEvent(*pMouseData);
 
   mouseEvent.SetId(0x400500CA);
@@ -897,7 +895,7 @@ BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop   *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop   *top = (CSimpleTop *)param;
   CSimpleFrame *frame = top->m_mouseFocus;
   int           eaten = 0;
 
@@ -914,7 +912,7 @@ BOOL CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID 
 }
 
 BOOL CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop *top = (CSimpleTop *)param;
   int         eaten = 0;
   int (*callback)(const CMouseEvent &) = top->m_mouseButtonCallback;
   CMouseEvent mouseEvent(*pMouseData);
@@ -952,7 +950,7 @@ BOOL CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop   *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop   *top = (CSimpleTop *)param;
   CSimpleFrame *frame = top->m_mouseCapture;
   int           eaten = 0;
 
@@ -977,7 +975,7 @@ BOOL CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 }
 
 BOOL CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
-  CSimpleTop        *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop        *top = (CSimpleTop *)param;
   int                eaten = 0;
   CMouseEvent        mouseEvent(*pMouseData);
 
@@ -1006,7 +1004,7 @@ BOOL CSimpleTop::OnMouseWheel(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) 
 }
 
 BOOL CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID param) {
-  CSimpleTop *top = static_cast<CSimpleTop *>(param);
+  CSimpleTop *top = (CSimpleTop *)param;
   int (*callback)(const CSizeEvent &) = top->m_displaySizeCallback;
 
   GxuFontWindowSizeChanged();

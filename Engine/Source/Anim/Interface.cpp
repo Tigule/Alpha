@@ -183,16 +183,16 @@ static void SetSeqIndexOrdering(const CAnimNameHashTable &table, CArray<CVariati
 }
 
 static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Vector &target, UINT lookAtTypeFlag) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
   VALIDATE(objectId < unique->status.Count());
@@ -209,7 +209,7 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
     unique->lookAtTarget[status->lookAtId] = target;
   } else {
     ASSERT(unique->lookAtTarget.Count() < 0xff);
-    status->lookAtId = static_cast<BYTE>(unique->lookAtTarget.Count());
+    status->lookAtId = unique->lookAtTarget.Count();
     unique->lookAtTarget.Add(1, &target);
   }
 
@@ -221,16 +221,16 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
 }
 
 static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
   VALIDATE(objectId < unique->status.Count());
@@ -262,15 +262,15 @@ static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFla
 }
 
 static int AnimObjectUsingLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
-  CAnim     *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
   VALIDATEBEGIN;
   VALIDATE(unique);
-  shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  shared = (CAnimData *)unique->hdata;
   VALIDATE(shared);
   VALIDATE(objectId < shared->objectOrder.Count());
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
   VALIDATE(objectId < unique->status.Count());
@@ -279,7 +279,7 @@ static int AnimObjectUsingLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeF
 }
 
 void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
   UINT numSequences = unique->seq.Count();
@@ -325,13 +325,13 @@ void AnimResetAnimationStatus(HANIM anim, int onlyResetCallbacks) {
 }
 
 void AnimEnumObjects(HANIM anim, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOID param) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   UINT   numObjects;
 
   ASSERT(unique);
   ASSERT(callbackfcn);
 
-  CAnimData *ptr = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *ptr = (CAnimData *)unique->hdata;
   ASSERT(ptr);
 
   numObjects = ptr->obj.Count();
@@ -344,11 +344,11 @@ void AnimEnumObjects(HANIM anim, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOI
 }
 
 BOOL AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
   ASSERT(duration);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
@@ -365,12 +365,12 @@ BOOL AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
 }
 
 BOOL AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLength) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
   ASSERT(buffer);
   ASSERT(buffLength);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
@@ -387,11 +387,11 @@ BOOL AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLengt
 }
 
 BOOL AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
   ASSERT(moveSpeed);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
@@ -408,19 +408,19 @@ BOOL AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
 }
 
 BOOL AnimHasSequenceId(HANIM anim, UINT seqIndex) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   return shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary != 0xFF;
 }
 
 UINT AnimGetNumSequences(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *ptr = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *ptr = (CAnimData *)unique->hdata;
   ASSERT(ptr);
   return ptr->seq.Count();
 }
@@ -430,10 +430,10 @@ void AnimSetObjectOrdering(HANIM anim, LPCSTR *boneNames, UINT numBones) {
     return;
   }
 
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(boneNames);
 
@@ -448,9 +448,9 @@ void AnimSetObjectOrdering(HANIM anim, LPCSTR *boneNames, UINT numBones) {
 }
 
 void AnimResetObjectOrdering(HANIM__ *anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   UINT numObjects = shared->obj.Count();
@@ -461,10 +461,10 @@ void AnimResetObjectOrdering(HANIM__ *anim) {
 }
 
 void AnimSetSequenceOrderingDefault(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   BYTE i;
@@ -476,7 +476,7 @@ void AnimSetSequenceOrderingDefault(HANIM anim) {
   }
 
   ASSERT(shared->seqOrder.Count() < 0xfe);
-  unique->seqMapIndex = static_cast<BYTE>(shared->seqOrder.Count());
+  unique->seqMapIndex = shared->seqOrder.Count();
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->order.SetCount(shared->seq.Count());
@@ -492,10 +492,10 @@ void AnimSetSequenceOrdering(HANIM anim, LPCSTR *sequenceNames, UINT numSequence
     return;
   }
 
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(sequenceNames);
 
@@ -511,7 +511,7 @@ void AnimSetSequenceOrdering(HANIM anim, LPCSTR *sequenceNames, UINT numSequence
   HashNameList(sequenceNames, numSequences, &seqNameHashTable);
 
   ASSERT(shared->seqOrder.Count() < 0xfe);
-  unique->seqMapIndex = static_cast<BYTE>(shared->seqOrder.Count());
+  unique->seqMapIndex = shared->seqOrder.Count();
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->order.SetCount(numSequences);
@@ -527,10 +527,10 @@ void AnimSetCameraOrdering(HANIM anim, LPCSTR *cameraNames, UINT numCameras, TSF
     return;
   }
 
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(cameraNames);
 
@@ -545,10 +545,10 @@ void AnimSetCameraOrdering(HANIM anim, LPCSTR *cameraNames, UINT numCameras, TSF
 }
 
 void AnimResetCameraOrdering(HANIM anim, TSFixedArray<UINT> *cameraOrder) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   UINT numCameras = shared->cameraObjs.Count();
@@ -559,19 +559,19 @@ void AnimResetCameraOrdering(HANIM anim, TSFixedArray<UINT> *cameraOrder) {
 }
 
 UINT AnimGetFlags(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   return shared->flags;
 }
 
 UINT AnimGetTotalKeys(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   UINT totalKeys = 0;
@@ -613,21 +613,21 @@ UINT AnimGetTotalKeys(HANIM anim) {
 }
 
 UINT AnimGetAttachmentObjId(HANIM__ *anim, UINT index) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(index < shared->modelObjs.Count());
   return index < shared->modelObjs.Count() ? shared->modelObjs[index].animObjId : 0;
 }
 
 BOOL AnimIsAttachmentEnabled(HANIM anim, UINT index) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
   ASSERT(index < unique->modelStatus.Count());
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   UINT geosetId = shared->modelObjs[index].geosetId;
@@ -640,7 +640,7 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, UINT index) {
 }
 
 int AnimIsCameraEnabled(HANIM anim, UINT index) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
   ASSERT(index < unique->cameraStatus.Count());
@@ -649,7 +649,7 @@ int AnimIsCameraEnabled(HANIM anim, UINT index) {
 }
 
 void AnimSetSeqFinishedHandler(HANIM anim, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
   unique->anySeqFinished.callback = callback;
@@ -657,10 +657,10 @@ void AnimSetSeqFinishedHandler(HANIM anim, ANIMSEQFINISHEDHANDLER callback, LPVO
 }
 
 void AnimSetSeqFinishedHandler(HANIM anim, UINT sequence, ANIMSEQFINISHEDHANDLER callback, LPVOID param) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   BYTE primary = shared->seqOrder[unique->seqMapIndex].order[sequence].primary;
@@ -679,11 +679,11 @@ void AnimSetSeqFinishedHandler(HANIM anim, UINT sequence, ANIMSEQFINISHEDHANDLER
 }
 
 BOOL AnimGetPrimarySequence(HANIM anim, UINT *sequence) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (!shared->seq.Count()) {
@@ -695,14 +695,14 @@ BOOL AnimGetPrimarySequence(HANIM anim, UINT *sequence) {
 }
 
 float AnimGetPrimarySequenceCompletion(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
   if (!unique->seq.Count()) {
     return 0.0f;
   }
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   CAnimSequence &sequence = shared->seq[unique->primarySeq];
   CSeqInfo      &seqInfo = unique->seq[unique->primarySeq];
@@ -711,7 +711,7 @@ float AnimGetPrimarySequenceCompletion(HANIM anim) {
     return 0.0f;
   }
 
-  float completion = static_cast<float>(static_cast<UINT>(seqInfo.elapsed - sequence.time.l)) / duration;
+  float completion = (float)((UINT)(seqInfo.elapsed - sequence.time.l)) / duration;
   if (completion < 0.0f) {
     return 0.0f;
   }
@@ -722,11 +722,11 @@ float AnimGetPrimarySequenceCompletion(HANIM anim) {
 }
 
 BOOL AnimNeedsSequenceBounds(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   if (((shared->flags & 8) && shared->seq.Count() > 1) || ((shared->flags & 2) && shared->seq.Count() > 1)) {
@@ -737,7 +737,7 @@ BOOL AnimNeedsSequenceBounds(HANIM anim) {
 }
 
 void AnimSetEventCallback(HANIM anim, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
   unique->appEvent.callback = callback;
@@ -776,14 +776,14 @@ int AnimRemoveObjectFaceDir(HANIM anim, UINT objectId) {
 }
 
 int AnimUsesBlending(HANIM anim) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
 
   ASSERT(unique);
   return unique->flags & 0x10;
 }
 
 void AnimEnableBlending(HANIM anim, int enable) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
   if (enable) {
@@ -797,9 +797,9 @@ void AnimEnableBlending(HANIM anim, int enable) {
 }
 
 BOOL AnimMarkFootstepSequence(HANIM anim, UINT index) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
 
   index = shared->seqOrder[unique->seqMapIndex].order[index].primary;
@@ -812,14 +812,14 @@ BOOL AnimMarkFootstepSequence(HANIM anim, UINT index) {
 }
 
 BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
   ASSERT(objectId < shared->obj.Count());
@@ -833,26 +833,26 @@ BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
 }
 
 BOOL AnimHasObjectId(HANIM anim, UINT objectId) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
-  return shared->objectOrder[objectId] != static_cast<UINT>(-1);
+  return shared->objectOrder[objectId] != (UINT)-1;
 }
 
 BOOL AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
 
@@ -862,20 +862,20 @@ BOOL AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
   CAnimObjStatus *status = unique->status[objectId];
   ASSERT(status);
 
-  CAnimEventObj *eventObject = static_cast<CAnimEventObj *>(currobj);
+  CAnimEventObj *eventObject = (CAnimEventObj *)currobj;
   return eventObject->events.NumKeysThisSeqSafe(status->base.currSeq) > 0;
 }
 
 BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempest::C3Vector> &positions, NTempest::C3Vector *position) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
 
@@ -887,19 +887,19 @@ BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempes
 }
 
 BOOL AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *position) {
-  CAnim *unique = reinterpret_cast<CAnim *>(anim);
+  CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   ASSERT(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
-  if (objectId == static_cast<UINT>(-1)) {
+  if (objectId == (UINT)-1) {
     return 0;
   }
 
   ASSERT(shared->obj[objectId]->type == OBJ_TYPE_EVENT);
-  *position = static_cast<CAnimEventObjStatus *>(unique->status[objectId])->position;
+  *position = ((CAnimEventObjStatus *)unique->status[objectId])->position;
   return 1;
 }

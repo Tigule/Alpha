@@ -45,27 +45,27 @@ inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<T> *keyTrack, LPCSTR
   for (;;) {
     UINT token = parse.Token(tokentext, value);
     switch (token) {
-      case 0x140:
+      case MDLTOK_DONTINTERP:
         if (keyTrack) {
           keyTrack->type = TRACK_NO_INTERP;
         }
         break;
-      case 0x167:
+      case MDLTOK_LINEAR:
         if (keyTrack) {
           keyTrack->type = TRACK_LINEAR;
         }
         break;
-      case 0x15B:
+      case MDLTOK_HERMITE:
         if (keyTrack) {
           keyTrack->type = TRACK_HERMITE;
         }
         break;
-      case 0x128:
+      case MDLTOK_BEZIER:
         if (keyTrack) {
           keyTrack->type = TRACK_BEZIER;
         }
         break;
-      case 0x152:
+      case MDLTOK_GLOBALSEQID:
         if (keyTrack) {
           keyTrack->globalSeqId = parse.ExpectInt();
         } else {
@@ -92,19 +92,19 @@ inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<T> *keyframes) {
   parse.Expect('{', savedtoken, tokentext);
   savedtoken = ReadFloatTrackHeader(parse, keyframes, &tokentext, &value);
   int noTangents = keyframes->type <= TRACK_LINEAR;
-  while (savedtoken == 0x100) {
+  while (savedtoken == MDLTOK_LONG) {
     MDLKEYFRAME<T> *key = keyframes->keys.New();
     key->time = value.lVal;
     parse.Expect(':');
-    ReadFloatKeyData(parse, reinterpret_cast<float *>(&key->value), sizeof(T) / sizeof(float));
+    ReadFloatKeyData(parse, (float *)&key->value, sizeof(T) / sizeof(float));
     parse.Expect(',');
     ++actual;
     if (!noTangents) {
-      parse.Expect(0x15E);
-      ReadFloatKeyData(parse, reinterpret_cast<float *>(&key->inTan), sizeof(T) / sizeof(float));
+      parse.Expect(MDLTOK_INTAN);
+      ReadFloatKeyData(parse, (float *)&key->inTan, sizeof(T) / sizeof(float));
       parse.Expect(',');
-      parse.Expect(0x18A);
-      ReadFloatKeyData(parse, reinterpret_cast<float *>(&key->outTan), sizeof(T) / sizeof(float));
+      parse.Expect(MDLTOK_OUTTAN);
+      ReadFloatKeyData(parse, (float *)&key->outTan, sizeof(T) / sizeof(float));
       parse.Expect(',');
     }
     savedtoken = parse.Token(&tokentext, &value);
@@ -119,20 +119,20 @@ template <class T>
 inline void WriteTrackHeader(LPCSTR indent, const MDLKEYTRACK<T> &keyframes, TSGrowableArray<char> &buffer) {
   switch (keyframes.type) {
     case TRACK_NO_INTERP:
-      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x140));
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(MDLTOK_DONTINTERP));
       break;
     case TRACK_LINEAR:
-      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x167));
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(MDLTOK_LINEAR));
       break;
     case TRACK_HERMITE:
-      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x15B));
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(MDLTOK_HERMITE));
       break;
     case TRACK_BEZIER:
-      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(0x128));
+      MDL::WriteLine(buffer, "%s\t%s,\n", indent, MDL::TokenText(MDLTOK_BEZIER));
       break;
   }
-  if (keyframes.globalSeqId != static_cast<UINT>(-1)) {
-    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(0x152), keyframes.globalSeqId);
+  if (keyframes.globalSeqId != (UINT)-1) {
+    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(MDLTOK_GLOBALSEQID), keyframes.globalSeqId);
   }
 }
 
@@ -148,11 +148,11 @@ inline void WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<T> 
   int                   noTangents = keyframes.type <= TRACK_LINEAR;
   for (UINT i = numKeys; i; --i, ++key) {
     MDL::WriteLine(buffer, "%s\t%d: ", indent, key->time);
-    const float *data = WriteKeyData(buffer, reinterpret_cast<const float *>(&key->value), sizeof(T) / sizeof(float));
+    const float *data = WriteKeyData(buffer, (const float *)&key->value, sizeof(T) / sizeof(float));
     if (!noTangents) {
-      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
+      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_INTAN));
       data = WriteKeyData(buffer, data, sizeof(T) / sizeof(float));
-      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
+      MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_OUTTAN));
       data = WriteKeyData(buffer, data, sizeof(T) / sizeof(float));
     }
   }
@@ -176,7 +176,7 @@ inline void WriteBinFloatKeyFrames(const MDLKEYTRACK<T> &keyframes, DWORD magicP
   const MDLKEYFRAME<T> *key = keyframes.keys.Ptr();
   for (UINT i = numKeys; i; --i, ++key) {
     buf.AddInt(key->time);
-    buf.AddFloatArray(reinterpret_cast<const float *>(&key->value), elements);
+    buf.AddFloatArray((const float *)&key->value, elements);
   }
 }
 
@@ -190,7 +190,7 @@ inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UIN
   if (!numKeys) {
     return 0;
   }
-  keyframes.type = static_cast<MDLTRACKTYPE>(buf.GetUint());
+  keyframes.type = (MDLTRACKTYPE)buf.GetUint();
   totalRead += sizeof(UINT);
   keyframes.globalSeqId = buf.GetUint();
   totalRead += sizeof(UINT);
@@ -202,13 +202,13 @@ inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UIN
     keySize = sizeof(int) + 3 * sizeof(T);
     elements = 3 * sizeof(T) / sizeof(float);
   }
-  if (static_cast<int>(keySize * numKeys) > buf.Bytes()) {
+  if ((int)(keySize * numKeys) > buf.Bytes()) {
     return 0;
   }
   for (UINT i = numKeys; i; --i, ++key) {
     key->time = buf.GetInt();
     totalRead += sizeof(int);
-    buf.GetFloatArray(reinterpret_cast<float *>(&key->value), elements);
+    buf.GetFloatArray((float *)&key->value, elements);
     totalRead += elements * sizeof(float);
   }
   return 1;
@@ -229,7 +229,7 @@ inline int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuf
   totalRead += sizeof(UINT);
   keyframes.keys.SetCount(numKeys);
   MDLINTKEY *key = keyframes.keys.Ptr();
-  if (static_cast<int>(numKeys * sizeof(MDLINTKEY)) > buf.Bytes()) {
+  if ((int)(numKeys * sizeof(MDLINTKEY)) > buf.Bytes()) {
     return 0;
   }
   for (UINT i = numKeys; i; --i, ++key) {

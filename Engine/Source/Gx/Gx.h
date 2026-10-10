@@ -106,9 +106,10 @@ enum {
   Gx_MaxLights = 8,
   Gx_MinTexWidth = 8,
   Gx_MinTexHeight = 8,
-  Gx_MaxVertices = 0x4000,
   Gx_MaxIndices = 0xC000
 };
+
+const UINT Gx_MaxVertices = 0x4000;
 
 struct CGxBufOp {
   EGxBufOp op;
@@ -672,7 +673,7 @@ class CGxCaps {
   int                     m_texFmtDxt;
   UINT                    m_maxIndex;
   int                     m_generateMipMaps;
-  int                     m_rttFormat[8];
+  int                     m_rttFormat[GxTexFormats_Last];
   int                     m_rttOriginUpperLeft;
   CGxPixelShader::Target  m_pixelShaderTarget;
   CGxVertexShader::Target m_vertexShaderTarget;

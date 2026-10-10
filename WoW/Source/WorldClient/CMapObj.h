@@ -5,7 +5,6 @@
 #include "Gx/Gx.h"
 #include "MapDefs.h"
 #include "WorldClient/World.h"
-#include "WorldClient/Map.h"
 
 #include "Tempest/c2ivector.h"
 #include "Tempest/c2vector.h"
@@ -191,8 +190,11 @@ struct SMOGxBatch {
   WORD batchCount;
 };
 
-struct SMOGroupHeader {
-  SIffChunk        iffChunk;
+struct SMOGroup {
+  enum {
+    NUM_FOGS = 4
+  };
+
   UINT             nameOffset;
   UINT             descriptiveNameOffset;
   UINT             flags;
@@ -200,7 +202,7 @@ struct SMOGroupHeader {
   UINT             pad0;
   WORD             portalStart;
   WORD             portalCount;
-  BYTE             fogIds[4];
+  BYTE             fogIds[NUM_FOGS];
   UINT             groupLiquid;
   SMOGxBatch       intBatch[4];
   SMOGxBatch       extBatch[4];
@@ -296,7 +298,7 @@ class CMapObjGroup {
   NTempest::CAaBox     aaBox;
   UINT                 portalStart;
   UINT                 portalCount;
-  BYTE                 fogIds[4];
+  BYTE                 fogIds[SMOGroup::NUM_FOGS];
   UINT                 groupLiquid;
   SMOGxBatch           intBatch[4];
   SMOGxBatch           extBatch[4];
@@ -436,7 +438,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
  private:
   friend class CMap;
   friend class CMapObjGroup;
-  friend class CMapEntity;
+  friend struct CMapEntity;
 
   static TSHashTable<CMapObj, HASHKEY_NONE> mapObjHash;
   static HASHKEY_NONE                       nullHashKey;
@@ -629,14 +631,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
  private:
   BOOL        Read(LPCSTR fileName);
   void        CreateData();
-  void        AllocGroups() {
-    FATALASSERT(groupPtrList.Count() == 0);
-    groupPtrList.SetCount(groupCount);
-    for (UINT n = 0; n < groupCount; ++n) {
-      groupPtrList[n] = CMap::AllocMapObjGroup();
-      FATALASSERT(groupPtrList[n]);
-    }
-  }
+  void        AllocGroups();
   void        CreateAllGroups();
   void        ReadExtGroups();
   void        CreateDataPointers();

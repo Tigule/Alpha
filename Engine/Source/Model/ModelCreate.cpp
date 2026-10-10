@@ -16,6 +16,24 @@
 #include <malloc.h>
 #include <stdarg.h>
 
+namespace NTempest {
+
+  inline void CAaBox::Set(const C3Vector &value) {
+    b = value;
+    t = value;
+  }
+
+  inline CAaBox CAaBox::Union(const CAaBox &a, const CAaBox &b) {
+    return CAaBox(C3Vector::Min(a.b, b.b), C3Vector::Max(a.t, b.t));
+  }
+
+  inline CAaBox CAaBox::Unite(const CAaBox &value) {
+    *this = Union(*this, value);
+    return *this;
+  }
+
+}
+
 using namespace NTempest;
 
 LPCSTR CHandleObject::GetObjectName() {
@@ -188,8 +206,8 @@ static HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *
 static BOOL ModelIsUsed(HMODEL model) {
   CModelShared *shared;
 
-  IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
-  return reinterpret_cast<CModel *>(model)->GetRefCount() > 1 || reinterpret_cast<CHandleObject *>(shared)->GetRefCount() > 1;
+  IModelDerefHandle((CModel *)model, &shared);
+  return ((CModel *)model)->GetRefCount() > 1 || shared->GetRefCount() > 1;
 }
 
 static void ProcessAnimReorders(CModelBase *modelptr, CModelCreate *data) {
@@ -201,7 +219,7 @@ static void ProcessAnimReorders(CModelBase *modelptr, CModelCreate *data) {
   }
 
   if ((modelptr->m_flags & 0x20) && (data->flags & 0x40)) {
-    CModelComplex *complex = reinterpret_cast<CModelComplex *>(modelptr);
+    CModelComplex *complex = (CModelComplex *)modelptr;
     AnimSetCameraOrdering(modelptr->m_anim, data->cameraNames, data->numCameras, &complex->m_cameraOrder);
   }
 
@@ -232,7 +250,7 @@ static HMODEL GetModel(LPCSTR modelFName, CModelCreate *data) {
 
   HMODEL      duplicate = ModelDuplicate(entry->model, 0);
   CModelBase *modelptr;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(duplicate), &modelptr) && modelptr->m_anim) {
+  if (IModelDerefHandle((CModel *)duplicate, &modelptr) && modelptr->m_anim) {
     ProcessAnimReorders(modelptr, data);
   }
   return duplicate;
@@ -291,17 +309,17 @@ static void MdxReadNumMatrices(BYTE *data, UINT fileBytes, UINT flags, CModelSha
     return;
   }
 
-  shared->numBones = *reinterpret_cast<UINT *>(section + 4);
+  shared->numBones = *(UINT *)(section + 4);
   if (flags & 0x20) {
     section = MDLFileBinarySeek(data, fileBytes, 'TSTH');
     if (section) {
-      shared->numBones += *reinterpret_cast<UINT *>(section + 4);
+      shared->numBones += *(UINT *)(section + 4);
     }
   }
 
   section = MDLFileBinarySeek(data, fileBytes, 'NAXT');
   if (section) {
-    shared->numTexBones = *reinterpret_cast<UINT *>(section + 4);
+    shared->numTexBones = *(UINT *)(section + 4);
   }
 }
 
@@ -365,16 +383,16 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
     return;
   }
 
-  dataDone = data + 4 + *reinterpret_cast<UINT *>(data);
-  numShapes = *reinterpret_cast<UINT *>(data + 4);
+  dataDone = data + 4 + *(UINT *)data;
+  numShapes = *(UINT *)(data + 4);
   data += 8;
 
   shared->hitTest.SetCount(numShapes);
   modelptr->m_hitTestMtx.SetCount(numShapes);
 
   for (i = 0; i < numShapes; ++i) {
-    shapeDone = data + *reinterpret_cast<UINT *>(data);
-    data += *reinterpret_cast<UINT *>(data + 4) + 4;
+    shapeDone = data + *(UINT *)data;
+    data += *(UINT *)(data + 4) + 4;
 
     switch (*data++) {
       case COLLIDE_BOX:
@@ -385,28 +403,28 @@ static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelp
 
       case COLLIDE_CYLINDER:
         shared->hitTest[i].type = COLLIDE_CYLINDER;
-        shared->hitTest[i].extent[0] = *reinterpret_cast<NTempest::C3Vector *>(data);
+        shared->hitTest[i].extent[0] = *(NTempest::C3Vector *)data;
         data += sizeof(NTempest::C3Vector);
         shared->hitTest[i].extent[1] = shared->hitTest[i].extent[0];
-        shared->hitTest[i].extent[1].z += *reinterpret_cast<float *>(data);
+        shared->hitTest[i].extent[1].z += *(float *)data;
         data += sizeof(float);
-        shared->hitTest[i].radius = *reinterpret_cast<float *>(data);
+        shared->hitTest[i].radius = *(float *)data;
         data += sizeof(float);
         break;
 
       case COLLIDE_SPHERE:
         shared->hitTest[i].type = COLLIDE_SPHERE;
-        shared->hitTest[i].extent[0] = *reinterpret_cast<NTempest::C3Vector *>(data);
+        shared->hitTest[i].extent[0] = *(NTempest::C3Vector *)data;
         data += sizeof(NTempest::C3Vector);
-        shared->hitTest[i].radius = *reinterpret_cast<float *>(data);
+        shared->hitTest[i].radius = *(float *)data;
         data += sizeof(float);
         break;
 
       case COLLIDE_PLANE:
         shared->hitTest[i].type = COLLIDE_PLANE;
-        shared->hitTest[i].extent[0].x = *reinterpret_cast<float *>(data);
+        shared->hitTest[i].extent[0].x = *(float *)data;
         data += sizeof(float);
-        shared->hitTest[i].extent[0].y = *reinterpret_cast<float *>(data);
+        shared->hitTest[i].extent[0].y = *(float *)data;
         data += sizeof(float);
         break;
     }
@@ -474,14 +492,9 @@ static void ComputeBoundingRadius(const CGeosetShared *geosets, UINT numGeosets,
 }
 
 static void ComputeBoundingBox(const CGeosetShared *geosets, UINT numGeosets, NTempest::CAaBox *extent) {
-  *extent = NTempest::CAaBox::Bounding(geosets[0].position.Ptr(), geosets[0].position.Count());
-
-  while (numGeosets) {
-    NTempest::CAaBox geosetExtent = NTempest::CAaBox::Bounding(geosets->position.Ptr(), geosets->position.Count());
-    extent->b = NTempest::C3Vector::Min(extent->b, geosetExtent.b);
-    extent->t = NTempest::C3Vector::Max(extent->t, geosetExtent.t);
-    ++geosets;
-    --numGeosets;
+  extent->Set(geosets[0].position[0]);
+  for (UINT i = 0; i < numGeosets; ++i) {
+    extent->Unite(NTempest::CAaBox::Bounding(geosets[i].position.Ptr(), geosets[i].position.Count()));
   }
 }
 
@@ -517,12 +530,12 @@ static BOOL MdlReadLoadExtents(const MDLDATA &data, CModelBase *modelptr, CModel
 }
 
 static BYTE *LoadBoundsData(BYTE *data, CBoundsData *bounds) {
-  bounds->sphere.r = *reinterpret_cast<float *>(data);
+  bounds->sphere.r = *(float *)data;
   data += sizeof(float);
 
-  bounds->extent.b = *reinterpret_cast<NTempest::C3Vector *>(data);
+  bounds->extent.b = *(NTempest::C3Vector *)data;
   data += sizeof(NTempest::C3Vector);
-  bounds->extent.t = *reinterpret_cast<NTempest::C3Vector *>(data);
+  bounds->extent.t = *(NTempest::C3Vector *)data;
   data += sizeof(NTempest::C3Vector);
 
   bounds->sphere.c = (bounds->extent.b + bounds->extent.t) * 0.5f;
@@ -543,7 +556,7 @@ static void MdxReadExtents(BYTE *data, UINT fileBytes, CModelBase *modelptr, CMo
   }
 
   globalData += 4;
-  UINT numSequences = *reinterpret_cast<UINT *>(globalData);
+  UINT numSequences = *(UINT *)globalData;
   globalData += 4;
   if (!numSequences) {
     return;
@@ -582,7 +595,7 @@ static BOOL MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *
   UINT i;
   for (i = 0; i < numPivots; ++i) {
     UINT index = idConversion[i];
-    if (index != static_cast<UINT>(-1)) {
+    if (index != (UINT)-1) {
       shared->positions[index] = data.pivotPoints[i];
     }
   }
@@ -600,7 +613,7 @@ static void MdxReadPositions(BYTE *fileData, UINT fileBytes, UINT flags, CModelS
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  UINT sectionBytes = *(UINT *)data;
   data += 4;
   UINT numPivots = sectionBytes / (sizeof(float) * C3Vector::eComponents);
   ASSERT(sectionBytes == (numPivots * sizeof(float) * C3Vector::eComponents));
@@ -623,8 +636,8 @@ static void MdxReadPositions(BYTE *fileData, UINT fileBytes, UINT flags, CModelS
   UINT i;
   for (i = 0; i < numPivots; ++i) {
     UINT index = idConversion[i];
-    if (index != static_cast<UINT>(-1)) {
-      shared->positions[index] = reinterpret_cast<C3Vector *>(data)[i];
+    if (index != (UINT)-1) {
+      shared->positions[index] = ((C3Vector *)data)[i];
     }
   }
 
@@ -651,7 +664,7 @@ static BOOL IsSimpleModel(const MDLDATA &source) {
 
 static UINT GetSectionCount(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, sectionTag);
-  return section ? *reinterpret_cast<UINT *>(section + 4) : 0;
+  return section ? *(UINT *)(section + 4) : 0;
 }
 
 static UINT GetTextureCount(BYTE *fileData, UINT fileBytes) {
@@ -659,7 +672,7 @@ static UINT GetTextureCount(BYTE *fileData, UINT fileBytes) {
   if (!section) {
     return 0;
   }
-  return *reinterpret_cast<UINT *>(section) / 0x10C;
+  return *(UINT *)section / 0x10C;
 }
 
 static BOOL IsSimpleModel(BYTE *fileData, UINT fileBytes) {
@@ -698,11 +711,11 @@ static void BuildSimpleModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelSi
 static void BuildModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelBase *baseModel, CModelShared *shared, UINT flags, CStatus *status) {
   MdxLoadGlobalProperties(fileData, fileBytes, &flags, shared);
   if (!(baseModel->m_flags & 0x20)) {
-    BuildSimpleModelFromMdxData(fileData, fileBytes, static_cast<CModelSimple *>(baseModel), shared, flags, status);
+    BuildSimpleModelFromMdxData(fileData, fileBytes, (CModelSimple *)baseModel, shared, flags, status);
     return;
   }
 
-  CModelComplex *modelptr = static_cast<CModelComplex *>(baseModel);
+  CModelComplex *modelptr = (CModelComplex *)baseModel;
   MdxReadTextures(fileData, fileBytes, flags, modelptr, status);
   MdxReadMaterials(fileData, fileBytes, flags, modelptr, shared);
   MdxReadGeosets(fileData, fileBytes, flags, modelptr, shared);
@@ -749,10 +762,10 @@ static BOOL BuildSimpleModelFromMdlData(const MDLDATA &source, CModelSimple *mod
 static int BuildModelFromMdlData(const MDLDATA &source, CModelBase *baseModel, CModelShared *shared, UINT flags, CStatus *status) {
   MdlReadLoadGlobalProperties(source, shared, &flags);
   if (!(baseModel->m_flags & 0x20)) {
-    return BuildSimpleModelFromMdlData(source, static_cast<CModelSimple *>(baseModel), shared, flags, status);
+    return BuildSimpleModelFromMdlData(source, (CModelSimple *)baseModel, shared, flags, status);
   }
 
-  CModelComplex *modelptr = static_cast<CModelComplex *>(baseModel);
+  CModelComplex *modelptr = (CModelComplex *)baseModel;
   if (!MdlReadLoadModel(source, modelptr, shared, flags, status)) {
     return 0;
   }
@@ -782,7 +795,7 @@ HMATERIAL BuildSimpleMaterial(CModelTexture *texData, UINT textureId, HTEXTURE t
   CTexLayer *layer = unique->layers.New();
   ASSERT(layer);
 
-  texData->handle = static_cast<HTEXTURE>(HandleDuplicate(texture));
+  texData->handle = (HTEXTURE)HandleDuplicate(texture);
   texData->replaceableId = replaceableId;
 
   layer->tmuPass[0].textureId = textureId;
@@ -812,7 +825,7 @@ HMATERIAL BuildSimpleMaterial(CModelTexture *texData, UINT textureId, HTEXTURE t
   CTexLayerShared *sharedLayer = shared->layers.New();
   ASSERT(sharedLayer);
   sharedLayer->blendMode = blendMode;
-  sharedLayer->tmuPass[0].transformId = static_cast<UINT>(-1);
+  sharedLayer->tmuPass[0].transformId = -1;
   sharedLayer->tmuPass[0].coordId = 0;
 
   unique->data = CREATEHANDLE(HMATERIALSHARED, shared);
@@ -854,7 +867,7 @@ static HMODEL CreateDefaultModel(LPCSTR fileName, UINT modelLoadFlags, CStatus *
   HMODEL           model = CreateModelBoundingBox(bounds, texture, GxBlend_Opaque);
 
   CModelShared *shared;
-  IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
+  IModelDerefHandle((CModel *)model, &shared);
   ASSERT(shared);
   shared->collision = CollisionDataCreate(bounds);
   HashNewModel(fileName, model, 0, status);
@@ -922,7 +935,7 @@ BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status) {
       break;
     }
 
-    if (static_cast<long>(currentTime - modelHash->timeStamp) < 30000L) {
+    if ((long)(currentTime - modelHash->timeStamp) < 30000L) {
       break;
     }
 
@@ -1041,15 +1054,15 @@ static void AsyncModelHandler() {
 }
 
 static void AsnycModelPostLoadCallback(LPVOID userArg) {
-  CModel *model = static_cast<CModel *>(userArg);
+  CModel *model = (CModel *)userArg;
 
   ASSERT(model);
   ASSERT(model->state == CMODEL_ASYNC_WAIT);
-  CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelShared *shared = (CModelShared *)model->shared;
   ASSERT(shared);
 
   CStatus status;
-  BYTE   *fileData = static_cast<BYTE *>(model->asyncObject->buffer);
+  BYTE   *fileData = (BYTE *)model->asyncObject->buffer;
   ASSERT(*((ULONG *) (fileData)) == 'XLDM');
   fileData += 4;
   UINT fileBytes = model->asyncObject->size - 4;
@@ -1181,7 +1194,7 @@ HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
   VALIDATEEND;
   ASSERT(source.header.sourceFilename[0]);
 
-  OsOutputDebugString("Model: (INFO) : Loading \"%s\"\n", static_cast<LPCSTR>(source.header.sourceFilename));
+  OsOutputDebugString("Model: (INFO) : Loading \"%s\"\n", (LPCSTR)source.header.sourceFilename);
 
   UINT createFlags = data ? data->flags : 0;
   if (MdlReadValidate(source, status)) {
@@ -1263,8 +1276,8 @@ HMODEL ModelCreateSimpleMesh(
   CModel *model = IModelCreateSimpleEmpty(name);
   ASSERT(model);
 
-  CModelSimple *modelptr = static_cast<CModelSimple *>(model->data);
-  CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelSimple *modelptr = (CModelSimple *)model->data;
+  CModelShared *shared = (CModelShared *)model->shared;
 
   HMATERIAL material = BuildSimpleMaterial(&modelptr->m_textures[0], 0, texture, blendMode, disables, replaceableId);
   modelptr->m_materials[0] = material;
@@ -1293,11 +1306,11 @@ BOOL ModelGeosetAdd(
 ) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared) || !(modelptr->m_flags & 0x20)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared) || !(modelptr->m_flags & 0x20)) {
     return 0;
   }
 
-  CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
+  CModelComplex *complex = (CModelComplex *)modelptr;
   UINT           materialId = complex->m_materials.Count();
 
   HMATERIAL material = BuildSimpleMaterial(complex->m_textures.New(), complex->m_textures.Count(), texture, blendMode, disables, replaceableId);
@@ -1319,7 +1332,7 @@ HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags) {
     return 0;
   }
 
-  CModel *source = reinterpret_cast<CModel *>(sourceModel);
+  CModel *source = (CModel *)sourceModel;
   if (source->state == CMODEL_LOADED && (flags & 1)) {
     source->data->m_flags |= 4;
   }
@@ -1360,42 +1373,51 @@ void EnqueueModelCommand(CModel *model, EModelModQ command, ...) {
   paramData = modItem->paramData;
   va_start(arguments, command);
 
-  for (i = 0; i < 4; ++i) {
+  for (i = 0; i < sizeof(s_modelParamTypes[0]) / sizeof(s_modelParamTypes[0][0]); ++i) {
+    if (s_modelParamTypes[command][i] == MPARAM_NONE) {
+      break;
+    }
+
     switch (s_modelParamTypes[command][i]) {
       case MPARAM_UINT:
-      case MPARAM_PTR:
-        *reinterpret_cast<UINT *>(paramData) = va_arg(arguments, UINT);
+        *(UINT *)paramData = va_arg(arguments, UINT);
         paramData += sizeof(UINT);
         break;
 
       case MPARAM_HANDLE:
-        *reinterpret_cast<HOBJECT *>(paramData) = HandleDuplicate(va_arg(arguments, HOBJECT));
+        *(HOBJECT *)paramData = HandleDuplicate(va_arg(arguments, HOBJECT));
         paramData += sizeof(HOBJECT);
         break;
 
       case MPARAM_FLOAT:
-        *reinterpret_cast<float *>(paramData) = static_cast<float>(va_arg(arguments, double));
+        *(float *)paramData = va_arg(arguments, double);
         paramData += sizeof(float);
         break;
 
       case MPARAM_C3VECTOR:
-        *reinterpret_cast<NTempest::C3Vector *>(paramData) = va_arg(arguments, NTempest::C3Vector);
+        *(NTempest::C3Vector *)paramData = va_arg(arguments, NTempest::C3Vector);
         paramData += sizeof(NTempest::C3Vector);
         break;
 
       case MPARAM_BOOL:
-      case MPARAM_BYTE:
-        *paramData++ = static_cast<BYTE>(va_arg(arguments, int));
+        *paramData = va_arg(arguments, int);
+        ++paramData;
         break;
 
       case MPARAM_CARGB:
-        *reinterpret_cast<DWORD *>(paramData) = va_arg(arguments, DWORD);
+        *(DWORD *)paramData = va_arg(arguments, DWORD);
         paramData += sizeof(DWORD);
         break;
 
-      case MPARAM_NONE:
-        va_end(arguments);
-        return;
+      case MPARAM_PTR:
+        *(LPVOID *)paramData = va_arg(arguments, LPVOID);
+        paramData += sizeof(LPVOID);
+        break;
+
+      case MPARAM_BYTE:
+        *paramData = va_arg(arguments, int);
+        ++paramData;
+        break;
     }
   }
 
@@ -1403,32 +1425,29 @@ void EnqueueModelCommand(CModel *model, EModelModQ command, ...) {
 }
 
 void ExecuteQueuedActions(CModel *model) {
-  CModelModItem *item = model->modelModQueue.Head();
-  HMODEL         modelHandle = 0;
+  HMODEL modelHandle = 0;
 
-  while (item) {
-    CModelModItem *next = model->modelModQueue.Next(item);
+  SAFEITERATELIST(CModelModItem, model->modelModQueue, item) {
     if (!modelHandle) {
       modelHandle = CREATEHANDLE(HMODEL, model);
     }
 
     item->Unlink();
-    BYTE *param = item->paramData;
 
     switch (item->action) {
       case MODEL_ADD_LINK: {
-        HMODEL child = *reinterpret_cast<HMODEL *>(param + 4);
-        ModelAddLink(modelHandle, *reinterpret_cast<UINT *>(param), child, *reinterpret_cast<float *>(param + 8));
+        HMODEL child = *(HMODEL *)(item->paramData + 4);
+        ModelAddLink(modelHandle, *(UINT *)item->paramData, child, *(float *)(item->paramData + 8));
         HandleClose(child);
         break;
       }
 
       case MODEL_APPLY_OBJECT_FACE_DIR:
-        ModelApplyObjectFaceDir(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<NTempest::C3Vector *>(param + 4));
+        ModelApplyObjectFaceDir(modelHandle, *(UINT *)item->paramData, *(NTempest::C3Vector *)(item->paramData + 4));
         break;
 
       case MODEL_APPLY_OBJECT_LOOK_AT:
-        ModelApplyObjectLookAt(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<NTempest::C3Vector *>(param + 4));
+        ModelApplyObjectLookAt(modelHandle, *(UINT *)item->paramData, *(NTempest::C3Vector *)(item->paramData + 4));
         break;
 
       case MODEL_CLEAR_ALL_LINKS:
@@ -1436,20 +1455,20 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_CLEAR_LINK:
-        ModelClearLink(modelHandle, *reinterpret_cast<UINT *>(param));
+        ModelClearLink(modelHandle, *(UINT *)item->paramData);
         break;
 
       case MODEL_ENABLE_ANIM_BLENDING:
-        ModelEnableAnimBlending(modelHandle, param[0]);
+        ModelEnableAnimBlending(modelHandle, item->paramData[0]);
         break;
 
       case MODEL_ENABLE_FULL_ALPHA:
-        ModelEnableFullAlpha(modelHandle, param[0]);
+        ModelEnableFullAlpha(modelHandle, item->paramData[0]);
         break;
 
       case MODEL_FINISH_DUPLICATION: {
-        HMODEL  duplicate = *reinterpret_cast<HMODEL *>(param);
-        CModel *destination = reinterpret_cast<CModel *>(duplicate);
+        HMODEL  duplicate = *(HMODEL *)item->paramData;
+        CModel *destination = (CModel *)duplicate;
         HMODEL  sourceHandle = destination->dupSource;
         destination->FinishDuplication(*model);
         HandleClose(duplicate);
@@ -1458,11 +1477,11 @@ void ExecuteQueuedActions(CModel *model) {
       }
 
       case MODEL_FORCE_CURRENT_SEQUENCE_TIME:
-        ModelForceCurrentSequenceTime(modelHandle, *reinterpret_cast<int *>(param), param[4]);
+        ModelForceCurrentSequenceTime(modelHandle, *(int *)item->paramData, item->paramData[4]);
         break;
 
       case MODEL_FORCE_SEQUENCE_TIME:
-        ModelForceSequenceTime(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<int *>(param + 4), param[8]);
+        ModelForceSequenceTime(modelHandle, *(UINT *)item->paramData, *(int *)(item->paramData + 4), item->paramData[8]);
         break;
 
       case MODEL_HIDE_BOUNDS:
@@ -1470,23 +1489,23 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_HIDE_GEOSETS:
-        ModelHideGeosets(modelHandle, *reinterpret_cast<UINT *>(param), param[4]);
+        ModelHideGeosets(modelHandle, *(UINT *)item->paramData, item->paramData[4]);
         break;
 
       case MODEL_HIDE_GEOSETS_RANGE:
-        ModelHideGeosetsRange(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4), param[8]);
+        ModelHideGeosetsRange(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), item->paramData[8]);
         break;
 
       case MODEL_LOCK_OBJECT_SEQUENCE:
-        ModelLockObjectSequence(modelHandle, *reinterpret_cast<UINT *>(param), param[4]);
+        ModelLockObjectSequence(modelHandle, *(UINT *)item->paramData, item->paramData[4]);
         break;
 
       case MODEL_MARK_FOOTSTEP_SEQUENCE:
-        ModelMarkFootstepSequence(modelHandle, *reinterpret_cast<UINT *>(param));
+        ModelMarkFootstepSequence(modelHandle, *(UINT *)item->paramData);
         break;
 
       case MODEL_MATCH_SEQUENCE:
-        ModelMatchSequence(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4), *reinterpret_cast<UINT *>(param + 8));
+        ModelMatchSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8));
         break;
 
       case MODEL_OPTIMIZE_VISIBLE_GEOSETS:
@@ -1494,101 +1513,101 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_REMOVE_LINK: {
-        HMODEL child = *reinterpret_cast<HMODEL *>(param + 4);
-        ModelRemoveLink(modelHandle, *reinterpret_cast<UINT *>(param), child);
+        HMODEL child = *(HMODEL *)(item->paramData + 4);
+        ModelRemoveLink(modelHandle, *(UINT *)item->paramData, child);
         HandleClose(child);
         break;
       }
 
       case MODEL_REMOVE_OBJECT_FACE_DIR:
-        ModelRemoveObjectFaceDir(modelHandle, *reinterpret_cast<UINT *>(param));
+        ModelRemoveObjectFaceDir(modelHandle, *(UINT *)item->paramData);
         break;
 
       case MODEL_REMOVE_OBJECT_LOOK_AT:
-        ModelRemoveObjectLookAt(modelHandle, *reinterpret_cast<UINT *>(param));
+        ModelRemoveObjectLookAt(modelHandle, *(UINT *)item->paramData);
         break;
 
       case MODEL_REPLACE_TEXTURE: {
-        HTEXTURE texture = *reinterpret_cast<HTEXTURE *>(param + 4);
-        ModelReplaceTexture(modelHandle, *reinterpret_cast<UINT *>(param), texture, param[8]);
+        HTEXTURE texture = *(HTEXTURE *)(item->paramData + 4);
+        ModelReplaceTexture(modelHandle, *(UINT *)item->paramData, texture, item->paramData[8]);
         HandleClose(texture);
         break;
       }
 
       case MODEL_SET_EMISSIVE_COLOR:
-        ModelSetEmissiveColor(modelHandle, *reinterpret_cast<NTempest::CImVector *>(param), param[4]);
+        ModelSetEmissiveColor(modelHandle, *(NTempest::CImVector *)item->paramData, item->paramData[4]);
         break;
 
       case MODEL_SET_EVENT_CALLBACK:
         ModelSetEventCallback(
-            modelHandle, *reinterpret_cast<void (**)(LPCSTR, const NTempest::C3Vector &, LPVOID)>(param), *reinterpret_cast<LPVOID *>(param + 4),
-            param[8]
+            modelHandle, *(void ( **)(LPCSTR, const NTempest::C3Vector &, LPVOID))item->paramData, *(LPVOID *)(item->paramData + 4),
+            item->paramData[8]
         );
         break;
 
       case MODEL_SET_LIGHT_SELECT_CALLBACK:
         ModelSetLightSelectCallback(
-            modelHandle, *reinterpret_cast<void (**)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT)>(param),
-            *reinterpret_cast<LPVOID *>(param + 4), param[8]
+            modelHandle, *(void ( **)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT))item->paramData,
+            *(LPVOID *)(item->paramData + 4), item->paramData[8]
         );
         break;
 
       case MODEL_SET_OBJECT_TIME_SCALE:
-        ModelSetObjectTimeScale(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<float *>(param + 4), param[8]);
+        ModelSetObjectTimeScale(modelHandle, *(UINT *)item->paramData, *(float *)(item->paramData + 4), item->paramData[8]);
         break;
 
       case MODEL_SET_RANDOM_SEQUENCE_FIDGET1:
-        ModelSetRandomSequenceFidget(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4));
+        ModelSetRandomSequenceFidget(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4));
         break;
 
       case MODEL_SET_RANDOM_SEQUENCE_FIDGET2:
         ModelSetRandomSequenceFidget(
-            modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4), *reinterpret_cast<UINT *>(param + 8)
+            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8)
         );
         break;
 
       case MODEL_SET_SEQ_FINISHED_HANDLER1:
-        ModelSetSeqFinishedHandler(modelHandle, *reinterpret_cast<ANIMSEQFINISHEDHANDLER *>(param), *reinterpret_cast<LPVOID *>(param + 4));
+        ModelSetSeqFinishedHandler(modelHandle, *(ANIMSEQFINISHEDHANDLER *)item->paramData, *(LPVOID *)(item->paramData + 4));
         break;
 
       case MODEL_SET_SEQ_FINISHED_HANDLER2:
         ModelSetSeqFinishedHandler(
-            modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<ANIMSEQFINISHEDHANDLER *>(param + 4),
-            *reinterpret_cast<LPVOID *>(param + 8)
+            modelHandle, *(UINT *)item->paramData, *(ANIMSEQFINISHEDHANDLER *)(item->paramData + 4),
+            *(LPVOID *)(item->paramData + 8)
         );
         break;
 
       case MODEL_SET_SEQUENCE1:
-        ModelSetSequence(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4));
+        ModelSetSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4));
         break;
 
       case MODEL_SET_SEQUENCE2:
-        ModelSetSequence(modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4), *reinterpret_cast<UINT *>(param + 8));
+        ModelSetSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8));
         break;
 
       case MODEL_SET_SEQUENCE_FIDGET1:
         ModelSetSequenceFidget(
-            modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4), *reinterpret_cast<UINT *>(param + 8)
+            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8)
         );
         break;
 
       case MODEL_SET_SEQUENCE_FIDGET2:
         ModelSetSequenceFidget(
-            modelHandle, *reinterpret_cast<UINT *>(param), *reinterpret_cast<UINT *>(param + 4), *reinterpret_cast<UINT *>(param + 8),
-            *reinterpret_cast<UINT *>(param + 12)
+            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8),
+            *(UINT *)(item->paramData + 12)
         );
         break;
 
       case MODEL_SET_TIME_SCALE:
-        ModelSetTimeScale(modelHandle, *reinterpret_cast<float *>(param), param[4]);
+        ModelSetTimeScale(modelHandle, *(float *)item->paramData, item->paramData[4]);
         break;
 
       case MODEL_SET_VERTEX_ALPHA:
-        ModelSetVertexAlpha(modelHandle, param[0], param[1]);
+        ModelSetVertexAlpha(modelHandle, item->paramData[0], item->paramData[1]);
         break;
 
       case MODEL_SET_VERTEX_COLOR:
-        ModelSetVertexColor(modelHandle, param[0], param[1], param[2], param[3]);
+        ModelSetVertexColor(modelHandle, item->paramData[0], item->paramData[1], item->paramData[2], item->paramData[3]);
         break;
 
       case MODEL_SHOW_BOUNDING_SPHERE:
@@ -1596,15 +1615,15 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_SHOW_COLLISION:
-        ModelShowCollision(modelHandle, param[0]);
+        ModelShowCollision(modelHandle, item->paramData[0]);
         break;
 
       case MODEL_SHOW_COLLISION_AABOX:
-        ModelShowCollisionAaBox(modelHandle, param[0]);
+        ModelShowCollisionAaBox(modelHandle, item->paramData[0]);
         break;
 
       case MODEL_SHOW_MODEL:
-        ModelShowModel(modelHandle, param[0]);
+        ModelShowModel(modelHandle, item->paramData[0]);
         break;
 
       default:
@@ -1612,7 +1631,6 @@ void ExecuteQueuedActions(CModel *model) {
     }
 
     s_freeModItems.LinkNode(item, LIST_TAIL, 0);
-    item = next;
   }
 
   if (modelHandle) {
@@ -1623,7 +1641,7 @@ void ExecuteQueuedActions(CModel *model) {
 void CModel::RemoveModelCommandsFromQueue() {
   ITERATELIST(CModelModItem, modelModQueue, item) {
     BYTE *paramData = item->paramData;
-    for (UINT i = 0; i < 4; ++i) {
+    for (UINT i = 0; i < sizeof(s_modelParamTypes[0]) / sizeof(s_modelParamTypes[0][0]); ++i) {
       EModelParamType type = s_modelParamTypes[item->action][i];
       if (type == MPARAM_NONE) {
         break;
@@ -1631,7 +1649,7 @@ void CModel::RemoveModelCommandsFromQueue() {
 
       switch (type) {
         case MPARAM_HANDLE:
-          HandleClose(*reinterpret_cast<HOBJECT *>(paramData));
+          HandleClose(*(HOBJECT *)paramData);
           paramData += 4;
           break;
         case MPARAM_C3VECTOR:
@@ -1660,7 +1678,7 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   UINT           numLinks;
   UINT           i;
 
-  CModel *model = reinterpret_cast<CModel *>(modelHandle);
+  CModel *model = (CModel *)modelHandle;
   VALIDATEBEGIN;
   VALIDATE(model);
   VALIDATEEND;
@@ -1678,7 +1696,7 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
     return 1;
   }
 
-  complex = static_cast<CModelComplex *>(base);
+  complex = (CModelComplex *)base;
   numLinks = complex->m_attached.Count();
   for (i = 0; i < numLinks; ++i) {
     ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
@@ -1694,7 +1712,7 @@ BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared
   VALIDATEBEGIN;
   VALIDATE(model);
   *unique = 0;
-  *shared = reinterpret_cast<CModelShared *>(model->shared);
+  *shared = (CModelShared *)model->shared;
   VALIDATE(*shared);
   VALIDATEEND;
 
@@ -1723,7 +1741,7 @@ BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
 BOOL IModelDerefHandle(CModel *model, CModelShared **shared) {
   VALIDATEBEGIN;
   VALIDATE(model);
-  *shared = reinterpret_cast<CModelShared *>(model->shared);
+  *shared = (CModelShared *)model->shared;
   VALIDATE(*shared);
   VALIDATEEND;
 

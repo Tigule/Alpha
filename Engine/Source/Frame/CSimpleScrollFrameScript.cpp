@@ -7,10 +7,10 @@
 #include <lua.h>
 
 static int CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    float offset = 0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f);
+    float offset = 0.8f * ((float)lua_tonumber(L, 2) * 0.0009765625f);
     object->SetHorizontalScroll(offset);
     return 0;
   }
@@ -20,10 +20,10 @@ static int CSimpleScrollFrame_SetHorizontalScroll(lua_State *L) {
 }
 
 static int CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    float offset = 0.8f * (static_cast<float>(lua_tonumber(L, 2)) * 0.0009765625f);
+    float offset = 0.8f * ((float)lua_tonumber(L, 2) * 0.0009765625f);
     object->SetVerticalScroll(offset);
     return 0;
   }
@@ -33,35 +33,35 @@ static int CSimpleScrollFrame_SetVerticalScroll(lua_State *L) {
 }
 
 static int CSimpleScrollFrame_GetHorizontalScroll(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, 1.25f * (object->GetHorizontalScroll() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_GetVerticalScroll(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, 1.25f * (object->GetVerticalScroll() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_GetHorizontalScrollRange(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, 1.25f * (object->GetHorizontalScrollRange() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_GetVerticalScrollRange(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, 1.25f * (object->GetVerticalScrollRange() * 1024.0f));
   return 1;
 }
 
 static int CSimpleScrollFrame_UpdateScrollChildRect(lua_State *L) {
-  CSimpleScrollFrame *object = static_cast<CSimpleScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleScrollFrame *object = (CSimpleScrollFrame *)FrameScript_GetObjectThis(L);
 
   object->UpdateScrollChildRect();
   return 0;

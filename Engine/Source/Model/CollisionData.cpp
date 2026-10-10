@@ -44,7 +44,7 @@ static void CollisionDataAddFacets(
     const NTempest::CAaBox            &worldBox,
     TSGrowableArray<NTempest::CFacet> *facets
 ) {
-  CCollisionData *collide = reinterpret_cast<CCollisionData *>(handle);
+  CCollisionData *collide = (CCollisionData *)handle;
   VALIDATEBEGIN;
   VALIDATE(collide);
   VALIDATE(facets);
@@ -78,7 +78,7 @@ static BOOL CollisionDataVectorIntersect(
     const NTempest::C3Vector  &p1,
     float                     &t
 ) {
-  CCollisionData *collide = reinterpret_cast<CCollisionData *>(hDC);
+  CCollisionData *collide = (CCollisionData *)hDC;
   VALIDATEBEGIN;
   VALIDATE(collide);
   VALIDATEEND;
@@ -184,14 +184,14 @@ HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes) {
     return 0;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(fileData);
+  UINT sectionBytes = *(UINT *)fileData;
   fileData += 4;
   BYTE *sectionDone = fileData + sectionBytes;
 
   ASSERT(*((ULONG *) (fileData)) == 'XTRV');
   fileData += 4;
 
-  UINT numVertices = *reinterpret_cast<UINT *>(fileData);
+  UINT numVertices = *(UINT *)fileData;
   ASSERT(numVertices <= 0xffff);
   fileData += 4;
 
@@ -202,7 +202,7 @@ HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes) {
   ASSERT(*((ULONG *) (fileData)) == ' IRT');
   fileData += 4;
 
-  UINT numVertIndices = *reinterpret_cast<UINT *>(fileData);
+  UINT numVertIndices = *(UINT *)fileData;
   fileData += 4;
   collision->indices.SetCount(numVertIndices);
   memcpy(collision->indices.Ptr(), fileData, numVertIndices * sizeof(WORD));
@@ -211,7 +211,7 @@ HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes) {
   ASSERT(*((ULONG *) (fileData)) == 'SMRN');
   fileData += 4;
 
-  UINT numSurfaceNormals = *reinterpret_cast<UINT *>(fileData);
+  UINT numSurfaceNormals = *(UINT *)fileData;
   fileData += 4;
   collision->surfaceNormals.SetCount(numSurfaceNormals);
   memcpy(collision->surfaceNormals.Ptr(), fileData, numSurfaceNormals * sizeof(NTempest::C3Vector));
@@ -231,7 +231,7 @@ void ModelAddCollisionFacets(
     TSGrowableArray<NTempest::CFacet> *facets
 ) {
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
+  if (IModelDerefHandle((CModel *)model, &shared) && shared->collision) {
     CollisionDataAddFacets(shared->collision, toWorld, scale, worldBox, facets);
   }
 }
@@ -245,14 +245,14 @@ int ModelCollisionVectorIntersect(
 ) {
   t = FLT_MAX;
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
+  if (IModelDerefHandle((CModel *)model, &shared) && shared->collision) {
     return CollisionDataVectorIntersect(shared->collision, basis, p0, p1, t);
   }
   return 0;
 }
 
 void ModelShowCollision(HMODEL model, int show) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -275,7 +275,7 @@ void ModelShowCollision(HMODEL model, int show) {
 }
 
 void ModelShowCollisionAaBox(HMODEL model, int show) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -292,17 +292,17 @@ void ModelShowCollisionAaBox(HMODEL model, int show) {
   }
 
   if (show) {
-    if (unique->m_aaBoxCustGeoId == static_cast<UINT>(-1)) {
+    if (unique->m_aaBoxCustGeoId == (UINT)-1) {
       ModelCustGeosetAdd(model, NTempest::C3Vector(0.0f), CollisionDataAABoxRenderCallback, 0, &unique->m_aaBoxCustGeoId);
     }
-  } else if (unique->m_aaBoxCustGeoId != static_cast<UINT>(-1)) {
+  } else if (unique->m_aaBoxCustGeoId != (UINT)-1) {
     ModelCustGeosetRemove(model, unique->m_aaBoxCustGeoId);
-    unique->m_aaBoxCustGeoId = static_cast<UINT>(-1);
+    unique->m_aaBoxCustGeoId = -1;
   }
 }
 
 void ModelShowModel(HMODEL model, int show) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -322,8 +322,8 @@ void ModelShowModel(HMODEL model, int show) {
 
 void ModelGetCollisionExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared) && shared->collision) {
-    *extents = reinterpret_cast<CCollisionData *>(shared->collision)->extents;
+  if (IModelDerefHandle((CModel *)model, &shared) && shared->collision) {
+    *extents = ((CCollisionData *)shared->collision)->extents;
   } else {
     *extents = NTempest::CAaBox(0.0f);
   }

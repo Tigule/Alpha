@@ -92,6 +92,6 @@ void SpellGetCastTargets(SpellCast *cast, CDataStore *msg) {
     msg->Get(cast->destLocation.z);
   }
   if (cast->targets & 0x2000) {
-    msg->GetArray(reinterpret_cast<BYTE *>(cast->targetString), sizeof(cast->targetString));
+    msg->GetArray((BYTE *)cast->targetString, sizeof(cast->targetString));
   }
 }

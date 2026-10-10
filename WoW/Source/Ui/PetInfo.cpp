@@ -134,7 +134,7 @@ void CGPetInfo::SetAction(UINT index, PetAction &action, int save) {
     msg.Put(CMSG_PET_SET_ACTION);
     msg.Put(m_pet);
     if (oldSlot >= 0) {
-      msg.Put(static_cast<UINT>(oldSlot));
+      msg.Put((UINT)oldSlot);
       msg.Put(m_actions[oldSlot].GetAction());
     }
     msg.Put(index);
@@ -212,11 +212,11 @@ void CGPetInfo::SendPetAction(const PetAction &action, const DWORDLONG &target) 
           if (player) {
             CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(actionTarget, __FILE__, __LINE__));
             if (!unit) {
-              CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(141));
+              CGGameUI::DisplayError(GERR_NO_ATTACK_TARGET);
               return;
             }
             if (!player->CanAttack(unit)) {
-              CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(142));
+              CGGameUI::DisplayError(GERR_INVALID_ATTACK_TARGET);
               return;
             }
           }
@@ -282,20 +282,20 @@ void CGPetInfo::PetAbandon() {
 void CGPetInfo::PetRename(LPCSTR newName) {
   CGUnit_C *pet = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_pet, __FILE__, __LINE__));
   if (!pet) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(217));
+    CGGameUI::DisplayError(GERR_NO_PET);
     return;
   }
   DWORDLONG player = ClntObjMgrGetActivePlayer();
   if (pet->GetSummonedBy() != player) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(218));
+    CGGameUI::DisplayError(GERR_NOTYOURPET);
     return;
   }
   if (!(pet->GetUnitFlags() & 0x10)) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(219));
+    CGGameUI::DisplayError(GERR_PET_NOT_RENAMEABLE);
     return;
   }
   if (!newName || !*newName) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(220));
+    CGGameUI::DisplayError(GERR_NULL_PETNAME);
     return;
   }
 
@@ -319,84 +319,90 @@ static int Script_PetHasActionBar(lua_State *L) {
 }
 
 static int Script_GetPetActionInfo(lua_State *L) {
-  if (!lua_isnumber(L, 1))
-    return luaL_error(L, "Usage: GetPetActionInfo(index)");
-  UINT             index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  if (!lua_isnumber(L, 1)) {
+    luaL_error(L, "Usage: GetPetActionInfo(index)");
+    return 0;
+  }
+  UINT             index = (UINT)lua_tonumber(L, 1) - 1;
   const PetAction *action = CGPetInfo::GetAction(index);
-  if (!CGPetInfo::GetPet() || !action || !action->GetAction()) {
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    return 7;
-  }
-  switch (action->GetActionType()) {
-  case 1:
-  case 2:
-  case 3:
-  case 4:
-  case 5: {
-    const SpellRec     *spell = g_spellDB.GetRecord(action->GetActionID());
-    const SpellIconRec *icon = spell ? g_spellIconDB.GetRecord(spell->m_spellIconID) : 0;
-    if (spell)
-      lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
-    else
+  if (action && action->GetAction()) {
+    switch (action->GetActionType()) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5: {
+      const SpellRec *spell = g_spellDB.GetRecord(action->GetActionID());
+      if (spell) {
+        lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
+        lua_pushstring(L, spell->m_nameSubtext_lang[CURRENT_LANGUAGE]);
+        const SpellIconRec *icon = g_spellIconDB.GetRecord(spell->m_spellIconID);
+        if (icon) {
+          lua_pushstring(L, icon->m_textureFilename);
+        } else {
+          lua_pushnil(L);
+        }
+      } else {
+        lua_pushnil(L);
+        lua_pushnil(L);
+      }
       lua_pushnil(L);
-    if (spell)
-      lua_pushstring(L, spell->m_nameSubtext_lang[CURRENT_LANGUAGE]);
-    else
       lua_pushnil(L);
-    if (icon)
-      lua_pushstring(L, icon->m_textureFilename);
-    else
+      break;
+    }
+    case 6: {
+      char buf[64];
+      SStrPrintf(buf, sizeof(buf), "PET_MODE_%s", CGPetInfo::GetModeToken(action->GetActionID()));
+      lua_pushstring(L, buf);
       lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnil(L);
-    break;
-  }
-  case 6: {
-    char buf[64];
-    SStrPrintf(buf, sizeof(buf), "PET_MODE_%s", CGPetInfo::GetModeToken(action->GetActionID()));
-    lua_pushstring(L, buf);
-    lua_pushnil(L);
-    SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(action->GetActionID()));
-    lua_pushstring(L, buf);
-    lua_pushnumber(L, 1.0);
-    if (CGPetInfo::GetPetMode() == action->GetActionID())
+      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetModeToken(action->GetActionID()));
+      lua_pushstring(L, buf);
       lua_pushnumber(L, 1.0);
-    else
+      if (CGPetInfo::GetPetMode() == action->GetActionID()) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      break;
+    }
+    case 7: {
+      char buf[64];
+      SStrPrintf(buf, sizeof(buf), "PET_ACTION_%s", CGPetInfo::GetOrdersToken(action->GetActionID()));
+      lua_pushstring(L, buf);
       lua_pushnil(L);
-    break;
-  }
-  case 7: {
-    char buf[64];
-    SStrPrintf(buf, sizeof(buf), "PET_ACTION_%s", CGPetInfo::GetOrdersToken(action->GetActionID()));
-    lua_pushstring(L, buf);
-    lua_pushnil(L);
-    SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(action->GetActionID()));
-    lua_pushstring(L, buf);
-    lua_pushnumber(L, 1.0);
-    if (CGPetInfo::GetPetOrders() == action->GetActionID())
+      SStrPrintf(buf, sizeof(buf), "PET_%s_TEXTURE", CGPetInfo::GetOrdersToken(action->GetActionID()));
+      lua_pushstring(L, buf);
       lua_pushnumber(L, 1.0);
-    else
+      if (CGPetInfo::GetPetOrders() == action->GetActionID()) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      break;
+    }
+    default:
+      FATALASSERT(!"Unknown pet action type");
+      break;
+    }
+    if (action->GetAutocastAllowed()) {
+      lua_pushnumber(L, 1.0);
+    } else {
       lua_pushnil(L);
-    break;
-  }
-  default:
-    FATALASSERT(!"Unknown pet action type");
-    break;
-  }
-  if (action->GetAutocastAllowed())
-    lua_pushnumber(L, 1.0);
-  else
+    }
+    if (action->GetAutocastEnabled()) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+  } else {
     lua_pushnil(L);
-  if (action->GetAutocastEnabled())
-    lua_pushnumber(L, 1.0);
-  else
     lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+    lua_pushnil(L);
+  }
   return 7;
 }
 
@@ -405,7 +411,7 @@ static int Script_GetPetActionCooldown(lua_State *L) {
     luaL_error(L, "Usage: GetPetActionCooldown(index)");
     return 0;
   }
-  const PetAction *action = CGPetInfo::GetAction(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const PetAction *action = CGPetInfo::GetAction((int)lua_tonumber(L, 1) - 1);
   DWORD            startTime = 0;
   UINT             duration = 0;
   UINT             enable = 0;
@@ -415,9 +421,9 @@ static int Script_GetPetActionCooldown(lua_State *L) {
       Spell_C_GetSpellCooldown(action->GetActionID(), 1, &duration, &startTime, &enable);
     }
   }
-  lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
-  lua_pushnumber(L, static_cast<double>(duration) * 0.001);
-  lua_pushnumber(L, static_cast<double>(enable));
+  lua_pushnumber(L, (double)startTime * 0.001);
+  lua_pushnumber(L, (double)duration * 0.001);
+  lua_pushnumber(L, enable);
   return 3;
 }
 
@@ -426,7 +432,7 @@ static int Script_PickupPetAction(lua_State *L) {
     luaL_error(L, "Usage: PickupPetAction(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   if (index > 10) {
     luaL_error(L, "Invalid slot in PickupPetAction");
     return 0;
@@ -472,7 +478,7 @@ static int Script_TogglePetAutocast(lua_State *L) {
     luaL_error(L, "Usage: TogglePetAutocast(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   if (index > 10) {
     luaL_error(L, "Invalid slot in TogglePetAutocast");
     return 0;
@@ -499,7 +505,7 @@ static int Script_CastPetAction(lua_State *L) {
     luaL_error(L, "Usage: CastPetAction(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   if (index > 10) {
     luaL_error(L, "Invalid slot in CastPetAction");
     return 0;
@@ -599,7 +605,7 @@ static int Script_PetCanBeRenamed(lua_State *L) {
 static int Script_GetPetTimeRemaining(lua_State *L) {
   DWORD expiration = CGPetInfo::GetExpirationTime();
   if (expiration) {
-    lua_pushnumber(L, static_cast<double>(max(expiration - OsGetAsyncTimeMs(), 0)));
+    lua_pushnumber(L, max(expiration - OsGetAsyncTimeMs(), 0));
   } else {
     lua_pushnil(L);
   }

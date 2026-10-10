@@ -13,7 +13,7 @@ static int CSimpleMessageFrame_AddMessage(lua_State *L) {
     frame = 0;
   } else {
     lua_rawgeti(L, 1, 0);
-    CSimpleMessageFrame *object = static_cast<CSimpleMessageFrame *>(lua_touserdata(L, -1));
+    CSimpleMessageFrame *object = (CSimpleMessageFrame *)lua_touserdata(L, -1);
     lua_pop(L, 1);
     ASSERT(object);
     frame = object;
@@ -27,20 +27,20 @@ static int CSimpleMessageFrame_AddMessage(lua_State *L) {
       int                 permanent = 0;
 
       if (lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5)) {
-        float red = static_cast<float>(lua_tonumber(L, 3));
-        float green = static_cast<float>(lua_tonumber(L, 4));
-        float blue = static_cast<float>(lua_tonumber(L, 5));
+        float red = lua_tonumber(L, 3);
+        float green = lua_tonumber(L, 4);
+        float blue = lua_tonumber(L, 5);
         float alpha = 1.0f;
 
         if (lua_isnumber(L, 6)) {
-          alpha = static_cast<float>(lua_tonumber(L, 6));
+          alpha = lua_tonumber(L, 6);
         }
 
         color.Set(alpha, red, green, blue);
         if (lua_isnumber(L, 7)) {
-          time = static_cast<float>(lua_tonumber(L, 7));
+          time = lua_tonumber(L, 7);
           if (lua_isnumber(L, 8)) {
-            permanent = static_cast<int>(lua_tonumber(L, 8)) > 0;
+            permanent = (int)lua_tonumber(L, 8) > 0;
           }
         }
       }

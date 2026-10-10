@@ -95,7 +95,7 @@ BOOL CGDuelInfo::OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDat
   msg->Get(requestedBy);
 
   if (requestedBy == ClntObjMgrGetActivePlayer()) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(281));
+    CGGameUI::DisplayError(GERR_DUEL_REQUESTED);
     AcceptDuel();
   } else if (g_friendList->IsIgnored(requestedBy)) {
     CancelDuel();
@@ -124,7 +124,7 @@ BOOL CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CData
   msg->Get(started);
   if (m_arbiter) {
     if (!started) {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(282));
+      CGGameUI::DisplayError(GERR_DUEL_CANCELLED);
     }
     m_arbiter = 0;
     FrameScript_SignalEvent(366);
@@ -142,7 +142,7 @@ BOOL CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
   msg->GetString(beaten, sizeof(beaten));
   LPCSTR format = FrameScript_GetText(fled ? "DUEL_WINNER_RETREAT" : "DUEL_WINNER_KNOCKOUT", -1, GENDER_NOT_APPLICABLE);
   SStrPrintf(message, sizeof(message), format, winner, beaten);
-  CGChat::AddChatMessage(message, static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
+  CGChat::AddChatMessage(message, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   return 1;
 }
 

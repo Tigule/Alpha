@@ -52,7 +52,7 @@ int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   int offset = soundDataOffsets[soundType];
-  return offset ? *reinterpret_cast<const int *>(reinterpret_cast<const BYTE *>(soundData) + offset) : 0;
+  return offset ? *(const int *)((const BYTE *)soundData + offset) : 0;
 }
 
 int GetFidgetSoundID(const CreatureSoundDataRec *soundData, UINT soundType) {
@@ -69,20 +69,17 @@ static BOOL CheckUnitPlaySound(UNITSOUNDTYPE soundType) {
 }
 
 static void GenerateDeathThudSounds() {
-  int                              maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
-  UINT                             count = 5;
-  TSFixedArray<DEATTHUDSOUNDINFO> *deathThudSounds = s_deathThudSounds;
-  while (count) {
-    deathThudSounds->SetCount(maxTerrainFootstepID + 1);
-    ++deathThudSounds;
-    --count;
+  UINT maxTerrainFootstepID = g_terrainTypeSoundsDB.GetMaxID();
+  UINT count;
+  for (count = 0; count < 5; ++count) {
+    s_deathThudSounds[count].SetCount(maxTerrainFootstepID + 1);
   }
 
   count = g_deathThudLookupsDB.GetNumRecords();
   while (count) {
     const DeathThudLookupsRec *rec = g_deathThudLookupsDB.GetRecordByIndex(--count);
     FATALASSERT(rec);
-    if (static_cast<UINT>(rec->m_SizeClass) < 5 && rec->m_TerrainTypeSoundID <= maxTerrainFootstepID) {
+    if ((UINT)rec->m_SizeClass < 5 && rec->m_TerrainTypeSoundID <= (int)maxTerrainFootstepID) {
       s_deathThudSounds[rec->m_SizeClass][rec->m_TerrainTypeSoundID].landSound = rec->m_SoundEntryID;
       s_deathThudSounds[rec->m_SizeClass][rec->m_TerrainTypeSoundID].waterSound = rec->m_SoundEntryIDWater;
     }
@@ -114,7 +111,7 @@ BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   DWORD currentTime = OsGetAsyncTimeMs();
   BOOL  canPlay = 0;
-  if (static_cast<long>(currentTime - s_unitSoundTimers[soundType]) > 0) {
+  if ((long)(currentTime - s_unitSoundTimers[soundType]) > 0) {
     canPlay = 1;
   }
   s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];
@@ -206,16 +203,18 @@ void CGUnit_C::PlayDeathThud() const {
   int                deep;
   float              surfaceIntersect;
   int                inLiquid = CWorld::QueryObjectLiquid(GetWorldObject(), liquid, surfaceIntersect, flowDir, deep);
-  if (surfaceIntersect - pos.z <= 2.0f) {
-    UINT size = GetUnitSize();
-    if (size < 5) {
-      int terrainType = m_terrain;
-      if (terrainType < s_deathThudSounds[size].Count() && terrainType >= 0) {
-        const TerrainTypeRec *terrain = g_terrainTypeDB.GetRecord(terrainType);
-        if (terrain) {
-          int soundID = inLiquid ? s_deathThudSounds[size][terrain->m_SoundID].waterSound : s_deathThudSounds[size][terrain->m_SoundID].landSound;
-          SndInterfacePlaySound(soundID, GetPosition(), -1, 1.0f);
-        }
+  if (surfaceIntersect - pos.z > 2.0f) {
+    return;
+  }
+
+  UINT size = GetUnitSize();
+  if (size < 5) {
+    int terrainType = m_terrain;
+    if (terrainType < s_deathThudSounds[size].Count() && terrainType >= 0) {
+      const TerrainTypeRec *terrain = g_terrainTypeDB.GetRecord(terrainType);
+      if (terrain) {
+        int soundID = inLiquid ? s_deathThudSounds[size][terrain->m_SoundID].waterSound : s_deathThudSounds[size][terrain->m_SoundID].landSound;
+        SndInterfacePlaySound(soundID, GetPosition(), -1, 1.0f);
       }
     }
   }
@@ -296,7 +295,7 @@ bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
 
   const ItemSubClassRec *subClass = SDBItemSubclassGetSubClassRec(2, item->m_subclassID);
   if (subClass) {
-    type = static_cast<WEAPONSWING_SOUNDTYPES>(subClass->m_WeaponSwingSize);
+    type = (WEAPONSWING_SOUNDTYPES)subClass->m_WeaponSwingSize;
   }
   return subClass != 0;
 }

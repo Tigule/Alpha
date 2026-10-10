@@ -20,51 +20,51 @@ struct TOKENFLAG {
 };
 
 static TOKENFLAG s_textureFlags[6] = {
-    { 0x1, 0x1D3},
-    { 0x2, 0x1B5},
-    {0x10, 0x1CF},
-    {0x20, 0x1D1},
-    {0x40, 0x177},
-    {0x80, 0x178}
+    { 0x1, MDLTOK_UNSHADED},
+    { 0x2, MDLTOK_SPHERE_ENV_MAP},
+    {0x10, MDLTOK_TWO_SIDED},
+    {0x20, MDLTOK_UNFOGGED},
+    {0x40, MDLTOK_NO_DEPTH_TEST},
+    {0x80, MDLTOK_NO_DEPTH_SET}
 };
 
 static void IMaterialAddErrors(TSet &errors) {
-  errors.Add(0x163, 1, 1);
-  errors.Add(0x13A, 0, 0);
-  errors.Add(0x1B8, 0, 0);
-  errors.Add(0x1B7, 0, 0);
-  errors.Add(0x1A6, 0, 0);
+  errors.Add(MDLTOK_LAYER, 1, 1);
+  errors.Add(MDLTOK_CONSTANTCOLOR, 0, 0);
+  errors.Add(MDLTOK_SORTPRIMSNEARZ, 0, 0);
+  errors.Add(MDLTOK_SORTPRIMSFARZ, 0, 0);
+  errors.Add(MDLTOK_PRIORITYPLANE, 0, 0);
 }
 
 static void ITextureAddErrors(TSet &errors) {
-  errors.Add(0x14B, 0, 0);
-  errors.Add(0x1D3, 0, 0);
-  errors.Add(0x1C3, 1, 0);
-  errors.Add(0x1CD, 0, 0);
-  errors.Add(0x13B, 0, 0);
-  errors.Add(0x1B5, 0, 0);
-  errors.Add(0x1CF, 0, 0);
-  errors.Add(0x1D1, 0, 0);
-  errors.Add(0x177, 0, 0);
-  errors.Add(0x178, 0, 0);
+  errors.Add(MDLTOK_FILTERMODE, 0, 0);
+  errors.Add(MDLTOK_UNSHADED, 0, 0);
+  errors.Add(MDLTOK_TEXTURE_ID, 1, 0);
+  errors.Add(MDLTOK_TVERTEXANIMID, 0, 0);
+  errors.Add(MDLTOK_COORD_ID, 0, 0);
+  errors.Add(MDLTOK_SPHERE_ENV_MAP, 0, 0);
+  errors.Add(MDLTOK_TWO_SIDED, 0, 0);
+  errors.Add(MDLTOK_UNFOGGED, 0, 0);
+  errors.Add(MDLTOK_NO_DEPTH_TEST, 0, 0);
+  errors.Add(MDLTOK_NO_DEPTH_SET, 0, 0);
 }
 
 static MDLTEXOP IReadFilterMode(Parser &parse) {
   LPCSTR tokenText;
   switch (parse.Token(&tokenText, 0)) {
-    case 0x1C8:
+    case MDLTOK_TRANSPARENT:
       return TEXOP_TRANSPARENT;
-    case 0x12E:
+    case MDLTOK_BLEND:
       return TEXOP_BLEND;
-    case 0x11A:
+    case MDLTOK_ADDITIVE:
       return TEXOP_ADD;
-    case 0x11B:
+    case MDLTOK_ADD_ALPHA:
       return TEXOP_ADD_ALPHA;
-    case 0x172:
+    case MDLTOK_MODULATE:
       return TEXOP_MODULATE;
-    case 0x173:
+    case MDLTOK_MODULATE2X:
       return TEXOP_MODULATE2X;
-    case 0x179:
+    case MDLTOK_CAPNONE:
       return TEXOP_LOAD;
     default:
       parse.FatalUnexpected(tokenText);
@@ -72,17 +72,17 @@ static MDLTEXOP IReadFilterMode(Parser &parse) {
   }
 }
 
-static BOOL IReadAlpha(Parser &parse, int expectAnimation, MDLTEXLAYER *layer) {
-  if (expectAnimation) {
-    ReadObjectFloatKeyframes(parse, &layer->alphaKeys);
-    return 1;
+static BOOL IReadAlpha(Parser &parse, int expectanimation, MDLTEXLAYER *layer) {
+  if (!expectanimation) {
+    layer->staticAlpha = parse.ExpectFloat();
+    return 0;
   }
-  layer->staticAlpha = parse.ExpectFloat();
-  return 0;
+  ReadObjectFloatKeyframes(parse, &layer->alphaKeys);
+  return 1;
 }
 
-static BOOL IReadFlipbook(Parser &parse, int expectAnimation, MDLTEXLAYER *layer) {
-  if (!expectAnimation) {
+static BOOL IReadFlipbook(Parser &parse, int expectanimation, MDLTEXLAYER *layer) {
+  if (!expectanimation) {
     layer->textureId = parse.ExpectInt();
     return 0;
   }
@@ -96,7 +96,7 @@ static BOOL IReadFlipbook(Parser &parse, int expectAnimation, MDLTEXLAYER *layer
   parse.Expect('{', token, tokenText);
   token = ReadIntTrackHeader(parse, &layer->flipKeys, &tokenText, &tokenData);
   long actual = 0;
-  while (token == 0x100) {
+  while (token == MDLTOK_LONG) {
     MDLINTKEY *key = layer->flipKeys.keys.New();
     key->time = tokenData.lVal;
     parse.Expect(':');
@@ -113,79 +113,77 @@ static BOOL IReadFlipbook(Parser &parse, int expectAnimation, MDLTEXLAYER *layer
 }
 
 static BOOL IllegalStaticToken(UINT token) {
-  return token != 0x11C && token != 0x1C3;
+  return token != MDLTOK_ALPHA && token != MDLTOK_TEXTURE_ID;
 }
 
 static void IReadTexLayer(Parser &parse, MDLTEXLAYER *layer, CMDLStatus *status, UINT version) {
   TSet errors;
   ITextureAddErrors(errors);
   parse.Expect('{');
-  LPCSTR tokenText;
-  UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
-    int expectAnimation = IExpectAnimation(parse, &token, &tokenText);
-    if (!expectAnimation && IllegalStaticToken(token)) {
-      parse.FatalUnexpected(tokenText);
+  LPCSTR tokentext;
+  UINT   savedtoken;
+  for (savedtoken = parse.Token(&tokentext, 0); savedtoken != '}' && savedtoken; savedtoken = parse.Token(&tokentext, 0)) {
+    int expectanimation = IExpectAnimation(parse, &savedtoken, &tokentext);
+    if (!expectanimation && IllegalStaticToken(savedtoken)) {
+      parse.FatalUnexpected(tokentext);
     }
-    if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+    if (!errors.Check(savedtoken)) {
+      parse.FatalDuplicate(tokentext);
     }
-    int consumedBlock = 0;
-    switch (token) {
-      case 0x11C:
-        consumedBlock = IReadAlpha(parse, expectAnimation, layer);
-        break;
-      case 0x13B:
-        layer->coordId = parse.ExpectInt();
-        break;
-      case 0x14B:
+    switch (savedtoken) {
+      case MDLTOK_FILTERMODE:
         layer->blendMode = IReadFilterMode(parse);
         break;
-      case 0x177:
-        layer->flags |= 0x40;
-        break;
-      case 0x178:
-        layer->flags |= 0x80;
-        break;
-      case 0x1B5:
+      case MDLTOK_SPHERE_ENV_MAP:
         layer->flags |= 2;
-        layer->coordId = static_cast<UINT>(-1);
+        layer->coordId = -1;
         break;
-      case 0x1C3:
-        if (version >= 800) {
-          consumedBlock = IReadFlipbook(parse, expectAnimation, layer);
-        } else {
-          layer->textureId = parse.ExpectInt();
-        }
-        break;
-      case 0x1CD:
-        layer->transformId = parse.ExpectInt();
-        break;
-      case 0x1CF:
-        layer->flags |= 0x10;
-        break;
-      case 0x1D1:
-        layer->flags |= 0x20;
-        break;
-      case 0x1D3:
+      case MDLTOK_UNSHADED:
         layer->flags |= 1;
         break;
-      case 0x1DC:
-        layer->flags |= 8;
-        break;
-      case 0x1DD:
+      case MDLTOK_WRAPWIDTH:
         layer->flags |= 4;
         break;
+      case MDLTOK_WRAPHEIGHT:
+        layer->flags |= 8;
+        break;
+      case MDLTOK_TWO_SIDED:
+        layer->flags |= 0x10;
+        break;
+      case MDLTOK_UNFOGGED:
+        layer->flags |= 0x20;
+        break;
+      case MDLTOK_NO_DEPTH_TEST:
+        layer->flags |= 0x40;
+        break;
+      case MDLTOK_NO_DEPTH_SET:
+        layer->flags |= 0x80;
+        break;
+      case MDLTOK_TEXTURE_ID:
+        if (version < 800) {
+          layer->textureId = parse.ExpectInt();
+        } else if (IReadFlipbook(parse, expectanimation, layer)) {
+          continue;
+        }
+        break;
+      case MDLTOK_TVERTEXANIMID:
+        layer->transformId = parse.ExpectInt();
+        break;
+      case MDLTOK_COORD_ID:
+        layer->coordId = parse.ExpectInt();
+        break;
+      case MDLTOK_ALPHA:
+        if (IReadAlpha(parse, expectanimation, layer)) {
+          continue;
+        }
+        break;
       default:
-        parse.FatalUnexpected(tokenText);
+        parse.FatalUnexpected(tokentext);
         break;
     }
-    if (!consumedBlock) {
-      parse.Expect(',');
-    }
-    token = parse.Token(&tokenText, 0);
+    parse.Expect(',');
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', savedtoken, tokentext);
   errors.Complete(status);
 }
 
@@ -193,79 +191,54 @@ static void IReadMaterial(Parser &parse, MDLMATERIALSECTION *material, CMDLStatu
   TSet errors;
   IMaterialAddErrors(errors);
   parse.Expect('{');
-  LPCSTR tokenText;
-  UINT   token = parse.Token(&tokenText, 0);
-  while (token && token != '}') {
+  LPCSTR tokentext;
+  UINT   token;
+  for (token = parse.Token(&tokentext, 0); token != '}' && token; token = parse.Token(&tokentext, 0)) {
     if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokenText);
+      parse.FatalDuplicate(tokentext);
     }
     switch (token) {
-      case 0x163:
+      case MDLTOK_LAYER:
         IReadTexLayer(parse, material->texLayers.New(), status, version);
+        continue;
+      case MDLTOK_CONSTANTCOLOR:
+      case MDLTOK_FULLRESOLUTION:
+      case MDLTOK_SORTPRIMSFARZ:
+      case MDLTOK_SORTPRIMSNEARZ:
+      case MDLTOK_TWO_SIDED:
+      case MDLTOK_UNFOGGED:
         break;
-      case 0x1A6:
+      case MDLTOK_PRIORITYPLANE:
         material->priorityPlane = parse.ExpectInt();
-        parse.Expect(',');
-        break;
-      case 0x13A:
-      case 0x14F:
-      case 0x1B7:
-      case 0x1B8:
-      case 0x1CF:
-      case 0x1D1:
-        parse.Expect(',');
         break;
       default:
-        parse.FatalUnexpected(tokenText);
-        parse.Expect(',');
+        parse.FatalUnexpected(tokentext);
         break;
     }
-    token = parse.Token(&tokenText, 0);
+    parse.Expect(',');
   }
-  parse.Expect('}', token, tokenText);
+  parse.Expect('}', token, tokentext);
   errors.Complete(status);
-}
-
-BOOL MDL::ReadMaterials(Parser &parse, MDLDATA &data, CMDLStatus *status) {
-  UINT   savedtoken;
-  LPCSTR tokentext;
-  long   actual = 0;
-  long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
-  if (count > 0) {
-    data.materials.ReserveSpace(count);
-  }
-  parse.Expect('{', savedtoken, tokentext);
-  savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken == 0x16C) {
-    IReadMaterial(parse, data.materials.New(), status, data.version);
-    ++actual;
-    savedtoken = parse.Token(&tokentext, 0);
-  }
-  parse.Expect('}', savedtoken, tokentext);
-  if (count >= 0 && actual != count) {
-    parse.WarningCount("materials", count, actual);
-  }
-  return !parse.FoundError();
 }
 
 static UINT IGetFilterModeToken(MDLTEXOP mode) {
   switch (mode) {
     case TEXOP_LOAD:
-      return 0x179;
+      return MDLTOK_CAPNONE;
     case TEXOP_TRANSPARENT:
-      return 0x1C8;
+      return MDLTOK_TRANSPARENT;
     case TEXOP_BLEND:
-      return 0x12E;
+      return MDLTOK_BLEND;
     case TEXOP_ADD:
-      return 0x11A;
+      return MDLTOK_ADDITIVE;
     case TEXOP_ADD_ALPHA:
-      return 0x11B;
+      return MDLTOK_ADD_ALPHA;
     case TEXOP_MODULATE:
-      return 0x172;
+      return MDLTOK_MODULATE;
     case TEXOP_MODULATE2X:
-      return 0x173;
+      return MDLTOK_MODULATE2X;
     default:
-      return 0x1DF;
+      return MDLTOK_UNKNOWN;
   }
 }
 
@@ -278,26 +251,26 @@ static void IWriteTextureFlags(UINT flags, TSGrowableArray<char> &buffer) {
 }
 
 static void IWriteLayer(const MDLTEXLAYER &layer, int needCoordIds, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t\t%s {\n", MDL::TokenText(0x163));
-  MDL::WriteLine(buffer, "\t\t\t%s %s,\n", MDL::TokenText(0x14B), MDL::TokenText(IGetFilterModeToken(layer.blendMode)));
+  MDL::WriteLine(buffer, "\t\t%s {\n", MDL::TokenText(MDLTOK_LAYER));
+  MDL::WriteLine(buffer, "\t\t\t%s %s,\n", MDL::TokenText(MDLTOK_FILTERMODE), MDL::TokenText(IGetFilterModeToken(layer.blendMode)));
   IWriteTextureFlags(layer.flags, buffer);
   if (layer.flipKeys.keys.Count()) {
-    WriteIntKeyFrames(0x1C3, "\t\t\t", layer.flipKeys, buffer);
+    WriteIntKeyFrames(MDLTOK_TEXTURE_ID, "\t\t\t", layer.flipKeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "\t\t\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x1C3));
+    MDL::WriteLine(buffer, "\t\t\t%s %s ", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_TEXTURE_ID));
     WriteUintKeyData(buffer, &layer.textureId, 1);
   }
-  if (layer.transformId != static_cast<UINT>(-1)) {
-    MDL::WriteLine(buffer, "\t\t\t%s %u,\n", MDL::TokenText(0x1CD), layer.transformId);
+  if (layer.transformId != (UINT)-1) {
+    MDL::WriteLine(buffer, "\t\t\t%s %u,\n", MDL::TokenText(MDLTOK_TVERTEXANIMID), layer.transformId);
   }
   if (needCoordIds && !(layer.flags & 2)) {
-    MDL::WriteLine(buffer, "\t\t\t%s %u,\n", MDL::TokenText(0x13B), layer.coordId);
+    MDL::WriteLine(buffer, "\t\t\t%s %u,\n", MDL::TokenText(MDLTOK_COORD_ID), layer.coordId);
   }
   if (layer.alphaKeys.keys.Count() || layer.staticAlpha < 1.0f) {
     if (layer.alphaKeys.keys.Count()) {
-      WriteFloatKeyFrames(0x11C, "\t\t\t", layer.alphaKeys, buffer);
+      WriteFloatKeyFrames(MDLTOK_ALPHA, "\t\t\t", layer.alphaKeys, buffer);
     } else {
-      MDL::WriteLine(buffer, "\t\t\t%s %s ", MDL::TokenText(0x1BB), MDL::TokenText(0x11C));
+      MDL::WriteLine(buffer, "\t\t\t%s %s ", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ALPHA));
       WriteKeyData(buffer, &layer.staticAlpha, 1);
     }
   }
@@ -305,9 +278,9 @@ static void IWriteLayer(const MDLTEXLAYER &layer, int needCoordIds, TSGrowableAr
 }
 
 static void IWriteMaterial(const MDLMATERIALSECTION &material, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x16C));
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_MATERIAL));
   if (material.priorityPlane) {
-    MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(0x1A6), material.priorityPlane);
+    MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(MDLTOK_PRIORITYPLANE), material.priorityPlane);
   }
   const MDLTEXLAYER *layer = material.texLayers.Ptr();
   int needCoordIds = 0;
@@ -325,22 +298,10 @@ static void IWriteMaterial(const MDLMATERIALSECTION &material, TSGrowableArray<c
   MDL::WriteLine(buffer, "\t}\n");
 }
 
-BOOL MDL::WriteMaterials(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  UINT numMaterials = data.materials.Count();
-  if (numMaterials) {
-    MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(0x109), numMaterials);
-    for (UINT i = 0; i < numMaterials; ++i) {
-      IWriteMaterial(data.materials[i], buffer);
-    }
-    MDL::WriteLine(buffer, "}\n");
-  }
-  return 1;
-}
-
 static BOOL ReadBinLayer(CMsgBuffer &buf, CMDLStatus *status, UINT *bytesRead, MDLTEXLAYER *layer) {
   UINT sectionLength = buf.GetUint();
   UINT localBytesRead = 4;
-  layer->blendMode = static_cast<MDLTEXOP>(buf.GetUint());
+  layer->blendMode = (MDLTEXOP)buf.GetUint();
   layer->flags = buf.GetUint();
   layer->textureId = buf.GetUint();
   layer->transformId = buf.GetUint();
@@ -386,6 +347,84 @@ static BOOL ReadBinMaterial(CMsgBuffer &buf, UINT sectionLength, MDLMATERIALSECT
   return 1;
 }
 
+static UINT GetLayerSize(const MDLTEXLAYER &layer) {
+  UINT size = 28;
+  if (layer.alphaKeys.keys.Count()) {
+    UINT dataSize = layer.alphaKeys.type > TRACK_LINEAR ? 12 : 4;
+    size += 16 + layer.alphaKeys.keys.Count() * (4 + dataSize);
+  }
+  if (layer.flipKeys.keys.Count()) {
+    size += 16 + layer.flipKeys.keys.Count() * 8;
+  }
+  return size;
+}
+
+static UINT GetMaterialSize(const MDLMATERIALSECTION &material) {
+  if (!material.texLayers.Count()) {
+    return 8;
+  }
+  UINT               size = 12;
+  const MDLTEXLAYER *layer = material.texLayers.Ptr();
+  for (UINT i = material.texLayers.Count(); i; --i, ++layer) {
+    size += GetLayerSize(*layer);
+  }
+  return size;
+}
+
+static void AddLayers(CMsgBuffer &buf, const MDLMATERIALSECTION &material) {
+  UINT numLayers = material.texLayers.Count();
+  buf.AddUint(numLayers);
+  for (UINT i = 0; i < numLayers; ++i) {
+    buf.AddUint(GetLayerSize(material.texLayers[i]));
+    buf.AddUint(material.texLayers[i].blendMode);
+    buf.AddUint(material.texLayers[i].flags);
+    buf.AddUint(material.texLayers[i].textureId);
+    buf.AddUint(material.texLayers[i].transformId);
+    if (material.texLayers[i].flags & 2) {
+      buf.AddUint(-1);
+    } else {
+      buf.AddUint(material.texLayers[i].coordId);
+    }
+    buf.AddFloat(material.texLayers[i].staticAlpha);
+    WriteBinFloatKeyFrames(material.texLayers[i].alphaKeys, 'ATMK', buf);
+    WriteBinUintKeyFrames(material.texLayers[i].flipKeys, 'FTMK', buf);
+  }
+}
+
+BOOL MDL::ReadMaterials(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  UINT   savedtoken;
+  LPCSTR tokentext;
+  long   actual = 0;
+  long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+  if (count > 0) {
+    data.materials.ReserveSpace(count);
+  }
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = parse.Token(&tokentext, 0);
+  while (savedtoken == MDLTOK_MATERIAL) {
+    IReadMaterial(parse, data.materials.New(), status, data.version);
+    ++actual;
+    savedtoken = parse.Token(&tokentext, 0);
+  }
+  parse.Expect('}', savedtoken, tokentext);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("materials", count, actual);
+  }
+  return !parse.FoundError();
+}
+
+BOOL MDL::WriteMaterials(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
+  UINT numMaterials = data.materials.Count();
+  if (numMaterials) {
+    MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(MDLTOK_MATERIALS), numMaterials);
+    for (UINT i = 0; i < numMaterials; ++i) {
+      IWriteMaterial(data.materials[i], buffer);
+    }
+    MDL::WriteLine(buffer, "}\n");
+  }
+  return 1;
+}
+
 BOOL MDL::ReadBinMaterials(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
   UINT bytesRead = 8;
   UINT numMaterials = buf.GetUint();
@@ -406,78 +445,36 @@ BOOL MDL::ReadBinMaterials(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
   return 1;
 }
 
-static UINT GetLayerSize(const MDLTEXLAYER &layer) {
-  UINT size = 28;
-  if (layer.alphaKeys.keys.Count()) {
-    UINT dataSize = layer.alphaKeys.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + layer.alphaKeys.keys.Count() * (4 + dataSize);
-  }
-  if (layer.flipKeys.keys.Count()) {
-    size += 16 + layer.flipKeys.keys.Count() * 8;
-  }
-  return size;
-}
-
-static UINT GetMaterialSize(const MDLMATERIALSECTION &material) {
-  if (!material.texLayers.Count()) {
-    return 8;
-  }
-  UINT size = 12;
-  for (UINT i = 0; i < material.texLayers.Count(); ++i) {
-    size += GetLayerSize(material.texLayers.Ptr()[i]);
-  }
-  return size;
-}
-
-static void AddLayers(CMsgBuffer &buf, const MDLMATERIALSECTION &material) {
-  UINT numLayers = material.texLayers.Count();
-  buf.AddUint(numLayers);
-  for (UINT i = 0; i < numLayers; ++i) {
-    buf.AddUint(GetLayerSize(material.texLayers[i]));
-    buf.AddUint(material.texLayers[i].blendMode);
-    buf.AddUint(material.texLayers[i].flags);
-    buf.AddUint(material.texLayers[i].textureId);
-    buf.AddUint(material.texLayers[i].transformId);
-    if (material.texLayers[i].flags & 2) {
-      buf.AddUint(static_cast<UINT>(-1));
-    } else {
-      buf.AddUint(material.texLayers[i].coordId);
-    }
-    buf.AddFloat(material.texLayers[i].staticAlpha);
-    WriteBinFloatKeyFrames(material.texLayers[i].alphaKeys, 'ATMK', buf);
-    WriteBinUintKeyFrames(material.texLayers[i].flipKeys, 'FTMK', buf);
-  }
-}
-
 BOOL MDL::WriteBinMaterials(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numLayers;
   UINT numMaterials = data.materials.Count();
   UINT animatedLayers;
   UINT i;
   UINT size;
-  if (numMaterials) {
-    buf.AddDword('SLTM');
-    size = 8;
-    for (i = 0; i < numMaterials; ++i) {
-      size += GetMaterialSize(data.materials[i]);
-    }
-    buf.AddUint(size);
-    buf.AddUint(numMaterials);
-    animatedLayers = 0;
-    for (i = 0; i < numMaterials; ++i) {
-      numLayers = data.materials[i].texLayers.Count();
-      for (UINT j = 0; j < numLayers; ++j) {
-        if (data.materials[i].texLayers[j].alphaKeys.keys.Count() || data.materials[i].texLayers[j].flipKeys.keys.Count()) {
-          ++animatedLayers;
-        }
+  if (!numMaterials) {
+    return 1;
+  }
+  buf.AddDword('SLTM');
+  size = 8;
+  for (i = 0; i < numMaterials; ++i) {
+    size += GetMaterialSize(data.materials[i]);
+  }
+  buf.AddUint(size);
+  buf.AddUint(numMaterials);
+  animatedLayers = 0;
+  for (i = 0; i < numMaterials; ++i) {
+    numLayers = data.materials[i].texLayers.Count();
+    for (UINT j = 0; j < numLayers; ++j) {
+      if (data.materials[i].texLayers[j].alphaKeys.keys.Count() > 0 || data.materials[i].texLayers[j].flipKeys.keys.Count() > 0) {
+        ++animatedLayers;
       }
     }
-    buf.AddUint(animatedLayers);
-    for (i = 0; i < numMaterials; ++i) {
-      buf.AddUint(GetMaterialSize(data.materials[i]));
-      buf.AddInt(data.materials[i].priorityPlane);
-      AddLayers(buf, data.materials[i]);
-    }
+  }
+  buf.AddUint(animatedLayers);
+  for (i = 0; i < numMaterials; ++i) {
+    buf.AddUint(GetMaterialSize(data.materials[i]));
+    buf.AddInt(data.materials[i].priorityPlane);
+    AddLayers(buf, data.materials[i]);
   }
   return 1;
 }

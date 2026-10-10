@@ -403,7 +403,7 @@ static void ReserveInputSpace(CONSOLELINE *lineptr, DWORD chars) {
 }
 
 static CONSOLELINE *GetLineAtMousePosition(float y) {
-  int lineNumber = (int)((s_consoleHeight - (1.0f - y)) / s_fontHeight);
+  int lineNumber = (s_consoleHeight - (1.0f - y)) / s_fontHeight;
 
   if (lineNumber == 1) {
     return s_linelist.Head();
@@ -471,7 +471,7 @@ static BOOL OnChar(const EVENT_DATA_CHAR *data, LPVOID) {
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
     return 1;
   }
-  character[0] = (char)data->ch;
+  character[0] = data->ch;
   character[1] = 0;
   PasteInInputLine(character);
   ResetHighlight();
@@ -513,7 +513,8 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   }
 
   visibleHeight = min(s_consoleHeight, 1.0f);
-  clickPos = 1.0 - data->y;
+  clickPos = data->y;
+  clickPos = 1.0f - clickPos;
   if (clickPos >= visibleHeight - s_fontHeight * 0.75f && clickPos <= s_consoleHeight) {
     ResetHighlight();
     s_consoleResizeState = CS_STRETCH;
@@ -525,7 +526,7 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   if (line) {
     SStrCopy(s_copyText, line->buffer, sizeof(s_copyText));
     s_highlightState = HS_HIGHLIGHTING;
-    lineIndex = (int)((s_consoleHeight - clickPos) / s_fontHeight - 1.0f);
+    lineIndex = (s_consoleHeight - clickPos) / s_fontHeight - 1.0f;
     s_hRect.top = 1.0f - (s_consoleHeight - s_fontHeight * 0.75f - s_fontHeight - lineIndex * s_fontHeight);
     s_hRect.bottom = s_hRect.top - s_fontHeight;
     s_highlightHStart = data->x;
@@ -553,7 +554,8 @@ static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID) {
   }
 
   if (s_consoleResizeState == CS_STRETCH) {
-    s_consoleHeight = 1.0 - data->y;
+    s_consoleHeight = data->y;
+    s_consoleHeight = 1.0f - s_consoleHeight;
     if (s_consoleHeight < s_fontHeight) {
       s_consoleHeight = s_fontHeight;
     }
@@ -1381,7 +1383,7 @@ static void RegisterGxCVars() {
   s_cvGxApi = CVar::Register("gxApi", "graphics api", 3, "direct3d", CVGxApiCallback, GRAPHICS, false, 0);
   s_cvGxVSync = CVar::Register("gxVSync", "vsync on or off", 3, "1", CVGxVSyncCallback, GRAPHICS, false, 0);
   s_cvGxWindow = CVar::Register("gxWindow", "toggle fullscreen/window", 3, "0", CVGxWindowCallback, GRAPHICS, false, 0);
-  s_cvHwDetect = CVar::Register("hwDetect", "do hardware detection", 1, "1", 0, GRAPHICS, false, 0);
+  s_cvHwDetect = CVar::Register("hwDetect", "do hardware detection", CVar::ARCHIVE, "1", 0, GRAPHICS, false, 0);
 }
 
 static void RegisterGxCCmds() {

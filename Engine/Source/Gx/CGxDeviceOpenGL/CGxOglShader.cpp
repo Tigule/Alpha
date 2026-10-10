@@ -98,17 +98,17 @@ void CGxDeviceOpenGl::IPixelShaderBind(CGxPixelShader *ps) {
   if (ps) {
     if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_nvrc) {
       const BYTE *code = ps->code.Ptr();
-      UINT        combinerCount = *reinterpret_cast<const UINT *>(code);
+      UINT        combinerCount = *(const UINT *)code;
       glCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, combinerCount);
       glCombinerParameteriNV(0x854F, code[4]);
-      glCombinerParameterfvNV(GL_CONSTANT_COLOR0_NV, reinterpret_cast<const float *>(code + 8));
-      glCombinerParameterfvNV(GL_CONSTANT_COLOR1_NV, reinterpret_cast<const float *>(code + 24));
+      glCombinerParameterfvNV(GL_CONSTANT_COLOR0_NV, (const float *)(code + 8));
+      glCombinerParameterfvNV(GL_CONSTANT_COLOR1_NV, (const float *)(code + 24));
 
-      RegisterCombiners::GeneralCombiner *general = reinterpret_cast<RegisterCombiners::GeneralCombiner *>(const_cast<BYTE *>(code + 40));
+      RegisterCombiners::GeneralCombiner *general = (RegisterCombiners::GeneralCombiner *)(code + 40);
       for (UINT stage = 0; stage < combinerCount; ++stage) {
         general[stage].Realize(GL_COMBINER0_NV + stage, 0);
       }
-      reinterpret_cast<RegisterCombiners::FinalCombiner *>(const_cast<BYTE *>(code + 392))->Realize();
+      ((RegisterCombiners::FinalCombiner *)(code + 392))->Realize();
       DsSet(Ds_RegisterCombinersNV, 1, 0);
     } else if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_arbfp1) {
       glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, ps->apiSpecific);

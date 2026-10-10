@@ -117,7 +117,7 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep) : m
       m_childEmitter[loop] = 0;
     }
   }
-  m_model = static_cast<HMODEL>(HandleDuplicate(rhs.m_model));
+  m_model = (HMODEL)HandleDuplicate(rhs.m_model);
   m_verticesPerParticle = rhs.m_verticesPerParticle;
   m_indicesPerParticle = rhs.m_indicesPerParticle;
   m_particleEmissionRate = rhs.m_particleEmissionRate;
@@ -132,7 +132,7 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep) : m
   m_particleZsource = rhs.m_particleZsource;
   m_textureRows = rhs.m_textureRows;
   m_textureColumns = rhs.m_textureColumns;
-  m_hTex = static_cast<HTEXTURE>(HandleDuplicate(rhs.m_hTex));
+  m_hTex = (HTEXTURE)HandleDuplicate(rhs.m_hTex);
   m_replaceableId = rhs.m_replaceableId;
   m_enabled = rhs.m_enabled;
   m_enabled2 = rhs.m_enabled2;
@@ -222,14 +222,14 @@ float CParticleEmitter2::CalcVelocity() {
 }
 
 void CParticleEmitter2::Sync() {
-  UINT arraySize = static_cast<UINT>(m_particleLifeSpan * m_particleEmissionRate * 1.15f);
+  UINT arraySize = m_particleLifeSpan * m_particleEmissionRate * 1.15f;
 
   SyncAllocation(arraySize);
 
   for (UINT index = 0; index < 4; ++index) {
     if (m_childEmitter[index]) {
       UINT childSize =
-          arraySize * static_cast<UINT>(m_childEmitter[index]->m_particleEmissionRate * m_childEmitter[index]->m_particleLifeSpan * 1.15f);
+          arraySize * (UINT)(m_childEmitter[index]->m_particleEmissionRate * m_childEmitter[index]->m_particleLifeSpan * 1.15f);
 
       if (childSize > 4096) {
         childSize = 4096;
@@ -332,7 +332,7 @@ void CParticleEmitter2::CreateParticle(CParticle2 &p, float elapsedTime, const N
 }
 
 void CParticleEmitter2::CreateParticle(CParticle2_Model &p, float elapsedTime, const NTempest::C34Matrix &basis) {
-  CreateParticle(static_cast<CParticle2 &>(p), elapsedTime, basis);
+  CreateParticle((CParticle2 &)p, elapsedTime, basis);
 
   p.m_rotation = NTempest::C4Quaternion();
   p.m_rotVelocity = NTempest::C3Vector(
@@ -365,7 +365,7 @@ BOOL CParticleEmitter2::MoveParticle(CParticle2 &p, float elapsedTime) {
   p.m_position.z += move.z;
   p.m_velocity.z -= elapsedTime * m_particleAcceleration;
 
-  if (*reinterpret_cast<DWORD *>(&m_drag)) {
+  if (*(DWORD *)&m_drag) {
     float drag = elapsedTime * m_drag;
     if (1.0f < drag) {
       drag = 1.0f;
@@ -387,13 +387,13 @@ BOOL CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
     p.m_rotation *= NTempest::C4Quaternion(NTempest::CMath::cos_(angle), axis.x, axis.y, axis.z);
   }
 
-  return MoveParticle(static_cast<CParticle2 &>(p), elapsedTime);
+  return MoveParticle((CParticle2 &)p, elapsedTime);
 }
 
 BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
-    randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
+    randomIndex = (((DWORD)&p >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
   }
   if (m_twinkleOnOff < 1.0f && m_rndTable[randomIndex] > m_twinkleOnOff) {
     return 0;
@@ -421,7 +421,7 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
     float tu = (headCell & (m_textureColumns - 1)) * m_ooTextureWidth;
     float tv = (headCell >> m_textureLog) * m_ooTextureHeight;
 
-    if (!*reinterpret_cast<DWORD *>(&m_particleAngularVelocity)) {
+    if (!*(DWORD *)&m_particleAngularVelocity) {
       for (UINT i = 0; i < 4; ++i, ++vtx) {
         if (m_xyQuads) {
           vtx->p = scale * s_quadVectors[i] + vp;
@@ -434,7 +434,7 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
       }
     } else {
       float theta = p.m_age * m_particleAngularVelocity;
-      if (m_tumbler && (reinterpret_cast<DWORD>(&p) & 0x20)) {
+      if (m_tumbler && ((DWORD)&p & 0x20)) {
         theta = -theta;
       }
 
@@ -471,8 +471,8 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
     }
 
     NTempest::C4Vector viewVel4d = tmpV * s_particleToView;
-    NTempest::C3Vector viewVel3d = tailLength * static_cast<NTempest::C3Vector>(viewVel4d);
-    NTempest::C3Vector viewVel2d = static_cast<NTempest::C2Vector>(viewVel3d);
+    NTempest::C3Vector viewVel3d = tailLength * (NTempest::C3Vector)viewVel4d;
+    NTempest::C3Vector viewVel2d = (NTempest::C2Vector)viewVel3d;
     float              velMag2d = viewVel2d.SquaredMag();
 
     if (velMag2d >= 0.00077160494f) {
@@ -518,13 +518,13 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPNCT0 *vtxBase = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
-      vtxBase = static_cast<CGxVertexPNCT0 *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPNCT0)));
+      vtxBase = (CGxVertexPNCT0 *)GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPNCT0));
       *cmd.vertex.mem[GxVM_Vertex] = vtxBase;
       *cmd.vertex.mem[GxVM_Color] = &vtxBase->c;
       *cmd.vertex.mem[GxVM_Texture0] = vtxBase->tc;
       break;
     case GxBufOp_Fill:
-      vtxBase = static_cast<CGxVertexPNCT0 *>(*cmd.vertex.mem[GxVM_Vertex]);
+      vtxBase = (CGxVertexPNCT0 *)*cmd.vertex.mem[GxVM_Vertex];
       break;
     case GxBufOp_Nop:
       ASSERT(0);
@@ -558,7 +558,7 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
     }
   }
 
-  s_renderedParticles = static_cast<UINT>(vtx - vtxBase) / m_verticesPerParticle;
+  s_renderedParticles = (UINT)(vtx - vtxBase) / m_verticesPerParticle;
 }
 
 void CParticleEmitter2::IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
@@ -567,11 +567,11 @@ void CParticleEmitter2::IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
   WORD *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Assign:
-      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
+      indices = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(WORD));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
     case GxBufOp_Fill:
-      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      indices = (WORD *)*cmd.index.mem[GxVM_Indices];
       break;
     case GxBufOp_Nop:
       ASSERT(0);
@@ -581,33 +581,33 @@ void CParticleEmitter2::IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
   UINT vertexBase = 0;
   if (m_particleHasHead + m_particleHasTail == 2) {
     for (UINT plp = 0; plp < s_renderedParticles; ++plp, indices += m_indicesPerParticle, vertexBase += m_verticesPerParticle) {
-      indices[0] = static_cast<WORD>(vertexBase);
-      indices[1] = static_cast<WORD>(vertexBase + 1);
-      indices[2] = static_cast<WORD>(vertexBase + 2);
-      indices[3] = static_cast<WORD>(vertexBase + 3);
-      indices[4] = static_cast<WORD>(vertexBase + 2);
-      indices[5] = static_cast<WORD>(vertexBase + 1);
-      indices[6] = static_cast<WORD>(vertexBase + 4);
-      indices[7] = static_cast<WORD>(vertexBase + 5);
-      indices[8] = static_cast<WORD>(vertexBase + 6);
-      indices[9] = static_cast<WORD>(vertexBase + 7);
-      indices[10] = static_cast<WORD>(vertexBase + 6);
-      indices[11] = static_cast<WORD>(vertexBase + 5);
+      indices[0] = vertexBase;
+      indices[1] = vertexBase + 1;
+      indices[2] = vertexBase + 2;
+      indices[3] = vertexBase + 3;
+      indices[4] = vertexBase + 2;
+      indices[5] = vertexBase + 1;
+      indices[6] = vertexBase + 4;
+      indices[7] = vertexBase + 5;
+      indices[8] = vertexBase + 6;
+      indices[9] = vertexBase + 7;
+      indices[10] = vertexBase + 6;
+      indices[11] = vertexBase + 5;
     }
   } else {
     for (UINT plp = 0; plp < s_renderedParticles; ++plp, indices += m_indicesPerParticle, vertexBase += m_verticesPerParticle) {
-      indices[0] = static_cast<WORD>(vertexBase);
-      indices[1] = static_cast<WORD>(vertexBase + 1);
-      indices[2] = static_cast<WORD>(vertexBase + 2);
-      indices[3] = static_cast<WORD>(vertexBase + 3);
-      indices[4] = static_cast<WORD>(vertexBase + 2);
-      indices[5] = static_cast<WORD>(vertexBase + 1);
+      indices[0] = vertexBase;
+      indices[1] = vertexBase + 1;
+      indices[2] = vertexBase + 2;
+      indices[3] = vertexBase + 3;
+      indices[4] = vertexBase + 2;
+      indices[5] = vertexBase + 1;
     }
   }
 }
 
 void CParticleEmitter2::BufRenderParticles(CGxBufCommand &cmd, CGxBuf *buf) {
-  CParticleEmitter2 *emitter = static_cast<CParticleEmitter2 *>(buf->UserArg());
+  CParticleEmitter2 *emitter = (CParticleEmitter2 *)buf->UserArg();
   emitter->IRenderVertices(cmd, buf);
   emitter->IRenderIndices(cmd, buf);
 }
@@ -676,7 +676,7 @@ void CParticleEmitter2::RenderParticles() {
 BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
-    randomIndex = ((reinterpret_cast<DWORD>(&p) >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
+    randomIndex = (((DWORD)&p >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
   }
   if (m_twinkleOnOff < 1.0f && m_rndTable[randomIndex] > m_twinkleOnOff) {
     return 0;
@@ -694,7 +694,7 @@ BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
     scale *= m_frameScale;
   }
 
-  NTempest::C34Matrix particleMatrix = static_cast<NTempest::C33Matrix>(p.m_rotation);
+  NTempest::C34Matrix particleMatrix = p.m_rotation;
   particleMatrix.Scale(scale);
   *particleMatrix.Row3AsVec3() = p.m_position;
   if (m_useModelSpace) {
@@ -735,7 +735,7 @@ void CParticleEmitter2::RenderParticleModels() {
 
     for (loop = m_alive.Count(); loop; --loop) {
       CSortableParticleRecord sp = m_pq.Dequeue();
-      RenderParticle(*static_cast<CParticle2_Model *>(sp.p));
+      RenderParticle(*(CParticle2_Model *)sp.p);
     }
   } else {
     for (UINT loop = 0; loop < m_alive.Count(); ++loop) {
@@ -801,7 +801,7 @@ void CParticleEmitter2::SetMaterial(const CParticleMat &material, HTEXTURE hTex)
   if (m_hTex) {
     HandleClose(m_hTex);
   }
-  m_hTex = static_cast<HTEXTURE>(HandleDuplicate(hTex));
+  m_hTex = (HTEXTURE)HandleDuplicate(hTex);
   m_particleMaterial = material;
 }
 
@@ -818,7 +818,7 @@ void CParticleEmitter2::SetTexture(HTEXTURE hTex) {
     HandleClose(m_hTex);
   }
 
-  m_hTex = static_cast<HTEXTURE>(HandleDuplicate(hTex));
+  m_hTex = (HTEXTURE)HandleDuplicate(hTex);
 }
 
 void CParticleEmitter2::SetReplaceableId(UINT id) {
@@ -838,13 +838,13 @@ void CParticleEmitter2::SetTextureDimensions(UINT rows, UINT columns) {
 
   m_textureRows = rows;
   m_textureColumns = columns;
-  m_textureLog = static_cast<UINT>(-1);
+  m_textureLog = -1;
   do {
     columns >>= 1;
     ++m_textureLog;
   } while (columns);
-  m_ooTextureWidth = 1.0f / static_cast<float>(m_textureColumns);
-  m_ooTextureHeight = 1.0f / static_cast<float>(rows);
+  m_ooTextureWidth = 1.0f / (float)m_textureColumns;
+  m_ooTextureHeight = 1.0f / (float)rows;
 }
 
 void CParticleEmitter2::SetParticleStyle(BOOL hasHead, BOOL hasTail, float tailLength, bool tailGrows) {
@@ -983,7 +983,7 @@ void CParticleEmitter2::Update(float elapsedTime, const NTempest::C34Matrix &mod
 
 void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34Matrix &basis) {
   if (m_needSquirt) {
-    UINT numToEmit = static_cast<UINT>(ParticleSystemManager::GetScaler() * m_particleEmissionRate);
+    UINT numToEmit = ParticleSystemManager::GetScaler() * m_particleEmissionRate;
 
     while (!m_dead.IsEmpty() && numToEmit--) {
       EmitParticle(0.0f, basis);
@@ -997,10 +997,10 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
     m_numNew += ParticleSystemManager::GetScaler() * m_particleEmissionRate * elapsedTime;
 
     if (m_extrude) {
-      NTempest::C3Vector *trans = const_cast<NTempest::C3Vector *>(basis.Row3AsVec3());
+      NTempest::C3Vector *trans = (NTempest::C3Vector *)basis.Row3AsVec3();
       NTempest::C3Vector  curModelToWorldTrans = *trans;
       NTempest::C3Vector  extrude = curModelToWorldTrans - m_prevModelToWorldTrans;
-      UINT                numNew = static_cast<UINT>(m_numNew);
+      UINT                numNew = m_numNew;
 
       while (!m_dead.IsEmpty() && numNew--) {
         *trans = extrude * NTempest::CRandom::real_(m_randSeed) + m_prevModelToWorldTrans;
@@ -1010,7 +1010,7 @@ void CParticleEmitter2::EmitNewParticles(float elapsedTime, const NTempest::C34M
 
       *trans = curModelToWorldTrans;
     } else {
-      UINT numNew = static_cast<UINT>(m_numNew);
+      UINT numNew = m_numNew;
 
       while (!m_dead.IsEmpty() && numNew--) {
         EmitParticle(elapsedTime, basis);
@@ -1028,10 +1028,10 @@ void CParticleEmitter2::InternalUpdate(float elapsedTime, int suppressNewParticl
   }
 
   if (elapsedTime > s_maxTimeStep) {
-    float numSteps = static_cast<float>(floor(elapsedTime / s_maxTimeStep));
+    float numSteps = floor(elapsedTime / s_maxTimeStep);
     elapsedTime -= s_maxTimeStep * numSteps;
 
-    float lifeSteps = static_cast<float>(floor(m_particleLifeSpan / s_maxTimeStep));
+    float lifeSteps = floor(m_particleLifeSpan / s_maxTimeStep);
     if (numSteps > lifeSteps) {
       numSteps = lifeSteps;
     }
@@ -1078,7 +1078,7 @@ void CParticleEmitter2::StepUpdate(float elapsedTime, int suppressNewParticles) 
       if (m_particleType == PT_QUAD) {
         keepParticle = MoveParticle(*p, elapsedTime);
       } else {
-        keepParticle = MoveParticle(*static_cast<CParticle2_Model *>(p), elapsedTime);
+        keepParticle = MoveParticle(*(CParticle2_Model *)p, elapsedTime);
       }
 
       if (!keepParticle) {

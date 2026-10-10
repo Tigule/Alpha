@@ -9,11 +9,11 @@
 #include <lua.h>
 
 static int CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
-  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
+  CSimpleStatusBar *object = (CSimpleStatusBar *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
-    float min = static_cast<float>(lua_tonumber(L, 2));
-    float max = static_cast<float>(lua_tonumber(L, 3));
+    float min = lua_tonumber(L, 2);
+    float max = lua_tonumber(L, 3);
     object->SetMinMaxValues(min, max);
     return 0;
   }
@@ -23,7 +23,7 @@ static int CSimpleStatusBar_SetMinMaxValues(lua_State *L) {
 }
 
 static int CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
-  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
+  CSimpleStatusBar *object = (CSimpleStatusBar *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, object->GetMinValue());
   lua_pushnumber(L, object->GetMaxValue());
@@ -31,10 +31,10 @@ static int CSimpleStatusBar_GetMinMaxValues(lua_State *L) {
 }
 
 static int CSimpleStatusBar_SetValue(lua_State *L) {
-  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
+  CSimpleStatusBar *object = (CSimpleStatusBar *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    float value = static_cast<float>(lua_tonumber(L, 2));
+    float value = lua_tonumber(L, 2);
     object->SetValue(value);
     return 0;
   }
@@ -44,24 +44,24 @@ static int CSimpleStatusBar_SetValue(lua_State *L) {
 }
 
 static int CSimpleStatusBar_GetValue(lua_State *L) {
-  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
+  CSimpleStatusBar *object = (CSimpleStatusBar *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, object->GetValue());
   return 1;
 }
 
 static int CSimpleStatusBar_SetStatusBarColor(lua_State *L) {
-  CSimpleStatusBar *object = static_cast<CSimpleStatusBar *>(FrameScript_GetObjectThis(L));
-
-  float red = static_cast<float>(lua_tonumber(L, 2));
-  float green = static_cast<float>(lua_tonumber(L, 3));
-  float blue = static_cast<float>(lua_tonumber(L, 4));
-  float alpha = 1.0f;
-  if (lua_isnumber(L, 5)) {
-    alpha = static_cast<float>(lua_tonumber(L, 5));
-  }
+  CSimpleStatusBar *object = (CSimpleStatusBar *)FrameScript_GetObjectThis(L);
 
   NTempest::CImVector color;
+  float               red = lua_tonumber(L, 2);
+  float               green = lua_tonumber(L, 3);
+  float               blue = lua_tonumber(L, 4);
+  float               alpha = 1.0f;
+  if (lua_isnumber(L, 5)) {
+    alpha = lua_tonumber(L, 5);
+  }
+
   color.Set(alpha, red, green, blue);
   object->SetStatusBarColor(color);
   return 0;

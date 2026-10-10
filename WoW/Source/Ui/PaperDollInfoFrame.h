@@ -27,16 +27,16 @@ class CGCharacterInfo {
     return m_profOffset - 1;
   }
   static int GetNumSpecSkills() {
-    return max(0, static_cast<int>(m_racialOffset - m_specialOffset - 1));
+    return max(0, (int)(m_racialOffset - m_specialOffset - 1));
   }
   static int GetNumRacialSkills() {
-    return max(0, static_cast<int>(m_secondaryOffset - m_racialOffset - 1));
+    return max(0, (int)(m_secondaryOffset - m_racialOffset - 1));
   }
   static int GetNumSecondarySkills() {
-    return max(0, static_cast<int>(m_numSkills - m_secondaryOffset - 1));
+    return max(0, (int)(m_numSkills - m_secondaryOffset - 1));
   }
   static int GetNumProficiencies() {
-    return max(0, static_cast<int>(m_specialOffset - m_profOffset - 1));
+    return max(0, (int)(m_specialOffset - m_profOffset - 1));
   }
   static int              GetSkillOffsetFromString(LPCSTR string, int &offset);
   static const SkillInfo *GetSkillInfoByIndex(int index);

@@ -243,9 +243,9 @@ OsType OsGetVersion() {
 
   memset(&osvi, 0, sizeof(osvi));
   osvi.dwOSVersionInfoSize = sizeof(osvi);
-  if (!GetVersionEx(reinterpret_cast<OSVERSIONINFO *>(&osvi))) {
+  if (!GetVersionEx((OSVERSIONINFO *)&osvi)) {
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    if (!GetVersionEx(reinterpret_cast<OSVERSIONINFO *>(&osvi))) {
+    if (!GetVersionEx((OSVERSIONINFO *)&osvi)) {
       ASSERT(retVal != OsType_Unknown);
       return retVal;
     }
@@ -376,7 +376,7 @@ BOOL OsLaunchURL(LPCSTR url) {
 
   *fixedURLPos = 0;
   launchResult = ShellExecuteA(activeWindow, "open", fixedURL, 0, 0, SW_SHOWNORMAL);
-  if (reinterpret_cast<DWORD>(launchResult) > 32) {
+  if ((DWORD)launchResult > 32) {
     return 1;
   }
 
@@ -384,12 +384,12 @@ BOOL OsLaunchURL(LPCSTR url) {
   fclose(file);
 
   launchResult = FindExecutableA("8BLZ2112.HTM", 0, browserFilename);
-  if (reinterpret_cast<DWORD>(launchResult) > 32) {
+  if ((DWORD)launchResult > 32) {
     launchResult = ShellExecuteA(activeWindow, "open", browserFilename, fixedURL, 0, SW_SHOWNORMAL);
   }
 
   DeleteFileA("8BLZ2112.HTM");
-  return reinterpret_cast<DWORD>(launchResult) > 32;
+  return (DWORD)launchResult > 32;
 }
 
 void OsClearFP(int errCheck) {

@@ -36,7 +36,7 @@ void CGxDeviceOpenGl::BindTexture(CGxTex *texId, UINT tmu) {
   }
 
   ASSERT(DsGet(Ds_ActiveTexture) == tmuToUse);
-  glBindTexture(GL_TEXTURE_2D, reinterpret_cast<UINT>(texId->m_apiSpecificData));
+  glBindTexture(GL_TEXTURE_2D, (UINT)texId->m_apiSpecificData);
 }
 
 BOOL CGxDeviceOpenGl::TexCreate(
@@ -53,7 +53,7 @@ BOOL CGxDeviceOpenGl::TexCreate(
 
 void CGxDeviceOpenGl::TexDestroy(CGxTex *texId) {
   if (texId->m_apiSpecificData) {
-    glDeleteTextures(1, reinterpret_cast<GLuint *>(&texId->m_apiSpecificData));
+    glDeleteTextures(1, (GLuint *)&texId->m_apiSpecificData);
   }
 
   CGxDevice::TexDestroy(texId);
@@ -96,10 +96,10 @@ void CGxDeviceOpenGl::ITexDownload(CGxTex *texId, UINT w, UINT h, UINT startLeve
   r.t = texId->m_updateRect.t >> startLevel;
   r.r = (texId->m_updateRect.r >> startLevel) + 1;
   r.b = (texId->m_updateRect.b >> startLevel) + 1;
-  if (r.r > static_cast<int>(w)) {
+  if (r.r > (int)w) {
     r.r = w;
   }
-  if (r.b > static_cast<int>(h)) {
+  if (r.b > (int)h) {
     r.b = h;
   }
 
@@ -113,7 +113,7 @@ void CGxDeviceOpenGl::ITexDownload(CGxTex *texId, UINT w, UINT h, UINT startLeve
     case GxTex_Argb4444:
     case GxTex_Argb1555:
     case GxTex_Rgb565: {
-      const BYTE *uploadTexels = static_cast<const BYTE *>(texels);
+      const BYTE *uploadTexels = (const BYTE *)texels;
       if (gxDataFmt == GxTex_Dxt1 || gxDataFmt == GxTex_Dxt3 || gxDataFmt == GxTex_Dxt5) {
         static TSGrowableArray<BYTE> scratchTexels;
         scratchTexels.SetCount((w * 16 * recth) >> 3);
@@ -186,7 +186,7 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, UINT tmu) {
     UINT h = texId->m_height;
 
     if (!texId->m_apiSpecificData) {
-      glGenTextures(1, reinterpret_cast<GLuint *>(&texId->m_apiSpecificData));
+      glGenTextures(1, (GLuint *)&texId->m_apiSpecificData);
       BindTexture(texId, tmu);
       ITexSetFlags(texId);
 
@@ -267,7 +267,7 @@ void CGxDeviceOpenGl::ITexForceRecreation() {
   while (ndx) {
     tex = m_textures[--ndx];
     if (tex->m_apiSpecificData) {
-      glDeleteTextures(1, reinterpret_cast<GLuint *>(&tex->m_apiSpecificData));
+      glDeleteTextures(1, (GLuint *)&tex->m_apiSpecificData);
       tex->m_apiSpecificData = 0;
       tex->m_needsCreation = 1;
       tex->m_needsFlagUpdate = 1;

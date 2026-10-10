@@ -17,11 +17,11 @@ namespace MDL {
     OsGetTimeStr(timebuf, sizeof(timebuf));
     WriteLine(buffer, "// Exported on %s", timebuf);
     if (SStrLen(data.header.userName)) {
-      WriteLine(buffer, " by %s", static_cast<LPCSTR>(data.header.userName));
+      WriteLine(buffer, " by %s", (LPCSTR)data.header.userName);
     }
     WriteLine(buffer, "\n");
     if (SStrLen(data.header.sourceFilename)) {
-      WriteLine(buffer, "// SCENE_FILENAME \"%s\"\n", static_cast<LPCSTR>(data.header.sourceFilename));
+      WriteLine(buffer, "// SCENE_FILENAME \"%s\"\n", (LPCSTR)data.header.sourceFilename);
     }
     return 1;
   }

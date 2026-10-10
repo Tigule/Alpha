@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -51,31 +51,31 @@ CVar *CWorldParam::cvar_smallCull;
 CVar *CWorldParam::cvar_specular;
 
 void CWorldParam::Initialize() {
-  cvar_lod = CVar::Register("lod", "Video option: Toggle Lod", 1, "1", LodCallback, GRAPHICS, false, 0);
-  cvar_fullAlpha = CVar::Register("fullAlpha", "Video option: Toggle full alpha", 1, "0", FullAlphaCallback, GRAPHICS, false, 0);
-  cvar_doodadAnim = CVar::Register("doodadAnim", "Video option: Toggle doodad anim", 1, "1", DoodadAnimCallback, GRAPHICS, false, 0);
-  cvar_mapShadows = CVar::Register("mapShadows", "Video option: Toggle map shadows", 1, "1", MapShadowsCallback, GRAPHICS, false, 0);
-  cvar_lightMaps = CVar::Register("lightMaps", "Video option: Toggle light maps", 1, "1", LightMapsCallback, GRAPHICS, false, 0);
-  cvar_lodDist = CVar::Register("lodDist", "Video option: Set Lod distance", 1, "100.0", LodDistCallback, GRAPHICS, false, 0);
-  cvar_smallCull = CVar::Register("SmallCull", "Object size culling", 1, "0.04", SmallCullCallback, GRAPHICS, false, 0);
-  cvar_distCull = CVar::Register("DistCull", "Object distance culling", 1, "500", DistCullCallback, GRAPHICS, false, 0);
-  cvar_maxLights = CVar::Register("MaxLights", "Max number of hardware lights", 1, "4", MaxLightsCallback, GRAPHICS, false, 0);
-  cvar_shadowLevel = CVar::Register("shadowLevel", "Terrain shadow map mip level", 1, "1", ShadowLevelCallback, GRAPHICS, false, 0);
-  cvar_alphaLevel = CVar::Register("alphaLevel", "Terain alpha map mip level", 1, "0", AlphaLevelCallback, GRAPHICS, false, 0);
-  cvar_texLodBias = CVar::Register("texLodBias", "Texture LOD Bias", 1, "0.5", TexLodBiasCallback, GRAPHICS, false, 0);
-  cvar_triLinear = CVar::Register("trilinear", "Enable Trilinear texture filtering", 1, "0", TrilinearCallback, GRAPHICS, false, 0);
-  cvar_detailDensity = CVar::Register("detailDensity", "Detail doodad density", 1, "16", DetailDoodadDensityCallback, GRAPHICS, false, 0);
-  cvar_farClip = CVar::Register("farclip", "Far clip plane distance", 1, "350", FarClipCallback, GRAPHICS, false, 0);
-  cvar_nearClip = CVar::Register("nearclip", "Near clip plane distance", 1, "0.1", NearClipCallback, GRAPHICS, false, 0);
-  cvar_fov = CVar::Register("fov", "Field of view angle", 1, "90", FovCallback, GRAPHICS, false, 0);
-  cvar_specular = CVar::Register("specular", "Specularity", 1, "0", SpecularCallback, GRAPHICS, false, 0);
-  cvar_pixelShaders = CVar::Register("pixelShaders", "Use pixel shaders", 1, "0", PixelShadersCallback, GRAPHICS, false, 0);
-  cvar_particleDensity = CVar::Register("particleDensity", "Video option: Particle density", 1, "1.0", ParticleDensityCallback, GRAPHICS, false, 0);
-  cvar_unitDrawDist = CVar::Register("unitDrawDist", "Unit draw distance", 1, "150.0", UnitDrawDistCallback, GRAPHICS, false, 0);
-  cvar_waterLod = CVar::Register("waterLOD", "Water geometry LOD", 1, "0", WaterLodCallback, GRAPHICS, false, 0);
-  cvar_baseMip = CVar::Register("baseMip", "base mipmap level", 1, "0", BaseMipCallback, GRAPHICS, false, 0);
-  cvar_anisotropic = CVar::Register("anisotropic", "Anisotropic texture filtering", 1, "1", AnisotropicCallback, GRAPHICS, false, 0);
-  cvar_textureLodDist = CVar::Register("textureLodDist", "Video option: texture detail", 1, "777.0", TextureLodDistCallback, GRAPHICS, false, 0);
+  cvar_lod = CVar::Register("lod", "Video option: Toggle Lod", CVar::ARCHIVE, "1", LodCallback, GRAPHICS, false, 0);
+  cvar_fullAlpha = CVar::Register("fullAlpha", "Video option: Toggle full alpha", CVar::ARCHIVE, "0", FullAlphaCallback, GRAPHICS, false, 0);
+  cvar_doodadAnim = CVar::Register("doodadAnim", "Video option: Toggle doodad anim", CVar::ARCHIVE, "1", DoodadAnimCallback, GRAPHICS, false, 0);
+  cvar_mapShadows = CVar::Register("mapShadows", "Video option: Toggle map shadows", CVar::ARCHIVE, "1", MapShadowsCallback, GRAPHICS, false, 0);
+  cvar_lightMaps = CVar::Register("lightMaps", "Video option: Toggle light maps", CVar::ARCHIVE, "1", LightMapsCallback, GRAPHICS, false, 0);
+  cvar_lodDist = CVar::Register("lodDist", "Video option: Set Lod distance", CVar::ARCHIVE, "100.0", LodDistCallback, GRAPHICS, false, 0);
+  cvar_smallCull = CVar::Register("SmallCull", "Object size culling", CVar::ARCHIVE, "0.04", SmallCullCallback, GRAPHICS, false, 0);
+  cvar_distCull = CVar::Register("DistCull", "Object distance culling", CVar::ARCHIVE, "500", DistCullCallback, GRAPHICS, false, 0);
+  cvar_maxLights = CVar::Register("MaxLights", "Max number of hardware lights", CVar::ARCHIVE, "4", MaxLightsCallback, GRAPHICS, false, 0);
+  cvar_shadowLevel = CVar::Register("shadowLevel", "Terrain shadow map mip level", CVar::ARCHIVE, "1", ShadowLevelCallback, GRAPHICS, false, 0);
+  cvar_alphaLevel = CVar::Register("alphaLevel", "Terain alpha map mip level", CVar::ARCHIVE, "0", AlphaLevelCallback, GRAPHICS, false, 0);
+  cvar_texLodBias = CVar::Register("texLodBias", "Texture LOD Bias", CVar::ARCHIVE, "0.5", TexLodBiasCallback, GRAPHICS, false, 0);
+  cvar_triLinear = CVar::Register("trilinear", "Enable Trilinear texture filtering", CVar::ARCHIVE, "0", TrilinearCallback, GRAPHICS, false, 0);
+  cvar_detailDensity = CVar::Register("detailDensity", "Detail doodad density", CVar::ARCHIVE, "16", DetailDoodadDensityCallback, GRAPHICS, false, 0);
+  cvar_farClip = CVar::Register("farclip", "Far clip plane distance", CVar::ARCHIVE, "350", FarClipCallback, GRAPHICS, false, 0);
+  cvar_nearClip = CVar::Register("nearclip", "Near clip plane distance", CVar::ARCHIVE, "0.1", NearClipCallback, GRAPHICS, false, 0);
+  cvar_fov = CVar::Register("fov", "Field of view angle", CVar::ARCHIVE, "90", FovCallback, GRAPHICS, false, 0);
+  cvar_specular = CVar::Register("specular", "Specularity", CVar::ARCHIVE, "0", SpecularCallback, GRAPHICS, false, 0);
+  cvar_pixelShaders = CVar::Register("pixelShaders", "Use pixel shaders", CVar::ARCHIVE, "0", PixelShadersCallback, GRAPHICS, false, 0);
+  cvar_particleDensity = CVar::Register("particleDensity", "Video option: Particle density", CVar::ARCHIVE, "1.0", ParticleDensityCallback, GRAPHICS, false, 0);
+  cvar_unitDrawDist = CVar::Register("unitDrawDist", "Unit draw distance", CVar::ARCHIVE, "150.0", UnitDrawDistCallback, GRAPHICS, false, 0);
+  cvar_waterLod = CVar::Register("waterLOD", "Water geometry LOD", CVar::ARCHIVE, "0", WaterLodCallback, GRAPHICS, false, 0);
+  cvar_baseMip = CVar::Register("baseMip", "base mipmap level", CVar::ARCHIVE, "0", BaseMipCallback, GRAPHICS, false, 0);
+  cvar_anisotropic = CVar::Register("anisotropic", "Anisotropic texture filtering", CVar::ARCHIVE, "1", AnisotropicCallback, GRAPHICS, false, 0);
+  cvar_textureLodDist = CVar::Register("textureLodDist", "Video option: texture detail", CVar::ARCHIVE, "777.0", TextureLodDistCallback, GRAPHICS, false, 0);
 }
 
 void CWorldParam::Destroy() {
@@ -281,7 +281,7 @@ bool CWorldParam::DetailDoodadDensityCallback(CVar *h, LPCSTR oldValue, LPCSTR n
 bool CWorldParam::SpecularCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   bool result = true;
   if (SStrToInt(newValue)) {
-    if (GxCaps().m_pixelShaderTarget > -1) {
+    if (GxCaps().m_pixelShaderTarget > CGxPixelShader::Target_gx) {
       ConsoleWrite("Specular enabled", DEFAULT_COLOR);
       CWorld::enables |= CWorld::Enable_Specular;
     } else {
@@ -298,7 +298,7 @@ bool CWorldParam::SpecularCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LP
 bool CWorldParam::PixelShadersCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
   bool result = true;
   if (SStrToInt(newValue)) {
-    if (GxCaps().m_pixelShaderTarget > -1) {
+    if (GxCaps().m_pixelShaderTarget > CGxPixelShader::Target_gx) {
       ConsoleWrite("Pixel shaders enabled.", DEFAULT_COLOR);
       CWorld::enables |= CWorld::Enable_PixelShaders;
     } else {

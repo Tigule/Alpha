@@ -21,7 +21,7 @@ static _D3DTEXTUREFILTERTYPE s_filterModes[][3] = {
 };
 static _D3DTEXTUREADDRESS s_wrapModes[] = {D3DTADDRESS_CLAMP, D3DTADDRESS_WRAP};
 static _D3DTEXTUREOP      s_texColorOps[] = {D3DTOP_SELECTARG1, D3DTOP_MODULATE, D3DTOP_BLENDTEXTUREALPHA, D3DTOP_ADD, D3DTOP_MODULATE2X};
-static _D3DTEXTUREOP      s_texAlphaOps[] = {D3DTOP_SELECTARG1, D3DTOP_MODULATE, static_cast<_D3DTEXTUREOP>(3), D3DTOP_ADD, D3DTOP_MODULATE2X};
+static _D3DTEXTUREOP      s_texAlphaOps[] = {D3DTOP_SELECTARG1, D3DTOP_MODULATE, D3DTOP_SELECTARG2, D3DTOP_ADD, D3DTOP_MODULATE2X};
 
 static void SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, float scale);
 
@@ -33,7 +33,7 @@ static void SetD3dColor(_D3DCOLORVALUE &dst, const NTempest::CImVector &src, flo
 }
 
 inline UINT CGxDeviceD3d::StateD3dLight::CalcChkSum(const _D3DLIGHT9 &light) {
-  const DWORD *data = reinterpret_cast<const DWORD *>(&light);
+  const DWORD *data = (const DWORD *)&light;
   UINT         count = sizeof(light) / sizeof(DWORD);
   UINT         chkSum = 0;
 
@@ -191,7 +191,7 @@ void CGxDeviceD3d::IStateSyncTransforms() {
 
   for (UINT tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
     int texture;
-    RsGet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), texture);
+    RsGet((EGxRenderState)(GxRs_Texture0 + tmu), texture);
     if (texture && (m_xforms[tmu].m_dirty || m_texGen[tmu].m_dirty)) {
       IXformSetTex(tmu);
     }
@@ -247,7 +247,7 @@ void CGxDeviceD3d::IStateSetD3DDefaults() {
 
 void CGxDeviceD3d::ISetLight(DWORD which, const _D3DLIGHT9 &value, int enabled) {
   StateD3dLight &state = m_d3dStatesLight[which];
-  int            force = state.which == static_cast<DWORD>(-1);
+  int            force = state.which == (DWORD)-1;
 
   if (force || state != value) {
     m_d3dDevice->SetLight(which, &value);
@@ -266,7 +266,7 @@ void CGxDeviceD3d::ISetLight(DWORD which, const _D3DLIGHT9 &value, int enabled) 
 void CGxDeviceD3d::IForceLights() {
   for (UINT i = 0; i < 8; ++i) {
     StateD3dLight &state = m_d3dStatesLight[i];
-    if (state.which != static_cast<DWORD>(-1)) {
+    if (state.which != (DWORD)-1) {
       m_d3dDevice->SetLight(state.which, &state.val);
       m_d3dDevice->LightEnable(state.which, state.enabled);
     }
@@ -357,21 +357,21 @@ void CGxDeviceD3d::ISetTexture(UINT tmu, CGxTex *tex) {
     ASSERT(!(tex->m_flags.m_renderTarget && tex->m_needsUpdate));
     ITexBind(tex);
     ITexMarkAsUpdated(tex);
-    HRESULT res = m_d3dDevice->SetTexture(tmu, reinterpret_cast<IDirect3DBaseTexture9 *>(tex->m_apiSpecificData));
+    HRESULT res = m_d3dDevice->SetTexture(tmu, (IDirect3DBaseTexture9 *)tex->m_apiSpecificData);
     ASSERT(res == ((HRESULT)0x00000000L));
 
     const _D3DTEXTUREFILTERTYPE *filter = s_filterModes[tex->m_flags.m_filter];
 
-    DsSet(static_cast<EDeviceState>(Ds_TssMagFilter0 + tmu), filter[0]);
-    DsSet(static_cast<EDeviceState>(Ds_TssMinFilter0 + tmu), filter[1]);
-    DsSet(static_cast<EDeviceState>(Ds_TssMipFilter0 + tmu), filter[2]);
-    DsSet(static_cast<EDeviceState>(Ds_TssWrapU0 + tmu), s_wrapModes[tex->m_flags.m_wrapU]);
-    DsSet(static_cast<EDeviceState>(Ds_TssWrapV0 + tmu), s_wrapModes[tex->m_flags.m_wrapV]);
-    DsSet(static_cast<EDeviceState>(Ds_TssMaxAnisotropy0 + tmu), tex->m_flags.m_maxAnisotropy);
+    DsSet((EDeviceState)(Ds_TssMagFilter0 + tmu), filter[0]);
+    DsSet((EDeviceState)(Ds_TssMinFilter0 + tmu), filter[1]);
+    DsSet((EDeviceState)(Ds_TssMipFilter0 + tmu), filter[2]);
+    DsSet((EDeviceState)(Ds_TssWrapU0 + tmu), s_wrapModes[tex->m_flags.m_wrapU]);
+    DsSet((EDeviceState)(Ds_TssWrapV0 + tmu), s_wrapModes[tex->m_flags.m_wrapV]);
+    DsSet((EDeviceState)(Ds_TssMaxAnisotropy0 + tmu), tex->m_flags.m_maxAnisotropy);
 
     if (!m_texEnable[tmu]) {
       m_texEnable[tmu] = 1;
-      ISetTexBlend(tmu, static_cast<EGxTexBlend>(*reinterpret_cast<UINT *>(&mAppRenderStates[GxRs_TexBlend0 + tmu].mValue)));
+      ISetTexBlend(tmu, (EGxTexBlend)(*(UINT *)&mAppRenderStates[GxRs_TexBlend0 + tmu].mValue));
       mAppRenderStates[GxRs_TexBlend0 + tmu].mDirty = 0;
     }
   } else {
@@ -452,7 +452,7 @@ void CGxDeviceD3d::ISetTexGen(UINT tmu, EGxTexGen texGen) {
 
 void CGxDeviceD3d::ISetTexLodBias(UINT tmu, float bias) {
   if (m_caps.m_mipMapLodBias && tmu < m_caps.m_numTmus) {
-    m_d3dDevice->SetSamplerState(tmu, D3DSAMP_MIPMAPLODBIAS, *reinterpret_cast<UINT *>(&bias));
+    m_d3dDevice->SetSamplerState(tmu, D3DSAMP_MIPMAPLODBIAS, *(UINT *)&bias);
   }
 }
 
@@ -465,23 +465,23 @@ void CGxDeviceD3d::ISetTexBlend(UINT tmu, EGxTexBlend blend) {
 
 void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
   CGxAppRenderState &state = mAppRenderStates[which];
-  UINT               value = *reinterpret_cast<UINT *>(&state.mValue);
+  UINT               value = *(UINT *)&state.mValue;
 
   switch (which) {
     case GxRs_PolygonOffset:
       if (m_caps.m_depthBias) {
-        m_d3dDevice->SetRenderState(D3DRS_DEPTHBIAS, static_cast<UINT>(*reinterpret_cast<float *>(&state.mValue) * 16.0f));
+        m_d3dDevice->SetRenderState(D3DRS_DEPTHBIAS, state.mValue.GetAsFloat() * 16.0f);
       }
       break;
     case GxRs_MatDiffuse:
     case GxRs_MatEmissive:
     case GxRs_MatSpecular:
     case GxRs_MatSpecularExp: {
-      SetD3dColor(mat.Diffuse, *reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[GxRs_MatDiffuse].mValue), oo255);
-      SetD3dColor(mat.Emissive, *reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[GxRs_MatEmissive].mValue), oo255);
-      SetD3dColor(mat.Specular, *reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[GxRs_MatSpecular].mValue), oo255);
+      SetD3dColor(mat.Diffuse, *(NTempest::CImVector *)&mAppRenderStates[GxRs_MatDiffuse].mValue, oo255);
+      SetD3dColor(mat.Emissive, *(NTempest::CImVector *)&mAppRenderStates[GxRs_MatEmissive].mValue, oo255);
+      SetD3dColor(mat.Specular, *(NTempest::CImVector *)&mAppRenderStates[GxRs_MatSpecular].mValue, oo255);
       mat.Ambient = mat.Diffuse;
-      mat.Power = *reinterpret_cast<float *>(&mAppRenderStates[GxRs_MatSpecularExp].mValue);
+      mat.Power = mAppRenderStates[GxRs_MatSpecularExp].mValue.GetAsFloat();
       m_d3dDevice->SetMaterial(&mat);
       mAppRenderStates[GxRs_MatDiffuse].mDirty = 0;
       mAppRenderStates[GxRs_MatEmissive].mDirty = 0;
@@ -505,7 +505,7 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
       }
       break;
     case GxRs_AlphaRef:
-      if (static_cast<int>(value) <= 0) {
+      if ((int)value <= 0) {
         DsSet(Ds_AlphaTestEnable, 0);
       } else {
         m_d3dDevice->SetRenderState(D3DRS_ALPHAREF, value);
@@ -539,8 +539,8 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
       break;
     case GxRs_DepthTest:
     case GxRs_DepthFunc:
-      if ((m_appState.m_masterEnables & 4) && *reinterpret_cast<UINT *>(&mAppRenderStates[GxRs_DepthTest].mValue)) {
-        m_d3dDevice->SetRenderState(D3DRS_ZFUNC, s_cmpFunc[*reinterpret_cast<UINT *>(&mAppRenderStates[GxRs_DepthFunc].mValue)]);
+      if ((m_appState.m_masterEnables & 4) && *(UINT *)&mAppRenderStates[GxRs_DepthTest].mValue) {
+        m_d3dDevice->SetRenderState(D3DRS_ZFUNC, s_cmpFunc[*(UINT *)&mAppRenderStates[GxRs_DepthFunc].mValue]);
       } else {
         m_d3dDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
       }
@@ -557,25 +557,25 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
     case GxRs_Texture1:
     case GxRs_Texture2:
     case GxRs_Texture3:
-      ISetTexture(which - GxRs_Texture0, reinterpret_cast<CGxTex *>(value));
+      ISetTexture(which - GxRs_Texture0, (CGxTex *)value);
       break;
     case GxRs_TexBlend0:
     case GxRs_TexBlend1:
     case GxRs_TexBlend2:
     case GxRs_TexBlend3:
-      ISetTexBlend(which - GxRs_TexBlend0, static_cast<EGxTexBlend>(value));
+      ISetTexBlend(which - GxRs_TexBlend0, (EGxTexBlend)value);
       break;
     case GxRs_TexLodBias0:
     case GxRs_TexLodBias1:
     case GxRs_TexLodBias2:
     case GxRs_TexLodBias3:
-      ISetTexLodBias(which - GxRs_TexLodBias0, *reinterpret_cast<float *>(&state.mValue));
+      ISetTexLodBias(which - GxRs_TexLodBias0, state.mValue.GetAsFloat());
       break;
     case GxRs_TexGen0:
     case GxRs_TexGen1:
     case GxRs_TexGen2:
     case GxRs_TexGen3:
-      ISetTexGen(which - GxRs_TexGen0, static_cast<EGxTexGen>(value));
+      ISetTexGen(which - GxRs_TexGen0, (EGxTexGen)value);
       break;
     case GxRs_TextureShader0:
     case GxRs_TextureShader1:
@@ -583,10 +583,10 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
     case GxRs_TextureShader3:
       return;
     case GxRs_PixelShader:
-      IBindPixelShader(reinterpret_cast<CGxPixelShader *>(value));
+      IBindPixelShader((CGxPixelShader *)value);
       break;
     case GxRs_VertexShader:
-      IBindVertexShader(reinterpret_cast<CGxVertexShader *>(value));
+      IBindVertexShader((CGxVertexShader *)value);
       break;
     default:
       ASSERT(0);

@@ -23,23 +23,21 @@
 static BOOL CCommand_Ghost(LPCSTR command, LPCSTR args) {
   WDataStore msg;
   msg.Put(CMSG_GM_INVIS);
-  if (!args || SStrCmpI(args, "off", 0x7FFFFFFF)) {
-    if (*args) {
-      msg.Put(1);
-      msg.Finalize();
-      ClientServices_Send(&msg);
-      CGPlayer_C::StartGhosting(args);
-    } else {
-      msg.Put(1);
-      msg.Finalize();
-      ClientServices_Send(&msg);
-      CGPlayer_C::StartGhosting(CGGameUI::GetLockedTarget());
-    }
-  } else {
-    msg.Put(0);
+  if (args && !SStrCmpI(args, "off", 0x7FFFFFFF)) {
+    msg.PutInt(0);
     msg.Finalize();
     ClientServices_Send(&msg);
     CGPlayer_C::StopGhosting();
+  } else if (*args) {
+    msg.PutInt(1);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    CGPlayer_C::StartGhosting(args);
+  } else {
+    msg.PutInt(1);
+    msg.Finalize();
+    ClientServices_Send(&msg);
+    CGPlayer_C::StartGhosting(CGGameUI::GetLockedTarget());
   }
   return 1;
 }
@@ -61,10 +59,10 @@ static BOOL CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
   WDataStore msg;
   msg.Put(MSG_GM_BIND_OTHER);
   if (args && *args) {
-    msg.Put(static_cast<BYTE>(1));
+    msg.Put((BYTE)1);
     msg.PutString(args);
   } else {
-    msg.Put(static_cast<BYTE>(0));
+    msg.Put((BYTE)0);
     msg.Put(CGGameUI::GetLockedTarget());
   }
   msg.Finalize();
@@ -124,14 +122,14 @@ static BOOL CCommand_Nuke(LPCSTR command, LPCSTR args) {
 }
 
 void InstallGMCommands() {
-  ConsoleCommandRegister("ghost", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Ghost), GM, "Watch a player");
-  ConsoleCommandRegister("invis", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Invis), GM, "Go GM Invis");
-  ConsoleCommandRegister("bindplayer", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_BindPlayer), GM, "Bind another player to their current loc");
-  ConsoleCommandRegister("summon", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Summon), GM, "Summon a named player to your location");
-  ConsoleCommandRegister("showlabel", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_ShowLabel), GM, "Toggle showing 'GM' label to other players");
-  ConsoleCommandRegister("setsecurity", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_SetSecurity), GM, "Set another character's security group");
+  ConsoleCommandRegister("ghost", CCommand_Ghost, GM, "Watch a player");
+  ConsoleCommandRegister("invis", CCommand_Invis, GM, "Go GM Invis");
+  ConsoleCommandRegister("bindplayer", CCommand_BindPlayer, GM, "Bind another player to their current loc");
+  ConsoleCommandRegister("summon", CCommand_Summon, GM, "Summon a named player to your location");
+  ConsoleCommandRegister("showlabel", CCommand_ShowLabel, GM, "Toggle showing 'GM' label to other players");
+  ConsoleCommandRegister("setsecurity", CCommand_SetSecurity, GM, "Set another character's security group");
   ConsoleCommandRegister(
-      "nuke", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Nuke), GM, "Nuke a player (forcibly remove from server completely)"
+      "nuke", CCommand_Nuke, GM, "Nuke a player (forcibly remove from server completely)"
   );
 }
 

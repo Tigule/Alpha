@@ -127,7 +127,7 @@ void CGPlayer_C::UninstallGMHandlers() {
 void CGPlayer_C::StartGhosting(LPCSTR name) {
   WDataStore msg;
   msg.Put(CMSG_GHOST);
-  msg.Put(static_cast<BYTE>(1));
+  msg.Put((BYTE)1);
   msg.PutString(name);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -143,7 +143,7 @@ void CGPlayer_C::StartGhosting(LPCSTR name) {
 void CGPlayer_C::StartGhosting(DWORDLONG guid) {
   WDataStore msg;
   msg.Put(CMSG_GHOST);
-  msg.Put(static_cast<BYTE>(0));
+  msg.Put((BYTE)0);
   msg.Put(guid);
   msg.Finalize();
   ClientServices_Send(&msg);
@@ -157,8 +157,8 @@ void CGPlayer_C::StartGhosting(DWORDLONG guid) {
 void CGPlayer_C::StopGhosting() {
   WDataStore msg;
   msg.Put(CMSG_GHOST);
-  msg.Put(static_cast<BYTE>(0));
-  msg.Put(static_cast<DWORDLONG>(0));
+  msg.Put((BYTE)0);
+  msg.Put((DWORDLONG)0);
   msg.Finalize();
   ClientServices_Send(&msg);
 

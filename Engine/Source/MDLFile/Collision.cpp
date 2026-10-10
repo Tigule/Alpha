@@ -21,9 +21,9 @@ namespace MDL {
 }  // namespace MDL
 
 static void ICollisionAddErrors(TSet &errors) {
-  errors.Add(0x1D8, 1, 0);
-  errors.Add(0x1C9, 1, 0);
-  errors.Add(0x17B, 1, 0);
+  errors.Add(MDLTOK_VERTICES, 1, 0);
+  errors.Add(MDLTOK_TRIANGLES, 1, 0);
+  errors.Add(MDLTOK_NORMALS, 1, 0);
 }
 
 static void IReadTriangleIndices(Parser &parse, TSGrowableArray<WORD> *triIndices) {
@@ -37,11 +37,11 @@ static void IReadTriangleIndices(Parser &parse, TSGrowableArray<WORD> *triIndice
   long actual = 0;
   savedtoken = parse.Token(&tokentext, 0);
   while (savedtoken == '{') {
-    *triIndices->New() = static_cast<WORD>(parse.ExpectInt());
+    *triIndices->New() = parse.ExpectInt();
     parse.Expect(',');
-    *triIndices->New() = static_cast<WORD>(parse.ExpectInt());
+    *triIndices->New() = parse.ExpectInt();
     parse.Expect(',');
-    *triIndices->New() = static_cast<WORD>(parse.ExpectInt());
+    *triIndices->New() = parse.ExpectInt();
     parse.Expect('}');
     parse.Expect(',');
     ++actual;
@@ -55,7 +55,7 @@ static void IReadTriangleIndices(Parser &parse, TSGrowableArray<WORD> *triIndice
 
 static void IWriteTriangleIndices(const TSGrowableArray<WORD> &triIndices, TSGrowableArray<char> &buffer) {
   UINT numTriangles = triIndices.Count() / 3;
-  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x1C9), numTriangles);
+  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(MDLTOK_TRIANGLES), numTriangles);
   for (UINT i = 0; i < numTriangles; ++i) {
     MDL::WriteLine(buffer, "\t\t{ %hu, %hu, %hu },\n", triIndices[i * 3], triIndices[i * 3 + 1], triIndices[i * 3 + 2]);
   }
@@ -71,21 +71,28 @@ BOOL MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   ICollisionAddErrors(errors);
   parse.Expect('{');
   LPCSTR tokentext;
-  UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
+  UINT   token;
+  for (token = parse.Token(&tokentext, 0); token != '}'; token = parse.Token(&tokentext, 0)) {
+    if (!token) {
+      break;
+    }
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
     }
-    if (token == 0x1D8) {
-      ReadVertices(parse, "collision vertices", &data.collision.vertices);
-    } else if (token == 0x1C9) {
-      IReadTriangleIndices(parse, &data.collision.triIndices);
-    } else if (token == 0x17B) {
-      ReadVertices(parse, "facet normals", &data.collision.facetNormals);
-    } else {
-      parse.FatalUnexpected(tokentext);
+    switch (token) {
+      case MDLTOK_VERTICES:
+        ReadVertices(parse, "vertices", &data.collision.vertices);
+        break;
+      case MDLTOK_TRIANGLES:
+        IReadTriangleIndices(parse, &data.collision.triIndices);
+        break;
+      case MDLTOK_NORMALS:
+        ReadVertices(parse, "normals", &data.collision.facetNormals);
+        break;
+      default:
+        parse.FatalUnexpected(tokentext);
+        break;
     }
-    token = parse.Token(&tokentext, 0);
   }
   parse.Expect('}', token, tokentext);
   errors.Complete(status);
@@ -94,10 +101,10 @@ BOOL MDL::ReadCollision(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 
 BOOL MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.collision.vertices.Count()) {
-    WriteLine(buffer, "%s {\n", TokenText(0x119));
-    WriteVertices(data.collision.vertices, 0x1D8, buffer);
+    WriteLine(buffer, "%s {\n", TokenText(MDLTOK_COLLISION));
+    WriteVertices(data.collision.vertices, MDLTOK_VERTICES, buffer);
     IWriteTriangleIndices(data.collision.triIndices, buffer);
-    WriteVertices(data.collision.facetNormals, 0x17B, buffer);
+    WriteVertices(data.collision.facetNormals, MDLTOK_NORMALS, buffer);
     WriteLine(buffer, "}\n");
   }
   return 1;

@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -28,7 +28,7 @@ namespace NTempest {
     DWORD dg;
     DWORD db;
     Get_(d, dr, dg, db);
-    *IV_() = MakeRGB(static_cast<BYTE>((scale * dr + 255) >> 8), static_cast<BYTE>((scale * dg + 255) >> 8), static_cast<BYTE>((scale * db + 255) >> 8)) |
+    *IV_() = MakeRGB((scale * dr + 255) >> 8, (scale * dg + 255) >> 8, (scale * db + 255) >> 8) |
              (d & eAlphaMask);
   }
 
@@ -99,7 +99,7 @@ void CMapStaticEntity::AdjustLightmap(
     NTempest::C3Vector rgb(dirColor.r * 0.0039215689f, dirColor.g * 0.0039215689f, dirColor.b * 0.0039215689f);
     NTempest::C3Vector hsv;
     NTempest::RGBtoHSV(rgb, hsv);
-    hsv.z *= static_cast<float>(minDir) / maxMag;
+    hsv.z *= (float)minDir / maxMag;
     NTempest::HSVtoRGB(hsv, rgb);
     dirColor = NTempest::CImVector(
         255, NTempest::CMath::ftol_0_256_(rgb.x * 255.0f), NTempest::CMath::ftol_0_256_(rgb.y * 255.0f), NTempest::CMath::ftol_0_256_(rgb.z * 255.0f)
@@ -108,7 +108,7 @@ void CMapStaticEntity::AdjustLightmap(
 
   ambColor = lmColor;
   if (maxMag > maxAmbient) {
-    ambColor.Scale255RGB(Fast_ftol(static_cast<float>(maxAmbient) * 255.0f / maxMag));
+    ambColor.Scale255RGB(Fast_ftol((float)maxAmbient * 255.0f / maxMag));
   }
 }
 
@@ -127,14 +127,14 @@ void CMapStaticEntity::FindLights() {
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     CMapBaseObj *parent = parentLink->ref;
     if (parent->GetType() & Type_Chunk) {
-      CMapChunk *chunk = static_cast<CMapChunk *>(parent);
+      CMapChunk *chunk = (CMapChunk *)parent;
       ITERATELIST(CMapBaseObjLink, chunk->lightLinkList, lightLink) {
-        CreateCacheLight(static_cast<CMapLight *>(lightLink->owner));
+        CreateCacheLight((CMapLight *)lightLink->owner);
       }
     } else if (parent->GetType() & Type_MapObjDefGroup) {
-      CMapObjDefGroup *group = static_cast<CMapObjDefGroup *>(parent);
+      CMapObjDefGroup *group = (CMapObjDefGroup *)parent;
       ITERATELIST(CMapBaseObjLink, group->lightLinkList, lightLink) {
-        CreateCacheLight(static_cast<CMapLight *>(lightLink->owner));
+        CreateCacheLight((CMapLight *)lightLink->owner);
       }
     }
   }
@@ -276,11 +276,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
       }
 
       for (UINT i = 0; i < 6; ++i) {
-        NTempest::C3Vector localRadVec(
-            dirs[i].x * lMat.a0 + dirs[i].y * lMat.b0 + dirs[i].z * lMat.c0,
-            dirs[i].x * lMat.a1 + dirs[i].y * lMat.b1 + dirs[i].z * lMat.c1,
-            dirs[i].x * lMat.a2 + dirs[i].y * lMat.b2 + dirs[i].z * lMat.c2
-        );
+        NTempest::C3Vector localRadVec = NTempest::C44Matrix::mul3v33m_(dirs[i], lMat);
         localRadVec *= radius;
         NTempest::C3Segment lmQuerySeg(localPos, localPos + localRadVec);
 

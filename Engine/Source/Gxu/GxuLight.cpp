@@ -81,7 +81,7 @@ inline CGxuLightLink *CGxuLight::AllocListLink() {
 }
 
 inline void CGxuLight::ClearListLinks() {
-  for (CGxuLightLink *link = m_links.Head(), *next; (int)link > 0 ? ((next = m_links.RawNext(link)), 1) : 0; link = next) {
+  SAFEITERATELIST(CGxuLightLink, m_links, link) {
     link->m_lightLink.Unlink();
     link->m_listLink.Unlink();
     if (m_light.m_isOmni && link->m_list->m_links.Head()) {
@@ -183,11 +183,11 @@ static DWORD IGxuLightCreate() {
     new (&light->m_light) CGxLight;
   }
 
-  return reinterpret_cast<DWORD>(light);
+  return (DWORD)light;
 }
 
 static void IGxuLightDestroy(DWORD lightId) {
-  CGxuLight *light = reinterpret_cast<CGxuLight *>(lightId);
+  CGxuLight *light = (CGxuLight *)lightId;
 
   ASSERT(light);
   s_forceSettingLights = 1;
@@ -197,7 +197,7 @@ static void IGxuLightDestroy(DWORD lightId) {
 }
 
 static CGxLight *IGxuLightLock(DWORD lightId) {
-  CGxuLight *light = reinterpret_cast<CGxuLight *>(lightId);
+  CGxuLight *light = (CGxuLight *)lightId;
 
   ASSERT(light);
   ++light->m_lockCount;
@@ -205,7 +205,7 @@ static CGxLight *IGxuLightLock(DWORD lightId) {
 }
 
 static void IGxuLightUnlock(DWORD lightId) {
-  CGxuLight *light = reinterpret_cast<CGxuLight *>(lightId);
+  CGxuLight *light = (CGxuLight *)lightId;
 
   ASSERT(light);
   ASSERT(light->m_lockCount != 0);

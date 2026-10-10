@@ -43,7 +43,7 @@ static DWORD s_timestampLen;
 static char  s_timestamp[SLOG_TIMESTAMP_SIZE];
 
 static LOGRECORD *LockLog(HSLOG log, int *bucket, int create) {
-  DWORD       id = static_cast<DWORD>(reinterpret_cast<uintptr_t>(log));
+  DWORD       id = (DWORD)((uintptr_t)log);
   LOGRECORD **cursor;
   LOGRECORD  *record;
 
@@ -67,7 +67,7 @@ static LOGRECORD *LockLog(HSLOG log, int *bucket, int create) {
     return 0;
   }
 
-  record = static_cast<LOGRECORD *>(SMemAlloc(sizeof(LOGRECORD), __FILE__, __LINE__, 0));
+  record = (LOGRECORD *)SMemAlloc(sizeof(LOGRECORD), __FILE__, __LINE__, 0);
   *cursor = record;
 
   if (!record) {
@@ -217,7 +217,7 @@ extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
     filename = "";
   }
 
-  *log = reinterpret_cast<HSLOG>(static_cast<uintptr_t>(++s_nextId));
+  *log = (HSLOG)((uintptr_t)(++s_nextId));
 
   record = LockLog(*log, &bucket, 1);
   if (!record) {

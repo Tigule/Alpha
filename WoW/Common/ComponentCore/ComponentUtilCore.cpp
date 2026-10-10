@@ -206,7 +206,7 @@ BOOL CompUtilItemSectionInfo(
     }
 
     if (s_sectionFlags[inventoryType] & (1 << section)) {
-      sectionList[numSections] = static_cast<TEXCOMPONENT_SECTIONS>(section);
+      sectionList[numSections] = (TEXCOMPONENT_SECTIONS)section;
       layerList[numSections] = g_sectionLayers[inventoryType].layers[section];
       priorityList[numSections] = g_sectionPriorities[inventoryType].priorities[section];
 
@@ -309,7 +309,7 @@ UINT CompUtilGetObjComponents(
 
   UINT count = 0;
   for (UINT componentLink = 0; componentLink < 36 && count < 2; ++componentLink) {
-    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & (static_cast<LONGLONG>(1) << componentLink))) {
+    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & ((LONGLONG)1 << componentLink))) {
       continue;
     }
     if (ReadSubComponent(displayInfoRec, count, itemInventoryType, &subComponents[count])) {
@@ -333,7 +333,7 @@ UINT CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, 
   UINT flags = 0;
   UINT componentIndex = 0;
   for (UINT componentLink = 0; componentLink < 36 && componentIndex < 2; ++componentLink) {
-    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & (static_cast<LONGLONG>(1) << componentLink))) {
+    if (!(g_geometryComponentLookups[itemInventoryType].allowedSlots & ((LONGLONG)1 << componentLink))) {
       continue;
     }
     if (ReadSubComponent(displayInfoRec, componentIndex, itemInventoryType, 0)) {

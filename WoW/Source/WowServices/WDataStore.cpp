@@ -58,9 +58,9 @@ void WDataStore::InternalInitialize(BYTE *&data, UINT &base, UINT &alloc) {
 void WDataStore::InternalDestroy(BYTE *&data, UINT &base, UINT &alloc) {
   if (m_bufferObj) {
     if (alloc == SMALL_BUFFER_SIZE) {
-      s_smallHeap->Free(static_cast<WDataStoreBuffer<SMALL_BUFFER_SIZE> *>(m_bufferObj));
+      s_smallHeap->Free((WDataStoreBuffer<SMALL_BUFFER_SIZE> *)m_bufferObj);
     } else if (alloc == LARGE_BUFFER_SIZE) {
-      s_largeHeap->Free(static_cast<WDataStoreBuffer<LARGE_BUFFER_SIZE> *>(m_bufferObj));
+      s_largeHeap->Free((WDataStoreBuffer<LARGE_BUFFER_SIZE> *)m_bufferObj);
     } else {
       ASSERT(0);
     }
@@ -121,9 +121,9 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
 
   if (oldBufferObj) {
     if (oldAlloc == SMALL_BUFFER_SIZE) {
-      s_smallHeap->Free(static_cast<WDataStoreBuffer<SMALL_BUFFER_SIZE> *>(oldBufferObj));
+      s_smallHeap->Free((WDataStoreBuffer<SMALL_BUFFER_SIZE> *)oldBufferObj);
     } else if (oldAlloc == LARGE_BUFFER_SIZE) {
-      s_largeHeap->Free(static_cast<WDataStoreBuffer<LARGE_BUFFER_SIZE> *>(oldBufferObj));
+      s_largeHeap->Free((WDataStoreBuffer<LARGE_BUFFER_SIZE> *)oldBufferObj);
     } else {
       ASSERT(0);
     }

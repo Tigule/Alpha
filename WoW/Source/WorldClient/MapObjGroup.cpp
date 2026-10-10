@@ -6,11 +6,13 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
+
+#include <Ftol.h>
 
 #include "WorldCommon/WorldMath.h"
 #include "Images/blit.h"
@@ -35,7 +37,7 @@ static float *t[16];
 
 CGxBuf *CMapObjGroup::AllocExtGxBuf(UINT nVerts, UINT nIndices) {
   if (!extGxBufFreeList.Count()) {
-    return GxBufCreate(GxBWF_Low, static_cast<EGxVertexBufferFormat>(2), nVerts, nIndices, ExtGxBufFill, 0);
+    return GxBufCreate(GxBWF_Low, GxVBF_PNT0, nVerts, nIndices, ExtGxBufFill, 0);
   }
 
   CGxBuf *gxBuf = extGxBufFreeList[extGxBufFreeList.Count() - 1];
@@ -53,7 +55,7 @@ void CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
 }
 
 void CMapObjGroup::ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
-  CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
+  CMapObjGroup *group = (CMapObjGroup *)buf->UserArg();
   FATALASSERT(group);
   group->ExtGxBufFillVertex(cmd, buf);
   group->GxBufFillIndex(cmd, buf);
@@ -61,7 +63,7 @@ void CMapObjGroup::ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
 
 CGxBuf *CMapObjGroup::AllocIntGxBuf(UINT nVerts, UINT nIndices) {
   if (!intGxBufFreeList.Count()) {
-    return GxBufCreate(GxBWF_Low, static_cast<EGxVertexBufferFormat>(2), nVerts, nIndices, IntGxBufFill, 0);
+    return GxBufCreate(GxBWF_Low, GxVBF_PNT0, nVerts, nIndices, IntGxBufFill, 0);
   }
 
   CGxBuf *gxBuf = intGxBufFreeList[intGxBufFreeList.Count() - 1];
@@ -79,7 +81,7 @@ void CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
 }
 
 void CMapObjGroup::IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
-  CMapObjGroup *group = static_cast<CMapObjGroup *>(buf->UserArg());
+  CMapObjGroup *group = (CMapObjGroup *)buf->UserArg();
   FATALASSERT(group);
   group->IntGxBufFillVertex(cmd, buf);
   group->GxBufFillIndex(cmd, buf);
@@ -190,10 +192,10 @@ bool QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts) {
 
     for (UINT vertex = 0; vertex < 3; ++vertex) {
       float dmax = aaBox.t[cc] - verts[vertex][cc];
-      signMax &= *reinterpret_cast<UINT *>(&dmax) & 0x80000000;
+      signMax &= *(UINT *)&dmax & 0x80000000;
 
       float dmin = verts[vertex][cc] - aaBox.b[cc];
-      signMin &= *reinterpret_cast<UINT *>(&dmin) & 0x80000000;
+      signMin &= *(UINT *)&dmin & 0x80000000;
     }
 
     if (signMax || signMin) {
@@ -274,21 +276,21 @@ void CMapObjGroup::GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapO
   }
 
   CWTriData::Batch *batch = triData.AllocBatch();
-  batch->sourceID = reinterpret_cast<DWORD>(mapObjDef);
+  batch->sourceID = (DWORD)mapObjDef;
 
   WORD *indices = triData.AllocVertexIndices(3 * q.hitFaceSub);
   WORD *tris = triData.AllocTriIndices(q.hitFaceSub);
   batch->matrix = &mapObjDef->mat;
   batch->vertices = vertexList;
   batch->normals = normalList;
-  batch->triCount = static_cast<WORD>(q.hitFaceSub);
+  batch->triCount = q.hitFaceSub;
 
   UINT base = 0;
   for (UINT i = 0; i < q.hitFaceSub; ++i) {
     WORD face = q.hitFaces[i];
     tris[i] = face;
     for (UINT j = 0; j < 3; ++j) {
-      WORD index = static_cast<WORD>(3 * face + j);
+      WORD index = 3 * face + j;
       indices[base++] = index;
       if (index < batch->minIndex) {
         batch->minIndex = index;
@@ -300,12 +302,12 @@ void CMapObjGroup::GetTrisFromQuery(CWTriData &triData, BspQuery &q, const CMapO
   }
 
   batch->vertexIndices = indices;
-  batch->indexCount = static_cast<WORD>(3 * q.hitFaceSub);
+  batch->indexCount = 3 * q.hitFaceSub;
   batch->triIndices = tris;
 }
 
 bool CMapObjGroup::GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, const CMapObjDef *mapObjDef, UINT faceIgnoreFlags) {
-  BspQuery_Volume<NTempest::CAaBox> q(polyList, vertexList, aaBox, static_cast<WORD>(faceIgnoreFlags | 0x80));
+  BspQuery_Volume<NTempest::CAaBox> q(polyList, vertexList, aaBox, faceIgnoreFlags | 0x80);
   CAaBsp_Query_AaBox<BspQuery_Volume<NTempest::CAaBox> >(aaBsp, q, aaBox);
   GetTrisFromQuery(triData, q, mapObjDef);
   return q.hitFaceSub > 0;
@@ -314,14 +316,14 @@ bool CMapObjGroup::GetTris(CWTriData &triData, const NTempest::CAaBox &aaBox, co
 bool CMapObjGroup::GetTris(CWTriData &triData, const NTempest::C3Segment &seg, float &maxT, const CMapObjDef *mapObjDef, UINT faceIgnoreFlags) {
   FATALASSERT(maxT >= 0.0f && maxT <= 1.0f);
 
-  BspQuery_Segment q(polyList, vertexList, seg, &maxT, static_cast<WORD>(faceIgnoreFlags | 0x80));
+  BspQuery_Segment q(polyList, vertexList, seg, &maxT, faceIgnoreFlags | 0x80);
   CAaBsp_Query_Segment<BspQuery_Segment>(aaBsp, q, seg);
   GetTrisFromQuery(triData, q, mapObjDef);
   return q.hitFaceSub > 0;
 }
 
 bool CMapObjGroup::GetTris(CWTriData &triData, const CWFrustum &frustum, const CMapObjDef *mapObjDef, UINT faceIgnoreFlags) {
-  BspQuery_Volume<CWFrustum> q(polyList, vertexList, frustum, static_cast<WORD>(faceIgnoreFlags | 0x80));
+  BspQuery_Volume<CWFrustum> q(polyList, vertexList, frustum, faceIgnoreFlags | 0x80);
   NTempest::CAaBox           aaBox = NTempest::CAaBox::Bounding(frustum.corners, 8);
   CAaBsp_Query_AaBox<BspQuery_Volume<CWFrustum> >(aaBsp, q, aaBox);
   GetTrisFromQuery(triData, q, mapObjDef);
@@ -330,37 +332,35 @@ bool CMapObjGroup::GetTris(CWTriData &triData, const CWFrustum &frustum, const C
 
 void CMapObjGroup::Init() {
   flags = 0;
-  aaBox.b.x = 0.0f;
-  aaBox.b.y = 0.0f;
-  aaBox.b.z = 0.0f;
-  aaBox.t.x = 0.0f;
-  aaBox.t.y = 0.0f;
-  aaBox.t.z = 0.0f;
+  frameCount = 0;
+  rLevel = 0;
+  minimapTag = 0;
+  data = 0;
+  parent = 0;
+  flushTime = 0.0f;
+  lightmapTexFlushTime = 0.0f;
+  bLoaded = 0;
+  asyncObject = 0;
+  aaBox.b = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
+  aaBox.t = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
   portalStart = 0;
   portalCount = 0;
   groupLiquid = 0;
-  fogIds[0] = 0;
-  fogIds[1] = 0;
-  fogIds[2] = 0;
-  fogIds[3] = 0;
-  for (UINT i = 0; i < 4; ++i) {
+
+  UINT i;
+  for (i = 0; i < 4; ++i) {
+    fogIds[i] = 0;
+  }
+
+  for (i = 0; i < 4; ++i) {
     intGxBuf[i] = 0;
     extGxBuf[i] = 0;
   }
-  frameCount = 0;
-  lightmapTexFlushTime = 0.0f;
-  dbgName = 0;
-  parent = 0;
-  data = 0;
-  asyncObject = 0;
-  bLoaded = 0;
-  flushTime = 0.0f;
-  rLevel = 0;
-  minimapTag = 0;
-  liquidCorner.x = 0.0f;
-  liquidCorner.y = 0.0f;
-  liquidCorner.z = 0.0f;
+
+  liquidVerts = NTempest::C2iVector(0, 0);
+  liquidCorner = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
   liquidMtlId = 0;
+
   InitPtrs();
 }
 
@@ -396,10 +396,8 @@ void CMapObjGroup::InitPtrs() {
   lightmapVertexCount = 0;
   lightmapCount = 0;
   lightmapTexCount = 0;
-  liquidVerts.x = 0;
-  liquidVerts.y = 0;
-  liquidTiles.x = 0;
-  liquidTiles.y = 0;
+  liquidVerts = NTempest::C2iVector(0, 0);
+  liquidTiles = NTempest::C2iVector(0, 0);
 }
 
 void CMapObjGroup::Clear() {
@@ -435,12 +433,12 @@ void CMapObjGroup::Clear() {
 
 UINT CMapObjGroup::SphereIntersectPoly(const NTempest::CAaSphere &sphere, const UINT numVerts, const WORD *indicies) {
   NTempest::C3Vector origin = vertexList[indicies[0]];
-  UINT               numTris = numVerts - 2;
-
-  for (UINT i = 0; i < numTris; ++i) {
+  for (UINT i = 0; i < numVerts - 2; ++i) {
     NTempest::C3Vector edge0 = vertexList[indicies[i + 1]] - origin;
     NTempest::C3Vector edge1 = vertexList[indicies[i + 2]] - origin;
-    if (CWorldMath::TriSqrDistance(sphere.c, origin, edge0, edge1) < sphere.r * sphere.r) {
+    float              distSq = CWorldMath::TriSqrDistance(sphere.c, origin, edge0, edge1);
+    float              radiusSq = sphere.r * sphere.r;
+    if (distSq < radiusSq) {
       return 1;
     }
   }
@@ -498,129 +496,95 @@ bool CMapObjGroup::PointInPoly(const NTempest::C3Vector *p, const UINT numIndici
 }
 
 bool CMapObjGroup::QueryLightmap(const NTempest::C3Vector &point, WORD polyIdx, NTempest::CImVector &color) {
-  static NTempest::C2iVector projectionAxes[3] = {NTempest::C2iVector(1, 2), NTempest::C2iVector(2, 0), NTempest::C2iVector(0, 1)};
-  NTempest::CRgb565          decomp[8][8];
-  NTempest::C4Plane          plane;
-  NTempest::C2Vector         b;
-  NTempest::C2iVector        dtex;
-  SMOPoly                   &poly = polyList[polyIdx];
-  const UINT                 SRCSTRIDE = CalcRowStride(GxGetBlitFormat(GxTex_Dxt1), 256);
-  NTempest::C2Vector         ab;
-  NTempest::C2iVector        ltex;
-  SMOLightmapTex            &lightmapTex = lightmapTexList[poly.lightmapTex];
-  NTempest::C2Vector         projPoint;
-  NTempest::C2Vector         lInterp;
-  NTempest::C2iVector        dtexNext;
-  NTempest::C2Vector         a;
-  NTempest::C2iVector        dxtex;
-  NTempest::C2Vector         lv;
-  NTempest::C2Vector         ac;
-  NTempest::C2Vector         bary;
-  NTempest::C2Vector         lCorner;
-  NTempest::CRgb565          min;
-  UINT                       vertIdx = 3 * polyIdx;
+  static const NTempest::C2iVector xyAxisTable[3] = {NTempest::C2iVector(1, 2), NTempest::C2iVector(2, 0), NTempest::C2iVector(0, 1)};
 
+  UINT vertIdx = 3 * polyIdx;
   FATALASSERT(vertIdx < 65535);
+  const SMOPoly &poly = polyList[polyIdx];
 
-  NTempest::C3Vector edge0 = vertexList[vertIdx + 1] - vertexList[vertIdx];
-  NTempest::C3Vector edge1 = vertexList[vertIdx + 2] - vertexList[vertIdx];
-  plane.n = NTempest::C3Vector::Cross(edge0, edge1);
-  float ooMag = 1.0f / static_cast<float>(sqrt(plane.n.SquaredMag()));
-  plane.n.x *= ooMag;
-  plane.n.y *= ooMag;
-  plane.n.z *= ooMag;
-  plane.d = -NTempest::C3Vector::Dot(plane.n, vertexList[vertIdx]);
+  NTempest::C4Plane plane(vertexList[vertIdx], vertexList[vertIdx + 1], vertexList[vertIdx + 2]);
 
-  NTempest::C2iVector &axes = projectionAxes[plane.n.MajorAxis()];
-  a.x = vertexList[vertIdx][axes.x];
-  a.y = vertexList[vertIdx][axes.y];
-  b.x = point[axes.x];
-  b.y = point[axes.y];
-  ab.x = vertexList[vertIdx + 1][axes.x] - a.x;
-  ab.y = vertexList[vertIdx + 1][axes.y] - a.y;
-  ac.x = vertexList[vertIdx + 2][axes.x] - a.x;
-  ac.y = vertexList[vertIdx + 2][axes.y] - a.y;
-  projPoint.x = b.x - a.x;
-  projPoint.y = b.y - a.y;
+  const NTempest::C2iVector &axes = xyAxisTable[plane.n.MajorAxis()];
+  NTempest::C2Vector         projPoint(point[axes.x], point[axes.y]);
 
-  float invDenom = 1.0f / (ac.y * ab.x - ab.y * ac.x);
-  bary.x = (ac.y * projPoint.x - projPoint.y * ac.x) * invDenom;
-  bary.y = (projPoint.y * ab.x - ab.y * projPoint.x) * invDenom;
-  if (bary.x < 0.0f || bary.y < 0.0f || bary.x + bary.y > 1.0f) {
-    return 0;
+  NTempest::C2Vector a(vertexList[vertIdx][axes.x], vertexList[vertIdx][axes.y]);
+  NTempest::C2Vector b(vertexList[vertIdx + 1][axes.x], vertexList[vertIdx + 1][axes.y]);
+  NTempest::C2Vector c(vertexList[vertIdx + 2][axes.x], vertexList[vertIdx + 2][axes.y]);
+  NTempest::C2Vector ab = b - a;
+  NTempest::C2Vector ac = c - a;
+  projPoint -= a;
+  float              ooDenom = 1.0f / (ac.y * ab.x - ab.y * ac.x);
+  NTempest::C2Vector bary((ac.y * projPoint.x - projPoint.y * ac.x) * ooDenom, (projPoint.y * ab.x - ab.y * projPoint.x) * ooDenom);
+
+  if (bary.x >= 0.0f && bary.y >= 0.0f && bary.x + bary.y <= 1.0f) {
+    NTempest::C2Vector lv(
+        (1.0f - bary.x - bary.y) * lightmapVertexList[vertIdx].x + bary.x * lightmapVertexList[vertIdx + 1].x + bary.y * lightmapVertexList[vertIdx + 2].x,
+        (1.0f - bary.x - bary.y) * lightmapVertexList[vertIdx].y + bary.x * lightmapVertexList[vertIdx + 1].y + bary.y * lightmapVertexList[vertIdx + 2].y
+    );
+
+    static const float LUMEL_SNAP = 1.0f / 256.0f;
+    static const float OOLUMEL_SNAP = 1.0f / LUMEL_SNAP;
+    NTempest::C2Vector lCorner(floorf(lv.x * OOLUMEL_SNAP) * LUMEL_SNAP, floorf(lv.y * OOLUMEL_SNAP) * LUMEL_SNAP);
+
+    NTempest::C2Vector lInterp = OOLUMEL_SNAP * (lv - lCorner);
+
+    NTempest::C2iVector ltex(NTempest::CMath::ftol_0_256_(lCorner.x * 256.0f), NTempest::CMath::ftol_0_256_(lCorner.y * 256.0f));
+
+    const SMOLightmap    &lightmap = lightmapList[polyIdx];
+    const SMOLightmapTex &lightmapTex = lightmapTexList[poly.lightmapTex];
+
+    NTempest::C2iVector next(min(ltex.x + 1, lightmap.x + abs(lightmap.width) - 1), min(ltex.y + 1, lightmap.y + abs(lightmap.height) - 1));
+
+    const UINT SRCSTRIDE = CalcRowStride(GxGetBlitFormat(GxTex_Dxt1), 256);
+
+    NTempest::CRgb565   decomp[8][8];
+    NTempest::C2iVector first(ltex.x >> 2, ltex.y >> 2);
+    NTempest::C2iVector last(next.x >> 2, next.y >> 2);
+    NTempest::C2iVector dxtex(first.x * 4, first.y * 4);
+
+    Blit(
+        NTempest::C2iVector((last.x - first.x) * 4 + 4, (last.y - first.y) * 4 + 4), BlitAlpha_0,
+        lightmapTex.texels + 8 * (first.x + (first.y << 6)), SRCSTRIDE, GxGetBlitFormat(GxTex_Dxt1), decomp, 16, BlitFormat_Rgb565
+    );
+
+    UINT                fracY = Fast_ftol(lInterp.y * 256.0f);
+    UINT                fracX = Fast_ftol(lInterp.x * 256.0f);
+    NTempest::C2iVector dtex(ltex.x - dxtex.x, ltex.y - dxtex.y);
+    NTempest::C2iVector dtexNext(next.x - dxtex.x, next.y - dxtex.y);
+    NTempest::CRgb565  &topRight = decomp[dtex.y][dtexNext.x];
+    NTempest::CRgb565  &topLeft = decomp[dtex.y][dtex.x];
+    NTempest::CRgb565  &bottomRight = decomp[dtexNext.y][dtexNext.x];
+    NTempest::CRgb565  &bottomLeft = decomp[dtexNext.y][dtex.x];
+
+    NTempest::CRgb565 min;
+    min.r = (BYTE)(topRight.r + ((WORD)(fracX * (topLeft.r - topRight.r)) >> 8));
+    min.g = (BYTE)(topRight.g + ((WORD)(fracX * (topLeft.g - topRight.g)) >> 8));
+    min.b = (BYTE)(topRight.b + ((WORD)(fracX * (topLeft.b - topRight.b)) >> 8));
+
+    BYTE bottomR = bottomRight.r + ((WORD)(fracX * (bottomLeft.r - bottomRight.r)) >> 8);
+    BYTE bottomG = bottomRight.g + ((WORD)(fracX * (bottomLeft.g - bottomRight.g)) >> 8);
+    BYTE bottomB = bottomRight.b + ((WORD)(fracX * (bottomLeft.b - bottomRight.b)) >> 8);
+
+    min.r = (BYTE)(bottomR + ((WORD)(fracY * (min.r - bottomR)) >> 8));
+    min.g = (BYTE)(bottomG + ((WORD)(fracY * (min.g - bottomG)) >> 8));
+    min.b = (BYTE)(bottomB + ((WORD)(fracY * (min.b - bottomB)) >> 8));
+
+    static const BYTE minval = 24;
+    color = min;
+    if (color.r <= minval) {
+      color.r = minval;
+    }
+    if (color.g <= minval) {
+      color.g = minval;
+    }
+    if (color.b <= minval) {
+      color.b = minval;
+    }
+
+    return 1;
   }
 
-  lv = lightmapVertexList[vertIdx];
-  lInterp.x = (1.0f - bary.x - bary.y) * lv.x;
-  lInterp.y = (1.0f - bary.x - bary.y) * lv.y;
-  lv = lightmapVertexList[vertIdx + 1];
-  lInterp.x += bary.x * lv.x;
-  lInterp.y += bary.x * lv.y;
-  lv = lightmapVertexList[vertIdx + 2];
-  lInterp.x += bary.y * lv.x;
-  lInterp.y += bary.y * lv.y;
-
-  lCorner.x = floor(lInterp.x * 256.0f) * 0.00390625f;
-  lCorner.y = floor(lInterp.y * 256.0f) * 0.00390625f;
-  bary.x = (lInterp.x - lCorner.x) * 256.0f;
-  bary.y = (lInterp.y - lCorner.y) * 256.0f;
-  ltex.x = NTempest::CMath::ftol_0_256_(lCorner.x * 256.0f);
-  ltex.y = NTempest::CMath::ftol_0_256_(lCorner.y * 256.0f);
-
-  SMOLightmap &lightmap = lightmapList[polyIdx];
-  int          lightmapWidth = lightmap.width < 0 ? -lightmap.width : lightmap.width;
-  int          lightmapHeight = lightmap.height < 0 ? -lightmap.height : lightmap.height;
-  dtexNext.x = ltex.x + 1;
-  dtexNext.y = ltex.y + 1;
-  int maxX = lightmap.x + lightmapWidth - 1;
-  int maxY = lightmap.y + lightmapHeight - 1;
-  if (dtexNext.x >= maxX) {
-    dtexNext.x = maxX;
-  }
-  if (dtexNext.y >= maxY) {
-    dtexNext.y = maxY;
-  }
-
-  dxtex.x = 4 * (ltex.x >> 2);
-  dxtex.y = 4 * (ltex.y >> 2);
-  dtex.x = 4 * ((dtexNext.x >> 2) - (ltex.x >> 2)) + 4;
-  dtex.y = 4 * ((dtexNext.y >> 2) - (ltex.y >> 2)) + 4;
-  Blit(
-      dtex, BlitAlpha_0, lightmapTex.texels + 8 * ((ltex.x >> 2) + ((ltex.y >> 2) << 6)), SRCSTRIDE, GxGetBlitFormat(GxTex_Dxt1), decomp, 16,
-      BlitFormat_Rgb565
-  );
-
-  UINT               fracX = static_cast<UINT>(bary.x * 256.0f - 0.5f);
-  UINT               fracY = static_cast<UINT>(bary.y * 256.0f - 0.5f);
-  NTempest::CRgb565 &topLeft = decomp[ltex.y - dxtex.y][ltex.x - dxtex.x];
-  NTempest::CRgb565 &topRight = decomp[ltex.y - dxtex.y][dtexNext.x - dxtex.x];
-  NTempest::CRgb565 &bottomLeft = decomp[dtexNext.y - dxtex.y][ltex.x - dxtex.x];
-  NTempest::CRgb565 &bottomRight = decomp[dtexNext.y - dxtex.y][dtexNext.x - dxtex.x];
-
-  min.r = static_cast<BYTE>(topRight.r + (static_cast<WORD>(fracX * (topLeft.r - topRight.r)) >> 8));
-  min.g = static_cast<BYTE>(topRight.g + (static_cast<WORD>(fracX * (topLeft.g - topRight.g)) >> 8));
-  min.b = static_cast<BYTE>(topRight.b + (static_cast<WORD>(fracX * (topLeft.b - topRight.b)) >> 8));
-
-  BYTE bottomR = static_cast<BYTE>(bottomRight.r + (static_cast<WORD>(fracX * (bottomLeft.r - bottomRight.r)) >> 8));
-  BYTE bottomG = static_cast<BYTE>(bottomRight.g + (static_cast<WORD>(fracX * (bottomLeft.g - bottomRight.g)) >> 8));
-  BYTE bottomB = static_cast<BYTE>(bottomRight.b + (static_cast<WORD>(fracX * (bottomLeft.b - bottomRight.b)) >> 8));
-
-  min.r = static_cast<BYTE>(bottomR + (static_cast<WORD>(fracY * (min.r - bottomR)) >> 8));
-  min.g = static_cast<BYTE>(bottomG + (static_cast<WORD>(fracY * (min.g - bottomG)) >> 8));
-  min.b = static_cast<BYTE>(bottomB + (static_cast<WORD>(fracY * (min.b - bottomB)) >> 8));
-
-  color = min;
-  if (color.r <= 24) {
-    color.r = 24;
-  }
-  if (color.g <= 24) {
-    color.g = 24;
-  }
-  if (color.b <= 24) {
-    color.b = 24;
-  }
-
-  return 1;
+  return 0;
 }
 
 bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color) {

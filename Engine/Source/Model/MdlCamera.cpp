@@ -19,12 +19,12 @@ BOOL MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
     const MDLCAMERASECTION &source = data.cameras[i];
     HCAMERA                 camera = CameraCreate();
 
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 4, source.fieldOfView);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 2, source.farClip);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 3, source.nearClip);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 5, 0.0f);
-    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 7, source.pivot, 0);
-    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 8, source.target.pivot, 0);
+    DataMgrSetFloat(camera, 4, source.fieldOfView);
+    DataMgrSetFloat(camera, 2, source.farClip);
+    DataMgrSetFloat(camera, 3, source.nearClip);
+    DataMgrSetFloat(camera, 5, 0.0f);
+    DataMgrSetCoord(camera, 7, source.pivot, 0);
+    DataMgrSetCoord(camera, 8, source.target.pivot, 0);
 
     (*cameras)[i] = camera;
   }
@@ -41,28 +41,28 @@ void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras) 
     return;
   }
 
-  UINT  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
-  UINT  numCameras = *reinterpret_cast<UINT *>(section + 4);
+  UINT  sectionBytes = *(UINT *)section - 4;
+  UINT  numCameras = *(UINT *)(section + 4);
   BYTE *cameraData = section + 8;
 
   cameras->SetCount(numCameras);
 
   UINT i;
   for (i = 0; i < numCameras; ++i) {
-    UINT   bytesThisCamera = *reinterpret_cast<UINT *>(cameraData);
-    float *values = reinterpret_cast<float *>(cameraData + 0x54);
+    UINT   bytesThisCamera = *(UINT *)cameraData;
+    float *values = (float *)(cameraData + 0x54);
 
     HCAMERA camera = CameraCreate();
 
     NTempest::C3Vector point(values[0], values[1], values[2]);
-    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 7, point, 0);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 4, values[3]);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 2, values[4]);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 3, values[5]);
+    DataMgrSetCoord(camera, 7, point, 0);
+    DataMgrSetFloat(camera, 4, values[3]);
+    DataMgrSetFloat(camera, 2, values[4]);
+    DataMgrSetFloat(camera, 3, values[5]);
 
     point = NTempest::C3Vector(values[6], values[7], values[8]);
-    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 8, point, 0);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 5, 0.0f);
+    DataMgrSetCoord(camera, 8, point, 0);
+    DataMgrSetFloat(camera, 5, 0.0f);
 
     (*cameras)[i] = camera;
 

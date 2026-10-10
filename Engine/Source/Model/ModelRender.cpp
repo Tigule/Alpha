@@ -187,7 +187,7 @@ struct COpaqueLayer {
     firstLayer = source.firstLayer;
     passNumber = source.passNumber;
     layer = source.layer;
-    model = static_cast<HMODEL>(HandleDuplicate(source.model));
+    model = (HMODEL)HandleDuplicate(source.model);
   }
   ~COpaqueLayer() {
     if (model) {
@@ -255,7 +255,7 @@ struct CTransparentObject {
         stnd.object = source.stnd.object;
         break;
     }
-    stnd.model = static_cast<HMODEL>(HandleDuplicate(source.stnd.model));
+    stnd.model = (HMODEL)HandleDuplicate(source.stnd.model);
   }
   ~CTransparentObject() {
     if (sortType < SORTOBJ_CUSTOM_MODEL && stnd.model) {
@@ -361,10 +361,10 @@ static void RestoreFog() {
 
 static CModelTexture *GetModelTextures(CModelBase *unique) {
   if (unique->m_flags & 0x20) {
-    return static_cast<CModelComplex *>(unique)->m_textures.Ptr();
+    return ((CModelComplex *)unique)->m_textures.Ptr();
   }
 
-  return static_cast<CModelSimple *>(unique)->m_textures.Ptr();
+  return ((CModelSimple *)unique)->m_textures.Ptr();
 }
 
 static int CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b) {
@@ -375,8 +375,8 @@ static int CompareTexLayers(COpaqueLayer *a, COpaqueLayer *b) {
   CModelTexture *bTextures;
   CModelBase    *modelB;
   CModelBase    *modelA;
-  IModelDerefHandle(reinterpret_cast<CModel *>(a->model), &modelA);
-  IModelDerefHandle(reinterpret_cast<CModel *>(b->model), &modelB);
+  IModelDerefHandle((CModel *)a->model, &modelA);
+  IModelDerefHandle((CModel *)b->model, &modelB);
 
   aTextures = GetModelTextures(modelA);
   bTextures = GetModelTextures(modelB);
@@ -459,14 +459,14 @@ static void AddGeosetToScene(
     FATALERROR(("AddGeosetToScene: geoShared->materialId (%d) >= numMaterials (%d)", geoShared->materialId, numMaterials));
   }
 
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(materials[geoShared->materialId]);
+  CMaterial *uniqueMtl = (CMaterial *)materials[geoShared->materialId];
   ASSERT(uniqueMtl);
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
   int opaque = IsOpaque(uniqueMtl);
   if (!opaque && !(renderFlags & 3)) {
-    NTempest::C3Vector position = GetGeosetSortPos(static_cast<CModelBase *>(modelptr->data), geoShared);
+    NTempest::C3Vector position = GetGeosetSortPos((CModelBase *)modelptr->data, geoShared);
     EnqueueTransparentGeoset(modelptr, geoUnique, geoShared, position, sharedMtl->priorityPlane);
   }
 
@@ -534,7 +534,7 @@ static void AddAllGeosetsToScene(
   UINT numAddlGeosets = numGeosets - shared->numGeosets;
   for (index = 0; index < numAddlGeosets; ++index) {
     AddGeosetToScene(
-        modelptr, renderFlags, &geosets[shared->numGeosets + index], &static_cast<CModelComplex *>(modelptr->data)->m_addlGeosets[index], geosetColor,
+        modelptr, renderFlags, &geosets[shared->numGeosets + index], &((CModelComplex *)modelptr->data)->m_addlGeosets[index], geosetColor,
         materials, numMaterials
     );
   }
@@ -542,7 +542,7 @@ static void AddAllGeosetsToScene(
 
 static void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared) {
   NTempest::C3Vector center;
-  CModelComplex     *unique = static_cast<CModelComplex *>(modelptr->data);
+  CModelComplex     *unique = (CModelComplex *)modelptr->data;
   UINT               numEmitters = unique->m_emitters2.Count();
   UINT               index;
 
@@ -556,7 +556,7 @@ static void AddEmitters2ToScene(CModel *modelptr, CModelShared *shared) {
 
 static void AddRibbonsToScene(CModel *modelptr, CModelShared *shared) {
   NTempest::C3Vector center;
-  CModelComplex     *unique = static_cast<CModelComplex *>(modelptr->data);
+  CModelComplex     *unique = (CModelComplex *)modelptr->data;
   UINT               numEmitters = unique->m_ribbons.Count();
   UINT               index;
 
@@ -570,7 +570,7 @@ static UINT GetNumTexCoordLayers(const CTexLayer &layerUnique, const CTexLayerSh
   UINT numLayers = 0;
 
   for (UINT tmu = 0; tmu < 2; ++tmu) {
-    numLayers += layerUnique.tmuPass[tmu].textureId != static_cast<UINT>(-1) && layerShared.tmuPass[tmu].coordId != static_cast<UINT>(-1);
+    numLayers += layerUnique.tmuPass[tmu].textureId != (UINT)-1 && layerShared.tmuPass[tmu].coordId != (UINT)-1;
   }
 
   return numLayers;
@@ -578,22 +578,22 @@ static UINT GetNumTexCoordLayers(const CTexLayer &layerUnique, const CTexLayerSh
 
 static void GetTransformedUVLayer(CModelBase *modelptr, const CTexLayerShared &layerShared, UINT tmu) {
   EGxTextureShader textureShader = layerShared.tmuPass[tmu].textureShader;
-  GxRsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), textureShader);
+  GxRsSet((EGxRenderState)(GxRs_TextureShader0 + tmu), textureShader);
 
   if (textureShader >= GxTS_Affine) {
     NTempest::C34Matrix *texBones = MatrixDeref(modelptr->m_texBones);
     ASSERT(texBones);
 
-    GxXformPush(static_cast<EGxXform>(GxXform_Tex0 + tmu), NTempest::C44Matrix(texBones[layerShared.tmuPass[tmu].transformId]));
+    GxXformPush((EGxXform)(GxXform_Tex0 + tmu), NTempest::C44Matrix(texBones[layerShared.tmuPass[tmu].transformId]));
   }
 }
 
 static void ClearTransformedUVLayer(const CTexLayerShared &layerShared, UINT tmu) {
   EGxTextureShader textureShader = layerShared.tmuPass[tmu].textureShader;
-  GxRsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), textureShader);
+  GxRsSet((EGxRenderState)(GxRs_TextureShader0 + tmu), textureShader);
 
   if (textureShader >= GxTS_Affine) {
-    GxXformPop(static_cast<EGxXform>(GxXform_Tex0 + tmu));
+    GxXformPop((EGxXform)(GxXform_Tex0 + tmu));
   }
 }
 
@@ -602,7 +602,7 @@ static void SetUvTransforms(CModelBase *modelptr, const CTexLayer &layerUnique, 
     case 1:
       GetTransformedUVLayer(
           modelptr, layerShared,
-          layerUnique.tmuPass[1].textureId != static_cast<UINT>(-1) && layerShared.tmuPass[1].coordId != static_cast<UINT>(-1) ? 1 : 0
+          layerUnique.tmuPass[1].textureId != (UINT)-1 && layerShared.tmuPass[1].coordId != (UINT)-1 ? 1 : 0
       );
       break;
 
@@ -616,7 +616,7 @@ static void SetUvTransforms(CModelBase *modelptr, const CTexLayer &layerUnique, 
 static void ClearUvTransforms(const CTexLayer &layerUnique, const CTexLayerShared &layerShared) {
   switch (GetNumTexCoordLayers(layerUnique, layerShared)) {
     case 1:
-      if (layerUnique.tmuPass[1].textureId != static_cast<UINT>(-1) && layerShared.tmuPass[1].coordId != static_cast<UINT>(-1)) {
+      if (layerUnique.tmuPass[1].textureId != (UINT)-1 && layerShared.tmuPass[1].coordId != (UINT)-1) {
         ClearTransformedUVLayer(layerShared, 1);
       } else {
         ClearTransformedUVLayer(layerShared, 0);
@@ -635,7 +635,7 @@ static void LockVertices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer,
 
   for (UINT tmu = 0; tmu < 2; ++tmu) {
     UINT coordId = sharedLayer.tmuPass[tmu].coordId;
-    if (uniqueLayer.tmuPass[tmu].textureId == static_cast<UINT>(-1) || coordId == static_cast<UINT>(-1)) {
+    if (uniqueLayer.tmuPass[tmu].textureId == (UINT)-1 || coordId == (UINT)-1) {
       texCoords[tmu] = 0;
     } else {
       texCoords[tmu] = geoShared->texCoord[coordId].Ptr();
@@ -657,11 +657,11 @@ static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color
   GxXform(GxXform_World, worldMtx);
 
   NTempest::C3Vector xf[4];
-  for (UINT i = 0; i < 4; ++i) {
+  for (UINT i = 0; i < sizeof(xf) / sizeof(xf[0]); ++i) {
     xf[i] = s_sceneCameraPos + geoShared->position[i] * worldMtx;
   }
 
-  NTempest::CAaBox worldBox = NTempest::CAaBox::Bounding(xf, 4);
+  NTempest::CAaBox worldBox = NTempest::CAaBox::Bounding(xf, sizeof(xf) / sizeof(xf[0]));
   worldBox.b.z -= 3.0f;
   worldBox.t.z += 3.0f;
 
@@ -673,7 +673,7 @@ static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color
   }
 
   if (!NTempest::CMath::fequal_(scale, 1.0f)) {
-    scale = static_cast<float>(sqrt(scale));
+    scale = (float)sqrt(scale);
     float ooScale = 1.0f / scale;
     worldMtx.a0 *= ooScale;
     worldMtx.a1 *= ooScale;
@@ -738,9 +738,9 @@ static void RenderUniformUVMapLayers(
 
     for (tmu = 0; tmu < 2; ++tmu) {
       UINT flags = layerShared.tmuPass[tmu].flags;
-      GxRsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
+      GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
       if (flags & 2) {
-        GxRsSet(static_cast<EGxRenderState>(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
+        GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
       }
     }
 
@@ -754,14 +754,14 @@ static void RenderUniformUVMapLayers(
 
     for (tmu = 0; tmu < 2; ++tmu) {
       UINT           textureId = layerUnique.tmuPass[tmu].textureId;
-      EGxRenderState textureState = static_cast<EGxRenderState>(GxRs_Texture0 + tmu);
-      if (textureId == static_cast<UINT>(-1)) {
+      EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
+      if (textureId == (UINT)-1) {
         GxRsSet(textureState, 0);
       } else if (layerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2)) {
         GxRsSet(textureState, 0);
       } else {
         CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
-        GxRsSet(static_cast<EGxRenderState>(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
+        GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
         GxRsSet(textureState, texture);
       }
     }
@@ -794,26 +794,22 @@ static void RenderUniformUVMapLayers(
 }
 
 static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
   NTempest::CImVector color(0ul);
-  UINT                numLayers = sharedMtl->layers.Count();
-  UINT                layer = 0;
   BYTE                layerAlpha;
-  while (layer < numLayers) {
+  UINT                numLayers = sharedMtl->layers.Count();
+  UINT                layer;
+  for (layer = 0; layer < numLayers; ++layer) {
     layerAlpha = uniqueMtl->layers[layer].layerAlpha;
     if (layerAlpha) {
+      const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
+      color = geosetColor.animatedColor;
+      color.MultiplyRGB(&geosetColor.proceduralColor);
+      color.a = (BYTE)(color.a * layerAlpha / 255);
       break;
     }
-    ++layer;
-  }
-
-  if (layer < numLayers) {
-    const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
-    color = geosetColor.animatedColor;
-    color.MultiplyRGB(&geosetColor.proceduralColor);
-    color.a = static_cast<BYTE>(color.a * layerAlpha / 255);
   }
 
   if (!color.a) {
@@ -828,20 +824,17 @@ static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *
   if (!(modelptr->m_renderFlags & 2)) {
     SetUvTransforms(modelptr->m_model->data, uniqueMtl->layers[layer], sharedMtl->layers[layer]);
   }
-
   LockVertices(geoShared, uniqueMtl->layers[layer], sharedMtl->layers[layer]);
-
-  CPrimitive *primitive = geoShared->primitive.Ptr();
-  WORD       *indices = geoShared->primitiveVertices.Ptr();
-  UINT        numPrimitives = geoShared->primitive.Count();
-  for (UINT primitiveId = 0; primitiveId < numPrimitives; ++primitiveId) {
-    GxPrimLockIndexPtr(primitive[primitiveId].type, primitive[primitiveId].vertexCount, indices);
+  WORD *indices = geoShared->primitiveVertices.Ptr();
+  UINT  numPrimitives = geoShared->primitive.Count();
+  for (UINT i = 0; i < numPrimitives; ++i) {
+    GxPrimLockIndexPtr(geoShared->primitive[i].type, geoShared->primitive[i].vertexCount, indices);
+    indices += geoShared->primitive[i].vertexCount;
     RenderUniformUVMapLayers(modelptr, geoShared, *uniqueMtl, *sharedMtl, color, status);
     GxPrimUnlockIndexPtr();
-    indices += primitive[primitiveId].vertexCount;
   }
-  GxPrimUnlockVertexPtrs();
 
+  GxPrimUnlockVertexPtrs();
   if (!(modelptr->m_renderFlags & 2)) {
     ClearUvTransforms(uniqueMtl->layers[layer], sharedMtl->layers[layer]);
   }
@@ -889,13 +882,13 @@ static void RenderGeosetOneUvMapping(
     int               geosetChanged,
     CStatus          *status
 ) {
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
   const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
   NTempest::CImVector color = geosetColor.animatedColor;
   color.MultiplyRGB(&geosetColor.proceduralColor);
-  color.a = static_cast<BYTE>(color.a * uniqueMtl->layers[firstLayerId].layerAlpha / 255);
+  color.a = (BYTE)(color.a * uniqueMtl->layers[firstLayerId].layerAlpha / 255);
 
   RenderSingleUVMapPrep(modelptr, geoShared, *uniqueMtl, *sharedMtl, firstLayerId, geosetChanged);
   RenderUniformUVMapLayers(modelptr, geoShared, *uniqueMtl, *sharedMtl, color, status);
@@ -903,7 +896,7 @@ static void RenderGeosetOneUvMapping(
 }
 
 static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
   const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
@@ -924,16 +917,16 @@ static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared
       continue;
     }
 
-    color.a = static_cast<BYTE>(geoAlpha * layerAlpha / 255);
+    color.a = (BYTE)(geoAlpha * layerAlpha / 255);
     const CTexLayerShared &stateLayerShared = sharedMtl->layers[i];
     GxRsSet(GxRs_MatDiffuse, color);
     GxRsSet(GxRs_MatEmissive, uniqueMtl->emissiveColor);
 
     for (tmu = 0; tmu < 2; ++tmu) {
       UINT flags = stateLayerShared.tmuPass[tmu].flags;
-      GxRsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
+      GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
       if (flags & 2) {
-        GxRsSet(static_cast<EGxRenderState>(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
+        GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
       }
     }
 
@@ -950,12 +943,12 @@ static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared
 
     for (tmu = 0; tmu < 2; ++tmu) {
       UINT           textureId = stateLayerUnique.tmuPass[tmu].textureId;
-      EGxRenderState textureState = static_cast<EGxRenderState>(GxRs_Texture0 + tmu);
-      if (textureId == static_cast<UINT>(-1) || (stateLayerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2))) {
+      EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
+      if (textureId == (UINT)-1 || (stateLayerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2))) {
         GxRsSet(textureState, 0);
       } else {
         CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
-        GxRsSet(static_cast<EGxRenderState>(GxRs_TexBlend0 + tmu), stateLayerUnique.tmuPass[tmu].combiner);
+        GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), stateLayerUnique.tmuPass[tmu].combiner);
         GxRsSet(textureState, texture);
       }
     }
@@ -995,7 +988,7 @@ static BOOL SingleUvMapping(CMaterial *uniqueMtl) {
     return 1;
   }
 
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
   UINT numLayers = uniqueMtl->layers.Count();
@@ -1036,7 +1029,7 @@ static void RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoSha
   ASSERT(modelptr);
   ASSERT(geoShared);
 
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[geoShared->materialId]);
+  CMaterial *uniqueMtl = (CMaterial *)modelptr->m_materials[geoShared->materialId];
   if (SingleUvMapping(uniqueMtl) || (modelptr->m_renderFlags & 2)) {
     RenderGeosetOneUvMapping(modelptr, geoShared, uniqueMtl, status);
   } else {
@@ -1106,17 +1099,17 @@ static void RenderGeosetSingleLayer(
 
   RenderGeosetPrep(modelptr->m_model->data, geoUnique, geoShared);
 
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[geoShared->materialId]);
+  CMaterial *uniqueMtl = (CMaterial *)modelptr->m_materials[geoShared->materialId];
   ASSERT(uniqueMtl);
-  CMaterialShared *sharedMtl = reinterpret_cast<CMaterialShared *>(uniqueMtl->data);
+  CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
   const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
   NTempest::CImVector newColor = geosetColor.animatedColor;
-  newColor.r = static_cast<BYTE>((geosetColor.proceduralColor.r * newColor.r + 255) >> 8);
-  newColor.g = static_cast<BYTE>((geosetColor.proceduralColor.g * newColor.g + 255) >> 8);
-  newColor.b = static_cast<BYTE>((geosetColor.proceduralColor.b * newColor.b + 255) >> 8);
-  newColor.a = static_cast<BYTE>(newColor.a * uniqueMtl->layers[layerId].layerAlpha / 255);
+  newColor.r = (BYTE)((geosetColor.proceduralColor.r * newColor.r + 255) >> 8);
+  newColor.g = (BYTE)((geosetColor.proceduralColor.g * newColor.g + 255) >> 8);
+  newColor.b = (BYTE)((geosetColor.proceduralColor.b * newColor.b + 255) >> 8);
+  newColor.a = (BYTE)(newColor.a * uniqueMtl->layers[layerId].layerAlpha / 255);
 
   RenderSingleUVMapPrep(modelptr, geoShared, *uniqueMtl, *sharedMtl, layerId, geosetChanged);
 
@@ -1130,9 +1123,9 @@ static void RenderGeosetSingleLayer(
 
   for (UINT tmu = 0; tmu < 2; ++tmu) {
     UINT flags = layerShared.tmuPass[tmu].flags;
-    GxRsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
+    GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
     if (flags & 2) {
-      GxRsSet(static_cast<EGxRenderState>(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
+      GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
     }
   }
 
@@ -1147,12 +1140,12 @@ static void RenderGeosetSingleLayer(
 
     for (UINT tmu = 0; tmu < 2; ++tmu) {
       UINT           textureId = layerUnique.tmuPass[tmu].textureId;
-      EGxRenderState textureState = static_cast<EGxRenderState>(GxRs_Texture0 + tmu);
-      if (textureId == static_cast<UINT>(-1) || (layerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2))) {
+      EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
+      if (textureId == (UINT)-1 || (layerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2))) {
         GxRsSet(textureState, 0);
       } else {
         CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
-        GxRsSet(static_cast<EGxRenderState>(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
+        GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
         GxRsSet(textureState, texture);
       }
     }
@@ -1191,7 +1184,7 @@ RenderSortedGeoset(CModelRenderData *modelptr, CGeoset *geoUnique, CGeosetShared
   ASSERT(geoShared);
 
   RenderGeosetPrep(modelptr->m_model->data, geoUnique, geoShared);
-  CMaterial *uniqueMtl = reinterpret_cast<CMaterial *>(modelptr->m_materials[geoShared->materialId]);
+  CMaterial *uniqueMtl = (CMaterial *)modelptr->m_materials[geoShared->materialId];
   if (SingleUvMapping(uniqueMtl)) {
     RenderGeosetOneUvMapping(modelptr, geoShared, uniqueMtl, firstLayerId, geosetChanged, status);
   } else {
@@ -1241,8 +1234,8 @@ static void RenderCustomGeoset(HMODEL model, CCustomGeoset *object) {
   ASSERT(object);
 
   CModelBase *modelptr;
-  IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr);
-  HMODEL duplicate = static_cast<HMODEL>(HandleDuplicate(model));
+  IModelDerefHandle((CModel *)model, &modelptr);
+  HMODEL duplicate = (HMODEL)HandleDuplicate(model);
 
   NTempest::C34Matrix matrix;
   matrix.Translate(object->position);
@@ -1326,7 +1319,7 @@ static BOOL GeosetTestRay(
         UINT  primIntersected;
         if (GxuTestRayAndMesh(
                 rayStart, rayDirection, boneMatrices, geoShared->groupMatrixCounts.Count(), geoShared->position.Count(), geoShared->position.Ptr(),
-                sizeof(NTempest::C3Vector), geoShared->boneWeights.Count(), geoShared->boneWeights.Ptr(), geoShared->vertexShader == 1,
+                sizeof(NTempest::C3Vector), geoShared->boneWeights.Count(), geoShared->boneWeights.Ptr(), geoShared->vertexShader == GxVS_Skin,
                 primitive->type, primitive->vertexCount, indices, currDistance, primIntersected
             ))
         {
@@ -1391,7 +1384,7 @@ static int IModelTestRay(
       ITERATELIST(LINKUNIQUE, modelptr->m_attached[i], link) {
         CModelBase   *childptr;
         CModelShared *childShared;
-        if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childptr, &childShared)) {
+        if (IModelDerefHandle((CModel *)link->child, &childptr, &childShared)) {
           float currDistance;
           if (IModelTestRay(childptr, childShared, rayStart, rayEnd, &currDistance, 1)) {
             foundHit = 1;
@@ -1420,9 +1413,9 @@ static int IModelTestRay(
     int                       testLinkedModels
 ) {
   if (modelptr->m_flags & 0x20) {
-    return IModelTestRay(static_cast<CModelComplex *>(modelptr), shared, rayStart, rayEnd, distance, testLinkedModels);
+    return IModelTestRay((CModelComplex *)modelptr, shared, rayStart, rayEnd, distance, testLinkedModels);
   }
-  return IModelTestRay(static_cast<CModelSimple *>(modelptr), shared, rayStart, rayEnd, distance);
+  return IModelTestRay((CModelSimple *)modelptr, shared, rayStart, rayEnd, distance);
 }
 
 static void CreateBoxGeometry(
@@ -1434,63 +1427,69 @@ static void CreateBoxGeometry(
     EGxPrim                             *primType
 ) {
   UINT vertexOffset = positions->Count();
-  positions->SetCount(vertexOffset + 24);
-
   UINT z;
   UINT y;
   UINT x;
+
+  positions->SetCount(vertexOffset + 24);
+  NTempest::C3Vector *position = &(*positions)[vertexOffset];
   for (z = 0; z < 2; ++z) {
     for (y = 0; y < 2; ++y) {
-      for (x = 0; x < 2; ++x) {
-        UINT dst = vertexOffset + (z * 4 + y * 2 + x) * 3;
-        positions->Ptr()[dst].x = (&bounds.b.x)[x * 3];
-        positions->Ptr()[dst].y = (&bounds.b.y)[y * 3];
-        positions->Ptr()[dst].z = (&bounds.b.z)[z * 3];
-        positions->Ptr()[dst + 1].x = (&bounds.b.x)[x * 3];
-        positions->Ptr()[dst + 1].y = (&bounds.b.y)[y * 3];
-        positions->Ptr()[dst + 1].z = (&bounds.b.z)[z * 3];
-        positions->Ptr()[dst + 2].x = (&bounds.b.x)[x * 3];
-        positions->Ptr()[dst + 2].y = (&bounds.b.y)[y * 3];
-        positions->Ptr()[dst + 2].z = (&bounds.b.z)[z * 3];
+      for (x = 0; x < 2; ++x, position += 3) {
+        position[0] = position[1] = position[2] = NTempest::C3Vector((&bounds.b)[x].x, (&bounds.b)[y].y, (&bounds.b)[z].z);
       }
     }
   }
 
   float dir[2] = {-1.0f, 1.0f};
   normals->SetCount(vertexOffset + 24);
+  NTempest::C3Vector *normal = &(*normals)[vertexOffset];
   for (z = 0; z < 2; ++z) {
     for (y = 0; y < 2; ++y) {
-      for (x = 0; x < 2; ++x) {
-        UINT dst = vertexOffset + (z * 4 + y * 2 + x) * 3;
-        normals->Ptr()[dst].x = dir[x];
-        normals->Ptr()[dst + 1].y = dir[y];
-        normals->Ptr()[dst + 2].z = dir[z];
+      for (x = 0; x < 2; ++x, normal += 3) {
+        normal[0].x = dir[x];
+        normal[1].y = dir[y];
+        normal[2].z = dir[z];
       }
     }
   }
 
   texCoords->SetCount(vertexOffset + 24);
-  for (z = 0; z < 2; ++z) {
-    for (y = 0; y < 2; ++y) {
-      for (x = 0; x < 2; ++x) {
-        UINT dst = vertexOffset + (z * 4 + y * 2 + x) * 3;
-        texCoords->Ptr()[dst].x = static_cast<float>(y);
-        texCoords->Ptr()[dst].y = static_cast<float>(1 - z);
-        texCoords->Ptr()[dst + 1].x = static_cast<float>(x ^ y);
-        texCoords->Ptr()[dst + 1].y = static_cast<float>(1 - z);
-        texCoords->Ptr()[dst + 2].x = static_cast<float>(y);
-        texCoords->Ptr()[dst + 2].y = static_cast<float>(x);
-      }
+  NTempest::C2Vector *texCoord = &(*texCoords)[vertexOffset];
+  texCoord[0].Set(0.0f, 1.0f);
+  texCoord[1].Set(0.0f, 1.0f);
+  texCoord[2].Set(0.0f, 0.0f);
+  texCoord[3].Set(0.0f, 1.0f);
+  texCoord[4].Set(1.0f, 1.0f);
+  texCoord[5].Set(0.0f, 1.0f);
+  texCoord[6].Set(1.0f, 1.0f);
+  texCoord[7].Set(1.0f, 1.0f);
+  texCoord[8].Set(1.0f, 0.0f);
+  texCoord[9].Set(1.0f, 1.0f);
+  texCoord[10].Set(0.0f, 1.0f);
+  texCoord[11].Set(1.0f, 1.0f);
+  texCoord[12].Set(0.0f, 0.0f);
+  texCoord[13].Set(0.0f, 0.0f);
+  texCoord[14].Set(0.0f, 0.0f);
+  texCoord[15].Set(0.0f, 0.0f);
+  texCoord[16].Set(1.0f, 0.0f);
+  texCoord[17].Set(0.0f, 1.0f);
+  texCoord[18].Set(1.0f, 0.0f);
+  texCoord[19].Set(1.0f, 0.0f);
+  texCoord[20].Set(1.0f, 0.0f);
+  texCoord[21].Set(1.0f, 0.0f);
+  texCoord[22].Set(0.0f, 0.0f);
+  texCoord[23].Set(1.0f, 1.0f);
+
+  UINT indexOffset = primVertIndices->Count();
+  primVertIndices->Add(36, vertIndices);
+  if (vertexOffset > 0) {
+    WORD *index = &(*primVertIndices)[indexOffset];
+    for (UINT i = primVertIndices->Count() - indexOffset; i; --i) {
+      *index++ += (WORD)vertexOffset;
     }
   }
 
-  UINT indexOffset = primVertIndices->Add(36, vertIndices);
-  if (vertexOffset) {
-    UINT index;
-    for (index = indexOffset; index < primVertIndices->Count(); ++index) {
-      primVertIndices->operator[](index) += static_cast<WORD>(vertexOffset);
-    }
-  }
   *primType = GxPrim_Triangles;
 }
 
@@ -1528,25 +1527,27 @@ static void GenerateSphereVerts(
   vertices->SetCount(offset + count);
   normals->SetCount(offset + count);
 
-  (*vertices)[offset] = NTempest::C3Vector(bounds.c.x, bounds.c.y, bounds.r + bounds.c.z);
-  (*vertices)[offset + count - 1] = NTempest::C3Vector(bounds.c.x, bounds.c.y, bounds.c.z - bounds.r);
+  (*vertices)[offset] = bounds.c + NTempest::C3Vector(0.0f, 0.0f, bounds.r);
+  (*vertices)[offset + count - 1] = bounds.c - NTempest::C3Vector(0.0f, 0.0f, bounds.r);
   (*normals)[offset].Set(0.0f, 0.0f, 1.0f);
   (*normals)[offset + count - 1].Set(0.0f, 0.0f, -1.0f);
 
   NTempest::C3Vector *vertex = &(*vertices)[offset + 1];
   NTempest::C3Vector *normal = &(*normals)[offset + 1];
   for (UINT lat = 0; lat < latLongLines; ++lat) {
-    float radius = static_cast<float>(sin((lat + 1) * PI / (latLongLines + 1)) * bounds.r);
-    float latZ = static_cast<float>(cos((lat + 1) * PI / (latLongLines + 1)) * bounds.r);
-    for (UINT lon = 0; lon < latLongLines; ++lon) {
-      vertex->Set(
-          static_cast<float>(sin(lon * PI * 2.0f / latLongLines) * radius), static_cast<float>(cos(lon * PI * 2.0f / latLongLines) * radius), latZ
-      );
+    float latZ;
+    float radius;
+    float angle = (lat + 1) * PI / (latLongLines + 1);
+    radius = CMath::sin_(angle) * bounds.r;
+    latZ = CMath::cos_(angle) * bounds.r;
+    for (UINT lon = 0; lon < latLongLines; ++lon, ++vertex, ++normal) {
+      angle = lon * PI * 2.0f / latLongLines;
+      vertex->x = CMath::sin_(angle) * radius;
+      vertex->y = CMath::cos_(angle) * radius;
+      vertex->z = latZ;
       *normal = *vertex;
       normal->Normalize();
-      *vertex = bounds.c + *vertex;
-      ++vertex;
-      ++normal;
+      *vertex += bounds.c;
     }
   }
 }
@@ -1559,64 +1560,58 @@ static void CreateSphereGeometry(
     TSGrowableArray<WORD>               *vertIndices,
     TSGrowableArray<CPrimitive>         *primitives
 ) {
-  const UINT lines = 15;
-  UINT       vertOffset = vertices->Count();
-  GenerateSphereVerts(bounds, lines, vertices, normals);
+  UINT indexOffset = vertIndices->Count();
+  UINT vertOffset = vertices->Count();
+
+  GenerateSphereVerts(bounds, 15, vertices, normals);
   texCoords->SetCount(vertices->Count());
-  vertIndices->SetCount(vertIndices->Count() + 527);
 
-  WORD *out = vertIndices->Ptr() + vertIndices->Count() - 527;
+  vertIndices->SetCount(indexOffset + 527);
+
+  WORD *indices = &(*vertIndices)[indexOffset];
   UINT  i;
-  for (i = 0; i < lines; ++i) {
-    *out++ = static_cast<WORD>(vertOffset + 1 + i);
-    *out++ = static_cast<WORD>(vertOffset);
+  for (i = 0; i < 15; ++i) {
+    indices[i * 2] = (WORD)(vertOffset + 1 + i);
+    indices[i * 2 + 1] = (WORD)vertOffset;
   }
-  *out++ = static_cast<WORD>(vertOffset + 1);
-  *out++ = static_cast<WORD>(vertOffset);
-  *out++ = static_cast<WORD>(vertOffset);
-  *out++ = static_cast<WORD>(vertOffset);
+  indices[i * 2] = (WORD)(vertOffset + 1);
+  indices[i * 2 + 1] = (WORD)vertOffset;
+  indices[i * 2 + 2] = (WORD)vertOffset;
+  indices[i * 2 + 3] = (WORD)vertOffset;
+  indices += 34;
 
-  for (UINT strip = 0; strip < 13; ++strip) {
-    UINT first = vertOffset + 1 + strip * lines;
-    UINT second = first + lines;
-    if (strip & 1) {
-      for (i = 0; i < lines; ++i) {
-        *out++ = static_cast<WORD>(first + i);
-        *out++ = static_cast<WORD>(second + i);
-      }
-      *out++ = static_cast<WORD>(first);
-      *out++ = static_cast<WORD>(second);
-    } else {
-      for (i = 0; i < lines; ++i) {
-        *out++ = static_cast<WORD>(second + i);
-        *out++ = static_cast<WORD>(first + i);
-      }
-      *out++ = static_cast<WORD>(second);
-      *out++ = static_cast<WORD>(first);
+  for (int strip = 0; strip < 13u; ++strip) {
+    UINT odd = strip & 1;
+    for (i = 0; i < 15; ++i) {
+      indices[!odd] = (WORD)(vertOffset + 1 + strip * 15 + i);
+      indices[odd] = (WORD)(vertOffset + 1 + strip * 15 + 15 + i);
+      indices += 2;
     }
-    *out++ = out[-1];
+    indices[!odd] = (WORD)(vertOffset + 1 + strip * 15);
+    indices[odd] = (WORD)(vertOffset + 1 + strip * 15 + 15);
+    indices[2] = indices[1];
+    indices += 3;
   }
 
-  UINT penultimate = vertOffset + 1 + 13 * lines;
-  UINT lastRing = penultimate + lines;
-  for (i = 0; i < lines; ++i) {
-    *out++ = static_cast<WORD>(penultimate + i);
-    *out++ = static_cast<WORD>(lastRing + i);
+  for (i = 0; i < 15; ++i) {
+    indices[0] = (WORD)(vertOffset + 196 + i);
+    indices[1] = (WORD)(vertOffset + 211 + i);
+    indices += 2;
   }
-  *out++ = static_cast<WORD>(penultimate);
-  *out++ = static_cast<WORD>(lastRing);
+  indices[0] = (WORD)(vertOffset + 196);
+  indices[1] = (WORD)(vertOffset + 211);
+  indices += 2;
 
-  UINT bottom = vertOffset + lines * lines + 1;
-  for (i = 0; i < lines; ++i) {
-    *out++ = static_cast<WORD>(lastRing + i);
-    *out++ = static_cast<WORD>(bottom);
+  for (i = 0; i < 15; ++i) {
+    indices[i * 2] = (WORD)(vertOffset + 211 + i);
+    indices[i * 2 + 1] = (WORD)(vertOffset + 226);
   }
-  *out++ = static_cast<WORD>(lastRing);
-  *out++ = static_cast<WORD>(bottom);
+  indices[i * 2] = (WORD)(vertOffset + 211);
+  indices[i * 2 + 1] = (WORD)(vertOffset + 226);
 
-  CPrimitive &primitive = *primitives->New();
-  primitive.type = GxPrim_TriangleStrip;
-  primitive.vertexCount = 527;
+  CPrimitive *primitive = primitives->New();
+  primitive->type = GxPrim_TriangleStrip;
+  primitive->vertexCount = 527;
 }
 
 static HMODEL CreateModelBoundingSphere(const NTempest::CAaSphere &bounds, HTEXTURE texture, EGxBlend blendMode) {
@@ -1649,18 +1644,18 @@ static void FillInRenderData(CModel *modelptr, UINT renderFlags, CModelRenderDat
   ASSERT(renderData);
 
   renderData->m_model = modelptr;
-  renderData->m_shared = reinterpret_cast<CModelShared *>(modelptr->shared);
+  renderData->m_shared = (CModelShared *)modelptr->shared;
   renderData->m_renderFlags = renderFlags;
 
   if (modelptr->data->m_flags & 0x20) {
-    CModelComplex *complex = static_cast<CModelComplex *>(modelptr->data);
+    CModelComplex *complex = (CModelComplex *)modelptr->data;
     renderData->m_geosets = complex->m_geosets.Ptr();
     renderData->m_geosetColor = complex->m_geosetColor.Ptr();
     renderData->m_numGeosets = complex->m_geosets.Count();
     renderData->m_materials = complex->m_materials.Ptr();
     renderData->m_textures = complex->m_textures.Ptr();
   } else {
-    CModelSimple *simple = static_cast<CModelSimple *>(modelptr->data);
+    CModelSimple *simple = (CModelSimple *)modelptr->data;
     renderData->m_geosets = simple->m_geosets.Ptr();
     renderData->m_geosetColor = simple->m_geosetColor.Ptr();
     renderData->m_numGeosets = simple->m_geosets.Count();
@@ -1671,10 +1666,10 @@ static void FillInRenderData(CModel *modelptr, UINT renderFlags, CModelRenderDat
 
 static CModelTexture *GetTextureList(CModelBase *modelptr) {
   if (modelptr->m_flags & 0x20) {
-    return static_cast<CModelComplex *>(modelptr)->m_textures.Ptr();
+    return ((CModelComplex *)modelptr)->m_textures.Ptr();
   }
 
-  return static_cast<CModelSimple *>(modelptr)->m_textures.Ptr();
+  return ((CModelSimple *)modelptr)->m_textures.Ptr();
 }
 
 static void IModelRenderSceneOpaque(CStatus *status) {
@@ -1695,7 +1690,7 @@ static void IModelRenderSceneOpaque(CStatus *status) {
   UINT rsStackOffset = GxRsStackOffset();
   GxRsPush();
 
-  CModel *lastModel = reinterpret_cast<CModel *>(lastSorted->model);
+  CModel *lastModel = (CModel *)lastSorted->model;
   ASSERT(lastModel);
 
   CModelRenderData renderData;
@@ -1711,14 +1706,14 @@ static void IModelRenderSceneOpaque(CStatus *status) {
 
   for (UINT tmu = 0; tmu < 2; ++tmu) {
     UINT           textureId = layerUnique.tmuPass[tmu].textureId;
-    EGxRenderState textureState = static_cast<EGxRenderState>(GxRs_Texture0 + tmu);
-    if (textureId == static_cast<UINT>(-1)) {
+    EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
+    if (textureId == (UINT)-1) {
       GxRsSet(textureState, 0);
     } else if (layerUnique.blendMode == GxBlend_Opaque && (renderData.m_renderFlags & 2)) {
       GxRsSet(textureState, 0);
     } else {
       CGxTex *texture = TextureGetGxTex(renderData.m_textures[textureId].handle, 1, status);
-      GxRsSet(static_cast<EGxRenderState>(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
+      GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
       GxRsSet(textureState, texture);
     }
   }
@@ -1731,7 +1726,7 @@ static void IModelRenderSceneOpaque(CStatus *status) {
 
     int geosetChanged = sorted->geoShared != lastGeoset || sorted->geoShared->vertexShader != GxVS_PassThru;
 
-    CModel *modelptr = reinterpret_cast<CModel *>(sorted->model);
+    CModel *modelptr = (CModel *)sorted->model;
     ASSERT(modelptr);
 
     FillInRenderData(modelptr, sorted->flags, &renderData);
@@ -1741,7 +1736,7 @@ static void IModelRenderSceneOpaque(CStatus *status) {
     } else {
       int materialChanged = multiLayered ||
                             CTexLayer::Compare(
-                                GetTextureList(reinterpret_cast<CModel *>(lastSorted->model)->data), renderData.m_textures, *lastSorted->layer,
+                                GetTextureList(((CModel *)lastSorted->model)->data), renderData.m_textures, *lastSorted->layer,
                                 *sorted->layer
                             ) ||
                             ((lastSorted->flags ^ sorted->flags) & 0xF);
@@ -1783,7 +1778,7 @@ static void IModelRenderSceneTransparent(CStatus *status) {
       case SORTOBJ_GEOSET: {
         GxRsPush();
         CModelRenderData renderData;
-        FillInRenderData(reinterpret_cast<CModel *>(object->geo.model), 0, &renderData);
+        FillInRenderData((CModel *)object->geo.model, 0, &renderData);
         RenderGeoset(&renderData, object->geo.geoUnique, object->geo.geoShared, status);
         GxRsPop();
         break;
@@ -1791,7 +1786,7 @@ static void IModelRenderSceneTransparent(CStatus *status) {
 
       case SORTOBJ_EMITTER2: {
         CModelBase *modelptr;
-        IModelDerefHandle(reinterpret_cast<CModel *>(object->stnd.model), &modelptr);
+        IModelDerefHandle((CModel *)object->stnd.model, &modelptr);
         if (modelptr->m_PickLights) {
           SaveFog();
           modelptr->m_PickLights(
@@ -1804,7 +1799,7 @@ static void IModelRenderSceneTransparent(CStatus *status) {
           );
         }
 
-        static_cast<CParticleEmitter2 *>(object->stnd.object)->Render();
+        ((CParticleEmitter2 *)object->stnd.object)->Render();
         if (modelptr->m_PickLights) {
           RestoreFog();
         }
@@ -1812,11 +1807,11 @@ static void IModelRenderSceneTransparent(CStatus *status) {
       }
 
       case SORTOBJ_RIBBON:
-        static_cast<CRibbonEmitter *>(object->stnd.object)->Render();
+        ((CRibbonEmitter *)object->stnd.object)->Render();
         break;
 
       case SORTOBJ_CUSTOM_GEO:
-        RenderCustomGeoset(object->stnd.model, static_cast<CCustomGeoset *>(object->stnd.object));
+        RenderCustomGeoset(object->stnd.model, (CCustomGeoset *)object->stnd.object);
         break;
 
       case SORTOBJ_CUSTOM_MODEL:
@@ -1858,18 +1853,14 @@ UINT MatrixAlloc(UINT numMatrices) {
 
   ASSERT(s_nextMatrix <= 0xffff);
 
-  UINT nextMatrix = s_nextMatrix + numMatrices;
-  if (nextMatrix > s_matrixPool.Count()) {
-    s_matrixPool.SetCount(nextMatrix);
-  }
-
-  UINT result = s_nextMatrix | (static_cast<UINT>(s_currAnimFrame) << 16);
-  s_nextMatrix = nextMatrix;
+  s_matrixPool.GrowToFit(s_nextMatrix + numMatrices - 1, 0);
+  UINT result = (s_currAnimFrame << 16) | s_nextMatrix;
+  s_nextMatrix += numMatrices;
   return result;
 }
 
 NTempest::C34Matrix *MatrixDeref(UINT handle) {
-  if (static_cast<WORD>(handle >> 16) != s_currAnimFrame) {
+  if ((WORD)(handle >> 16) != s_currAnimFrame) {
     return 0;
   }
 
@@ -1920,7 +1911,8 @@ static void IModelBaseAddToScene(CModelBase *modelptr, CModelShared *shared) {
 static void IModelComplexAddToScene(CModel *model, UINT renderFlags) {
   ASSERT(model);
 
-  CModelComplex *modelptr = static_cast<CModelComplex *>(model->data);
+  CModelComplex *modelptr = (CModelComplex *)model->data;
+  ASSERT(modelptr);
   ASSERT(modelptr);
 
   UINT count = modelptr->m_textures.Count();
@@ -1931,7 +1923,7 @@ static void IModelComplexAddToScene(CModel *model, UINT renderFlags) {
     }
   }
 
-  CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelShared *shared = (CModelShared *)model->shared;
   ASSERT(shared);
 
   IModelBaseAddToScene(modelptr, shared);
@@ -1953,8 +1945,7 @@ static void IModelComplexAddToScene(CModel *model, UINT renderFlags) {
     );
   }
 
-  count = modelptr->m_attached.Count();
-  for (index = 0; index < count; ++index) {
+  for (index = 0; index < modelptr->m_attached.Count(); ++index) {
     int enabled = 1;
 
     if (modelptr->m_anim) {
@@ -1967,12 +1958,7 @@ static void IModelComplexAddToScene(CModel *model, UINT renderFlags) {
     }
 
     if (enabled) {
-      LIST(LINKUNIQUE) &attached = modelptr->m_attached.Ptr()[index];
-      LINKUNIQUE *link;
-      LINKUNIQUE *next;
-
-      for (link = attached.Head(); link; link = next) {
-        next = attached.Next(link);
+      ITERATELIST(LINKUNIQUE, modelptr->m_attached.Ptr()[index], link) {
         ModelAddToScene(link->child, 0);
       }
     }
@@ -1982,7 +1968,8 @@ static void IModelComplexAddToScene(CModel *model, UINT renderFlags) {
 static void IModelSimpleAddToScene(CModel *model, UINT renderFlags) {
   ASSERT(model);
 
-  CModelSimple *modelptr = static_cast<CModelSimple *>(model->data);
+  CModelSimple *modelptr = (CModelSimple *)model->data;
+  ASSERT(modelptr);
   ASSERT(modelptr);
 
   UINT count = modelptr->m_textures.Count();
@@ -1993,7 +1980,7 @@ static void IModelSimpleAddToScene(CModel *model, UINT renderFlags) {
     }
   }
 
-  CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelShared *shared = (CModelShared *)model->shared;
   ASSERT(shared);
 
   IModelBaseAddToScene(modelptr, shared);
@@ -2013,7 +2000,7 @@ static void IModelSimpleAddToScene(CModel *model, UINT renderFlags) {
 }
 
 void ModelAddToScene(HMODEL model, UINT renderFlags) {
-  CModel     *modelptr = reinterpret_cast<CModel *>(model);
+  CModel     *modelptr = (CModel *)model;
   CModelBase *unique;
 
   VALIDATEBEGIN;
@@ -2033,9 +2020,9 @@ void ModelAddToScene(HMODEL model, UINT renderFlags) {
 
 void ModelAddToScene(const NTempest::C3Vector &position, int priorityPlane, void (*callback)(LPVOID, int), LPVOID param1, int param2) {
   CTransparentObject *object = s_trLayerPool.New();
-  object->sortType = SORTOBJ_CUSTOM_MODEL;
   object->priorityPlane = priorityPlane;
   object->sqDistFromCamera = (position - s_sceneCameraPos).SquaredMag();
+  object->sortType = SORTOBJ_CUSTOM_MODEL;
   object->cust.callback = callback;
   object->cust.param1 = param1;
   object->cust.param2 = param2;
@@ -2081,8 +2068,8 @@ static void GeosetComplexRender(CModel *model, CGeoset *geoUnique, CGeosetShared
 }
 
 static void ModelComplexRender(HMODEL modelHandle, CModel *model, UINT renderFlags, CStatus *status) {
-  CModelComplex *modelptr = static_cast<CModelComplex *>(model->data);
-  CModelShared  *shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelComplex *modelptr = (CModelComplex *)model->data;
+  CModelShared  *shared = (CModelShared *)model->shared;
 
   UINT index;
   if (!(modelptr->m_flags & 0x10)) {
@@ -2135,8 +2122,8 @@ static void ModelComplexRender(HMODEL modelHandle, CModel *model, UINT renderFla
 }
 
 static void ModelSimpleRender(CModel *model, UINT renderFlags, CStatus *status) {
-  CModelSimple *modelptr = static_cast<CModelSimple *>(model->data);
-  CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
+  CModelSimple *modelptr = (CModelSimple *)model->data;
+  CModelShared *shared = (CModelShared *)model->shared;
 
   if (!(modelptr->m_flags & 0x10)) {
     UINT numGeosets = modelptr->m_geosets.Count();
@@ -2151,7 +2138,7 @@ static void ModelSimpleRender(CModel *model, UINT renderFlags, CStatus *status) 
 }
 
 void ModelRender(HMODEL model, CStatus *status, UINT renderFlags) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -2179,7 +2166,7 @@ void ModelSceneCalcFrustumPlanes() {
 BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return 0;
   }
 
@@ -2192,7 +2179,7 @@ BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
-    CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
+    CModelComplex *complex = (CModelComplex *)modelptr;
     UINT           numAttachments = complex->m_attached.Count();
     for (UINT j = 0; j < numAttachments; ++j) {
       if (!complex->m_anim) {
@@ -2216,13 +2203,13 @@ BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float
 }
 
 void ModelSceneGetFrustumPlanes(NTempest::C4Vector fp[]) {
-  for (UINT i = 0; i < 6; ++i) {
+  for (UINT i = 0; i < sizeof(s_frustumPlanes) / sizeof(s_frustumPlanes[0]); ++i) {
     fp[i] = s_frustumPlanes[i];
   }
 }
 
 void ModelSceneSetFrustumPlanes(NTempest::C4Vector fp[]) {
-  for (UINT i = 0; i < 6; ++i) {
+  for (UINT i = 0; i < sizeof(s_frustumPlanes) / sizeof(s_frustumPlanes[0]); ++i) {
     s_frustumPlanes[i] = fp[i];
   }
 }
@@ -2238,7 +2225,7 @@ int ModelIntersectLineSegment(
 ) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return 0;
   }
 
@@ -2248,23 +2235,20 @@ int ModelIntersectLineSegment(
   NTempest::C3Vector closest = bounds.c - a;
   NTempest::C3Vector segment = b - a;
   float              position = NTempest::C3Vector::Dot(closest, segment);
-  float              divisor = NTempest::C3Vector::Dot(segment, segment);
   if (position < 0.0f) {
     position = 0.0f;
-  } else if (position <= divisor) {
-    position /= divisor;
-    closest.x -= segment.x * position;
-    closest.y -= segment.y * position;
-    closest.z -= segment.z * position;
   } else {
-    position = 1.0f;
-    closest.x -= segment.x;
-    closest.y -= segment.y;
-    closest.z -= segment.z;
+    float divisor = NTempest::C3Vector::Dot(segment, segment);
+    if (position > divisor) {
+      position = 1.0f;
+      closest -= segment;
+    } else {
+      position /= divisor;
+      closest -= position * segment;
+    }
   }
-
   *linePos = position;
-  if (closest.SquaredMag() <= bounds.r * bounds.r) {
+  if (NTempest::C3Vector::Dot(closest, closest) <= bounds.r * bounds.r) {
     return IModelTestRay(modelptr, shared, a, b, linePos, testLinkedModels);
   }
   *linePos = INFINITY;
@@ -2304,7 +2288,7 @@ static int LineSegmentIntersectBox(
       return 0;
     if (q > lineSegment.x * t1)
       t1 = q / lineSegment.x;
-  } else if (q > 0.0f) {
+  } else if (q <= 0.0f) {
     return 0;
   }
 
@@ -2319,7 +2303,7 @@ static int LineSegmentIntersectBox(
       return 0;
     if (q > -lineSegment.x * t1)
       t1 = q / -lineSegment.x;
-  } else if (q > 0.0f) {
+  } else if (q <= 0.0f) {
     return 0;
   }
 
@@ -2334,7 +2318,7 @@ static int LineSegmentIntersectBox(
       return 0;
     if (q > lineSegment.y * t1)
       t1 = q / lineSegment.y;
-  } else if (q > 0.0f) {
+  } else if (q <= 0.0f) {
     return 0;
   }
 
@@ -2349,7 +2333,7 @@ static int LineSegmentIntersectBox(
       return 0;
     if (q > -lineSegment.y * t1)
       t1 = q / -lineSegment.y;
-  } else if (q > 0.0f) {
+  } else if (q <= 0.0f) {
     return 0;
   }
 
@@ -2364,7 +2348,7 @@ static int LineSegmentIntersectBox(
       return 0;
     if (q > lineSegment.z * t1)
       t1 = q / lineSegment.z;
-  } else if (q > 0.0f) {
+  } else if (q <= 0.0f) {
     return 0;
   }
 
@@ -2379,7 +2363,7 @@ static int LineSegmentIntersectBox(
       return 0;
     if (q > -lineSegment.z * t1)
       t1 = q / -lineSegment.z;
-  } else if (q > 0.0f) {
+  } else if (q <= 0.0f) {
     return 0;
   }
 
@@ -2439,25 +2423,24 @@ static BOOL LineSegmentIntersectSphere(
 ) {
   NTempest::C3Vector center = sphCenter * sphToWorld;
   float              radius = sphScale * sphRadius;
+
   NTempest::C3Vector closest = center - a;
-  float              divisor = NTempest::C3Vector::Dot(b - a, b - a);
-  float              position = NTempest::C3Vector::Dot(closest, b - a);
+  NTempest::C3Vector segment = b - a;
+  float              position = NTempest::C3Vector::Dot(closest, segment);
   if (position < 0.0f) {
     position = 0.0f;
-  } else if (position <= divisor) {
-    position /= divisor;
-    closest.x -= (b.x - a.x) * position;
-    closest.y -= (b.y - a.y) * position;
-    closest.z -= (b.z - a.z) * position;
   } else {
-    position = 1.0f;
-    closest.x -= b.x - a.x;
-    closest.y -= b.y - a.y;
-    closest.z -= b.z - a.z;
+    float divisor = NTempest::C3Vector::Dot(segment, segment);
+    if (position > divisor) {
+      position = 1.0f;
+      closest -= segment;
+    } else {
+      position /= divisor;
+      closest -= position * segment;
+    }
   }
-
   *linePos = position;
-  return closest.SquaredMag() <= radius * radius;
+  return NTempest::C3Vector::Dot(closest, closest) <= radius * radius;
 }
 
 static BOOL IModelTestCollisionVolumes(
@@ -2533,7 +2516,7 @@ BOOL ModelTestSphere(
 ) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return 0;
   }
 
@@ -2545,7 +2528,7 @@ BOOL ModelTestSphere(
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
-    CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
+    CModelComplex *complex = (CModelComplex *)modelptr;
 
     UINT numAttachments = complex->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
@@ -2572,29 +2555,31 @@ static void CreatePlanarQuadGeometry(
     TSGrowableArray<WORD>               *vertIndices,
     TSGrowableArray<CPrimitive>         *primitives
 ) {
-  UINT indexOffset = vertIndices->Count();
-
   texCoords->SetCount(texCoords->Count() + 4);
-  vertIndices->SetCount(indexOffset + 6);
-  (*vertIndices)[indexOffset + 0] = static_cast<WORD>(positions->Count());
-  (*vertIndices)[indexOffset + 1] = static_cast<WORD>(positions->Count() + 2);
-  (*vertIndices)[indexOffset + 2] = static_cast<WORD>(positions->Count() + 1);
-  (*vertIndices)[indexOffset + 3] = static_cast<WORD>(positions->Count() + 1);
-  (*vertIndices)[indexOffset + 4] = static_cast<WORD>(positions->Count() + 2);
-  (*vertIndices)[indexOffset + 5] = static_cast<WORD>(positions->Count() + 3);
 
-  positions->SetCount(positions->Count() + 4);
-  float halfLength = length * 0.5f;
-  float halfWidth = width * 0.5f;
-  (*positions)[positions->Count() - 4].Set(base.x - halfLength, base.y - halfWidth, base.z);
-  (*positions)[positions->Count() - 3].Set(base.x - halfLength, base.y + halfWidth, base.z);
-  (*positions)[positions->Count() - 2].Set(base.x + halfLength, base.y - halfWidth, base.z);
-  (*positions)[positions->Count() - 1].Set(base.x + halfLength, base.y + halfWidth, base.z);
+  UINT indexOffset = vertIndices->Count();
+  UINT vertexOffset = positions->Count();
+  vertIndices->SetCount(indexOffset + 6);
+
+  (*vertIndices)[indexOffset] = (WORD)vertexOffset;
+  (*vertIndices)[++indexOffset] = (WORD)(vertexOffset + 2);
+  (*vertIndices)[++indexOffset] = (WORD)(vertexOffset + 1);
+  (*vertIndices)[++indexOffset] = (WORD)(vertexOffset + 1);
+  (*vertIndices)[++indexOffset] = (WORD)(vertexOffset + 2);
+  (*vertIndices)[++indexOffset] = (WORD)(vertexOffset + 3);
+
+  positions->SetCount(vertexOffset + 4);
+  (*positions)[vertexOffset].Set(base.x - length * 0.5f, base.y - width * 0.5f, base.z);
+  (*positions)[++vertexOffset].Set(base.x - length * 0.5f, base.y + width * 0.5f, base.z);
+  (*positions)[++vertexOffset].Set(base.x + length * 0.5f, base.y - width * 0.5f, base.z);
+  (*positions)[++vertexOffset].Set(base.x + length * 0.5f, base.y + width * 0.5f, base.z);
 
   UINT normalOffset = normals->Count();
   normals->SetCount(normalOffset + 4);
-  for (UINT i = normalOffset; i < normals->Count(); ++i) {
-    (*normals)[i].Set(0.0f, 0.0f, 1.0f);
+  NTempest::C3Vector *normal = &(*normals)[normalOffset];
+  for (UINT i = normals->Count() - normalOffset; i; --i) {
+    normal->Set(0.0f, 0.0f, 1.0f);
+    ++normal;
   }
 
   CPrimitive *primitive = primitives->New();
@@ -2611,56 +2596,57 @@ static void GenerateCylinderVerts(
     TSGrowableArray<NTempest::C3Vector> *normals
 ) {
   UINT offset = vertices->Count();
-  UINT count = offset + 4 * segments + 2;
-  vertices->SetCount(count);
-  normals->SetCount(count);
+  vertices->SetCount(offset + 4 * segments + 2);
+  normals->SetCount(offset + 4 * segments + 2);
 
   NTempest::C3Vector topNormal = height - base;
   topNormal.Normalize();
   NTempest::C3Vector bottomNormal = -topNormal;
-  NTempest::C3Vector perp(topNormal.y - topNormal.z, topNormal.z - topNormal.x, topNormal.x - topNormal.y);
+  NTempest::C3Vector perp = NTempest::C3Vector::Cross(topNormal, NTempest::C3Vector(1.0f, 1.0f, 1.0f));
   perp.Normalize();
   perp *= radius;
 
-  UINT vertex = offset;
-  (*vertices)[vertex] = height;
-  (*normals)[vertex++] = topNormal;
+  NTempest::C4Quaternion quat(0.0f, topNormal);
+  NTempest::C3Vector    *vertex = &(*vertices)[offset];
+  NTempest::C3Vector    *normal = &(*normals)[offset];
 
-  UINT                   i;
-  NTempest::C4Quaternion quat;
+  *vertex++ = height;
+  *normal++ = topNormal;
+
+  UINT i;
   for (i = 0; i < segments; ++i) {
-    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    quat.FromAngleAxis(i * PI * 2.0f / segments, topNormal);
     NTempest::C3Vector rot = quat * perp;
-    (*vertices)[vertex] = rot + height;
-    (*normals)[vertex++] = topNormal;
+    *vertex++ = rot + height;
+    *normal++ = topNormal;
   }
 
-  (*vertices)[vertex] = base;
-  (*normals)[vertex++] = bottomNormal;
+  *vertex++ = base;
+  *normal++ = bottomNormal;
 
   for (i = 0; i < segments; ++i) {
-    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    quat.FromAngleAxis(i * PI * 2.0f / segments, topNormal);
     NTempest::C3Vector rot = quat * perp;
-    (*vertices)[vertex] = rot + base;
-    (*normals)[vertex++] = bottomNormal;
+    *vertex++ = rot + base;
+    *normal++ = bottomNormal;
   }
 
   for (i = 0; i < segments; ++i) {
-    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    quat.FromAngleAxis(i * PI * 2.0f / segments, topNormal);
     NTempest::C3Vector rot = quat * perp;
     NTempest::C3Vector norm = rot;
     norm.Normalize();
-    (*vertices)[vertex] = rot + height;
-    (*normals)[vertex++] = norm;
+    *vertex++ = rot + height;
+    *normal++ = norm;
   }
 
   for (i = 0; i < segments; ++i) {
-    quat = NTempest::C4Quaternion(static_cast<float>(i) * TWO_PI / static_cast<float>(segments), topNormal);
+    quat.FromAngleAxis(i * PI * 2.0f / segments, topNormal);
     NTempest::C3Vector rot = quat * perp;
     NTempest::C3Vector norm = rot;
     norm.Normalize();
-    (*vertices)[vertex] = rot + base;
-    (*normals)[vertex++] = norm;
+    *vertex++ = base + rot;
+    *normal++ = norm;
   }
 }
 
@@ -2674,41 +2660,44 @@ static int CreateCylinderGeometry(
     TSGrowableArray<WORD>               *vertIndices,
     TSGrowableArray<CPrimitive>         *primitives
 ) {
-  const UINT segments = 16;
-  UINT       vertexOffset = vertices->Count();
-  UINT       indexOffset = vertIndices->Count();
+  UINT vertexOffset = vertices->Count();
+  UINT vertIndexOffset = vertIndices->Count();
 
-  GenerateCylinderVerts(base, height, radius, segments, vertices, normals);
+  GenerateCylinderVerts(base, height, radius, 16, vertices, normals);
   texCoords->SetCount(vertices->Count());
-  vertIndices->SetCount(indexOffset + 192);
 
-  WORD *indices = vertIndices->Ptr() + indexOffset;
-  UINT  segment;
-  for (segment = 0; segment < segments; ++segment) {
-    UINT next = (segment + 1) & 0xF;
-    *indices++ = static_cast<WORD>(vertexOffset + 1 + next);
-    *indices++ = static_cast<WORD>(vertexOffset + 1 + segment);
-    *indices++ = static_cast<WORD>(vertexOffset);
+  vertIndices->SetCount(vertIndexOffset + 192);
+
+  WORD *indices = &(*vertIndices)[vertIndexOffset];
+  UINT  i;
+  for (i = 0; i < 16; ++i) {
+    *indices++ = (WORD)(vertexOffset + 1 + ((WORD)(i + 1) & 0xF));
+    *indices++ = (WORD)(vertexOffset + 1 + i);
+    *indices++ = (WORD)vertexOffset;
   }
-  for (segment = 0; segment < segments; ++segment) {
-    UINT next = (segment + 1) & 0xF;
-    *indices++ = static_cast<WORD>(vertexOffset + 17);
-    *indices++ = static_cast<WORD>(vertexOffset + 18 + segment);
-    *indices++ = static_cast<WORD>(vertexOffset + 18 + next);
+
+  for (i = 0; i < 16; ++i) {
+    *indices++ = (WORD)(vertexOffset + 17);
+    *indices++ = (WORD)(vertexOffset + 18 + i);
+    *indices++ = (WORD)(vertexOffset + 18 + ((WORD)(i + 1) & 0xF));
   }
-  for (segment = 0; segment < segments; ++segment) {
-    UINT next = (segment + 1) & 0xF;
-    *indices++ = static_cast<WORD>(vertexOffset + 50 + next);
-    *indices++ = static_cast<WORD>(vertexOffset + 50 + segment);
-    *indices++ = static_cast<WORD>(vertexOffset + 34 + segment);
-    *indices++ = static_cast<WORD>(vertexOffset + 34 + next);
-    *indices++ = static_cast<WORD>(vertexOffset + 50 + next);
-    *indices++ = static_cast<WORD>(vertexOffset + 34 + segment);
+
+  vertexOffset += 34;
+
+  for (i = 0; i < 16; ++i) {
+    *indices++ = (WORD)(vertexOffset + 16 + ((WORD)(i + 1) & 0xF));
+    *indices++ = (WORD)(vertexOffset + 16 + i);
+    *indices++ = (WORD)(vertexOffset + i);
+
+    *indices++ = (WORD)(vertexOffset + ((WORD)(i + 1) & 0xF));
+    *indices++ = (WORD)(vertexOffset + 16 + ((WORD)(i + 1) & 0xF));
+    *indices++ = (WORD)(vertexOffset + i);
   }
 
   CPrimitive *primitive = primitives->New();
   primitive->type = GxPrim_Triangles;
   primitive->vertexCount = 192;
+
   return 1;
 }
 
@@ -2818,16 +2807,16 @@ static void IModelHandleGeosetAdd(
 ) {
   CModelBase *modelptr = model->data;
   if (modelptr && (modelptr->m_flags & 0x20)) {
-    CModelShared *shared = reinterpret_cast<CModelShared *>(model->shared);
+    CModelShared *shared = (CModelShared *)model->shared;
     IModelGeosetAdd(
-        static_cast<CModelComplex *>(modelptr), shared, position, normal, texCoord, primitiveVertices, groupVertex, groupCounts, matrices, primitives,
+        (CModelComplex *)modelptr, shared, position, normal, texCoord, primitiveVertices, groupVertex, groupCounts, matrices, primitives,
         texture, blendMode, disables, color
     );
   }
 }
 
 static void AddHitTestGeometryGeoset(HMODEL__ *modelHandle, HTEXTURE__ *tex) {
-  CModel *model = reinterpret_cast<CModel *>(modelHandle);
+  CModel *model = (CModel *)modelHandle;
   VALIDATEBEGIN;
   VALIDATE(model);
   VALIDATE(tex);
@@ -2906,7 +2895,7 @@ static void AddHitTestGeometryGeoset(HMODEL__ *modelHandle, HTEXTURE__ *tex) {
 BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return 0;
   }
 
@@ -2914,10 +2903,11 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
   IModelGetBoundingSphere(modelptr, shared, &bounds);
   TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
 
-  float lineLength = (b - a).Mag();
+  NTempest::C3Vector lineSegment = b - a;
+  float              lineLength = lineSegment.Mag();
+
   *linePos = 0.0f;
   NTempest::C3Vector closest = bounds.c - a;
-  NTempest::C3Vector lineSegment = b - a;
   float              position = NTempest::C3Vector::Dot(closest, lineSegment);
   if (position < 0.0f) {
     position = 0.0f;
@@ -2925,11 +2915,12 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
     float divisor = NTempest::C3Vector::Dot(lineSegment, lineSegment);
     if (position > divisor) {
       position = 1.0f;
+      closest -= lineSegment;
     } else {
       position /= divisor;
+      closest -= position * lineSegment;
     }
   }
-  closest -= position * lineSegment;
   *linePos = position;
   if (NTempest::C3Vector::Dot(closest, closest) <= bounds.r * bounds.r) {
     *linePos = position * lineLength;
@@ -2937,7 +2928,7 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
-    CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
+    CModelComplex *complex = (CModelComplex *)modelptr;
     UINT           numAttachments = complex->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
@@ -2952,7 +2943,7 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
 
 BOOL ModelHasHitTestVolumes(HMODEL model) {
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
+  if (IModelDerefHandle((CModel *)model, &shared)) {
     ASSERT(shared);
     if (shared->hitTest.Count() > 0) {
       return 1;
@@ -2964,32 +2955,41 @@ BOOL ModelHasHitTestVolumes(HMODEL model) {
 BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return 0;
   }
 
-  if (!(modelptr->m_flags & 0x20)) {
+  CModelComplex *complex = (CModelComplex *)modelptr;
+  if (!(complex->m_flags & 0x20)) {
     return 0;
   }
 
   float lineLength = (b - a).Mag();
   float hitVolumeLinePos = 0.0f;
-  if (IModelTestCollisionVolumes(static_cast<CModelComplex *>(modelptr), shared, scale, a, b, &hitVolumeLinePos)) {
+  if (IModelTestCollisionVolumes(complex, shared, scale, a, b, &hitVolumeLinePos)) {
     *linePos = hitVolumeLinePos * lineLength;
     return 1;
   }
 
-  if (testLinkedModels) {
-    CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
-    UINT           numAttachments = complex->m_attached.Count();
-    for (UINT j = 0; j < numAttachments; ++j) {
-      ITERATELIST(LINKUNIQUE, complex->m_attached[j], link) {
-        CModelShared *childShared;
-        if (IModelDerefHandle(reinterpret_cast<CModel *>(link->child), &childShared) &&
-            (childShared->hitTest.Count() ? ModelHitTestVolumes(link->child, scale, a, b, 1, linePos)
-                                          : ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)))
-        {
-          return 1;
+  if (!testLinkedModels) {
+    return 0;
+  }
+
+  UINT numAttachments = complex->m_attached.Count();
+  for (UINT j = 0; j < numAttachments; ++j) {
+    ITERATELIST(LINKUNIQUE, complex->m_attached[j], link) {
+      CModelShared *childShared;
+      if (IModelDerefHandle((CModel *)link->child, &childShared)) {
+        CModelShared *shared = childShared;
+        ASSERT(shared);
+        if (shared->hitTest.Count() > 0) {
+          if (ModelHitTestVolumes(link->child, scale, a, b, 1, linePos)) {
+            return 1;
+          }
+        } else {
+          if (ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)) {
+            return 1;
+          }
         }
       }
     }
@@ -3000,7 +3000,7 @@ BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a,
 BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return 0;
   }
 
@@ -3009,7 +3009,7 @@ BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
-    CModelComplex *complex = static_cast<CModelComplex *>(modelptr);
+    CModelComplex *complex = (CModelComplex *)modelptr;
     UINT           numAttachments = complex->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
@@ -3032,12 +3032,18 @@ ModelIntersectResult ModelIntersectLineSegmentEx(
     float                    *centerDistSq,
     int                       testLinkedModels
 ) {
-  FATALASSERT(linePos);
-  FATALASSERT(centerDistSq);
+  VALIDATEBEGIN;
+  VALIDATE(linePos);
+  VALIDATE(centerDistSq);
+  if (0) {
+  validatefailed:
+    SErrSetLastError(ERROR_INVALID_PARAMETER);
+    return MODEL_INTERSECT_NO_HIT;
+  }
 
   CModelBase   *modelptr;
   CModelShared *shared;
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &modelptr, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
     return MODEL_INTERSECT_NO_HIT;
   }
 
@@ -3045,43 +3051,40 @@ ModelIntersectResult ModelIntersectLineSegmentEx(
   IModelGetBoundingSphere(modelptr, shared, &bounds);
   TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
 
+  float hitLinePos = INFINITY;
   *centerDistSq = INFINITY;
-  float                lineLength = (b - a).Mag();
-  float                hitLinePos = INFINITY;
   ModelIntersectResult result = MODEL_INTERSECT_NO_HIT;
+  float                lineLength = (b - a).Mag();
 
   if (hitTestFlags & 0x1) {
     NTempest::C3Vector closest = bounds.c - a;
     NTempest::C3Vector segment = b - a;
     float              position = NTempest::C3Vector::Dot(closest, segment);
-    float              divisor = NTempest::C3Vector::Dot(segment, segment);
     if (position < 0.0f) {
       position = 0.0f;
-    } else if (position <= divisor) {
-      position /= divisor;
-      closest.x -= segment.x * position;
-      closest.y -= segment.y * position;
-      closest.z -= segment.z * position;
     } else {
-      position = 1.0f;
-      closest.x -= segment.x;
-      closest.y -= segment.y;
-      closest.z -= segment.z;
+      float divisor = NTempest::C3Vector::Dot(segment, segment);
+      if (position > divisor) {
+        position = 1.0f;
+        closest -= segment;
+      } else {
+        position /= divisor;
+        closest -= position * segment;
+      }
     }
-
-    *centerDistSq = closest.SquaredMag();
+    *centerDistSq = NTempest::C3Vector::Dot(closest, closest);
     if (*centerDistSq > bounds.r * bounds.r) {
       return MODEL_INTERSECT_NO_HIT;
     }
-    result = MODEL_INTERSECT_HIT_BOUNDING_SPHERE;
     hitLinePos = position * lineLength;
+    result = MODEL_INTERSECT_HIT_BOUNDING_SPHERE;
   }
 
   if ((hitTestFlags & 0x2) && (modelptr->m_flags & 0x20)) {
-    float volumeLinePos = 0.0f;
-    if (IModelTestCollisionVolumes(static_cast<CModelComplex *>(modelptr), shared, scale, a, b, &volumeLinePos)) {
+    float hitVolumeLinePos = 0.0f;
+    if (IModelTestCollisionVolumes((CModelComplex *)modelptr, shared, scale, a, b, &hitVolumeLinePos)) {
+      hitLinePos = hitVolumeLinePos * lineLength;
       result = MODEL_INTERSECT_HIT_COLLISION_VOLUMES;
-      hitLinePos = volumeLinePos * lineLength;
     } else if (!(hitTestFlags & 0x10)) {
       *linePos = hitLinePos;
       return result;
@@ -3099,16 +3102,12 @@ ModelIntersectResult ModelIntersectLineSegmentEx(
     return result;
   }
 
-  if ((hitTestFlags & 0x8) && modelHitLinePos >= hitLinePos) {
-    *linePos = hitLinePos;
-  } else {
-    *linePos = modelHitLinePos;
-  }
+  *linePos = (hitTestFlags & 0x8) ? min(modelHitLinePos, hitLinePos) : modelHitLinePos;
   return MODEL_INTERSECT_HIT_MODEL;
 }
 
 void ModelShowBoundingSphere(HMODEL model) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -3136,7 +3135,7 @@ void ModelShowBoundingSphere(HMODEL model) {
 void ModelShowBoundingBox(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (IModelDerefHandle((CModel *)model, &unique, &shared)) {
     if (unique->m_boundsModel) {
       HandleClose(unique->m_boundsModel);
     }
@@ -3148,7 +3147,7 @@ void ModelShowBoundingBox(HMODEL model) {
 }
 
 void ModelHideBounds(HMODEL model) {
-  CModel *modelptr = reinterpret_cast<CModel *>(model);
+  CModel *modelptr = (CModel *)model;
   VALIDATEBEGIN;
   VALIDATE(modelptr);
   VALIDATEENDVOID;
@@ -3168,7 +3167,7 @@ void ModelHideBounds(HMODEL model) {
 void ModelShowHitTestGeometry(HMODEL__ *model) {
   CModelBase   *unique;
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) && !(unique->m_flags & 8) && shared->hitTest.Count()) {
+  if (IModelDerefHandle((CModel *)model, &unique, &shared) && !(unique->m_flags & 8) && shared->hitTest.Count()) {
     HTEXTURE texture = TextureCreateSolid(NTempest::CImVector(0x7FFF0000), 0);
     AddHitTestGeometryGeoset(model, texture);
     unique->m_flags |= 8;
@@ -3179,8 +3178,8 @@ void ModelShowHitTestGeometry(HMODEL__ *model) {
 void ModelHideHitTestGeometry(HMODEL__ *model) {
   CModelBase   *unique;
   CModelShared *shared;
-  if (IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared) && (unique->m_flags & 0x28) == 0x28) {
-    CModelComplex *complex = static_cast<CModelComplex *>(unique);
+  if (IModelDerefHandle((CModel *)model, &unique, &shared) && (unique->m_flags & 0x28) == 0x28) {
+    CModelComplex *complex = (CModelComplex *)unique;
     complex->m_geosets.SetCount(complex->m_geosets.Count() - 1);
     complex->m_addlGeosets.SetCount(complex->m_addlGeosets.Count() - 1);
     complex->m_flags &= ~8u;
@@ -3190,7 +3189,7 @@ void ModelHideHitTestGeometry(HMODEL__ *model) {
 BOOL ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &shared)) {
     return 0;
   }
 
@@ -3202,7 +3201,7 @@ BOOL ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelBase   *unique;
   CModelShared *shared;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
     return 0;
   }
 
@@ -3214,7 +3213,7 @@ BOOL ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents) {
   CModelBase   *unique;
   CModelShared *shared;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
     return 0;
   }
 
@@ -3225,7 +3224,7 @@ BOOL ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
   CModelBase   *unique;
   CModelShared *shared;
 
-  if (!IModelDerefHandle(reinterpret_cast<CModel *>(model), &unique, &shared)) {
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
     return 0;
   }
 

@@ -27,13 +27,13 @@ class CGxStateBom {
   int                 GetAsInt();
 
   float GetAsFloat() {
-    return *reinterpret_cast<float *>(&mData[0]);
+    return *(float *)&mData[0];
   }
 
   NTempest::CImVector GetAsCArgb();
 
   NTempest::C3Vector GetAsC3Vector() {
-    return *reinterpret_cast<NTempest::C3Vector *>(&mData[0]);
+    return *(NTempest::C3Vector *)&mData[0];
   }
 
   LPVOID GetAsPointer();
@@ -53,9 +53,9 @@ class CGxStateBom {
   }
 
   const CGxStateBom &operator=(float value) {
-    mData[0] = *reinterpret_cast<int *>(&value);
-    mData[1] = *reinterpret_cast<int *>(&value);
-    mData[2] = *reinterpret_cast<int *>(&value);
+    mData[0] = *(int *)&value;
+    mData[1] = *(int *)&value;
+    mData[2] = *(int *)&value;
     return *this;
   }
 };

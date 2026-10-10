@@ -38,13 +38,6 @@
 #include <storm.h>
 
 #include "Console/ConsoleCommand.h"
-
-static LPCSTR s_boneNames[26] = {"ArmL",          "ArmR",         "ShoulderL",     "ShoulderR",    "SpineLow",    "Waist",  "Head",
-                                 "Jaw",           "IndexFingerR", "MiddleFingerR", "PinkyFingerR", "RingFingerR", "ThumbR", "IndexFingerL",
-                                 "MiddleFingerL", "PinkyFingerL", "RingFingerL",   "ThumbL",       "$BTH",        "$CSR",   "$CSL",
-                                 "_Breath",       "_Name",        "_NameMount",    "$CHD",         "$CCH"};
-
-static LPCSTR s_cameraNames[2] = {"Portrait", "Paperdoll"};
 #include "Console/ConsoleVar.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "WorldClient/World.h"
@@ -53,6 +46,12 @@ static LPCSTR s_cameraNames[2] = {"Portrait", "Paperdoll"};
 #include "Ui/WorldFrame.h"
 #include "DayNight.h"
 
+static LPCSTR s_boneNames[26] = {"ArmL",          "ArmR",         "ShoulderL",     "ShoulderR",    "SpineLow",    "Waist",  "Head",
+                                 "Jaw",           "IndexFingerR", "MiddleFingerR", "PinkyFingerR", "RingFingerR", "ThumbR", "IndexFingerL",
+                                 "MiddleFingerL", "PinkyFingerL", "RingFingerL",   "ThumbL",       "$BTH",        "$CSR",   "$CSL",
+                                 "_Breath",       "_Name",        "_NameMount",    "$CHD",         "$CCH"};
+
+static LPCSTR s_cameraNames[2] = {"Portrait", "Paperdoll"};
 static CVar    *s_objectSelectionCircle;
 static CVar    *s_debugTargetPath;
 static CGxTex  *s_fadeTex;
@@ -80,42 +79,46 @@ static UINT GenerateAnimFlags(UINT objectFlags) {
 static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   static TSGrowableArray<NTempest::CImVector> s_texels;
 
-  if (cmd == GxTex_Lock) {
-    UINT count = w * h;
-    if (count > s_texels.Count()) {
-      s_texels.SetCount(count);
-    }
-  } else if (cmd == GxTex_Latch) {
-    if (mipLevel) {
-      return;
-    }
+  switch (cmd) {
+    case GxTex_Lock:
+      s_texels.SetCount(w * h);
+      break;
 
-    texelStrideInBytes = w * sizeof(NTempest::CImVector);
-    texels = s_texels.Ptr();
-
-    for (UINT row = 0; row < h; ++row) {
-      NTempest::CImVector *tex = s_texels.Ptr() + row * w;
-
-      for (UINT column = 0; column < w; ++column) {
-        float position = static_cast<float>(column) / static_cast<float>(w - 1) * 12.0f;
-        float alpha;
-
-        if (position < 2.0f) {
-          alpha = position * 0.5f;
-        } else if (position < 10.0f) {
-          alpha = 1.0f;
-        } else {
-          alpha = (12.0f - position) * 0.5f;
-          if (alpha <= 0.0f) {
-            alpha = 0.0f;
-          }
-        }
-
-        tex[column].Set(static_cast<BYTE>(alpha * 255.0f), 255, 255, 255);
+    case GxTex_Latch: {
+      if (mipLevel) {
+        break;
       }
+
+      texelStrideInBytes = w * sizeof(NTempest::CImVector);
+      texels = s_texels.Ptr();
+
+      for (UINT row = 0; row < h; ++row) {
+        NTempest::CImVector *tex = s_texels.Ptr() + row * w;
+
+        for (UINT column = 0; column < w; ++column) {
+          float position = (float)column / (float)(w - 1) * 12.0f;
+          float alpha;
+
+          if (position < 2.0f) {
+            alpha = position * 0.5f;
+          } else if (position < 10.0f) {
+            alpha = 1.0f;
+          } else {
+            alpha = (12.0f - position) * 0.5f;
+            if (alpha <= 0.0f) {
+              alpha = 0.0f;
+            }
+          }
+
+          tex[column].Set((BYTE)(alpha * 255.0f), 255, 255, 255);
+        }
+      }
+      break;
     }
-  } else if (cmd == GxTex_Unlock) {
-    s_texels.Clear();
+
+    case GxTex_Unlock:
+      s_texels.Clear();
+      break;
   }
 }
 
@@ -263,37 +266,40 @@ BOOL CGObject_C::InitModelFileName(char *modelFileName, UINT size) {
   LPCSTR name = 0;
   switch (GetType()) {
     case HIER_TYPE_ITEM:
+      name = ((CGItem_C *)this)->CGItem_C::GetModelFileName();
+      if (name) {
+        SStrPrintf(modelFileName, size, "%s\\%s", ITEM_GROUNDMODEL_DIRPREFIX, name);
+      }
+      return modelFileName[0] != 0;
+
     case HIER_TYPE_CONTAINER:
-      name = static_cast<CGItem_C *>(this)->CGItem_C::GetModelFileName();
+      name = ((CGItem_C *)this)->CGItem_C::GetModelFileName();
       if (name) {
         SStrPrintf(modelFileName, size, "%s\\%s", ITEM_GROUNDMODEL_DIRPREFIX, name);
       }
       return modelFileName[0] != 0;
 
     case HIER_TYPE_UNIT:
-      name = static_cast<CGUnit_C *>(this)->CGUnit_C::GetModelFileName();
+      name = ((CGUnit_C *)this)->CGUnit_C::GetModelFileName();
       break;
 
     case HIER_TYPE_PLAYER:
-      name = static_cast<CGPlayer_C *>(this)->CGPlayer_C::GetModelFileName();
+      name = ((CGPlayer_C *)this)->CGPlayer_C::GetModelFileName();
       break;
 
     case HIER_TYPE_GAMEOBJECT:
-      name = static_cast<CGGameObject_C *>(this)->CGGameObject_C::GetModelFileName();
+      name = ((CGGameObject_C *)this)->CGGameObject_C::GetModelFileName();
       break;
 
     case HIER_TYPE_DYNAMICOBJECT:
-      name = static_cast<CGDynamicObject_C *>(this)->CGDynamicObject_C::GetModelFileName();
+      name = ((CGDynamicObject_C *)this)->CGDynamicObject_C::GetModelFileName();
       if (name) {
         SStrPrintf(modelFileName, size, "%s", name);
       }
       return modelFileName[0] != 0;
 
     case HIER_TYPE_CORPSE:
-      name = static_cast<CGCorpse_C *>(this)->CGCorpse_C::GetModelFileName();
-      break;
-
-    default:
+      name = ((CGCorpse_C *)this)->CGCorpse_C::GetModelFileName();
       break;
   }
 
@@ -307,7 +313,7 @@ BOOL CGObject_C::InitModelFileName(char *modelFileName, UINT size) {
 
 void CGObject_C::SetStorage(DWORD *storage) {
   m_data = storage;
-  m_obj = reinterpret_cast<CGObjectData *>(storage);
+  m_obj = (CGObjectData *)storage;
 }
 
 CGObject_C::~CGObject_C() {
@@ -320,7 +326,6 @@ CGObject_C::~CGObject_C() {
 CGObject_C::CGObject_C(DWORD *storage, DWORD, CClientObjCreate *)
     : CGObject(storage),
       m_renderScale(1.0f),
-      m_model(0),
       m_highlightTypes(0),
       m_objectHeight(1.0f),
       m_worldObject(0),
@@ -331,18 +336,24 @@ CGObject_C::CGObject_C(DWORD *storage, DWORD, CClientObjCreate *)
       m_startAlpha(0),
       m_endAlpha(0),
       m_maxAlpha(255) {
-  char modelFileName[MAX_PATH] = {0};
+  char modelFileName[MAX_PATH] = "";
   if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
+    m_model = 0;
     return;
   }
 
   UINT createFlags = 0;
-  if (GetType() == HIER_TYPE_UNIT) {
-    createFlags = 0x200;
-  } else if (GetType() == HIER_TYPE_PLAYER) {
-    createFlags = 0x100800;
-  } else if (GetType() != HIER_TYPE_GAMEOBJECT) {
-    createFlags = 0x200;
+  switch (GetType()) {
+    case HIER_TYPE_UNIT:
+      createFlags = 0x200;
+    case HIER_TYPE_PLAYER:
+      createFlags |= 0x100800;
+      break;
+    case HIER_TYPE_GAMEOBJECT:
+      break;
+    default:
+      createFlags = 0x200;
+      break;
   }
 
   m_model = ObjectModelCreate(modelFileName, GetType(), createFlags);
@@ -377,7 +388,7 @@ void CGObject_C::AddWorldObject() {
   UpdateWorldObject();
 
   if (m_model) {
-    ModelSetLightSelectCallback(m_model, CWorld::SelectLight, reinterpret_cast<LPVOID>(m_worldObject), 1);
+    ModelSetLightSelectCallback(m_model, CWorld::SelectLight, (LPVOID)m_worldObject, 1);
   }
 }
 
@@ -396,7 +407,7 @@ void CGObject_C::UpdateWorldObject() {
 
   float facing;
   if (IsA(ID_UNIT)) {
-    facing = static_cast<CGUnit_C *>(this)->GetDisplayFacing();
+    facing = ((CGUnit_C *)this)->GetDisplayFacing();
   } else {
     facing = GetFacing();
   }
@@ -516,7 +527,7 @@ ANIMENUMERATION Object_C_GetAnimIndex(LPCSTR animName) {
   }
   for (UINT i = 0; i < FIRST_ITEMANIMATION + NUM_ITEMANIMATIONS; ++i) {
     if (!SStrCmp(animName, g_animationNames[i], 0x7FFFFFFF)) {
-      return static_cast<ANIMENUMERATION>(i);
+      return (ANIMENUMERATION)i;
     }
   }
   return INVALID_ANIMATION;
@@ -535,7 +546,7 @@ void CGObject_C::ShowHighlightType(HIGHLIGHTTYPE type) {
   FATALASSERT(type < NUM_HIGHLIGHTTYPES);
 
   m_highlightTypes |= 1 << type;
-  ModelSetEmissiveColor(m_model, NTempest::CImVector(*reinterpret_cast<DWORD *>(&DayNightGetInfo()->lightInfo.ambColor)), 1);
+  ModelSetEmissiveColor(m_model, NTempest::CImVector(*(DWORD *)&DayNightGetInfo()->lightInfo.ambColor), 1);
 }
 
 void CGObject_C::SetAnimated(int animated) {
@@ -567,14 +578,14 @@ void CGObject_C::Reenable() {
 }
 
 BOOL CGObject_C::ShouldRender(DWORD worldStatus) {
-  if (worldStatus & 1) {
-    m_flags |= 0x10;
-    return 1;
+  if (!(worldStatus & 1)) {
+    ModelProcessEvents(GetObjectModel(), GetPosition(), GetFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f);
+    m_flags &= ~0x10U;
+    return 0;
   }
 
-  ModelProcessEvents(m_model, GetPosition(), GetFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f);
-  m_flags &= ~0x10U;
-  return 0;
+  m_flags |= 0x10;
+  return 1;
 }
 
 void CGObject_C::ObjectSetNotRendering() {
@@ -610,9 +621,9 @@ void CGObject_C::Initialize() {
     GxTexDestroy(s_fadeTex);
   }
 
-  static UINT       FADETEX_WIDTH = static_cast<UINT>(Gx_MaxTexAspect * 8.0f);
+  static UINT       FADETEX_WIDTH = Gx_MaxTexAspect * 8.0f;
   static const UINT FADETEX_HEIGHT = 8;
-  GxTexCreate(FADETEX_HEIGHT, FADETEX_WIDTH, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0, s_BlobFadeTex, s_fadeTex);
+  GxTexCreate(FADETEX_WIDTH, FADETEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0, s_BlobFadeTex, s_fadeTex);
 
   if (s_selectionTexture) {
     HandleClose(s_selectionTexture);
@@ -645,9 +656,9 @@ void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
     const DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
 
     if (guid == lockedGUID) {
-      static_cast<CGUnit_C *>(this)->RenderDebugPathing();
+      ((CGUnit_C *)this)->RenderDebugPathing();
     } else if (guid == activePlayer) {
-      CGUnit_C *unit = static_cast<CGUnit_C *>(this);
+      CGUnit_C *unit = (CGUnit_C *)this;
 
       if (!unit->IsClientControlled()) {
         unit->RenderDebugPathing();
@@ -660,15 +671,15 @@ void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
     alpha = m_endAlpha;
   } else {
     int elapsed = OsGetAsyncTimeMs() - m_fadeStartTime;
-    if (elapsed > static_cast<int>(m_fadeDuration)) {
+    if (elapsed > (int)m_fadeDuration) {
       m_fadeStartTime = 0;
       alpha = m_endAlpha;
     } else {
       if (elapsed < 0) {
         elapsed = 0;
       }
-      float amount = static_cast<float>(m_startAlpha) + static_cast<float>(elapsed) / static_cast<float>(m_fadeDuration) *
-                                                            (static_cast<float>(m_endAlpha) - static_cast<float>(m_startAlpha));
+      float amount = (float)m_startAlpha + (float)elapsed / (float)m_fadeDuration *
+                                                            ((float)m_endAlpha - (float)m_startAlpha);
       amount = NTempest::CMath::clamp_(amount * (1.0f / 255.0f), 0.0f, 1.0f);
       alpha = NTempest::CMath::ftol_0_256_(amount * 255.0f);
     }
@@ -701,12 +712,18 @@ void CGObject_C::Animate() {
   Animate(camRelativeMatrix);
 }
 
+inline NTempest::C3Vector CGCamera::Target() const {
+  return m_position + Forward();
+}
+
 void CGObject_C::Animate(const NTempest::C34Matrix &camRelativeMatrix) {
   HMODEL model = m_model;
   FATALASSERT(model);
 
   CGCamera *camera = CGWorldFrame::GetActiveCamera();
-  ModelAnimate(model, camRelativeMatrix, GetScale() * m_renderScale, camera->Position(), camera->Forward());
+  ModelAnimate(
+      model, camRelativeMatrix, GetScale() * GetRenderScale(), camera->Position(), camera->Target() - camera->Position()
+  );
 }
 
 BOOL CGObject_C::IsObjectModelLoaded() const {
@@ -956,7 +973,7 @@ HMODEL CGObject_C::GetCharacterModel(int *mounted) const {
     *mounted = 0;
   }
 
-  return static_cast<HMODEL>(HandleDuplicate(m_model));
+  return (HMODEL)HandleDuplicate(m_model);
 }
 
 bool Object_C_AnimHasHitEvent(int anim) {

@@ -56,7 +56,7 @@ namespace NTempest {
     }
 
     void Set32(DWORD value) {
-      SetM_(reinterpret_cast<DWORD *>(mem), value, size);
+      SetM_((DWORD *)mem, value, size);
     }
 
     static void Set32(DWORD *dst, DWORD value, DWORD bytes) {
@@ -92,7 +92,7 @@ namespace NTempest {
       SetM_(mem_, value, size_);
     }
     void Set32_(DWORD value) {
-      SetM_(reinterpret_cast<DWORD *>(mem_), value, size_);
+      SetM_((DWORD *)mem_, value, size_);
     }
     void Zero_() {
       SetM_(mem_, 0, size_);
@@ -122,7 +122,7 @@ namespace NTempest {
     }
 
     T *Get() const {
-      return reinterpret_cast<T *>(CMemBlock::Get());
+      return (T *)CMemBlock::Get();
     }
 
     T &operator[](DWORD index) const {

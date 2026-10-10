@@ -169,7 +169,7 @@ static int Script_GetPetitionInfo(lua_State *L) {
     }
     lua_pushstring(L, petition->m_title);
     lua_pushstring(L, petition->m_bodyText);
-    lua_pushnumber(L, static_cast<double>(petition->m_maxSignatures));
+    lua_pushnumber(L, petition->m_maxSignatures);
     const NameCache *name = g_nameDBCache.GetRecord(petition->m_petitioner, 0, 0, 0);
     if (name) {
       lua_pushstring(L, name->m_name);
@@ -193,7 +193,7 @@ static int Script_GetPetitionInfo(lua_State *L) {
 }
 
 static int Script_GetNumPetitionNames(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGPetitionInfo::GetNumSignatures()));
+  lua_pushnumber(L, CGPetitionInfo::GetNumSignatures());
   return 1;
 }
 
@@ -202,7 +202,7 @@ static int Script_GetPetitionNameInfo(lua_State *L) {
     luaL_error(L, "Usage: GetPetitionNameInfo(index)");
     return 0;
   }
-  UINT                      index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (UINT)lua_tonumber(L, 1) - 1;
   const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(index);
   if (signer) {
     const NameCache *name = g_nameDBCache.GetRecord(signer->guid, 0, 0, 0);
@@ -221,7 +221,7 @@ static int Script_CanSignPetition(lua_State *L) {
   if (petition) {
     if (petition->m_flags & 1) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-      if ((player && player->GetGuildID()) || static_cast<int>(CGPetitionInfo::GetNumSignatures()) >= petition->m_maxSignatures) {
+      if ((player && player->GetGuildID()) || (int)CGPetitionInfo::GetNumSignatures() >= petition->m_maxSignatures) {
         canSign = 0;
       }
     }
@@ -249,14 +249,14 @@ static int Script_CanSignPetition(lua_State *L) {
 static int Script_SignPetition(lua_State *L) {
   int choice = 1;
   if (lua_isnumber(L, 1)) {
-    choice = static_cast<int>(lua_tonumber(L, 1));
+    choice = lua_tonumber(L, 1);
   }
   DWORDLONG petitionGUID = CGPetitionInfo::GetPetition();
   if (petitionGUID) {
     CDataStore msg;
     msg.Put(CMSG_PETITION_SIGN);
     msg.Put(petitionGUID);
-    msg.Put(static_cast<BYTE>(choice));
+    msg.Put((BYTE)choice);
     msg.Finalize();
     ClientServices_Send(&msg);
   }

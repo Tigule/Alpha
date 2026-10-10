@@ -39,14 +39,42 @@ struct CORPSEANIMDATA {
 
 void ClntObjMgrShowObject(DWORDLONG guid);
 
+inline BYTE CGCorpse::GetRaceID() const {
+  return m_corpse->m_raceID;
+}
+
+inline BYTE CGCorpse::GetSex() const {
+  return m_corpse->m_sex;
+}
+
+inline BYTE CGCorpse::GetSkinID() const {
+  return m_corpse->m_skinID;
+}
+
+inline BYTE CGCorpse::GetFaceID() const {
+  return m_corpse->m_faceID;
+}
+
+inline BYTE CGCorpse::GetHairStyleID() const {
+  return m_corpse->m_hairStyleID;
+}
+
+inline BYTE CGCorpse::GetHairColorID() const {
+  return m_corpse->m_hairColorID;
+}
+
+inline BYTE CGCorpse::GetFacialHairStyleID() const {
+  return m_corpse->m_facialHairStyleID;
+}
+
 static TInstanceAllocator<CORPSEANIMDATA> s_freeAnimData(20);
 static const char                         NONAME[7] = "NoName";
 
 static BOOL DrownAnimCallback(LPVOID param) {
-  CORPSEANIMDATA *animData = static_cast<CORPSEANIMDATA *>(param);
+  CORPSEANIMDATA *animData = (CORPSEANIMDATA *)param;
   CGObject_C     *object = ClntObjMgrObjectPtr(animData->guid, __FILE__, __LINE__);
   if (object) {
-    static_cast<CGCorpse_C *>(object)->OnDeathAnimEnd();
+    ((CGCorpse_C *)object)->OnDeathAnimEnd();
   }
   return 1;
 }
@@ -89,20 +117,17 @@ void CGCorpse_C::PostInit(const CClientObjCreate &init) {
     Animate();
   }
 
-  HMODEL model = GetObjectModel();
-  if (!model) {
-    return;
-  }
-
-  AddWorldObject();
-  if (IsUnderWater()) {
-    m_animData = s_freeAnimData.Get(0);
-    m_animData->guid = GetGUID();
-    ModelSetSeqFinishedHandler(model, ANIM_DROWNED, DrownAnimCallback, m_animData);
-    ObjectModelSetSequence(model, ANIM_DROWNED, 0, 0);
-  } else {
-    ObjectModelSetSequence(model, ANIM_DEATH, 0, 0);
-    ModelForceCurrentSequenceTime(model, INT_MAX, 0);
+  if (GetObjectModel()) {
+    AddWorldObject();
+    if (IsUnderWater()) {
+      m_animData = s_freeAnimData.Get(0);
+      m_animData->guid = GetGUID();
+      ModelSetSeqFinishedHandler(GetObjectModel(), ANIM_DROWNED, DrownAnimCallback, m_animData);
+      ObjectModelSetSequence(GetObjectModel(), ANIM_DROWNED, 0, 0);
+    } else {
+      ObjectModelSetSequence(GetObjectModel(), ANIM_DEATH, 0, 0);
+      ModelForceCurrentSequenceTime(GetObjectModel(), INT_MAX, 0);
+    }
   }
 }
 
@@ -125,7 +150,7 @@ BOOL CGCorpse_C::SetBlock(UINT i, DWORD data) {
 
   i -= CGObject::TotalFields();
   FATALASSERT(i < (CGCorpse::GetDataSize()/sizeof(DWORD)));
-  reinterpret_cast<DWORD *>(&m_corpse)[i] = data;
+  ((DWORD *)&m_corpse)[i] = data;
   return 1;
 }
 
@@ -142,7 +167,7 @@ UINT CGCorpse_C::OffsetOf(OBJECT_TYPE_ID type) {
       return CGObject::TotalFields() * sizeof(DWORD);
     default:
       FATALASSERT(0);
-      return static_cast<UINT>(-1);
+      return -1;
   }
 }
 
@@ -186,10 +211,10 @@ void CGCorpse_C::CommitTexture(int force) {
 
 void CGCorpse_C::InitPreferredGeosets() {
   memset(m_preferredGeosets, 0, sizeof(m_preferredGeosets));
-  m_preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID);
+  m_preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(GetRaceID(), GetSex(), GetHairStyleID());
 
   BEARDSTYLEDATA beardStyleData;
-  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &beardStyleData);
+  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(GetRaceID(), GetSex(), GetFacialHairStyleID(), &beardStyleData);
   m_preferredGeosets[CHARGEOSET_EAR] = 2;
   if (hasFacialInfo) {
     m_preferredGeosets[CHARGEOSET_BEARD] = beardStyleData.beardGeoset;
@@ -207,45 +232,47 @@ void CGCorpse_C::InitComponents() {
   HMODEL model = GetObjectModel();
   FATALASSERT(model);
 
-  HTEXTURE skinTexture = CharCustomizationSetSkin(model, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_skinID, 0);
+  HTEXTURE skinTexture = CharCustomizationSetSkin(model, GetRaceID(), GetSex(), GetSkinID(), 0);
   if (!skinTexture) {
     FATALERROR(
-        ("Error, skinID %d on corpse (race/sex is %d/%d) cannot be loaded, is it a missing file?", m_corpse->m_skinID, m_corpse->m_raceID,
-         m_corpse->m_sex)
+        ("Error, skinID %d on corpse (race/sex is %d/%d) cannot be loaded, is it a missing file?", GetSkinID(), GetRaceID(),
+         GetSex())
     );
   }
 
   UINT textureLayerHolds[NUM_TEXLAYERS];
-  CharCustomizationGetTextureLayerHolds(m_corpse->m_raceID, m_corpse->m_sex, textureLayerHolds, NUM_TEXLAYERS);
+  CharCustomizationGetTextureLayerHolds(GetRaceID(), GetSex(), textureLayerHolds, NUM_TEXLAYERS);
 
-  m_texComponent = TexComponentCreate(skinTexture, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_skinID, 0, 0);
+  m_texComponent = TexComponentCreate(skinTexture, GetRaceID(), GetSex(), GetSkinID(), 0, 0);
   FATALASSERT(m_texComponent);
   HandleClose(skinTexture);
 
-  CharCustomizationSetFaceTexture(model, m_texComponent, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_faceID, m_corpse->m_skinID, 0);
-  CharCustomizationSetHairTexture(model, m_texComponent, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID, m_corpse->m_hairColorID);
+  CharCustomizationSetFaceTexture(model, m_texComponent, GetRaceID(), GetSex(), GetFaceID(), GetSkinID(), 0);
+  CharCustomizationSetHairTexture(model, m_texComponent, GetRaceID(), GetSex(), GetHairStyleID(), GetHairColorID());
   CharCustomizationSetFacialTexture(
-      model, m_texComponent, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, m_corpse->m_hairColorID
+      model, m_texComponent, GetRaceID(), GetSex(), GetFacialHairStyleID(), GetHairColorID()
   );
 
   BEARDSTYLEDATA facialData;
-  BOOL           hasFacialData = CharCustomizationGetBeardStyle(m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_facialHairStyleID, &facialData);
+  BOOL           hasFacialData = CharCustomizationGetBeardStyle(GetRaceID(), GetSex(), GetFacialHairStyleID(), &facialData);
 
   m_geosetHandle = CharCustomizationCreateGeosetHandle(model);
   FATALASSERT(m_geosetHandle);
   InitPreferredGeosets();
-  CharCustomizationInitBaseCharacter(
-      m_geosetHandle, hasFacialData ? facialData.beardGeoset : 1, hasFacialData ? facialData.sideBurnGeoset : 1,
-      hasFacialData ? facialData.moustacheGeoset : 1, 2
-  );
-  CharCustomizationResetHairGeoset(m_geosetHandle, m_corpse->m_raceID, m_corpse->m_sex, m_corpse->m_hairStyleID);
+  if (hasFacialData) {
+    CharCustomizationInitBaseCharacter(m_geosetHandle, facialData.beardGeoset, facialData.sideBurnGeoset, facialData.moustacheGeoset, 2);
+  } else {
+    CharCustomizationInitBaseCharacter(
+        m_geosetHandle, g_defaultGeosetIDOffsets[1], g_defaultGeosetIDOffsets[2], g_defaultGeosetIDOffsets[3], 2
+    );
+  }
+  CharCustomizationResetHairGeoset(m_geosetHandle, GetRaceID(), GetSex(), GetHairStyleID());
 }
 
 void CGCorpse_C::AddComponents() {
-  for (int slot = 0; slot < 19; ++slot) {
-    UINT item = m_corpse->m_items[slot];
-    if (item) {
-      AddComponent(item & 0xFFFFFF, item >> 24, slot, 0);
+  for (UINT slot = 0; slot < sizeof(m_corpse->m_items) / sizeof(m_corpse->m_items[0]); ++slot) {
+    if (m_corpse->m_items[slot]) {
+      AddComponent(m_corpse->m_items[slot] & 0xFFFFFF, m_corpse->m_items[slot] >> 24, slot, 0);
     }
   }
 }
@@ -259,7 +286,7 @@ void CGCorpse_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
   if (m_texComponent) {
     if ((1 << slot) & 0x403F8) {
       CStatus status;
-      TexComponentAdd(&status, m_corpse->m_sex, m_texComponent, g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 1);
+      TexComponentAdd(&status, GetSex(), m_texComponent, g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 1);
     }
 
     const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
@@ -275,7 +302,7 @@ void CGCorpse_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
     }
 
     CharCustomizationAddItemGeosets(
-        m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, m_texComponent, m_corpse->m_raceID, commit == 0
+        m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, m_texComponent, GetRaceID(), commit == 0
     );
   }
 
@@ -285,11 +312,11 @@ void CGCorpse_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
   }
 
   if (!slot) {
-    HeadGeosetHideCharGeosets(m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), m_corpse->m_raceID, m_preferredGeosets, 15);
+    HeadGeosetHideCharGeosets(m_geosetHandle, g_itemDisplayInfoDB.GetRecord(displayID), GetRaceID(), m_preferredGeosets, NUM_CHARGEOSETS);
   }
 
   ObjComponentAdd(
-      m_corpse->m_raceID, m_corpse->m_sex, 1, GetObjectModel(), g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 0, 0, 0, 0, slot
+      GetSex(), GetRaceID(), 1, GetObjectModel(), g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 0, 0, 0, 0, slot
   );
 }
 
@@ -313,15 +340,17 @@ void CGCorpse_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
 }
 
 bool CGCorpse_C::IsUnderWater() const {
-  NTempest::C3Vector waterDir(0.0f);
-  int                deep;
   UINT               liquidStatus = 15;
   float              surfaceColPt = 0.0f;
-  if (!CWorld::QueryObjectLiquid(m_worldObject, liquidStatus, surfaceColPt, waterDir, deep)) {
-    return 0;
+  NTempest::C3Vector waterDir;
+  int                deep;
+  if (CWorld::QueryObjectLiquid(GetWorldObject(), liquidStatus, surfaceColPt, waterDir, deep)) {
+    if (surfaceColPt - GetPosition().z > 0.66666669f) {
+      return true;
+    }
   }
 
-  return surfaceColPt - GetPosition().z > 0.66666669f;
+  return false;
 }
 
 void CGCorpse_C::OnDeathAnimEnd() {

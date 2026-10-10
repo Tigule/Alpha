@@ -116,7 +116,7 @@ static void FlushLog(LOGPTR logptr) {
   }
 
   if (logptr->file == INVALID_HANDLE_VALUE) {
-    SErrDisplayError(0x85100000, __FILE__, __LINE__, "logptr->file != ((HANDLE)(LONG_PTR)-1)", FALSE, 1);
+    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "logptr->file != ((HANDLE)(LONG_PTR)-1)", FALSE, 1);
   }
 
   WriteFile(logptr->file, logptr->buffer, logptr->bufferused, &byteswritten, NULL);
@@ -192,7 +192,6 @@ static void OutputReturn(LOGPTR logptr) {
 static void OutputTime(LOGPTR logptr, int show) {
   SYSTEMTIME     systime;
   register DWORD tick;
-  register char *output;
 
   if (!logptr->timeStamp) {
     return;
@@ -208,12 +207,11 @@ static void OutputTime(LOGPTR logptr, int show) {
     timestrlen = SStrLen(timestr);
   }
 
-  output = logptr->buffer + logptr->bufferused;
   if (show) {
-    memcpy(output, timestr, timestrlen + 1);
+    memcpy(logptr->buffer + logptr->bufferused, timestr, timestrlen + 1);
   } else {
-    memset(output, ' ', timestrlen);
-    output[timestrlen] = 0;
+    memset(logptr->buffer + logptr->bufferused, ' ', timestrlen);
+    logptr->buffer[logptr->bufferused + timestrlen] = 0;
   }
 
   logptr->bufferused += timestrlen;
@@ -223,15 +221,17 @@ static void UnlockDeleteLog(LOGPTR logptr, HLOCKEDLOG lockedhandle) {
   DWORD   bucket;
   LOGPTR *link;
 
+  LOGPTR curr;
+
   bucket = (DWORD)lockedhandle;
   link = &s_loghead[bucket];
-  while (*link) {
-    if (*link == logptr) {
-      *link = logptr->next;
-      VirtualFree(logptr, 0, MEM_RELEASE);
+  while ((curr = *link) != NULL) {
+    if (curr == logptr) {
+      *link = curr->next;
+      VirtualFree(curr, 0, MEM_RELEASE);
       break;
     }
-    link = &(*link)->next;
+    link = &curr->next;
   }
 
   LeaveCriticalSection(&s_critsect[bucket]);
@@ -251,8 +251,8 @@ static LPCSTR PrependDefaultDir(char *newfilename, DWORD newfilenamesize, LPCSTR
 
   EnterCriticalSection(&s_defaultdir_critsect);
   if (s_defaultdir[0]) {
-    newfilenamesize -= SStrCopy(newfilename, s_defaultdir, newfilenamesize);
-    SStrCopy(newfilename + SStrLen(newfilename), filename, newfilenamesize);
+    DWORD length = SStrCopy(newfilename, s_defaultdir, newfilenamesize);
+    SStrCopy(newfilename + length, filename, newfilenamesize - length);
   } else {
     GetModuleFileNameA(GetModuleHandleA(NULL), newfilename, newfilenamesize);
     slash = SStrChrR(newfilename, '\\');
@@ -286,7 +286,7 @@ static BOOL OpenLogFile(LPCSTR filename, LPVOID *file, DWORD flags) {
 }
 
 static BOOL PrepareLog(LOGPTR logptr) {
-  if (logptr->file == INVALID_HANDLE_VALUE && !OpenLogFile(logptr->filename, (LPVOID *)&logptr->file, logptr->flags)) {
+  if (logptr->file == INVALID_HANDLE_VALUE && !OpenLogFile(logptr->filename, &logptr->file, logptr->flags)) {
     logptr->filename[0] = 0;
     return FALSE;
   }
@@ -331,7 +331,7 @@ extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
   }
 
   file = INVALID_HANDLE_VALUE;
-  if ((flags & SLOG_FLAG_OPENNOW) && !OpenLogFile(filename, (LPVOID *)&file, flags)) {
+  if ((flags & SLOG_FLAG_OPENNOW) && !OpenLogFile(filename, &file, flags)) {
     return FALSE;
   }
 
@@ -344,11 +344,11 @@ extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
     return FALSE;
   }
 
-  SStrCopy(rec->filename, filename, sizeof(rec->filename));
   rec->file = file;
+  SStrCopy(rec->filename, filename, sizeof(rec->filename));
   rec->flags = flags;
-  rec->indent = 0;
   rec->timeStamp = TRUE;
+  rec->indent = 0;
   UnlockLog(lockedhandle);
 
   return TRUE;
@@ -356,17 +356,15 @@ extern "C" BOOL APIENTRY SLogCreate(LPCSTR filename, DWORD flags, HSLOG *log) {
 
 extern "C" void APIENTRY SLogDestroy() {
   char  fileName[MAX_PATH];
-  int   i;
-  HSLOG log;
+  DWORD i;
 
   SLogFlushAll();
 
   for (i = 0; i < SLOTS; i++) {
     EnterCriticalSection(&s_critsect[i]);
     while (s_loghead[i]) {
-      log = s_loghead[i]->log;
       SStrCopy(fileName, s_loghead[i]->filename, 0x7FFFFFFF);
-      SLogClose(log);
+      SLogClose(s_loghead[i]->log);
       SErrReportNamedResourceLeak("HSLOG", fileName);
     }
     LeaveCriticalSection(&s_critsect[i]);
@@ -384,7 +382,6 @@ extern "C" void APIENTRY SLogDump(HSLOG log, LPCVOID data, DWORD bytes) {
   HLOCKEDLOG lockedhandle;
   DWORD      offset;
   DWORD      i;
-  DWORD      end;
   LOGPTR     rec;
 
   rec = LockLog(log, &lockedhandle, FALSE);
@@ -405,8 +402,7 @@ extern "C" void APIENTRY SLogDump(HSLOG log, LPCVOID data, DWORD bytes) {
     wsprintfA(rec->buffer + rec->bufferused, "%04x: ", offset);
     rec->bufferused += SStrLen(rec->buffer + rec->bufferused);
 
-    end = offset + 8;
-    for (i = offset; i < end; i++) {
+    for (i = offset; i < offset + 8; i++) {
       if (i < bytes) {
         wsprintfA(rec->buffer + rec->bufferused, "%02x ", ((const BYTE *)data)[i]);
         rec->bufferused += SStrLen(rec->buffer + rec->bufferused);
@@ -419,8 +415,8 @@ extern "C" void APIENTRY SLogDump(HSLOG log, LPCVOID data, DWORD bytes) {
       }
     }
 
-    for (i = offset; i < end; i++) {
-      if (i < bytes && ((LPCSTR)data)[i] >= 0x20 && ((LPCSTR)data)[i] != 0x7F) {
+    for (i = offset; i < offset + 8; i++) {
+      if (i < bytes && ((LPCSTR)data)[i] >= 0x20 && ((LPCSTR)data)[i] <= 0x7E) {
         wsprintfA(rec->buffer + rec->bufferused, "%c", ((LPCSTR)data)[i]);
         rec->bufferused += SStrLen(rec->buffer + rec->bufferused);
       } else {
@@ -433,7 +429,7 @@ extern "C" void APIENTRY SLogDump(HSLOG log, LPCVOID data, DWORD bytes) {
     }
 
     OutputReturn(rec);
-    offset = end;
+    offset += 8;
   }
 
   if (g_opt.echotooutputdebugstring) {
@@ -463,7 +459,7 @@ extern "C" void APIENTRY SLogFlush(HSLOG log) {
 }
 
 extern "C" void APIENTRY SLogFlushAll() {
-  int    i;
+  DWORD  i;
   LOGPTR rec;
 
   for (i = 0; i < SLOTS; i++) {
@@ -486,7 +482,7 @@ extern "C" void APIENTRY SLogGetDefaultDirectory(char *dirname, DWORD dirnamesiz
 }
 
 extern "C" void APIENTRY SLogInitialize() {
-  int i;
+  DWORD i;
 
   if (s_logsysteminit) {
     return;
@@ -589,7 +585,7 @@ extern "C" void APIENTRY SLogVWrite(HSLOG log, LPCSTR format, char *arglist) {
   if (PrepareLog(rec)) {
     OutputTime(rec, TRUE);
     OutputIndent(rec);
-    vsprintf(rec->buffer + rec->bufferused, format, (va_list)arglist);
+    vsprintf(rec->buffer + rec->bufferused, format, arglist);
     rec->bufferused += SStrLen(rec->buffer + rec->bufferused);
     OutputReturn(rec);
 

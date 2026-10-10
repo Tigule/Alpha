@@ -201,7 +201,7 @@ namespace NTempest {
   }
 
   C44Matrix C44Matrix::AffineInverse() const {
-    C44Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
+    C44Matrix matrix(((C33Matrix)*this).Transpose());
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }
@@ -210,7 +210,7 @@ namespace NTempest {
     if (CMath::fequal4_(uniformScale, 1.0f)) {
       return AffineInverse();
     }
-    C44Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
+    C44Matrix matrix(((C33Matrix)*this).Transpose());
     matrix.Scale(1.0f / (uniformScale * uniformScale));
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
@@ -280,7 +280,7 @@ namespace NTempest {
   }
 
   void C44Matrix::Rotate(const C4Quaternion &rotation) {
-    *this = C44Matrix(static_cast<C33Matrix>(rotation)) * *this;
+    *this = C44Matrix(rotation) * *this;
   }
 
 }  // namespace NTempest

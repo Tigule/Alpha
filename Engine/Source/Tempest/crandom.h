@@ -46,10 +46,10 @@ namespace NTempest {
     static DWORD uint32_(CRndSeed &seed) {
       DWORD acc = seed.rndacc;
       DWORD vls = seed.rndvls;
-      long  r1 = static_cast<long>(vls >> 24);
-      long  r2 = static_cast<long>((vls >> 16) & 0xFF);
-      long  r3 = static_cast<long>((vls >> 8) & 0xFF);
-      long  r4 = static_cast<long>(vls & 0xFF);
+      long  r1 = (long)(vls >> 24);
+      long  r2 = (long)((vls >> 16) & 0xFF);
+      long  r3 = (long)((vls >> 8) & 0xFF);
+      long  r4 = (long)(vls & 0xFF);
       r1 -= 4;
       r2 -= 12;
       if (r1 < 0) {
@@ -59,75 +59,73 @@ namespace NTempest {
       if (r2 < 0) {
         r2 += 53 * 4;
       }
-      DWORD n1 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r1);
+      DWORD n1 = *(const DWORD *)((const BYTE *)gnoise32_ + r1);
       r4 -= 28;
       if (r3 < 0) {
         r3 += 59 * 4;
       }
-      DWORD n2 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r2);
+      DWORD n2 = *(const DWORD *)((const BYTE *)gnoise32_ + r2);
       n1 = (n1 << 1) | (n1 >> 31);
       if (r4 < 0) {
         r4 += 61 * 4;
       }
-      DWORD n3 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r3);
+      DWORD n3 = *(const DWORD *)((const BYTE *)gnoise32_ + r3);
       n3 = (n3 << 3) | (n3 >> 29);
       n2 = (n2 << 2) | (n2 >> 30);
-      DWORD n4 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r4);
+      DWORD n4 = *(const DWORD *)((const BYTE *)gnoise32_ + r4);
       acc += n3 ^ n2 ^ n4 ^ n1;
 
-      seed.rndvls = (((((static_cast<DWORD>(r1) << 8) | static_cast<DWORD>(r2)) << 8) | static_cast<DWORD>(r3)) << 8) | static_cast<DWORD>(r4);
+      seed.rndvls = ((((((DWORD)r1 << 8) | (DWORD)r2) << 8) | (DWORD)r3) << 8) | (DWORD)r4;
       seed.rndacc = acc;
       return acc;
     }
 
     static long int32_(CRndSeed &seed) {
-      return static_cast<long>(uint32_(seed));
+      return (long)uint32_(seed);
     }
 
     static float real_(CRndSeed &seed) {
-      DWORD value = uint32_(seed);
-      DWORD bits = (value & 0x007FFFFF) | 0x3F800000;
-
-      return *reinterpret_cast<float *>(&bits) - 1.0f;
+      return CMath::int32asreal_((uint32_(seed) & rmant) | rexp) - 1.0f;
     }
 
     static double lreal_(CRndSeed &seed) {
       double value;
-      DWORD *words = reinterpret_cast<DWORD *>(&value);
-      words[1] = (uint32_(seed) & 0x000FFFFF) | 0x3FF00000;
-      words[0] = uint32_(seed);
+      DWORD  hi = uint32_(seed);
+      DWORD  lo = uint32_(seed);
+      ((DWORD *)&value)[1] = (hi & lrmant) | lrexp;
+      ((DWORD *)&value)[0] = lo;
       return value - 1.0;
     }
 
     static float realp_(CRndSeed &seed) {
-      DWORD value = uint32_(seed);
-      DWORD bits = (value & 0x007FFFFF) | 0x3F800000;
-      return 2.0f - *reinterpret_cast<float *>(&bits);
+      return 2.0f - CMath::int32asreal_((uint32_(seed) & rmant) | rexp);
     }
 
     static double lrealp_(CRndSeed &seed) {
       double value;
-      DWORD *words = reinterpret_cast<DWORD *>(&value);
-      words[1] = (uint32_(seed) & 0x000FFFFF) | 0x3FF00000;
-      words[0] = uint32_(seed);
+      DWORD  hi = uint32_(seed);
+      DWORD  lo = uint32_(seed);
+      ((DWORD *)&value)[1] = (hi & lrmant) | lrexp;
+      ((DWORD *)&value)[0] = lo;
       return 2.0 - value;
     }
 
     static float reals_(CRndSeed &seed) {
       DWORD value = uint32_(seed);
       DWORD bits = (value & 0x007FFFFF) | 0x3F800000;
-      float real = *reinterpret_cast<float *>(&bits);
+      float real = *(float *)&bits;
 
-      return static_cast<long>(value) < 0 ? 2.0f - real : real - 2.0f;
+      return (long)value < 0 ? 2.0f - real : real - 2.0f;
     }
 
     static double lreals_(CRndSeed &seed) {
-      DWORD  sign = uint32_(seed);
       double value;
-      DWORD *words = reinterpret_cast<DWORD *>(&value);
-      words[1] = (sign & 0x000FFFFF) | 0x3FF00000;
-      words[0] = uint32_(seed);
-      return static_cast<long>(sign) < 0 ? 2.0 - value : value - 2.0;
+      DWORD  hi = uint32_(seed);
+      DWORD  lo = uint32_(seed);
+      ((DWORD *)&value)[1] = (hi & lrmant) | lrexp;
+      ((DWORD *)&value)[0] = lo;
+      float real = value;
+      return (long)hi < 0 ? 2.0f - real : real - 2.0f;
     }
 
     static float  reale_(CRndSeed &seed);
@@ -152,7 +150,7 @@ namespace NTempest {
       return low + dice_(sides, seed);
     }
     static bool coin_(CRndSeed &seed) {
-      return static_cast<long>(uint32_(seed)) < 0;
+      return (long)uint32_(seed) < 0;
     }
     static bool coin_(DWORD sides, CRndSeed &seed) {
       return dice_(sides, seed) == 0;

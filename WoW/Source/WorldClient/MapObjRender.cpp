@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -119,22 +119,21 @@ void CMapObj::LocateViewer(NTempest::C44Matrix &im, TSGrowableArray<UINT> &inGro
 UINT CMapObj::StabPortals(UINT groupIndex, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
   FATALASSERT(GetGroup(groupIndex));
 
+  UINT               fromGroup = groupIndex;
   NTempest::C3Vector rayOrig = start;
   NTempest::C3Vector rayDir = end - start;
-  UINT               currentGroup = groupIndex;
-  UINT               fromGroup = groupIndex;
 
-  for (;;) {
-    UINT nextGroup = StabPortals(fromGroup, currentGroup, rayOrig, rayDir);
-    if (nextGroup == currentGroup) {
+  while (1) {
+    UINT nextGroup = StabPortals(fromGroup, groupIndex, rayOrig, rayDir);
+    if (nextGroup == groupIndex) {
       if (groupInfoList[nextGroup].flags & 0x8) {
         return -1;
       }
       return nextGroup;
     }
 
-    fromGroup = currentGroup;
-    currentGroup = nextGroup;
+    fromGroup = groupIndex;
+    groupIndex = nextGroup;
   }
 }
 
@@ -265,7 +264,7 @@ void CMapObj::RenderGroup(
 
   const CWFrustum *frustum = frustumList.RawNext(0);
   UINT             i = 0;
-  while (reinterpret_cast<long>(frustum) > 0) {
+  while ((long)frustum > 0) {
     CWorldScene::FrustumSet(*frustum);
     CWorldScene::FrustumXform(invMat);
     if (!(group->flags & 0x48)) {
@@ -406,7 +405,8 @@ void CMapObj::RRenderThruPortals(UINT groupIdx, UINT parentIdx, NTempest::CRect 
     toGroup = GetGroup(toGroupIdx, 0);
     if (toGroup && (toGroup->flags & 8) && portalExt->visitedTag != gRenderCount && bIntRender) {
       extViewList.SetCount(extViewList.Count() + 1);
-      extViewList[extViewList.Count() - 1] = (newRect + 1.0f) * 0.5f;
+      NTempest::CRect &extView = extViewList[extViewList.Count() - 1];
+      extView = (newRect + 1.0f) * 0.5f;
       portalExt->visitedTag = gRenderCount;
     }
 
@@ -473,8 +473,8 @@ void CMapObj::RTransformPortal(SMOPortal *portal, SPortalExt *portalExt, int cpI
 
 bool CMapObj::CullBatch(const SMOBatch *batch) {
   NTempest::CAaBox localBox(
-      NTempest::C3Vector(static_cast<float>(batch->bx), static_cast<float>(batch->by), static_cast<float>(batch->bz)),
-      NTempest::C3Vector(static_cast<float>(batch->tx), static_cast<float>(batch->ty), static_cast<float>(batch->tz))
+      NTempest::C3Vector((float)batch->bx, (float)batch->by, (float)batch->bz),
+      NTempest::C3Vector((float)batch->tx, (float)batch->ty, (float)batch->tz)
   );
   return CWorldScene::FrustumCull(localBox);
 }
@@ -490,7 +490,7 @@ void CMapObjGroup::ExtGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf) {
     case GxBufOp_Nop:
       return;
     case GxBufOp_Fill:
-      vtx = static_cast<CGxVertexPNT0 *>(*cmd.vertex.mem[GxVM_Position]);
+      vtx = (CGxVertexPNT0 *)*cmd.vertex.mem[GxVM_Position];
       p = vertexList + sLockGxBatch->vertStart;
       n = normalList + sLockGxBatch->vertStart;
       t0 = textureVertexList + sLockGxBatch->vertStart;
@@ -523,7 +523,7 @@ void CMapObjGroup::IntGxBufFillVertex(CGxBufCommand &cmd, CGxBuf *buf) {
     case GxBufOp_Nop:
       return;
     case GxBufOp_Fill:
-      vtx = static_cast<CGxVertexPNT0T1 *>(*cmd.vertex.mem[GxVM_Position]);
+      vtx = (CGxVertexPNT0T1 *)*cmd.vertex.mem[GxVM_Position];
       p = vertexList + sLockGxBatch->vertStart;
       n = normalList + sLockGxBatch->vertStart;
       t0 = textureVertexList + sLockGxBatch->vertStart;
@@ -553,7 +553,7 @@ void CMapObjGroup::GxBufFillIndex(CGxBufCommand &cmd, CGxBuf *buf) {
     case GxBufOp_Nop:
       return;
     case GxBufOp_Fill: {
-      WORD *dst = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      WORD *dst = (WORD *)*cmd.index.mem[GxVM_Indices];
       WORD *src = indexList + sLockGxBatch->vertStart;
       for (WORD i = 0; i < sLockGxBatch->vertCount; ++i) {
         dst[i] = src[i];
@@ -595,7 +595,7 @@ void CMapObj::RenderGroupLightTex(const CMapObjGroup *group, UINT frustumCount) 
         GxRsSet(GxRs_Fog, !(material.flags & 0x2));
         GxRsSet(GxRs_Culling, !(material.flags & 0x4));
         GxRsSet(GxRs_MatEmissive, material.flags & 0x10 ? material.frameSidnColor : NTempest::CImVector(0ul));
-        GxRsSet(GxRs_Blend, static_cast<int>(material.blendMode));
+        GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
@@ -649,7 +649,7 @@ void CMapObj::RenderGroupLightmapTex_Int(const CMapObjGroup *group, UINT frustum
         SMOMaterial &material = materialList[batch->texture];
         GxRsSet(GxRs_Fog, !(material.flags & 0x2));
         GxRsSet(GxRs_Culling, !(material.flags & 0x4));
-        GxRsSet(GxRs_Blend, static_cast<int>(material.blendMode));
+        GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
@@ -698,7 +698,7 @@ void CMapObj::RenderGroupLightmapTex_Ext(const CMapObjGroup *group, UINT frustum
         SMOMaterial &material = materialList[batch->texture];
         GxRsSet(GxRs_Fog, !(material.flags & 0x2));
         GxRsSet(GxRs_Culling, !(material.flags & 0x4));
-        GxRsSet(GxRs_Blend, static_cast<int>(material.blendMode));
+        GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         if (material.flags & 0x20) {
           CGxLight &gxLight = CMap::sunLight->gxLight;
@@ -773,7 +773,7 @@ void CMapObj::RenderGroupColorTex_Int(const CMapObjGroup *group, UINT frustumCou
         SMOMaterial &material = materialList[batch->texture];
         GxRsSet(GxRs_Fog, !(material.flags & 0x2));
         GxRsSet(GxRs_Culling, !(material.flags & 0x4));
-        GxRsSet(GxRs_Blend, static_cast<int>(material.blendMode));
+        GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
@@ -820,7 +820,7 @@ void CMapObj::RenderGroupColorTex_Ext(const CMapObjGroup *group, UINT frustumCou
         SMOMaterial &material = materialList[batch->texture];
         GxRsSet(GxRs_Fog, !(material.flags & 0x2));
         GxRsSet(GxRs_Culling, !(material.flags & 0x4));
-        GxRsSet(GxRs_Blend, static_cast<int>(material.blendMode));
+        GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         if (material.flags & 0x20) {
           CGxLight &gxLight = CMap::sunLight->gxLight;
@@ -993,24 +993,26 @@ void CMapObj::RenderGroup_Int(const CMapObjGroup *group, UINT frustumCount) {
 }
 
 void CMapObj::RenderPortals(CMapObjGroup *group) {
-  UINT                i;
-  NTempest::CImVector argb(0x60FF00FF);
-  UINT                indexCount = 0;
+  UINT i;
+  UINT indexCount = 0;
 
   if (!group->portalCount) {
     return;
   }
 
-  for (i = 0; i < group->portalCount; ++i) {
-    SMOPortal &portal = portalList[portalRefList[group->portalStart + i].portalIndex];
-    for (UINT j = 0; j < portal.count - 2; ++j) {
-      s_indexList[indexCount++] = portal.startVertex + j;
-      s_indexList[indexCount++] = portal.startVertex + j + 1;
-      s_indexList[indexCount++] = portal.startVertex + portal.count - 1;
+  SMOPortalRef *portalRef = &portalRefList[group->portalStart];
+  for (i = 0; i < group->portalCount; ++i, ++portalRef) {
+    SMOPortal *portal = &portalList[portalRef->portalIndex];
+    for (UINT j = 0; j < portal->count - 2; ++j) {
+      s_indexList[indexCount++] = portal->startVertex + j;
+      s_indexList[indexCount++] = portal->startVertex + j + 1;
+      s_indexList[indexCount++] = portal->startVertex + portal->count - 1;
     }
   }
 
   GxRsPush();
+
+  NTempest::CImVector argb(0x60FF00FF);
   GxRsSet(GxRs_Blend, 2);
   GxRsSet(GxRs_Lighting, 0);
   GxRsSet(GxRs_DepthTest, 0);
@@ -1053,9 +1055,7 @@ void CMapObj::RenderPortals() {
 }
 
 void CMapObj::RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount) {
-  SMOPoly *poly;
-
-  if (frustumCount) {
+  if (frustumCount > 0) {
     return;
   }
 
@@ -1067,58 +1067,67 @@ void CMapObj::RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount) {
       group->vertexCount, group->vertexList, sizeof(NTempest::C3Vector), group->normalList, sizeof(NTempest::C3Vector), 0, 0, 0, 0, 0, 0, 0, 0
   );
 
-  WORD *index = static_cast<WORD *>(GxAllocIndexMem(49152));
-  WORD *nextIndex = index;
-  poly = group->polyList;
-  for (UINT i = 0; i < group->polyCount; ++i, ++poly) {
-    if ((poly->flags & 0x20) && !(poly->flags & 0x4)) {
-      *nextIndex++ = 3 * i;
-      *nextIndex++ = 3 * i + 1;
-      *nextIndex++ = 3 * i + 2;
-      if (nextIndex - index >= 0xBFFD) {
-        GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
-        nextIndex = index;
+  WORD *index = (WORD *)GxAllocIndexMem(49152);
+  WORD *nextIndex;
+
+  GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFF00FF00));
+  nextIndex = index;
+  {
+    SMOPoly *poly = group->polyList;
+    for (UINT i = 0; i < group->polyCount; ++i, ++poly) {
+      if ((poly->flags & 0x20) && !(poly->flags & 0x4)) {
+        *nextIndex++ = 3 * i;
+        *nextIndex++ = 3 * i + 1;
+        *nextIndex++ = 3 * i + 2;
+        if ((UINT)(nextIndex - index) >= 0xBFFD) {
+          GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
+          nextIndex = index;
+        }
       }
     }
   }
-  if (nextIndex != index) {
+  if (nextIndex - index) {
     GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
   }
 
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFF8080FF));
   nextIndex = index;
-  poly = group->polyList;
-  for (UINT j = 0; j < group->polyCount; ++j, ++poly) {
-    if (poly->flags & 0x4) {
-      *nextIndex++ = 3 * j;
-      *nextIndex++ = 3 * j + 1;
-      *nextIndex++ = 3 * j + 2;
-      if (nextIndex - index >= 0xBFFD) {
-        GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
-        nextIndex = index;
+  {
+    SMOPoly *poly = group->polyList;
+    for (UINT j = 0; j < group->polyCount; ++j, ++poly) {
+      if (poly->flags & 0x4) {
+        *nextIndex++ = 3 * j;
+        *nextIndex++ = 3 * j + 1;
+        *nextIndex++ = 3 * j + 2;
+        if ((UINT)(nextIndex - index) >= 0xBFFD) {
+          GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
+          nextIndex = index;
+        }
       }
     }
   }
-  if (nextIndex != index) {
+  if (nextIndex - index) {
     GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
   }
 
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0x80FF0000));
   GxRsSet(GxRs_Blend, 2);
   nextIndex = index;
-  poly = group->polyList;
-  for (UINT k = 0; k < group->polyCount; ++k, ++poly) {
-    if (poly->flags & 0x8) {
-      *nextIndex++ = 3 * k;
-      *nextIndex++ = 3 * k + 1;
-      *nextIndex++ = 3 * k + 2;
-      if (nextIndex - index >= 0xBFFD) {
-        GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
-        nextIndex = index;
+  {
+    SMOPoly *poly = group->polyList;
+    for (UINT k = 0; k < group->polyCount; ++k, ++poly) {
+      if (poly->flags & 0x8) {
+        *nextIndex++ = 3 * k;
+        *nextIndex++ = 3 * k + 1;
+        *nextIndex++ = 3 * k + 2;
+        if ((UINT)(nextIndex - index) >= 0xBFFD) {
+          GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
+          nextIndex = index;
+        }
       }
     }
   }
-  if (nextIndex != index) {
+  if (nextIndex - index) {
     GxPrimDrawElements(GxPrim_Triangles, nextIndex - index, index);
   }
 
@@ -1127,30 +1136,35 @@ void CMapObj::RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount) {
 }
 
 void CMapObj::RenderGroupNormals(const CMapObjGroup *group) {
-  UINT         numNormals = group->vertexCount;
-  UINT         maxBatchNormals = numNormals >= 0x2000 ? 0x2000 : numNormals;
-  CGxVertexPC *vertex = static_cast<CGxVertexPC *>(GxAllocVertexMem(2 * maxBatchNormals * sizeof(CGxVertexPC)));
-  WORD        *index = static_cast<WORD *>(GxAllocIndexMem(2 * maxBatchNormals * sizeof(WORD)));
-  UINT         base = 0;
-
   GxRsPush();
   GxRsSet(GxRs_Lighting, 0);
+
+  UINT         maxBatchNormals = min(group->vertexCount, 0x2000);
+  UINT         nVerts = maxBatchNormals * 2;
+  CGxVertexPC *vertex = (CGxVertexPC *)GxAllocVertexMem(nVerts * sizeof(CGxVertexPC));
+  WORD        *index = (WORD *)GxAllocIndexMem(nVerts * sizeof(WORD));
+  UINT         base = 0;
+  UINT         numNormals = group->vertexCount;
   while (numNormals) {
-    UINT batchNormals = maxBatchNormals < numNormals ? maxBatchNormals : numNormals;
+    UINT batchNormals = min(maxBatchNormals, numNormals);
     numNormals -= batchNormals;
 
+    CGxVertexPC *vtx = vertex;
+    WORD        *idx = index;
     for (UINT j = 0; j < batchNormals; ++j) {
-      vertex[2 * j].p = group->vertexList[base + j];
-      vertex[2 * j].c = 0xFFFFFF00;
-      vertex[2 * j + 1].p = group->vertexList[base + j] + group->normalList[base + j] * 0.75f;
-      vertex[2 * j + 1].c = 0xFFFFFF00;
-      index[2 * j] = 2 * j;
-      index[2 * j + 1] = 2 * j + 1;
+      vtx->p = group->vertexList[base + j];
+      vtx->c = 0xFFFFFF00;
+      ++vtx;
+      vtx->p = group->normalList[base + j] * 0.75f + group->vertexList[base + j];
+      vtx->c = 0xFFFFFF00;
+      ++vtx;
+      *idx++ = 2 * j;
+      *idx++ = 2 * j + 1;
     }
 
     base += batchNormals;
-    GxPrimLockVertexPtrs(2 * batchNormals, &vertex[0].p, sizeof(CGxVertexPC), 0, 0, &vertex[0].c, sizeof(CGxVertexPC), 0, 0, 0, 0, 0, 0);
-    GxPrimDrawElements(GxPrim_Lines, 2 * batchNormals, index);
+    GxPrimLockVertexPtrs(batchNormals * 2, &vertex[0].p, sizeof(CGxVertexPC), 0, 0, &vertex[0].c, sizeof(CGxVertexPC), 0, 0, 0, 0, 0, 0);
+    GxPrimDrawElements(GxPrim_Lines, batchNormals * 2, index);
     GxPrimUnlockVertexPtrs();
   }
   GxRsPop();
@@ -1166,8 +1180,8 @@ void CMapObj::RenderWaterIndices_0(const CMapObjGroup *group, WORD *idxBase, UIN
   WORD           *index = idxBase;
 
   for (ty = 0; ty < group->liquidTiles.y; ++ty) {
-    WORD i1 = static_cast<WORD>(vtxSub + ty * group->liquidVerts.x);
-    WORD i2 = static_cast<WORD>(i1 + group->liquidVerts.x);
+    WORD i1 = (WORD)(vtxSub + ty * group->liquidVerts.x);
+    WORD i2 = (WORD)(i1 + group->liquidVerts.x);
     for (tx = 0; tx < group->liquidTiles.x; ++tx, ++tile) {
       int render = tile->IsLiquid();
       if (render && tile->GetShared()) {
@@ -1249,8 +1263,8 @@ void CMapObj::RenderInteriorWater_0(const CMapObjGroup *group, UINT liquid) {
 
   (void)liquid;
   FATALASSERT(nVerts < Gx_MaxVertices);
-  vtxBase = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(nVerts * sizeof(CGxVertexPCT0)));
-  idxBase = static_cast<WORD *>(GxAllocIndexMem(nVerts * 3 * sizeof(WORD)));
+  vtxBase = (CGxVertexPCT0 *)GxAllocVertexMem(nVerts * sizeof(CGxVertexPCT0));
+  idxBase = (WORD *)GxAllocIndexMem(nVerts * 3 * sizeof(WORD));
 
   UINT           idxSub = 0;
   SMOLVert      *liquidVert = group->liquidVertexList;
@@ -1261,8 +1275,8 @@ void CMapObj::RenderInteriorWater_0(const CMapObjGroup *group, UINT liquid) {
     for (x = 0; x < group->liquidVerts.x; ++x, ++vtx, ++liquidVert) {
       vtx->p.Set(px, py, liquidVert->waterVert.height);
       vtx->c = material->diffColor;
-      vtx->tc[0].x = static_cast<float>(x);
-      vtx->tc[0].y = static_cast<float>(y);
+      vtx->tc[0].x = (float)x;
+      vtx->tc[0].y = (float)y;
       py += SMOLTILE_SIZE;
     }
     px -= SMOLTILE_SIZE;
@@ -1293,11 +1307,12 @@ void CMapObj::RenderExteriorWater_0(const CMapObjGroup *group, UINT liquid) {
 
   (void)liquid;
   FATALASSERT(nVerts < Gx_MaxVertices);
-  vtxBase = static_cast<CGxVertexPNCT0 *>(GxAllocVertexMem(nVerts * sizeof(CGxVertexPNCT0)));
-  idxBase = static_cast<WORD *>(GxAllocIndexMem(nVerts * 3 * sizeof(WORD)));
+  vtxBase = (CGxVertexPNCT0 *)GxAllocVertexMem(nVerts * sizeof(CGxVertexPNCT0));
+  idxBase = (WORD *)GxAllocIndexMem(nVerts * 3 * sizeof(WORD));
 
   UINT                idxSub = 0;
-  NTempest::CImVector shallowClr = DayNightGetInfo()->light.WaterArray[3];
+  DNInfo             *dnInfo = DayNightGetInfo();
+  NTempest::CImVector shallowClr = dnInfo->light.WaterArray[3];
   SMOLVert           *liquidVert = group->liquidVertexList;
   CGxVertexPNCT0     *vtx = vtxBase;
   float               px = group->liquidCorner.x;
@@ -1307,8 +1322,8 @@ void CMapObj::RenderExteriorWater_0(const CMapObjGroup *group, UINT liquid) {
       vtx->p.Set(px, py, liquidVert->waterVert.height);
       vtx->n = dumbNormal;
       vtx->c = shallowClr;
-      vtx->tc[0].x = static_cast<float>(x);
-      vtx->tc[0].y = static_cast<float>(y);
+      vtx->tc[0].x = (float)x;
+      vtx->tc[0].y = (float)y;
       py += SMOLTILE_SIZE;
     }
     px -= SMOLTILE_SIZE;
@@ -1333,8 +1348,8 @@ void CMapObj::RenderMagma(const CMapObjGroup *group, UINT liquid) {
   CGxVertexPCT0 *vtx;
 
   FATALASSERT(nVerts < Gx_MaxVertices);
-  vtxBase = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(nVerts * sizeof(CGxVertexPCT0)));
-  idxBase = static_cast<WORD *>(GxAllocIndexMem(nVerts * 3 * sizeof(WORD)));
+  vtxBase = (CGxVertexPCT0 *)GxAllocVertexMem(nVerts * sizeof(CGxVertexPCT0));
+  idxBase = (WORD *)GxAllocIndexMem(nVerts * 3 * sizeof(WORD));
 
   UINT      idxSub = 0;
   SMOLVert *liquidVert = group->liquidVertexList;
@@ -1357,7 +1372,7 @@ void CMapObj::RenderMagma(const CMapObjGroup *group, UINT liquid) {
     GxXformPush(
         GxXform_Tex0,
         NTempest::C44Matrix(
-            1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, static_cast<float>(fmod(CWorld::GetCurTimeSec(), 10.0f)) * 0.1f,
+            1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, (float)fmod(CWorld::GetCurTimeSec(), 10.0f) * 0.1f,
             0.0f, 1.0f
         )
     );

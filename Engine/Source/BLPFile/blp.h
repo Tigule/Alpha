@@ -158,10 +158,10 @@ class CBLPFile {
   int  Open(LPCSTR filename);
   BOOL Source(LPVOID fileBits);
   COLOR_FILE_FORMAT GetColorEncoding() const {
-    return static_cast<COLOR_FILE_FORMAT>(m_header.colorEncoding);
+    return (COLOR_FILE_FORMAT)m_header.colorEncoding;
   }
   PIXEL_FORMAT GetPreferredFormat() const {
-    return static_cast<PIXEL_FORMAT>(m_header.preferredFormat);
+    return (PIXEL_FORMAT)m_header.preferredFormat;
   }
   int  Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride);
   int  Unlock(UINT mipLevel);
@@ -179,7 +179,7 @@ class CBLPFile {
     m_quality = quality;
   }
   void SetPreferredFormat(PIXEL_FORMAT format) {
-    m_header.preferredFormat = static_cast<BYTE>(format);
+    m_header.preferredFormat = (BYTE)format;
   }
   void SetMipMapAlgorithm(MipMapAlgorithm algorithm) {
     m_mipMapAlgorithm = algorithm;

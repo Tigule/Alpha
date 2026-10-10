@@ -141,7 +141,7 @@ namespace NTempest {
   }
 
   C34Matrix C34Matrix::AffineInverse() const {
-    C34Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
+    C34Matrix matrix(((C33Matrix)*this).Transpose());
     matrix.Translate(C3Vector(-d0, -d1, -d2));
     return matrix;
   }
@@ -151,7 +151,7 @@ namespace NTempest {
       return AffineInverse();
     }
 
-    C34Matrix matrix(static_cast<C33Matrix>(*this).Transpose());
+    C34Matrix matrix(((C33Matrix)*this).Transpose());
     matrix.Scale(1.0f / (uniformScale * uniformScale));
     matrix.Translate(NTempest::C3Vector(-d0, -d1, -d2));
     return matrix;
@@ -218,7 +218,7 @@ namespace NTempest {
   }
 
   void C34Matrix::Rotate(const C4Quaternion &rotation) {
-    *this = C34Matrix(static_cast<C33Matrix>(rotation)) * *this;
+    *this = C34Matrix(rotation) * *this;
   }
 
   void C34Matrix::Rotate(float angle, const C3Vector &axis, bool unit) {

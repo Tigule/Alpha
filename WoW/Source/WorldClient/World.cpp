@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -342,7 +342,7 @@ int CWorld::QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb
 }
 
 int CWorld::QueryObjectInside(DWORD hWorldObject) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -350,7 +350,7 @@ int CWorld::QueryObjectInside(DWORD hWorldObject) {
 }
 
 int CWorld::QueryObjectVisible(DWORD hWorldObject) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -358,7 +358,7 @@ int CWorld::QueryObjectVisible(DWORD hWorldObject) {
 }
 
 int CWorld::QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -366,7 +366,7 @@ int CWorld::QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName) {
 }
 
 int CWorld::QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT &subzoneId) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -374,7 +374,7 @@ int CWorld::QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT
 }
 
 int CWorld::QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -382,14 +382,14 @@ int CWorld::QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName) {
 }
 
 bool CWorld::QueryMapObjMinimap(DWORD hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->QueryMapObjMinimap(aaBox, quads);
 }
 
 bool CWorld::QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   if (entity->flagInside) {
@@ -400,7 +400,7 @@ bool CWorld::QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, U
 }
 
 bool CWorld::QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   if (entity->flagInside) {
@@ -411,7 +411,7 @@ bool CWorld::QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTe
 }
 
 bool CWorld::QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -427,7 +427,7 @@ int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct)
     return CMapEntity::QueryCameraFog(oFogs, oPct);
   }
 
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   if (entity->flagInside) {
     return entity->QueryMapObjFog(oFogs, oPct);
@@ -436,7 +436,7 @@ int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct)
 }
 
 BOOL CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -452,7 +452,7 @@ BOOL CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface,
 }
 
 int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
-  CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
+  CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
 
@@ -461,43 +461,37 @@ int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
     CMapObj         *mapObj;
     CMapObjDefGroup *mapObjDefGroup;
     CMapObjGroup    *mapObjGroup;
-    if (!entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
-      return 0;
+    if (entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
+      NTempest::C3Segment seg(NTempest::C3Vector(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f) * mapObjDef->invMat,
+                              NTempest::C3Vector(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f) * mapObjDef->invMat);
+      float               t = 1.0f;
+      CWTriData           triData;
+      if (mapObjGroup->GetTris(triData, seg, t, mapObjDef, 8)) {
+        SMOPoly *poly = mapObjGroup->GetPoly(triData.GetBatch(0).triIndices[0]);
+        groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
+        return 1;
+      }
     }
-
-    NTempest::C3Vector  p0(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-    NTempest::C3Vector  p1(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
-    NTempest::C3Segment seg(p1 * mapObjDef->invMat, p0 * mapObjDef->invMat);
-    CWTriData           triData;
-    float               t = 1.0f;
-    if (!mapObjGroup->GetTris(triData, seg, t, mapObjDef, 8)) {
-      return 0;
+  } else {
+    float              t = 1.0f;
+    NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
+    NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
+    SMOPoly           *poly;
+    CMapObj           *mapObj;
+    if (CMap::VectorIntersectMapObjs(&p0, &p1, 0, 8, 0x2000, &t, &poly, &mapObj) && poly) {
+      groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
+      return 1;
     }
-
-    const CWTriData::Batch &batch = triData.GetBatch(0);
-    const SMOPoly          *poly = mapObjGroup->GetPoly(batch.triIndices[0]);
-    groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
-    return 1;
+    if (CMap::QueryGroundType(entity->pos, groundType)) {
+      return 1;
+    }
   }
 
-  NTempest::C3Vector p0(entity->pos.x, entity->pos.y, entity->pos.z + 1.0f / 3.0f);
-  NTempest::C3Vector p1(entity->pos.x, entity->pos.y, entity->pos.z - 1.0f / 3.0f);
-  float              t = 1.0f;
-  SMOPoly           *poly;
-  CMapObj           *mapObj;
-  if (CMap::VectorIntersectMapObjs(&p0, &p1, 0, 8, 0x2000, &t, &poly, &mapObj) && poly) {
-    groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
-    return 1;
-  }
-
-  if (CMap::QueryGroundType(entity->pos, groundType)) {
-    return 1;
-  }
   return 0;
 }
 
 bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
-  CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
+  CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
 
@@ -544,24 +538,24 @@ UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOO
   }
 
   ++baseObj->refCount;
-  return reinterpret_cast<UINT>(baseObj);
+  return (UINT)baseObj;
 }
 
 void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  CMapBaseObj *baseObj = (CMapBaseObj *)id;
   FATALASSERT(baseObj);
   if (bSnap) {
     CMap::SnapBaseObjToSubChunk(baseObj, pos, angle);
   }
   if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
-    CMap::UpdateMapObjDef(static_cast<CMapObjDef *>(baseObj), pos, angle);
+    CMap::UpdateMapObjDef((CMapObjDef *)baseObj, pos, angle);
   } else {
-    CMap::UpdateDoodadDef(static_cast<CMapDoodadDef *>(baseObj), pos, angle);
+    CMap::UpdateDoodadDef((CMapDoodadDef *)baseObj, pos, angle);
   }
 }
 
 bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  CMapBaseObj *baseObj = (CMapBaseObj *)id;
   FATALASSERT(baseObj);
   if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
     FATALASSERT(((CMapObjDef*)baseObj)->mapObj);
@@ -572,20 +566,20 @@ bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
 }
 
 void CWorld::ObjectGetExtents(UINT id, NTempest::CAaBox &extents) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  CMapBaseObj *baseObj = (CMapBaseObj *)id;
 
   FATALASSERT(baseObj);
   if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
-    CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(baseObj);
+    CMapObjDef *mapObjDef = (CMapObjDef *)baseObj;
     FATALASSERT(mapObjDef->mapObj);
     mapObjDef->mapObj->GetBounds(extents);
   } else {
-    ModelGetExtents(static_cast<CMapStaticEntity *>(baseObj)->model, &extents);
+    ModelGetExtents(((CMapStaticEntity *)baseObj)->model, &extents);
   }
 }
 
 void CWorld::ObjectEnableCollision(UINT id, BOOL bEnable) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  CMapBaseObj *baseObj = (CMapBaseObj *)id;
   ASSERT(baseObj);
   if (bEnable) {
     baseObj->flags &= ~CMapBaseObj::Flag_NoCollision;
@@ -595,7 +589,7 @@ void CWorld::ObjectEnableCollision(UINT id, BOOL bEnable) {
 }
 
 void CWorld::ObjectDelete(UINT id) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(id);
+  CMapBaseObj *baseObj = (CMapBaseObj *)id;
 
   FATALASSERT(baseObj);
   CMapBaseObjLink *link = baseObj->parentLinkList.Head();
@@ -611,9 +605,9 @@ void CWorld::ObjectDelete(UINT id) {
 
   --baseObj->refCount;
   if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
-    CMap::PurgeMapObjDef(static_cast<CMapObjDef *>(baseObj));
+    CMap::PurgeMapObjDef((CMapObjDef *)baseObj);
   } else {
-    CMap::PurgeDoodadDef(static_cast<CMapDoodadDef *>(baseObj));
+    CMap::PurgeDoodadDef((CMapDoodadDef *)baseObj);
   }
 }
 
@@ -632,7 +626,7 @@ DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT
 
   entity->model = 0;
   if (hModel) {
-    entity->model = reinterpret_cast<HMODEL__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(hModel)));
+    entity->model = (HMODEL__ *)HandleDuplicate(hModel);
   }
   entity->param64 = param64;
   entity->param32 = param32;
@@ -647,7 +641,7 @@ DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT
   entity->ambient = CMap::sunLight->gxLight.m_ambColor;
   entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
 
-  return reinterpret_cast<DWORD>(entity);
+  return (DWORD)entity;
 }
 
 DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, UINT objFlags) {
@@ -656,7 +650,7 @@ DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Ma
 
   doodad->model = 0;
   if (hModel) {
-    doodad->model = reinterpret_cast<HMODEL__ *>(HandleDuplicate(reinterpret_cast<HOBJECT>(hModel)));
+    doodad->model = (HMODEL__ *)HandleDuplicate(hModel);
   }
   doodad->flagCollidable = (objFlags & 1) ? 1 : 0;
   doodad->flagCastShadow = (objFlags & 2) ? 0 : 1;
@@ -670,18 +664,18 @@ DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Ma
 
   CMap::InitializeDoodadBounds(doodad);
   CMap::LinkEntity(doodad);
-  return reinterpret_cast<DWORD>(doodad);
+  return (DWORD)doodad;
 }
 
 HMODEL__ *CWorld::GetModel(DWORD doodad) {
-  CMapDoodadDef *entity = reinterpret_cast<CMapDoodadDef *>(doodad);
+  CMapDoodadDef *entity = (CMapDoodadDef *)doodad;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_DoodadDef);
   return entity->model;
 }
 
 void CWorld::SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param) {
-  CMapDoodadDef *doodad = reinterpret_cast<CMapDoodadDef *>(hWorldObject);
+  CMapDoodadDef *doodad = (CMapDoodadDef *)hWorldObject;
   FATALASSERT(doodad);
   FATALASSERT(doodad->GetType() & CMapBaseObj::Type_DoodadDef);
   doodad->RenderCB = cb;
@@ -689,7 +683,7 @@ void CWorld::SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, cons
 }
 
 void CWorld::UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox) {
-  CMapBaseObj *baseObj = reinterpret_cast<CMapBaseObj *>(hWorldObject);
+  CMapBaseObj *baseObj = (CMapBaseObj *)hWorldObject;
 
   ActivityBegin(ACTIVITY_WORLD);
   FATALASSERT(baseObj);
@@ -713,57 +707,55 @@ void CWorld::UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, co
   baseObj->aaSphere.r = (nAaBox.t - baseObj->aaSphere.c).Mag();
 
   if (baseObj->GetType() & CMapBaseObj::Type_Entity) {
-    CMap::UpdateEntity(static_cast<CMapEntity *>(baseObj));
+    CMap::UpdateEntity((CMapEntity *)baseObj);
   }
   ActivityEnd(ACTIVITY_WORLD);
 }
 
 void CWorld::TickObject(DWORD hWorldObject) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   entity->Tick();
 }
 
 void CWorld::SetHidden(DWORD hWorldObject, int hidden) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   entity->flagHidden = hidden;
 }
 
 void CWorld::RemoveObject(DWORD hWorldObject) {
-  CMapStaticEntity *entity = reinterpret_cast<CMapStaticEntity *>(hWorldObject);
+  CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
 
-  for (CMapBaseObjLink *parentLink = entity->parentLinkList.Head(), *next;
-       (int)parentLink > 0 ? ((next = entity->parentLinkList.RawNext(parentLink)), 1) : 0; parentLink = next) {
+  SAFEITERATELIST(CMapBaseObjLink, entity->parentLinkList, parentLink) {
     CMap::FreeBaseObjLink(parentLink);
   }
 
   if (entity->GetType() & CMapBaseObj::Type_DoodadDef) {
-    CMap::PurgeDoodadDef(static_cast<CMapDoodadDef *>(entity));
+    CMap::PurgeDoodadDef((CMapDoodadDef *)entity);
     return;
   }
 
   if (entity->model) {
-    HandleClose(reinterpret_cast<HOBJECT>(entity->model));
+    HandleClose(entity->model);
   }
 
-  for (CMapCacheLight *cacheLight = entity->cacheLightList.Head(), *pNext;
-       (int)cacheLight > 0 ? ((pNext = entity->cacheLightList.RawNext(cacheLight)), 1) : 0; cacheLight = pNext) {
+  SAFEITERATELIST(CMapCacheLight, entity->cacheLightList, cacheLight) {
     CMap::FreeCacheLight(cacheLight);
   }
 
   if (entity->GetType() & CMapBaseObj::Type_Entity) {
-    CMap::FreeEntity(static_cast<CMapEntity *>(entity));
+    CMap::FreeEntity((CMapEntity *)entity);
   } else {
     FATALASSERT(!("CWorld::RemoveObject(): unhandled type"));
   }
 }
 
 void CWorld::SetCameraTarget(DWORD hWorldObject) {
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hWorldObject);
+  CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   CWorldScene::camTargEntity = entity;
@@ -781,9 +773,7 @@ void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData
       facet->vertices[0] = batch.vertices[idx[0]] * *batch.matrix;
       facet->vertices[1] = batch.vertices[idx[1]] * *batch.matrix;
       facet->vertices[2] = batch.vertices[idx[2]] * *batch.matrix;
-      facet->plane.n = NTempest::C3Vector::Cross(facet->vertices[1] - facet->vertices[0], facet->vertices[2] - facet->vertices[0]);
-      facet->plane.n.Normalize();
-      facet->plane.d = -NTempest::C3Vector::Dot(facet->plane.n, facet->vertices[0]);
+      facet->plane.Set(facet->vertices[0], facet->vertices[1], facet->vertices[2]);
       idx += 3;
     }
   }
@@ -798,7 +788,7 @@ void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData
 
 void CWorld::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
   if (parm) {
-    CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
+    CMapBaseObj *baseObj = (CMapBaseObj *)parm;
     if (baseObj->camDist >= farFog) {
       return;
     }
@@ -863,7 +853,7 @@ int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest
   FATALASSERT(ldelta);
   FATALASSERT(radius > 0.0f && radius < 16);
 
-  CMapEntity *entity = reinterpret_cast<CMapEntity *>(hwObject);
+  CMapEntity *entity = (CMapEntity *)hwObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
 
@@ -955,7 +945,7 @@ void CWorld::SetDetailDoodadDensity(UINT density) {
   detailDoodadDensity = density;
   CMap::ClearDetailDoodads();
 
-  chunkWidth = 2 - static_cast<int>(detailDoodadDist * -0.030000001f);
+  chunkWidth = 2 - (int)(detailDoodadDist * -0.030000001f);
   estimate = chunkWidth * chunkWidth * detailDoodadDensity;
   vertices = estimate << 7;
 
@@ -973,25 +963,16 @@ void CWorld::SetNearClip(float nearClip) {
 }
 
 void CWorld::SetFarClip(float farClip) {
-  int  aoiSize;
-  int  aoiCount;
-  int  estimate;
-  UINT vertices;
-  UINT indices;
   if (CWorld::farClip != farClip) {
     CWorld::farClip = farClip;
-    aoiSize = 1 - static_cast<int>(farClip * -0.030000001f);
-    chunkAoiSize.y = aoiSize;
-    chunkAoiSize.x = aoiSize;
-    aoiCount = 4 * aoiSize * aoiSize;
-    estimate = aoiCount / 2;
-    vertices = 145 * estimate;
+    chunkAoiSize.x = 1 - (int)(farClip * -0.030000001f);
+    chunkAoiSize.y = 1 - (int)(farClip * -0.030000001f);
 
-    if (vertices > pnEstimateVertex) {
-      indices = 768 * estimate;
-      pnEstimateVertex = vertices;
-      pnEstimateIndex = indices;
-      GxBufReserve(GxBWF_Low, GxVBF_PN, vertices, indices);
+    int estimate = chunkAoiSize.y * chunkAoiSize.x * 4 / 2;
+    if ((UINT)(estimate * 145) > pnEstimateVertex) {
+      pnEstimateVertex = estimate * 145;
+      pnEstimateIndex = estimate * 768;
+      GxBufReserve(GxBWF_Low, GxVBF_PN, pnEstimateVertex, pnEstimateIndex);
     }
 
     if (pnt0EstimateVertex < 0x18000) {
@@ -1262,8 +1243,8 @@ BOOL CWorld::ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments) {
   }
 
   argb.Set(
-      static_cast<BYTE>(color[0] * 255.0f), static_cast<BYTE>(color[1] * 255.0f), static_cast<BYTE>(color[2] * 255.0f),
-      static_cast<BYTE>(color[3] * 255.0f)
+      (BYTE)(color[0] * 255.0f), (BYTE)(color[1] * 255.0f), (BYTE)(color[2] * 255.0f),
+      (BYTE)(color[3] * 255.0f)
   );
   SetShadowColor(argb);
   return 1;
@@ -1551,7 +1532,7 @@ BOOL CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
   SStrPrintf(buffer, sizeof(buffer), "%s_%s.log", name, timeStamp);
   SLogCreate(buffer, 1, &log);
   TextureLogTextures(log);
-  SLogWrite(log, "Terrain Texture in Mbytes:\t\t%.2f", static_cast<float>(CMap::GetTextureUseage()) / 1048576.0f);
+  SLogWrite(log, "Terrain Texture in Mbytes:\t\t%.2f", (float)CMap::GetTextureUseage() / 1048576.0f);
   SLogClose(log);
   return 1;
 }
@@ -1572,12 +1553,4 @@ BOOL CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
   TextureLogGxCache(log);
   SLogClose(log);
   return 1;
-}
-
-DWORD CWorld::GetEnables() {
-  return enables;
-}
-
-UINT CWorld::GetTexMaxAnisotropyLog2() {
-  return texMaxAnisotropyLog2;
 }

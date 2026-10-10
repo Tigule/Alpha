@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -23,7 +23,7 @@ void CMap::Purge() {
     }
 
     CMapBaseObjLink *next = areaLinkList.RawNext(link);
-    CMapArea        *area = static_cast<CMapArea *>(link->owner);
+    CMapArea        *area = (CMapArea *)link->owner;
     areaTable[area->infoIndex] = 0;
     areaInfo[area->infoIndex].flags &= ~1u;
     areaInfo[area->infoIndex].asyncId = 0;
@@ -41,13 +41,12 @@ void CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
   FATALASSERT(doodadDef);
 
   if (!doodadDef->refCount) {
-    for (CMapCacheLight *cacheLight = doodadDef->cacheLightList.Head(), *next;
-         (int)cacheLight > 0 ? ((next = doodadDef->cacheLightList.RawNext(cacheLight)), 1) : 0; cacheLight = next) {
+    SAFEITERATELIST(CMapCacheLight, doodadDef->cacheLightList, cacheLight) {
       FreeCacheLight(cacheLight);
     }
 
     if (doodadDef->model) {
-      HandleClose(reinterpret_cast<HOBJECT>(doodadDef->model));
+      HandleClose(doodadDef->model);
     }
     doodadDef->model = 0;
 
@@ -59,9 +58,8 @@ void CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
   FATALASSERT(mapObjDef);
 
   if (!mapObjDef->refCount) {
-    for (CMapBaseObjLink *groupLink = mapObjDef->groupLinkList.Head(), *next;
-         (int)groupLink > 0 ? ((next = mapObjDef->groupLinkList.RawNext(groupLink)), 1) : 0; groupLink = next) {
-      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
+    SAFEITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
+      CMapObjDefGroup *mapObjDefGroup = (CMapObjDefGroup *)groupLink->owner;
       FreeBaseObjLink(groupLink);
       PurgeMapObjDefGroup(mapObjDefGroup);
     }
@@ -87,7 +85,7 @@ void CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
     for (CMapBaseObjLink *doodadDefLink = mapObjDefGroup->doodadDefLinkList.Head();
          (int)doodadDefLink > 0 ? ((next = mapObjDefGroup->doodadDefLinkList.RawNext(doodadDefLink)), 1) : 0;
          doodadDefLink = next) {
-      CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
+      CMapDoodadDef *doodadDef = (CMapDoodadDef *)doodadDefLink->owner;
       FreeBaseObjLink(doodadDefLink);
       PurgeDoodadDef(doodadDef);
     }
@@ -118,7 +116,7 @@ void CMap::PurgeChunk(CMapChunk *chunk) {
 
 void CMapArea::Purge() {
   if (asyncObject) {
-    BYTE *buffer = static_cast<BYTE *>(asyncObject->buffer);
+    BYTE *buffer = (BYTE *)asyncObject->buffer;
     AsyncFileReadDestroyObject(asyncObject);
     asyncObject = 0;
     if (buffer) {
@@ -126,25 +124,18 @@ void CMapArea::Purge() {
     }
   }
 
-  CMapBaseObjLink *link = chunkLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = chunkLinkList.RawNext(link);
-    CMapChunk       *chunk = static_cast<CMapChunk *>(link->owner);
+  SAFEITERATELIST(CMapBaseObjLink, chunkLinkList, link) {
+    CMapChunk *chunk = (CMapChunk *)link->owner;
     chunkTable[chunk->infoIndex] = 0;
     chunkInfo[chunk->infoIndex].flags &= ~1u;
     chunkInfo[chunk->infoIndex].asyncId = 0;
     CMap::FreeBaseObjLink(link);
     CMap::PurgeChunk(chunk);
-    link = next;
   }
 
   for (UINT i = 0; i < texIdTable.Count(); ++i) {
     if (texIdTable[i]) {
-      HandleClose(reinterpret_cast<HOBJECT>(texIdTable[i]));
+      HandleClose(texIdTable[i]);
       texIdTable[i] = 0;
     }
   }
@@ -153,14 +144,10 @@ void CMapArea::Purge() {
 
 void CMapArea::PurgeChunks() {
   NTempest::CiRect gbChunkRect = CWorld::gbChunkRect;
-  CMapBaseObjLink *chunkLinknext_node;
-
-  for (CMapBaseObjLink *chunkLink = chunkLinkList.Head(); chunkLink; chunkLink = chunkLinknext_node) {
-    chunkLinknext_node = chunkLinkList.Next(chunkLink);
-    CMapChunk *chunk = static_cast<CMapChunk *>(chunkLink->owner);
-    if (chunk->aIndex.x + 16 * mIndex.x < gbChunkRect.minx || chunk->aIndex.x + 16 * mIndex.x > gbChunkRect.maxx ||
-        chunk->aIndex.y + 16 * mIndex.y < gbChunkRect.miny || chunk->aIndex.y + 16 * mIndex.y > gbChunkRect.maxy)
-    {
+  SAFEITERATELIST(CMapBaseObjLink, chunkLinkList, chunkLink) {
+    CMapChunk *chunk = (CMapChunk *)chunkLink->owner;
+    NTempest::C2iVector chunkIndex(mIndex.x * 16 + chunk->aIndex.x, mIndex.y * 16 + chunk->aIndex.y);
+    if (!gbChunkRect.Contains(chunkIndex)) {
       chunkTable[chunk->infoIndex] = 0;
       chunkInfo[chunk->infoIndex].flags &= ~1u;
       chunkInfo[chunk->infoIndex].asyncId = 0;
@@ -172,7 +159,7 @@ void CMapArea::PurgeChunks() {
 
 void CMapChunk::Purge() {
   if (asyncObject) {
-    BYTE *buffer = static_cast<BYTE *>(asyncObject->buffer);
+    BYTE *buffer = (BYTE *)asyncObject->buffer;
     AsyncFileReadDestroyObject(asyncObject);
     asyncObject = 0;
     if (buffer) {
@@ -218,14 +205,14 @@ void CMapChunk::Purge() {
   CMapBaseObjLink *next;
   for (CMapBaseObjLink *doodadDefLink = doodadDefLinkList.Head();
        (int)doodadDefLink > 0 ? ((next = doodadDefLinkList.RawNext(doodadDefLink)), 1) : 0; doodadDefLink = next) {
-    CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(doodadDefLink->owner);
+    CMapDoodadDef *doodadDef = (CMapDoodadDef *)doodadDefLink->owner;
     CMap::FreeBaseObjLink(doodadDefLink);
     CMap::PurgeDoodadDef(doodadDef);
   }
 
   for (CMapBaseObjLink *mapObjDefLink = mapObjDefLinkList.Head();
        (int)mapObjDefLink > 0 ? ((next = mapObjDefLinkList.RawNext(mapObjDefLink)), 1) : 0; mapObjDefLink = next) {
-    CMapObjDef *mapObjDef = static_cast<CMapObjDef *>(mapObjDefLink->owner);
+    CMapObjDef *mapObjDef = (CMapObjDef *)mapObjDefLink->owner;
     CMap::FreeBaseObjLink(mapObjDefLink);
     CMap::PurgeMapObjDef(mapObjDef);
   }
@@ -240,8 +227,7 @@ void CMapChunk::Purge() {
     CMap::FreeBaseObjLink(lightLink);
   }
 
-  for (CMapSoundEmitter *soundEmitter = soundEmitterList.Head(), *pNext;
-       (int)soundEmitter > 0 ? ((pNext = soundEmitterList.RawNext(soundEmitter)), 1) : 0; soundEmitter = pNext) {
+  SAFEITERATELIST(CMapSoundEmitter, soundEmitterList, soundEmitter) {
     if (soundEmitterDestroyHandler) {
       soundEmitterDestroyHandler(soundEmitter->data.soundPointID);
     }

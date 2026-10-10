@@ -24,14 +24,14 @@ namespace NTempest {
     C4Vector(float xValue, float yValue, float zValue, float wValue) : x(xValue), y(yValue), z(zValue), w(wValue) {
     }
 
-    C4Vector(const C2Vector &vector) : x(vector.x), y(vector.y), z(0.0f), w(0.0f) {
+    C4Vector(const C2Vector &vector) : x(vector.x), y(vector.y), z(0.0f), w(1.0f) {
     }
 
     C4Vector(const C3Vector &vector) : x(vector.x), y(vector.y), z(vector.z), w(1.0f) {
     }
 
     C4Vector(const C4iVector &vector)
-        : x(static_cast<float>(vector.x)), y(static_cast<float>(vector.y)), z(static_cast<float>(vector.z)), w(static_cast<float>(vector.w)) {
+        : x((float)vector.x), y((float)vector.y), z((float)vector.z), w((float)vector.w) {
     }
 
     ~C4Vector() {
@@ -199,7 +199,7 @@ namespace NTempest {
   }
 
   inline C4iVector::C4iVector(const C4Vector &vector)
-      : x(static_cast<long>(vector.x)), y(static_cast<long>(vector.y)), z(static_cast<long>(vector.z)), w(static_cast<long>(vector.w)) {
+      : x((long)vector.x), y((long)vector.y), z((long)vector.z), w((long)vector.w) {
   }
 
 }  // namespace NTempest

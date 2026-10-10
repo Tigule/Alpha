@@ -21,13 +21,16 @@ static const int s_stateTransitions[UNIT_NUMSTANDSTATES][UNIT_NUMSTANDSTATES] = 
 };
 
 int CGUnit::StandStateValid(UNITSTANDSTATE newState) const {
-  UNITSTANDSTATE oldState = static_cast<UNITSTANDSTATE>(m_unit->standState);
+  UNITSTANDSTATE oldState = (UNITSTANDSTATE)m_unit->standState;
   FATALASSERT(oldState < UNIT_NUMSTANDSTATES);
   FATALASSERT(newState < UNIT_NUMSTANDSTATES);
   return s_stateTransitions[oldState][newState];
 }
 
+inline void CMovement::BuildMovementUpdate(CDataStore *msg) const {
+  *msg << m_transportGUID << GetRawPosition() << GetRawFacing() << GetPosition() << GetFacing() << GetPitch() << (m_moveFlags & 0xFAFF0BFF);
+}
+
 void CGUnit::BuildMovementUpdate(CDataStore *msg) const {
-  *msg << m_move.m_transportGUID << m_move.GetRawPosition() << m_move.GetRawFacing() << m_move.GetPosition()
-       << m_move.GetFacing() << m_move.GetPitch() << (m_move.GetMoveFlags() & 0xFAFF0BFF);
+  ((const CMovement &)m_move).BuildMovementUpdate(msg);
 }

@@ -105,7 +105,7 @@ BOOL FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
     return 0;
   }
 
-  string = static_cast<LPCSTR>(buffer);
+  string = (LPCSTR)buffer;
   total = GuessNumFiles(string);
 
   char filename[0x104] = "";
@@ -263,7 +263,7 @@ static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status) {
     return 0;
   }
 
-  tree = XMLTree_Load(static_cast<LPCSTR>(buffer), bytes);
+  tree = XMLTree_Load((LPCSTR)buffer, bytes);
   if (!tree) {
     status->Add(STATUS_ERROR, "Couldn't parse XML in %s", filename);
   }
@@ -307,7 +307,7 @@ CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CS
   }
 
   frame->PreLoadXML(node, status);
-  static_cast<CLayoutFrame *>(frame)->LoadXML(node, status);
+  frame->LoadXML(node, status);
   frame->PostLoadXML(node, status);
   CLayoutFrame::ResizePending();
   return frame;

@@ -195,7 +195,7 @@ void CGSpellBook::InitializeGame() {
 }
 
 void CGSpellBook::ShutdownGame() {
-  m_knownSpellBits.SetCount(0);
+  m_knownSpellBits.Clear();
   m_languageSpells.Clear();
 }
 
@@ -225,8 +225,8 @@ static int __cdecl QSortShapeshiftForms(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
 
-  const SpellRec *spellA = g_spellDB.GetRecord(*static_cast<const int *>(a));
-  const SpellRec *spellB = g_spellDB.GetRecord(*static_cast<const int *>(b));
+  const SpellRec *spellA = g_spellDB.GetRecord(*(const int *)a);
+  const SpellRec *spellB = g_spellDB.GetRecord(*(const int *)b);
   if (!spellA || !spellB) {
     return 0;
   }
@@ -391,7 +391,7 @@ void CGSpellBook::ReplaceSpell(int oldSpell, int newSpell) {
       break;
     }
     if (m_knownAbilities[index] == oldSpell) {
-      slot = -1 - static_cast<int>(index);
+      slot = -1 - (int)index;
       break;
     }
   }
@@ -633,7 +633,7 @@ BOOL CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot >= 0);
   ASSERT(slot < MAXIMUM_LEARNED_SPELLS);
 
-  if (slot == m_selectedSlot && type == m_selectedType) {
+  if (m_selectedSlot == slot && m_selectedType == type) {
     return 1;
   }
 
@@ -690,7 +690,7 @@ BOOL CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
 
 static BOOL GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
   if (lua_isnumber(L, 1) && lua_isstring(L, 2)) {
-    int value = static_cast<int>(lua_tonumber(L, 1) - 1.0);
+    int value = lua_tonumber(L, 1) - 1.0;
     if (value >= 0 && value < MAXIMUM_LEARNED_SPELLS) {
       slot = value;
       LPCSTR string = lua_tostring(L, 2);
@@ -752,10 +752,10 @@ static int Script_GetSpellName(lua_State *L) {
   if (spell) {
     lua_pushstring(L, spell->m_name_lang[CURRENT_LANGUAGE]);
     lua_pushstring(L, spell->m_nameSubtext_lang[CURRENT_LANGUAGE]);
-    return 2;
+  } else {
+    lua_pushnil(L);
+    lua_pushnil(L);
   }
-  lua_pushnil(L);
-  lua_pushnil(L);
   return 2;
 }
 
@@ -771,9 +771,9 @@ static int Script_GetSpellCooldown(lua_State *L) {
   UINT  duration = 0;
   UINT  enable = 0;
   Spell_C_GetSpellCooldown(spell, type == PET_SPELL, &duration, &startTime, &enable);
-  lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
-  lua_pushnumber(L, static_cast<double>(duration) * 0.001);
-  lua_pushnumber(L, static_cast<double>(enable));
+  lua_pushnumber(L, (double)startTime * 0.001);
+  lua_pushnumber(L, (double)duration * 0.001);
+  lua_pushnumber(L, enable);
   return 3;
 }
 
@@ -861,7 +861,7 @@ static int Script_IsSpellPassive(lua_State *L) {
 }
 
 static int Script_GetNumShapeshiftForms(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGSpellBook::GetShapeshiftForms().Count()));
+  lua_pushnumber(L, CGSpellBook::GetShapeshiftForms().Count());
   return 1;
 }
 
@@ -870,7 +870,7 @@ static int Script_GetShapeshiftFormInfo(lua_State *L) {
     luaL_error(L, "Usage: GetShapeshiftFormInfo(index)");
     return 0;
   }
-  UINT                 index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                 index = (int)lua_tonumber(L, 1) - 1;
   TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
   if (index < forms.Count()) {
     const SpellRec *spell = g_spellDB.GetRecord(forms[index]);
@@ -911,7 +911,7 @@ static int Script_CastShapeshiftForm(lua_State *L) {
     luaL_error(L, "Usage: CastShapeshiftForm(index)");
     return 0;
   }
-  UINT                 index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                 index = (int)lua_tonumber(L, 1) - 1;
   TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
   if (index < forms.Count()) {
     const SpellRec *spell = g_spellDB.GetRecord(forms[index]);
@@ -926,9 +926,14 @@ static int Script_CastShapeshiftForm(lua_State *L) {
 
       CGPlayer_C                   *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       const SpellShapeshiftFormRec *formRec = g_spellShapeshiftFormDB.GetRecord(form);
-      if (!player || !formRec || player->GetShapeshiftForm() != form || !(formRec->m_flags & 1)) {
-        Spell_C_CastSpell(forms[index], 0);
-        SndInterfacePlayInterfaceSound(spell->m_attributes & 0x10 ? "GAMEABILITYACTIVATE" : "GAMESPELLACTIVATE");
+      if (player && formRec && player->GetShapeshiftForm() == form && (formRec->m_flags & 1)) {
+        return 0;
+      }
+      Spell_C_CastSpell(forms[index], 0);
+      if (spell->m_attributes & 0x10) {
+        SndInterfacePlayInterfaceSound("GAMEABILITYACTIVATE");
+      } else {
+        SndInterfacePlayInterfaceSound("GAMESPELLACTIVATE");
       }
     }
   }
@@ -940,16 +945,16 @@ static int Script_GetShapeshiftFormCooldown(lua_State *L) {
     luaL_error(L, "Usage: GetShapeshiftFormCooldown(index)");
     return 0;
   }
-  UINT                 index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                 index = (int)lua_tonumber(L, 1) - 1;
   TSGrowableArray<int> forms = CGSpellBook::GetShapeshiftForms();
   if (index < forms.Count()) {
     DWORD startTime = 0;
     UINT  duration = 0;
     UINT  enable = 0;
     Spell_C_GetSpellCooldown(forms[index], 0, &duration, &startTime, &enable);
-    lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
-    lua_pushnumber(L, static_cast<double>(duration) * 0.001);
-    lua_pushnumber(L, static_cast<double>(enable));
+    lua_pushnumber(L, (double)startTime * 0.001);
+    lua_pushnumber(L, (double)duration * 0.001);
+    lua_pushnumber(L, enable);
     return 3;
   }
   lua_pushnumber(L, 0.0);

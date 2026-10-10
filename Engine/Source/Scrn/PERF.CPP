@@ -81,10 +81,10 @@ static int       s_activityMode;
 static HLAYER__ *s_layer;
 static void (*sTextFunc)(char *, int, LPVOID);
 static LPVOID          sTextFuncParam;
-static float           s_avgPerfTime[20];
-static float           s_peakPerfTime[20];
-static int             s_peakSustain[20];
-static float           s_avgPerfAccum[20][8];
+static float           s_avgPerfTime[PERF_MAX];
+static float           s_peakPerfTime[PERF_MAX];
+static int             s_peakSustain[PERF_MAX];
+static float           s_avgPerfAccum[PERF_MAX][8];
 static int             s_avgPerfIndex;
 static float           s_perfFontHeight;
 static CGxStringBatch *s_stringBatch;
@@ -101,7 +101,7 @@ enum {
   PROF_LOG_STRING = 3
 };
 
-char *s_perfPrompts[20] = {
+char *s_perfPrompts[PERF_MAX] = {
     "Events",
     "Event Idle",
     "Event Paint",
@@ -151,7 +151,7 @@ void __stdcall HookRenderEnd(LPVOID) {
 }
 
 static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed) {
-  float              perfTime[20];
+  float              perfTime[PERF_MAX];
   float              perfTimeTotal;
   float              peakTimeTotal;
   UINT               fps;
@@ -166,16 +166,13 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
   UINT               bindBytes;
   UINT               vertexBytes;
   UINT               indexBytes;
-  EGxApi             gxApi;
   LPCSTR             api;
-  SMEMHEAPDETAILS    details;
-  HSHEAP             heap;
   char               line[11][0x200];
   CGxFont           *theFont;
   CGxString         *s_stringArray[11];
-  NTempest::C3Vector pos;
-  UINT               i;
-  UINT               j;
+  int                i;
+  int                j;
+  UINT               index;
 
   if (!s_enabled) {
     if (ScrnPerfRemoteGetMode() == PERF_REMOTE_MODE__ONPAINT) {
@@ -200,23 +197,31 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
   vertexBytes = GxPerfCounter(GxPerf_VertexBytes);
   indexBytes = GxPerfCounter(GxPerf_IndexBytes);
 
-  gxApi = GxDevApi();
-  if (gxApi == GxApi_OpenGl) {
-    api = "OpenGL";
-  } else if (gxApi == GxApi_Direct3d) {
-    api = "Direct3D";
-  } else {
-    api = "<unknown 3D API>";
+  switch (GxDevApi()) {
+    case GxApi_OpenGl:
+      api = "OpenGL";
+      break;
+    case GxApi_Direct3d:
+      api = "Direct3D";
+      break;
+    default:
+      api = "<unknown 3D API>";
+      break;
   }
 
   memBytesAlloc = 0;
   memBytesComm = 0;
-  details.size = sizeof(details);
-  heap = 0;
+  {
+    SMEMHEAPDETAILS details;
+    HSHEAP          heap;
 
-  while (SMemFindNextHeap(heap, &heap, &details)) {
-    memBytesComm += details.committedbytes;
-    memBytesAlloc += details.allocatedbytes;
+    details.size = sizeof(details);
+    heap = 0;
+
+    while (SMemFindNextHeap(heap, &heap, &details)) {
+      memBytesAlloc += details.allocatedbytes;
+      memBytesComm += details.committedbytes;
+    }
   }
 
   ActivityEnd(ACTIVITY_PERFDISPLAY);
@@ -234,64 +239,60 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
     s_avgPerfIndex = 0;
   }
 
-  for (i = 0; i < 20; ++i) {
-    float accumulated;
-
+  for (i = 0; i < PERF_MAX; ++i) {
     if (perfTime[i] > s_peakPerfTime[i]) {
       s_peakPerfTime[i] = perfTime[i];
       s_peakSustain[i] = 64;
-    } else if (s_peakSustain[i]) {
-      --s_peakSustain[i];
-    } else {
+    } else if (!s_peakSustain[i]) {
       s_peakPerfTime[i] = perfTime[i] * 0.1f + s_peakPerfTime[i] * 0.9f;
+    } else {
+      --s_peakSustain[i];
     }
 
     s_avgPerfAccum[i][s_avgPerfIndex] = perfTime[i];
-    accumulated = s_avgPerfTime[i];
     for (j = 0; j < 8; ++j) {
-      accumulated += s_avgPerfAccum[i][j];
+      s_avgPerfTime[i] += s_avgPerfAccum[i][j];
     }
 
-    s_avgPerfTime[i] = accumulated;
     s_avgPerfTime[i] *= 0.125f;
     perfTimeTotal += s_avgPerfTime[i];
     peakTimeTotal += s_peakPerfTime[i];
   }
 
   SStrPrintf(
-      line[0], sizeof(line[0]), "%3u FPS, %5.1f/%5.1fMB mem,  Displaying: %s", fps, static_cast<double>(memBytesAlloc) * 0.00000095367432,
-      static_cast<double>(memBytesComm) * 0.00000095367432, s_activityModes[s_activityMode].title
+      line[0], sizeof(line[0]), "%3u FPS, %5.1f/%5.1fMB mem,  Displaying: %s", fps, memBytesAlloc * 0.00000095367432f,
+      memBytesComm * 0.00000095367432f, s_activityModes[s_activityMode].title
   );
   SStrPrintf(line[1], sizeof(line[1]), "%2u batches, %5u verts, %5u prims, %s", batches, vertices, primitives, api);
   SStrPrintf(line[2], sizeof(line[2]), "%6u VB, %6u IB", vertexBytes, indexBytes);
   SStrPrintf(
       line[3], sizeof(line[3]), "tex:%3u, %4.2fMB   ren:%3u, %3.3fMB   upd:%3u, %2.4fMB", textures,
-      static_cast<double>(textureBytes) * 0.00000095367432, binds, static_cast<double>(bindBytes) * 0.00000095367432, uploads,
-      static_cast<double>(uploadBytes) * 0.00000095367432
+      textureBytes * 0.00000095367432f, binds, bindBytes * 0.00000095367432f, uploads,
+      uploadBytes * 0.00000095367432f
   );
   SStrPrintf(
-      line[4], sizeof(line[4]), "%6.1f idle @%4.0f, %6.1f evnt @%4.0f, %6.1f snd  @%4.0f, %6.1f pnt  @%4.0f", s_avgPerfTime[1], s_peakPerfTime[1],
-      s_avgPerfTime[0], s_peakPerfTime[0], s_avgPerfTime[13], s_peakPerfTime[13], s_avgPerfTime[2], s_peakPerfTime[2]
+      line[4], sizeof(line[4]), "%6.1f idle @%4.0f, %6.1f evnt @%4.0f, %6.1f snd  @%4.0f, %6.1f pnt  @%4.0f", s_avgPerfTime[PERF_EVENTIDLE], s_peakPerfTime[PERF_EVENTIDLE],
+      s_avgPerfTime[PERF_EVENTS], s_peakPerfTime[PERF_EVENTS], s_avgPerfTime[PERF_SOUND], s_peakPerfTime[PERF_SOUND], s_avgPerfTime[PERF_EVENTPAINT], s_peakPerfTime[PERF_EVENTPAINT]
   );
   SStrPrintf(
-      line[5], sizeof(line[5]), "%6.1f fmgr @%4.0f, %6.1f wrld @%4.0f, %6.1f lght @%4.0f, %6.1f modl @%4.0f", s_avgPerfTime[11], s_peakPerfTime[11],
-      s_avgPerfTime[12], s_peakPerfTime[12], s_avgPerfTime[8], s_peakPerfTime[8], s_avgPerfTime[6], s_peakPerfTime[6]
+      line[5], sizeof(line[5]), "%6.1f fmgr @%4.0f, %6.1f wrld @%4.0f, %6.1f lght @%4.0f, %6.1f modl @%4.0f", s_avgPerfTime[PERF_FRAMEMGR], s_peakPerfTime[PERF_FRAMEMGR],
+      s_avgPerfTime[PERF_WORLD], s_peakPerfTime[PERF_WORLD], s_avgPerfTime[PERF_LIGHTING], s_peakPerfTime[PERF_LIGHTING], s_avgPerfTime[PERF_MODEL], s_peakPerfTime[PERF_MODEL]
   );
   SStrPrintf(
-      line[6], sizeof(line[6]), "%6.1f part @%4.0f, %6.1f rndr @%4.0f, %6.1f omgr @%4.0f", s_avgPerfTime[7], s_peakPerfTime[7], s_avgPerfTime[9],
-      s_peakPerfTime[9], s_avgPerfTime[10], s_peakPerfTime[10]
+      line[6], sizeof(line[6]), "%6.1f part @%4.0f, %6.1f rndr @%4.0f, %6.1f omgr @%4.0f", s_avgPerfTime[PERF_PARTICLE], s_peakPerfTime[PERF_PARTICLE], s_avgPerfTime[PERF_RENDER],
+      s_peakPerfTime[PERF_RENDER], s_avgPerfTime[PERF_OBJ_MGR], s_peakPerfTime[PERF_OBJ_MGR]
   );
   SStrPrintf(
-      line[7], sizeof(line[7]), "%6.1f anim @%4.0f, %6.1f aevt @%4.0f, %6.1f aseq @%4.0f", s_avgPerfTime[3], s_peakPerfTime[3], s_avgPerfTime[4],
-      s_peakPerfTime[4], s_avgPerfTime[5], s_peakPerfTime[5]
+      line[7], sizeof(line[7]), "%6.1f anim @%4.0f, %6.1f aevt @%4.0f, %6.1f aseq @%4.0f", s_avgPerfTime[PERF_ANIMATE], s_peakPerfTime[PERF_ANIMATE], s_avgPerfTime[PERF_ANIM_EVENTS],
+      s_peakPerfTime[PERF_ANIM_EVENTS], s_avgPerfTime[PERF_ANIM_SEQ_END], s_peakPerfTime[PERF_ANIM_SEQ_END]
   );
   SStrPrintf(
-      line[8], sizeof(line[8]), "%6.1f p0   @%4.0f, %6.1f p1   @%4.0f, %6.1f p2   @%4.0f, %6.1f p3   @%4.0f", s_avgPerfTime[15], s_peakPerfTime[15],
-      s_avgPerfTime[16], s_peakPerfTime[16], s_avgPerfTime[17], s_peakPerfTime[17], s_avgPerfTime[18], s_peakPerfTime[18]
+      line[8], sizeof(line[8]), "%6.1f p0   @%4.0f, %6.1f p1   @%4.0f, %6.1f p2   @%4.0f, %6.1f p3   @%4.0f", s_avgPerfTime[PERF_PROG0], s_peakPerfTime[PERF_PROG0],
+      s_avgPerfTime[PERF_PROG1], s_peakPerfTime[PERF_PROG1], s_avgPerfTime[PERF_PROG2], s_peakPerfTime[PERF_PROG2], s_avgPerfTime[PERF_PROG3], s_peakPerfTime[PERF_PROG3]
   );
   SStrPrintf(
-      line[9], sizeof(line[9]), "%6.1f perf @%4.0f, %6.1f othr @%4.0f, %6.1f totl @%4.0f,   miles %d%%", s_avgPerfTime[14], s_peakPerfTime[14],
-      s_avgPerfTime[19], s_peakPerfTime[19], perfTimeTotal, peakTimeTotal, SndGetCPUPerformance()
+      line[9], sizeof(line[9]), "%6.1f perf @%4.0f, %6.1f othr @%4.0f, %6.1f totl @%4.0f,   miles %d%%", s_avgPerfTime[PERF_PERFDISPLAY], s_peakPerfTime[PERF_PERFDISPLAY],
+      s_avgPerfTime[PERF_OTHER], s_peakPerfTime[PERF_OTHER], perfTimeTotal, peakTimeTotal, SndGetCPUPerformance()
   );
 
   line[10][0] = 0;
@@ -302,19 +303,19 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
   theFont = TextBlockGetFontPtr(ScrnGetStockFont(STOCK_PERFFONT));
   ASSERT(theFont);
 
-  for (i = 0; i < 11; ++i) {
-    pos.x = visible->left;
-    pos.z = 0.0f;
+  for (index = 0; index < 11; ++index) {
+    NTempest::C3Vector  pos(visible->left, visible->top - (index + 2) * 0.025f, 0.0f);
     NTempest::CImVector color(0xFFFFFF00);
-    pos.y = visible->top - (i + 2) * 0.025f;
-    GxuFontCreateString(theFont, line[i], 0.0f, pos, 1.0f, s_perfFontHeight, 0.0f, s_stringArray[i], GxVJ_Middle, GxHJ_Left, 0x54, color, -0.45f);
-    GxuFontAddToBatch(s_stringBatch, s_stringArray[i]);
+    GxuFontCreateString(
+        theFont, line[index], 0.0f, pos, 1.0f, s_perfFontHeight, 0.0f, s_stringArray[index], GxVJ_Middle, GxHJ_Left, 0x54, color, -0.45f
+    );
+    GxuFontAddToBatch(s_stringBatch, s_stringArray[index]);
   }
 
   GxuFontRenderBatch(s_stringBatch);
-  for (i = 0; i < 11; ++i) {
-    GxuFontDestroyString(s_stringArray[i]);
-    s_stringArray[i] = 0;
+  for (index = 0; index < 11; ++index) {
+    GxuFontDestroyString(s_stringArray[index]);
+    s_stringArray[index] = 0;
   }
 
   ActivityEnd(ACTIVITY_PERFDISPLAY);
@@ -326,36 +327,33 @@ void IPerfDestroy() {
   }
 
   s_stringBatch = 0;
-  HandleClose(reinterpret_cast<HOBJECT>(s_layer));
+  HandleClose((HOBJECT)s_layer);
 }
 
 static void IPerfGetPerfTimes(float *perfTime) {
   float (*activityGet)(ACTIVITY) = s_activityModes[s_activityMode].func;
 
-  perfTime[3] = activityGet(ACTIVITY_ANIMATE);
-  perfTime[4] = activityGet(ACTIVITY_ANIMEVENTS);
-  perfTime[5] = activityGet(ACTIVITY_ANIMSEQEND);
-  perfTime[6] = activityGet(ACTIVITY_MODEL);
-  perfTime[7] = activityGet(ACTIVITY_PARTICLE);
-  perfTime[8] = activityGet(ACTIVITY_LIGHTING);
-  perfTime[9] = activityGet(ACTIVITY_RENDER);
-  perfTime[0] = activityGet(ACTIVITY_EVENTPOLL);
-  perfTime[0] += activityGet(ACTIVITY_EVENTNET);
-  perfTime[0] += activityGet(ACTIVITY_EVENTMOUSE);
-  perfTime[0] += activityGet(ACTIVITY_EVENTKEYANDCHAR);
-  perfTime[0] += activityGet(ACTIVITY_EVENTHANDLERS);
-  perfTime[1] = activityGet(ACTIVITY_EVENTIDLE);
-  perfTime[2] = activityGet(ACTIVITY_EVENTPAINT);
-  perfTime[10] = activityGet(ACTIVITY_OBJMGR);
-  perfTime[11] = activityGet(ACTIVITY_FRAMEMANAGER);
-  perfTime[13] = activityGet(ACTIVITY_SOUND);
-  perfTime[12] = activityGet(ACTIVITY_WORLD);
-  perfTime[14] = activityGet(ACTIVITY_PERFDISPLAY);
-  perfTime[15] = activityGet(ACTIVITY_PROG0);
-  perfTime[16] = activityGet(ACTIVITY_PROG1);
-  perfTime[17] = activityGet(ACTIVITY_PROG2);
-  perfTime[18] = activityGet(ACTIVITY_PROG3);
-  perfTime[19] = activityGet(ACTIVITY_OTHER);
+  perfTime[PERF_ANIMATE] = activityGet(ACTIVITY_ANIMATE);
+  perfTime[PERF_ANIM_EVENTS] = activityGet(ACTIVITY_ANIMEVENTS);
+  perfTime[PERF_ANIM_SEQ_END] = activityGet(ACTIVITY_ANIMSEQEND);
+  perfTime[PERF_MODEL] = activityGet(ACTIVITY_MODEL);
+  perfTime[PERF_PARTICLE] = activityGet(ACTIVITY_PARTICLE);
+  perfTime[PERF_LIGHTING] = activityGet(ACTIVITY_LIGHTING);
+  perfTime[PERF_RENDER] = activityGet(ACTIVITY_RENDER);
+  perfTime[PERF_EVENTS] = activityGet(ACTIVITY_EVENTPOLL) + activityGet(ACTIVITY_EVENTNET) + activityGet(ACTIVITY_EVENTMOUSE) +
+                activityGet(ACTIVITY_EVENTKEYANDCHAR) + activityGet(ACTIVITY_EVENTHANDLERS);
+  perfTime[PERF_EVENTIDLE] = activityGet(ACTIVITY_EVENTIDLE);
+  perfTime[PERF_EVENTPAINT] = activityGet(ACTIVITY_EVENTPAINT);
+  perfTime[PERF_OBJ_MGR] = activityGet(ACTIVITY_OBJMGR);
+  perfTime[PERF_FRAMEMGR] = activityGet(ACTIVITY_FRAMEMANAGER);
+  perfTime[PERF_SOUND] = activityGet(ACTIVITY_SOUND);
+  perfTime[PERF_WORLD] = activityGet(ACTIVITY_WORLD);
+  perfTime[PERF_PERFDISPLAY] = activityGet(ACTIVITY_PERFDISPLAY);
+  perfTime[PERF_PROG0] = activityGet(ACTIVITY_PROG0);
+  perfTime[PERF_PROG1] = activityGet(ACTIVITY_PROG1);
+  perfTime[PERF_PROG2] = activityGet(ACTIVITY_PROG2);
+  perfTime[PERF_PROG3] = activityGet(ACTIVITY_PROG3);
+  perfTime[PERF_OTHER] = activityGet(ACTIVITY_OTHER);
   ActivityResetTimes();
 }
 
@@ -370,53 +368,61 @@ void IPerfInitialize() {
 }
 
 void IPerfResetTimePeaks() {
+  s_avgPerfIndex = 0;
   memset(s_avgPerfAccum, 0, sizeof(s_avgPerfAccum));
   memset(s_avgPerfTime, 0, sizeof(s_avgPerfTime));
-  s_avgPerfIndex = 0;
 }
 
 void __stdcall IPerfHostAddrProc(const NETADDR *addrs, DWORD addrCount, LPVOID user) {
-  if (addrCount) {
-    s_ProfAddr = addrs[0];
-    s_ProfStartupEvent->Set();
-  } else {
+  if (!addrCount) {
     s_ProfShutdownEvent->Set();
+    return;
   }
+  s_ProfAddr = addrs[0];
+  s_ProfStartupEvent->Set();
 }
 
 int __stdcall
 ChatEventProc(HNETCONN__ *conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
-  if (note == NETNOTE_CONNECT) {
-    s_ProfLock.Enter(1);
-    s_ProfConn = OsNetConnCopyHandle(conn);
-    s_ProfLock.Leave(1);
-    s_ProfStartupEvent->Set();
-    s_HasProfConn = 1;
-    return 1;
-  }
-  if (note == NETNOTE_DISCONNECT) {
-    if (s_ProfShutdownEvent) {
+  BOOL result = 0;
+
+  switch (note) {
+    case NETNOTE_CONNECT:
+      s_ProfLock.Enter(1);
+      s_ProfConn = OsNetConnCopyHandle(conn);
+      s_ProfLock.Leave(1);
+      s_ProfStartupEvent->Set();
+      result = 1;
+      s_HasProfConn = 1;
+      break;
+    case NETNOTE_DISCONNECT: {
+      if (s_ProfShutdownEvent) {
+        s_ProfShutdownEvent->Set();
+      }
+      s_ProfLock.Enter(1);
+      HNETCONN__ *old = (HNETCONN__ *)SInterlockedExchange((long *)&s_ProfConn, 0);
+      s_ProfLock.Leave(1);
+      if (old) {
+        OsNetConnFreeHandle(old);
+      }
+      result = 1;
+      s_HasProfConn = 0;
+      break;
+    }
+    case NETNOTE_CANTCONNECT:
       s_ProfShutdownEvent->Set();
-    }
-    s_ProfLock.Enter(1);
-    HNETCONN__ *old = reinterpret_cast<HNETCONN__ *>(SInterlockedExchange(reinterpret_cast<long *>(&s_ProfConn), 0));
-    s_ProfLock.Leave(1);
-    if (old) {
-      OsNetConnFreeHandle(old);
-    }
-    s_HasProfConn = 0;
-    return 1;
+      break;
   }
-  if (note == NETNOTE_CANTCONNECT) {
-    s_ProfShutdownEvent->Set();
-  }
-  return 0;
+  return result;
 }
 
 BOOL IPerfRemoteLoggingIni() {
   SSyncObject *waitObjectPtrs[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
   s_ProfStartupEvent->Reset();
-  if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0) || WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
+  if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0)) {
+    return 0;
+  }
+  if (WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
     return 0;
   }
 
@@ -449,7 +455,7 @@ BOOL IPerfRemoteLoggingIni() {
   SStrCopy(msg.strings, username, 0x7FFFFFFF);
   SStrCopy(msg.strings + usernameLength + 1, computer, 0x7FFFFFFF);
   UINT messageBytes = usernameLength + computerLength + 6;
-  msg.len = static_cast<WORD>(messageBytes);
+  msg.len = messageBytes;
   s_ProfLock.Enter(0);
   if (s_ProfConn) {
     OsTcpConnSend(s_ProfConn, &msg, messageBytes);
@@ -463,23 +469,23 @@ void IPerfGetFromBuffer(char *&buf1, long &len1, char *&buf2, long &len2) {
   if (0x10000 - s_ProfRingBufTail < 4) {
     s_ProfRingBufTail = 0;
   }
-  char *record = s_ProfRingBuf + s_ProfRingBufTail;
-  UINT  recordBytes = *reinterpret_cast<UINT *>(record);
-  buf1 = record + 4;
+  buf1 = s_ProfRingBuf + s_ProfRingBufTail;
+  UINT recordBytes = *(UINT *)buf1;
   UINT remain = 0x10000 - s_ProfRingBufTail;
+  buf1 += 4;
   len1 = recordBytes - 4;
   if (recordBytes <= remain) {
     buf2 = 0;
     len2 = 0;
-  } else if (remain > 4) {
-    len1 = remain - 4;
-    buf2 = s_ProfRingBuf;
-    len2 = recordBytes - remain;
-  } else {
+  } else if (remain <= 4) {
     ASSERT(remain == 4);
     buf1 = s_ProfRingBuf;
     buf2 = 0;
     len2 = 0;
+  } else {
+    len1 = remain - 4;
+    buf2 = s_ProfRingBuf;
+    len2 = recordBytes - remain;
   }
 }
 
@@ -503,7 +509,7 @@ void IPerfRemoteSendQueued() {
       }
       s_ProfLock.Leave(0);
     }
-    s_ProfRingBufTail = (s_ProfRingBufTail + len1 + len2 + 4) & 0xFFFF;
+    s_ProfRingBufTail = (s_ProfRingBufTail + len1 + len2 + 4) % 0x10000;
   }
 }
 
@@ -519,7 +525,7 @@ UINT __stdcall IPerfRemoteLoggingThread(LPVOID) {
       s_ProfRequestEnqueuedEvent->Reset();
     }
     s_ProfLock.Enter(1);
-    HNETCONN__ *old = reinterpret_cast<HNETCONN__ *>(SInterlockedExchange(reinterpret_cast<long *>(&s_ProfConn), 0));
+    HNETCONN__ *old = (HNETCONN__ *)SInterlockedExchange((long *)&s_ProfConn, 0);
     s_ProfLock.Leave(1);
     if (old) {
       OsNetConnFreeHandle(old);
@@ -538,15 +544,14 @@ BOOL IPerfRemoteSpaceAvail(DWORD size) {
     space = s_ProfRingBufTail - s_ProfRingBufHead + 0x10000;
   }
 
-  if (size + 3 < space) {
-    return 1;
+  if (size + 3 >= space) {
+    if (!loggedFull) {
+      loggedFull = 1;
+    }
+    return 0;
   }
 
-  if (!loggedFull) {
-    loggedFull = 1;
-  }
-
-  return 0;
+  return 1;
 }
 
 void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h, DWORD packetSize, WORD id) {
@@ -556,36 +561,35 @@ void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h, DWORD packetSize, WORD id) {
 
   h->signature = 0xAB;
   h->message = 1;
-  h->len = static_cast<WORD>(packetSize);
-  asyncTimeClocks = static_cast<float>(OsGetAsyncTimeClocks());
-  h->timestamp = static_cast<LONGLONG>(OsGetAsyncClocksDivisor() * asyncTimeClocks * 1000000.0f);
+  h->len = packetSize;
+  asyncTimeClocks = OsGetAsyncTimeClocks();
+  h->timestamp = OsGetAsyncClocksDivisor() * asyncTimeClocks * 1000000.0f;
   h->frame = s_ProfRingFrame++;
   h->updateCount = 1;
   h->id = id;
 }
 
 void IPerfRemoteQueueOnRingBuffer(LPVOID dataToQueue, DWORD size) {
-  DWORD head;
+  char *dest;
   DWORD bytes;
 
   s_ringLock.Enter();
-  head = s_ProfRingBufHead;
 
-  if (0x10000 - head < 4) {
+  if (0x10000 - s_ProfRingBufHead < 4) {
     OsGetAsyncTimeMs();
-    head = 0;
     s_ProfRingBufHead = 0;
   }
 
-  bytes = 0x10000 - head;
+  dest = s_ProfRingBuf + s_ProfRingBufHead;
+  bytes = 0x10000 - s_ProfRingBufHead;
   if (bytes >= size) {
     bytes = size;
   }
 
-  memcpy(s_ProfRingBuf + head, dataToQueue, bytes);
+  memcpy(dest, dataToQueue, bytes);
 
   if (bytes < size) {
-    memcpy(s_ProfRingBuf, static_cast<BYTE *>(dataToQueue) + bytes, size - bytes);
+    memcpy(s_ProfRingBuf, (BYTE *)dataToQueue + bytes, size - bytes);
     OsGetAsyncTimeMs();
   }
 
@@ -598,7 +602,7 @@ static void IPerfRemoteQueuePerfData(float *perfTime) {
   struct {
     DWORD         msgSize;
     SimplePerfHdr h;
-    float         perfTime[20];
+    float         perfTime[PERF_MAX];
   } queuePerfBuf;
 
   if (s_HasProfServer && s_HasProfConn && IPerfRemoteSpaceAvail(sizeof(queuePerfBuf))) {
@@ -618,7 +622,7 @@ void IPerfRemoteQueuePerfLabels() {
   } queueLabelsBuf;
   UINT  labelBytes;
   UINT  packetBytes;
-  UINT  i;
+  int   i;
   char *label;
 
   if (!s_HasProfServer || !s_HasProfConn) {
@@ -626,7 +630,7 @@ void IPerfRemoteQueuePerfLabels() {
   }
 
   labelBytes = 0;
-  for (i = 0; i < 20; ++i) {
+  for (i = 0; i < PERF_MAX; ++i) {
     labelBytes += SStrLen(s_perfPrompts[i]) + 1;
   }
 
@@ -635,12 +639,12 @@ void IPerfRemoteQueuePerfLabels() {
     return;
   }
 
-  queueLabelsBuf.msgSize = static_cast<WORD>(packetBytes);
+  queueLabelsBuf.msgSize = (WORD)packetBytes;
   IPerfRemoteInitSimpleHdr(&queueLabelsBuf.h, packetBytes - 4, 2);
-  queueLabelsBuf.h.size = static_cast<WORD>(labelBytes);
+  queueLabelsBuf.h.size = labelBytes;
   label = queueLabelsBuf.labels;
 
-  for (i = 0; i < 20; ++i) {
+  for (i = 0; i < PERF_MAX; ++i) {
     label += SStrCopy(label, s_perfPrompts[i], 0x7FFFFFFF) + 1;
   }
 
@@ -666,7 +670,7 @@ void IPerfRemoteQueueLogString(LPCSTR prompt) {
 
   queuePromptBuf.msgSize = packetBytes;
   IPerfRemoteInitSimpleHdr(&queuePromptBuf.h, packetBytes - 4, 3);
-  queuePromptBuf.h.size = static_cast<WORD>(SStrLen(prompt) + 1);
+  queuePromptBuf.h.size = SStrLen(prompt) + 1;
   SStrCopy(queuePromptBuf.prompt, prompt, sizeof(queuePromptBuf.prompt));
   IPerfRemoteQueueOnRingBuffer(&queuePromptBuf, packetBytes);
 }
@@ -682,13 +686,13 @@ BOOL IPerfRemoteLoggingStartup() {
       return 0;
     }
     OsNetInitialize(0, 3);
-    s_ProfRingBuf = static_cast<char *>(SMemAlloc(0x10000, __FILE__, __LINE__, 0));
+    s_ProfRingBuf = (char *)SMemAlloc(0x10000, __FILE__, __LINE__, 0);
     s_ProfRingBufTail = s_ProfRingBufHead = 0;
     s_ProfStartupEvent = NEW(SEvent)(1, 0);
     s_ProfShutdownEvent = NEW(SEvent)(1, 0);
     s_ProfRequestEnqueuedEvent = NEW(SEvent)(1, 0);
     s_ProfThreadPtr = NEW(SThread)();
-    SThread::Create(IPerfRemoteLoggingThread, s_ProfThreadPtr, *s_ProfThreadPtr, "PerfLog");
+    SThread::Create(IPerfRemoteLoggingThread, 0, *s_ProfThreadPtr, "PerfLog");
   }
   return 1;
 }
@@ -698,11 +702,10 @@ int IPerfRemoteLoggingShutdown() {
     s_HasProfServer = 0;
     s_HasProfConn = 0;
     OsOutputDebugString("Closing perf-server connection");
-    OsNetDestroy(0);
+    OsNetDestroy(3);
     ASSERT(s_ProfShutdownEvent);
     s_ProfShutdownEvent->Set();
-    SSyncObject *thread = s_ProfThreadPtr;
-    WaitMultiplePtr(1, &thread, 1, INFINITE);
+    WaitMultiplePtr(1, (SSyncObject **)&s_ProfThreadPtr, 1, INFINITE);
     DEL(s_ProfThreadPtr);
     s_ProfThreadPtr = 0;
     SMemFree(s_ProfRingBuf, __FILE__, __LINE__, 0);
@@ -749,7 +752,7 @@ void ScrnPerfRemoteLogString(LPCSTR prompt) {
 }
 
 void ScrnPerfRemoteLogPerfCounters() {
-  float perfTime[20];
+  float perfTime[PERF_MAX];
 
   IPerfGetPerfTimes(perfTime);
   IPerfRemoteQueuePerfData(perfTime);
@@ -762,7 +765,7 @@ void ScrnPerfSetTextFunction(void (*inFunc)(char *, int, LPVOID), LPVOID inParam
 
 void ScrnPerfToggleDisplayedValues() {
   ++s_activityMode;
-  if (static_cast<UINT>(s_activityMode) >= 3) {
+  if ((UINT)s_activityMode >= 3) {
     s_activityMode = 0;
   }
 

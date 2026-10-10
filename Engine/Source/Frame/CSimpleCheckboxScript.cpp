@@ -8,11 +8,11 @@
 #include <lua.h>
 
 static int CSimpleCheckbox_SetChecked(lua_State *L) {
-  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
+  CSimpleCheckbox *object = (CSimpleCheckbox *)FrameScript_GetObjectThis(L);
 
   int state = 0;
   if (lua_isnumber(L, 2)) {
-    state = static_cast<int>(lua_tonumber(L, 2));
+    state = lua_tonumber(L, 2);
   } else if (lua_isstring(L, 2)) {
     state = StringToBOOL(lua_tostring(L, 2));
   }
@@ -22,7 +22,7 @@ static int CSimpleCheckbox_SetChecked(lua_State *L) {
 }
 
 static int CSimpleCheckbox_GetChecked(lua_State *L) {
-  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
+  CSimpleCheckbox *object = (CSimpleCheckbox *)FrameScript_GetObjectThis(L);
 
   if (object->GetChecked()) {
     lua_pushnumber(L, 1.0);
@@ -33,7 +33,7 @@ static int CSimpleCheckbox_GetChecked(lua_State *L) {
 }
 
 static int CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
-  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
+  CSimpleCheckbox *object = (CSimpleCheckbox *)FrameScript_GetObjectThis(L);
 
   if (lua_isstring(L, 2)) {
     object->SetCheckedTexture(lua_tostring(L, 2));
@@ -45,7 +45,7 @@ static int CSimpleCheckbox_SetCheckedTexture(lua_State *L) {
 }
 
 static int CSimpleCheckbox_SetDisabledCheckedTexture(lua_State *L) {
-  CSimpleCheckbox *object = static_cast<CSimpleCheckbox *>(FrameScript_GetObjectThis(L));
+  CSimpleCheckbox *object = (CSimpleCheckbox *)FrameScript_GetObjectThis(L);
 
   if (lua_isstring(L, 2)) {
     object->SetDisabledCheckedTexture(lua_tostring(L, 2));

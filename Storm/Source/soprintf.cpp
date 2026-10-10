@@ -221,7 +221,7 @@ int __cdecl snoprintf(char *out, int outSize, LPCSTR format, ...) {
   va_list arglist;
 
   va_start(arglist, format);
-  result = vsnoprintf(out, outSize, format, (char *)arglist);
+  result = vsnoprintf(out, outSize, format, arglist);
   va_end(arglist);
   return result;
 }
@@ -231,7 +231,7 @@ int __cdecl soprintf(char *out, LPCSTR format, ...) {
   va_list arglist;
 
   va_start(arglist, format);
-  result = vsnoprintf(out, PRINTF_DEFAULT_LIMIT, format, (char *)arglist);
+  result = vsnoprintf(out, PRINTF_DEFAULT_LIMIT, format, arglist);
   va_end(arglist);
   return result;
 }

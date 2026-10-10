@@ -36,7 +36,7 @@ struct CMemCmdItem {
   char m_name[256];
 
   static int __cdecl Compare(LPCVOID m1, LPCVOID m2) {
-    return SStrCmp(static_cast<const CMemCmdItem *>(m1)->m_name, static_cast<const CMemCmdItem *>(m2)->m_name, 0x7FFFFFFF);
+    return SStrCmp(((const CMemCmdItem *)m1)->m_name, ((const CMemCmdItem *)m2)->m_name, 0x7FFFFFFF);
   }
 };
 
@@ -146,7 +146,7 @@ static BOOL CCommand_TerminalVelocity(LPCSTR command, LPCSTR arguments) {
   if (!*arguments) {
     metersPerSec = MovementGetTerminalVelocity();
   } else {
-    metersPerSec = static_cast<float>(atof(arguments));
+    metersPerSec = atof(arguments);
     if (metersPerSec < 1.0f) {
       metersPerSec = 1.0f;
     } else if (metersPerSec > 60.0f) {
@@ -276,7 +276,7 @@ static BOOL CCommand_Money(LPCSTR command, LPCSTR arguments) {
   const char whitespace[] = "\t\r\n\" ";
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
-    ConsoleWrite("Usage: money [copper]", static_cast<COLOR_T>(4));
+    ConsoleWrite("Usage: money [copper]", WARNING_COLOR);
     return 0;
   }
   UINT       copper = SStrToUnsigned(currArg);
@@ -297,7 +297,7 @@ static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
   const char whitespace[] = "\t\r\n\" ";
   SStrTokenize(&arguments, currArg, sizeof(currArg), whitespace, 0);
   if (!currArg[0]) {
-    ConsoleWrite("Usage: worldport <continentID> [x y z] [facing]", static_cast<COLOR_T>(4));
+    ConsoleWrite("Usage: worldport <continentID> [x y z] [facing]", WARNING_COLOR);
     return 0;
   }
 
@@ -320,7 +320,7 @@ static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
   }
 
   if (!g_mapDB.GetRecord(mapID)) {
-    ConsoleWriteA("Bad world number: %i\n", static_cast<COLOR_T>(3), mapID);
+    ConsoleWriteA("Bad world number: %i\n", ERROR_COLOR, mapID);
     return 0;
   }
 
@@ -328,7 +328,7 @@ static BOOL CCommand_WorldTeleport(LPCSTR command, LPCSTR arguments) {
   CDataStore msg;
   msg.Put(CMSG_WORLD_TELEPORT);
   msg.Put(eventTime);
-  msg.Put(static_cast<BYTE>(mapID));
+  msg.Put((BYTE)mapID);
   msg << position;
   msg.Put(facing);
   msg.Finalize();
@@ -643,7 +643,7 @@ static void CompleteQuest(const DWORDLONG &questGiver, int questID) {
 static void QuestLogRemoveQuest(int entry) {
   CDataStore msg;
   msg.Put(CMSG_QUESTLOG_REMOVE_QUEST);
-  msg.Put(static_cast<BYTE>(entry));
+  msg.Put((BYTE)entry);
   msg.Finalize();
   ClientServices_Send(&msg);
 }
@@ -717,17 +717,17 @@ static BOOL CCommand_LootMethod(LPCSTR, LPCSTR args) {
   switch (*args) {
     case 'F':
     case 'f':
-      msg.Put(static_cast<UINT>(0));
-      msg.Put(static_cast<DWORDLONG>(0));
+      msg.Put((UINT)0);
+      msg.Put((DWORDLONG)0);
       break;
     case 'R':
     case 'r':
-      msg.Put(static_cast<UINT>(1));
-      msg.Put(static_cast<DWORDLONG>(0));
+      msg.Put((UINT)1);
+      msg.Put((DWORDLONG)0);
       break;
     case 'M':
     case 'm':
-      msg.Put(static_cast<UINT>(2));
+      msg.Put((UINT)2);
       msg.Put(CGGameUI::GetLockedTarget());
       break;
     default:
@@ -812,7 +812,7 @@ static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
   BYTE amount = 0;
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (buffer[0]) {
-    amount = static_cast<BYTE>(SStrToInt(buffer));
+    amount = SStrToInt(buffer);
   }
   CDataStore sellMsg;
   sellMsg.Put(CMSG_SELL_ITEM);
@@ -856,7 +856,7 @@ static BOOL CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
   buyMsg.Put(merchant);
   buyMsg.Put(muid);
   buyMsg.Put(quantity);
-  buyMsg.Put(static_cast<BYTE>(option));
+  buyMsg.Put((BYTE)option);
   buyMsg.Finalize();
   ClientServices_Send(&buyMsg);
   return 1;
@@ -891,10 +891,10 @@ static BOOL CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   UINT quantity = SStrToInt(buffer);
-  BYTE slot = static_cast<BYTE>(-1);
+  BYTE slot = -1;
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (buffer[0]) {
-    slot = static_cast<BYTE>(SStrToInt(buffer));
+    slot = SStrToInt(buffer);
   }
   CDataStore buyMsg;
   buyMsg.Put(CMSG_BUY_ITEM_IN_SLOT);
@@ -925,7 +925,7 @@ static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__ *hOutput, LPCSTR str) {
     return;
   }
 
-  CMemCmdDump *memDump = reinterpret_cast<CMemCmdDump *>(hOutput);
+  CMemCmdDump *memDump = (CMemCmdDump *)hOutput;
   CMemCmdItem *item = memDump->m_items.New();
   item->m_allocated = CmdMemParseNum(strNum);
   item->m_committed = CmdMemParseNum(strNum);
@@ -937,9 +937,9 @@ static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__ *hOutput, LPCSTR str) {
 }
 
 static void DebugPrintMemDump(const CMemCmdDump &memDump) {
-  UINT avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / memDump.m_items.Count());
-  UINT avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / memDump.m_items.Count());
-  UINT avgReserved = static_cast<UINT>(memDump.m_sumReserved / memDump.m_items.Count());
+  UINT avgAllocated = memDump.m_sumAllocated / memDump.m_items.Count();
+  UINT avgCommitted = memDump.m_sumCommitted / memDump.m_items.Count();
+  UINT avgReserved = memDump.m_sumReserved / memDump.m_items.Count();
   OsOutputDebugString("*** MEMORY DUMP BEGIN ***\n");
   OsOutputDebugString("   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   OsOutputDebugString("   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
@@ -953,14 +953,14 @@ static void DebugPrintMemDump(const CMemCmdDump &memDump) {
 }
 
 static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
-  UINT  avgAllocated = static_cast<UINT>(memDump.m_sumAllocated / memDump.m_items.Count());
-  UINT  avgCommitted = static_cast<UINT>(memDump.m_sumCommitted / memDump.m_items.Count());
-  UINT  avgReserved = static_cast<UINT>(memDump.m_sumReserved / memDump.m_items.Count());
+  UINT  avgAllocated = memDump.m_sumAllocated / memDump.m_items.Count();
+  UINT  avgCommitted = memDump.m_sumCommitted / memDump.m_items.Count();
+  UINT  avgReserved = memDump.m_sumReserved / memDump.m_items.Count();
   FILE *file = fopen(fileName, "wt");
   if (!file) {
     char *error = OsGetLastErrorStr();
-    ConsoleWriteA("Failed to open %s for writing:", static_cast<COLOR_T>(4), fileName);
-    ConsoleWrite(error, static_cast<COLOR_T>(4));
+    ConsoleWriteA("Failed to open %s for writing:", WARNING_COLOR, fileName);
+    ConsoleWrite(error, WARNING_COLOR);
     return;
   }
 
@@ -979,74 +979,76 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
 
 static BOOL CCommand_Mem(LPCSTR command, LPCSTR arguments) {
   CMemCmdDump memDump;
-  SMemDumpState(reinterpret_cast<SMEMDUMPPROC>(CmdMemOutput), reinterpret_cast<HOUTPUTCONTEXT>(&memDump));
-  if (memDump.m_items.Count()) {
-    qsort(memDump.m_items.Ptr(), memDump.m_items.Count(), sizeof(CMemCmdItem), CMemCmdItem::Compare);
-    if (arguments && *arguments) {
-      FilePrintMemDump(memDump, arguments);
-    } else {
-      DebugPrintMemDump(memDump);
-    }
+  SMemDumpState(CmdMemOutput, (HOUTPUTCONTEXT)&memDump);
+  if (!memDump.m_items.Count()) {
+    return 1;
+  }
+
+  qsort(memDump.m_items.Ptr(), memDump.m_items.Count(), sizeof(CMemCmdItem), CMemCmdItem::Compare);
+  if (!arguments || !*arguments) {
+    DebugPrintMemDump(memDump);
+  } else {
+    FilePrintMemDump(memDump, arguments);
   }
   return 1;
 }
 
 void InstallGameConsoleCommands() {
-  ConsoleCommandRegister("loc", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Loc), DEBUG, 0);
-  ConsoleCommandRegister("dloc", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DLoc), DEBUG, 0);
-  ConsoleCommandRegister("facing", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Facing), DEBUG, 0);
-  ConsoleCommandRegister("dfacing", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DFacing), DEBUG, 0);
-  ConsoleCommandRegister("showbounds", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_ShowBounds), DEBUG, 0);
-  ConsoleCommandRegister("tloc", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TargetLoc), DEBUG, 0);
-  ConsoleCommandRegister("TerminalVelocity", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TerminalVelocity), DEBUG, 0);
-  ConsoleCommandRegister("ci", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_CreateItem), GAME, 0);
-  ConsoleCommandRegister("cm", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_CreateMonster), GAME, 0);
-  ConsoleCommandRegister("cgo", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_CreateGameObject), GAME, 0);
-  ConsoleCommandRegister("pet", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_CreatePet), GAME, 0);
-  ConsoleCommandRegister("dm", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DestroyMonster), GAME, 0);
-  ConsoleCommandRegister("attackme", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_AttackPlayer), COMBAT, 0);
-  ConsoleCommandRegister("targetattack", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TargetAttack), COMBAT, 0);
-  ConsoleCommandRegister("speed", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Speed), DEBUG, 0);
-  ConsoleCommandRegister("walkspeed", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_WalkSpeed), DEBUG, 0);
-  ConsoleCommandRegister("swimspeed", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_SwimSpeed), DEBUG, 0);
-  ConsoleCommandRegister("turnspeed", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TurnSpeed), DEBUG, 0);
-  ConsoleCommandRegister("port", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Teleport), DEBUG, 0);
-  ConsoleCommandRegister("worldport", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_WorldTeleport), DEBUG, 0);
-  ConsoleCommandRegister("money", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Money), DEBUG, 0);
-  ConsoleCommandRegister("save", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Save), GAME, 0);
-  ConsoleCommandRegister("deathbind", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_BindPoint), GAME, 0);
+  ConsoleCommandRegister("loc", CCommand_Loc, DEBUG, 0);
+  ConsoleCommandRegister("dloc", CCommand_DLoc, DEBUG, 0);
+  ConsoleCommandRegister("facing", CCommand_Facing, DEBUG, 0);
+  ConsoleCommandRegister("dfacing", CCommand_DFacing, DEBUG, 0);
+  ConsoleCommandRegister("showbounds", CCommand_ShowBounds, DEBUG, 0);
+  ConsoleCommandRegister("tloc", CCommand_TargetLoc, DEBUG, 0);
+  ConsoleCommandRegister("TerminalVelocity", CCommand_TerminalVelocity, DEBUG, 0);
+  ConsoleCommandRegister("ci", CCommand_CreateItem, GAME, 0);
+  ConsoleCommandRegister("cm", CCommand_CreateMonster, GAME, 0);
+  ConsoleCommandRegister("cgo", CCommand_CreateGameObject, GAME, 0);
+  ConsoleCommandRegister("pet", CCommand_CreatePet, GAME, 0);
+  ConsoleCommandRegister("dm", CCommand_DestroyMonster, GAME, 0);
+  ConsoleCommandRegister("attackme", CCommand_AttackPlayer, COMBAT, 0);
+  ConsoleCommandRegister("targetattack", CCommand_TargetAttack, COMBAT, 0);
+  ConsoleCommandRegister("speed", CCommand_Speed, DEBUG, 0);
+  ConsoleCommandRegister("walkspeed", CCommand_WalkSpeed, DEBUG, 0);
+  ConsoleCommandRegister("swimspeed", CCommand_SwimSpeed, DEBUG, 0);
+  ConsoleCommandRegister("turnspeed", CCommand_TurnSpeed, DEBUG, 0);
+  ConsoleCommandRegister("port", CCommand_Teleport, DEBUG, 0);
+  ConsoleCommandRegister("worldport", CCommand_WorldTeleport, DEBUG, 0);
+  ConsoleCommandRegister("money", CCommand_Money, DEBUG, 0);
+  ConsoleCommandRegister("save", CCommand_Save, GAME, 0);
+  ConsoleCommandRegister("deathbind", CCommand_BindPoint, GAME, 0);
   ConsoleCommandRegister(
-      "db", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DBLookup), DEBUG,
+      "db", CCommand_DBLookup, DEBUG,
       "TableName (Name or #ID) Note:Wildcard use * in TableName or Name not ID though"
   );
-  ConsoleCommandRegister("drawlog", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_DrawLog), DEBUG, 0);
-  ConsoleCommandRegister("animlog", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_AnimLog), DEBUG, 0);
-  ConsoleCommandRegister("showplayer", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TogglePlayer), GRAPHICS, 0);
-  ConsoleCommandRegister("motionBlend", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_ToggleAnimBlending), GRAPHICS, 0);
-  ConsoleCommandRegister("beastmaster", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Beastmaster), DEBUG, 0);
-  ConsoleCommandRegister("sendevent", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_SendEvent), DEBUG, 0);
-  ConsoleCommandRegister("recharge", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Recharge), GAME, 0);
-  ConsoleCommandRegister("mem", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Mem), DEBUG, 0);
-  ConsoleCommandRegister("level", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Level), DEBUG, 0);
-  ConsoleCommandRegister("petlevel", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_PetLevel), DEBUG, 0);
-  ConsoleCommandRegister("clearquest", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_ClearQuest), DEBUG, 0);
-  ConsoleCommandRegister("flagquest", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_FlagQuest), DEBUG, 0);
-  ConsoleCommandRegister("TaxiClearAllNodes", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TaxiClearAllNodes), DEBUG, 0);
-  ConsoleCommandRegister("TaxiEnableAllNodes", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_TaxiEnableAllNodes), DEBUG, 0);
-  ConsoleCommandRegister("ChangeCellZone", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_ChangeCellZone), DEBUG, 0);
-  ConsoleCommandRegister("played", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Played), GAME, 0);
-  ConsoleCommandRegister("lootMethod", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_LootMethod), GAME, 0);
-  ConsoleCommandRegister("finishquest", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_FlagQuestFinish), DEBUG, 0);
-  ConsoleCommandRegister("cameratarget", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_CameraTarget), DEBUG, 0);
-  ConsoleCommandRegister("questquery", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_QuestCommand), DEBUG, 0);
-  ConsoleCommandRegister("questaccept", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_QuestCommand), DEBUG, 0);
-  ConsoleCommandRegister("questcomplete", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_QuestCommand), DEBUG, 0);
-  ConsoleCommandRegister("questcancel", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_QuestCommand), DEBUG, 0);
-  ConsoleCommandRegister("reclaim", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_Reclaim), DEBUG, 0);
-  ConsoleCommandRegister("buyspell", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_BuySpell), DEBUG, 0);
-  ConsoleCommandRegister("sellitem", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_SellItem), DEBUG, 0);
-  ConsoleCommandRegister("buyitem", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_BuyItem), DEBUG, 0);
-  ConsoleCommandRegister("buyiteminslot", reinterpret_cast<CONSOLECOMMANDHANDLER>(CCommand_BuyItemInSlot), DEBUG, 0);
+  ConsoleCommandRegister("drawlog", CCommand_DrawLog, DEBUG, 0);
+  ConsoleCommandRegister("animlog", CCommand_AnimLog, DEBUG, 0);
+  ConsoleCommandRegister("showplayer", CCommand_TogglePlayer, GRAPHICS, 0);
+  ConsoleCommandRegister("motionBlend", CCommand_ToggleAnimBlending, GRAPHICS, 0);
+  ConsoleCommandRegister("beastmaster", CCommand_Beastmaster, DEBUG, 0);
+  ConsoleCommandRegister("sendevent", CCommand_SendEvent, DEBUG, 0);
+  ConsoleCommandRegister("recharge", CCommand_Recharge, GAME, 0);
+  ConsoleCommandRegister("mem", CCommand_Mem, DEBUG, 0);
+  ConsoleCommandRegister("level", CCommand_Level, DEBUG, 0);
+  ConsoleCommandRegister("petlevel", CCommand_PetLevel, DEBUG, 0);
+  ConsoleCommandRegister("clearquest", CCommand_ClearQuest, DEBUG, 0);
+  ConsoleCommandRegister("flagquest", CCommand_FlagQuest, DEBUG, 0);
+  ConsoleCommandRegister("TaxiClearAllNodes", CCommand_TaxiClearAllNodes, DEBUG, 0);
+  ConsoleCommandRegister("TaxiEnableAllNodes", CCommand_TaxiEnableAllNodes, DEBUG, 0);
+  ConsoleCommandRegister("ChangeCellZone", CCommand_ChangeCellZone, DEBUG, 0);
+  ConsoleCommandRegister("played", CCommand_Played, GAME, 0);
+  ConsoleCommandRegister("lootMethod", CCommand_LootMethod, GAME, 0);
+  ConsoleCommandRegister("finishquest", CCommand_FlagQuestFinish, DEBUG, 0);
+  ConsoleCommandRegister("cameratarget", CCommand_CameraTarget, DEBUG, 0);
+  ConsoleCommandRegister("questquery", CCommand_QuestCommand, DEBUG, 0);
+  ConsoleCommandRegister("questaccept", CCommand_QuestCommand, DEBUG, 0);
+  ConsoleCommandRegister("questcomplete", CCommand_QuestCommand, DEBUG, 0);
+  ConsoleCommandRegister("questcancel", CCommand_QuestCommand, DEBUG, 0);
+  ConsoleCommandRegister("reclaim", CCommand_Reclaim, DEBUG, 0);
+  ConsoleCommandRegister("buyspell", CCommand_BuySpell, DEBUG, 0);
+  ConsoleCommandRegister("sellitem", CCommand_SellItem, DEBUG, 0);
+  ConsoleCommandRegister("buyitem", CCommand_BuyItem, DEBUG, 0);
+  ConsoleCommandRegister("buyiteminslot", CCommand_BuyItemInSlot, DEBUG, 0);
 
   InstallGMCommands();
 }

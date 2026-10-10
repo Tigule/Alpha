@@ -69,37 +69,37 @@ namespace NTempest {
     }
 
     C2Vector *Row0AsVec2() {
-      return reinterpret_cast<C2Vector *>(&a0);
+      return (C2Vector *)&a0;
     }
     C2Vector *Row1AsVec2() {
-      return reinterpret_cast<C2Vector *>(&b0);
+      return (C2Vector *)&b0;
     }
     C2Vector *Row2AsVec2() {
-      return reinterpret_cast<C2Vector *>(&c0);
+      return (C2Vector *)&c0;
     }
 
     C3Vector *Row0AsVec3() {
-      return reinterpret_cast<C3Vector *>(&a0);
+      return (C3Vector *)&a0;
     }
 
     const C3Vector *Row0AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&a0);
+      return (const C3Vector *)&a0;
     }
 
     C3Vector *Row1AsVec3() {
-      return reinterpret_cast<C3Vector *>(&b0);
+      return (C3Vector *)&b0;
     }
 
     const C3Vector *Row1AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&b0);
+      return (const C3Vector *)&b0;
     }
 
     C3Vector *Row2AsVec3() {
-      return reinterpret_cast<C3Vector *>(&c0);
+      return (C3Vector *)&c0;
     }
 
     const C3Vector *Row2AsVec3() const {
-      return reinterpret_cast<const C3Vector *>(&c0);
+      return (const C3Vector *)&c0;
     }
 
     C3Vector Row0() const {

@@ -14,7 +14,7 @@ static HIMC__ *s_IMC;
 static int     s_IMEActive;
 
 OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
-  HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC context = ImmGetContext(wnd);
   if (!context) {
     return OS_IME_MODE_ROMAN;
@@ -41,7 +41,7 @@ OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
 
 static BOOL GetCompositionString(int which, char *string, int maxlen) {
   memset(string, 0, maxlen);
-  HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC context = ImmGetContext(wnd);
   if (!context) {
     return 0;
@@ -49,8 +49,8 @@ static BOOL GetCompositionString(int which, char *string, int maxlen) {
 
   WORD wtemp[512];
   ImmGetCompositionStringA(context, which, string, maxlen);
-  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, string, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
-  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, reinterpret_cast<UINT *>(&maxlen), 0);
+  MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, string, -1, wtemp, 512);
+  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, (UINT *)&maxlen, 0);
   string[maxlen] = 0;
   ImmReleaseContext(wnd, context);
   return 1;
@@ -66,20 +66,20 @@ int OsIMEGetCompositionResult(char *string, UINT maxlen) {
 
 BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   UINT codepage = OsInputGetCodePage();
-  HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC context = ImmGetContext(wnd);
   if (!context) {
     return 0;
   }
 
-  UINT cursor = static_cast<WORD>(ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0));
+  UINT cursor = (WORD)ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0);
   UINT length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
   if (!length) {
     ImmReleaseContext(wnd, context);
     return 0;
   }
 
-  UINT *clauses = static_cast<UINT *>(SMemAlloc(length, __FILE__, __LINE__, 0));
+  UINT *clauses = (UINT *)SMemAlloc(length, __FILE__, __LINE__, 0);
   memset(clauses, 0, length);
   length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, clauses, length);
   if (length == IMM_ERROR_NODATA || length == IMM_ERROR_GENERAL) {
@@ -123,7 +123,7 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
 BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
   candidates.Clear();
 
-  HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC hIMC = ImmGetContext(wnd);
   if (!hIMC || !which) {
     if (hIMC) {
@@ -132,7 +132,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     return 0;
   }
 
-  DWORD listIndex = static_cast<DWORD>(-1);
+  DWORD listIndex = -1;
   while (which & 1) {
     which >>= 1;
     ++listIndex;
@@ -144,7 +144,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     return 0;
   }
 
-  CANDIDATELIST *pcl = static_cast<CANDIDATELIST *>(SMemAlloc(size, __FILE__, __LINE__, 0));
+  CANDIDATELIST *pcl = (CANDIDATELIST *)SMemAlloc(size, __FILE__, __LINE__, 0);
   ImmGetCandidateListA(hIMC, listIndex, pcl, size);
 
   if (!pcl->dwPageSize) {
@@ -192,8 +192,8 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
 
     if (pcl->dwPageStart + i < pcl->dwCount) {
       WORD   wtemp[512];
-      LPCSTR source = reinterpret_cast<LPCSTR>(pcl) + pcl->dwOffset[pcl->dwPageStart + i];
-      MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, source, -1, reinterpret_cast<wchar_t *>(wtemp), 512);
+      LPCSTR source = (LPCSTR)pcl + pcl->dwOffset[pcl->dwPageStart + i];
+      MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, source, -1, wtemp, 512);
       ConvertUTF16toUTF8(candidate->candidate, 1023, wtemp, 512, &written, 0);
     }
 
@@ -206,10 +206,10 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
 }
 
 void OsIMEEnable(int enabled) {
-  HWND wnd = static_cast<HWND>(OsGuiGetWindow(0));
+  HWND wnd = (HWND)OsGuiGetWindow(0);
   if (enabled) {
     if (++s_IMEActive == 1) {
-      ImmAssociateContext(wnd, (HIMC)s_IMC);
+      ImmAssociateContext(wnd, s_IMC);
     }
   } else if (s_IMEActive && !--s_IMEActive) {
     ImmAssociateContext(wnd, 0);
@@ -217,7 +217,7 @@ void OsIMEEnable(int enabled) {
 }
 
 void OsIMEInitialize() {
-  s_IMC = (HIMC__ *)ImmAssociateContext((HWND)OsGuiGetWindow(0), 0);
+  s_IMC = ImmAssociateContext((HWND)OsGuiGetWindow(0), 0);
 }
 
 void OsIMEDestroy() {

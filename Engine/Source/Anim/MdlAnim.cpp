@@ -80,7 +80,7 @@ struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
 static TSHashTable<ANIMHASH, HASHKEY_STRI> s_animCache;
 
 static int AnimGetReferenceCount(HANIM__ *anim) {
-  CAnim *container = reinterpret_cast<CAnim *>(anim);
+  CAnim *container = (CAnim *)anim;
   VALIDATEBEGIN;
   VALIDATE(container);
   VALIDATEEND;
@@ -94,7 +94,7 @@ static HANIM__ *GetAnim(LPCSTR modelFName) {
     return 0;
   }
   if (AnimGetReferenceCount(entry->anim) <= 1) {
-    return reinterpret_cast<HANIM__ *>(HandleDuplicate(entry->anim));
+    return (HANIM__ *)HandleDuplicate(entry->anim);
   }
   return AnimDuplicate(entry->anim, 0);
 }
@@ -102,7 +102,7 @@ static HANIM__ *GetAnim(LPCSTR modelFName) {
 static void HashNewAnim(LPCSTR modelFName, HANIM__ *anim) {
   FATALASSERT(modelFName);
   ANIMHASH *entry = s_animCache.New(modelFName, 0, 0);
-  entry->anim = reinterpret_cast<HANIM>(HandleDuplicate(anim));
+  entry->anim = (HANIM)HandleDuplicate(anim);
 }
 
 static BYTE GetObjectFlags(UINT mdlFlags) {
@@ -131,16 +131,16 @@ static BYTE *
 GenericHandlerAnim(BYTE *fileData, CAnimData *shared, CAnimObj *currobj, const UINT *idConversion, UINT *parentIds, MDLTRACKTYPE forceType) {
   FATALASSERT(shared);
   FATALASSERT(currobj);
-  UINT  genObjBytes = *reinterpret_cast<UINT *>(fileData);
+  UINT  genObjBytes = *(UINT *)fileData;
   BYTE *data = fileData + sizeof(UINT);
-  SStrCopy(currobj->name, reinterpret_cast<LPCSTR>(data), sizeof(currobj->name));
+  SStrCopy(currobj->name, (LPCSTR)data, sizeof(currobj->name));
   data += sizeof(currobj->name);
-  UINT objectId = *reinterpret_cast<UINT *>(data);
+  UINT objectId = *(UINT *)data;
   data += sizeof(UINT);
-  parentIds[objectId] = *reinterpret_cast<UINT *>(data);
+  parentIds[objectId] = *(UINT *)data;
   data += sizeof(UINT);
   AnimObjectSetIndex(shared, currobj, idConversion[objectId]);
-  currobj->flags = GetObjectFlags(*reinterpret_cast<UINT *>(data));
+  currobj->flags = GetObjectFlags(*(UINT *)data);
   data += sizeof(UINT);
   data = AnimObjectSetTranslation(data, genObjBytes - (data - fileData), shared, currobj, forceType);
   data = AnimObjectSetRotation(data, genObjBytes - (data - fileData), shared, currobj, forceType);
@@ -155,11 +155,11 @@ static BYTE *CreateBone(BYTE *fileData, CAnimData *shared, const UINT *idConvers
   CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
   FATALASSERT(currobj);
   fileData = GenericHandlerAnim(fileData, shared, currobj, idConversion, parentIds, forceType);
-  UINT geosetId = *reinterpret_cast<UINT *>(fileData);
+  UINT geosetId = *(UINT *)fileData;
   fileData += sizeof(UINT);
-  UINT geosetAnimId = *reinterpret_cast<UINT *>(fileData);
+  UINT geosetAnimId = *(UINT *)fileData;
   fileData += sizeof(UINT);
-  currobj->geosetId = geosetId == static_cast<UINT>(-1) ? static_cast<BYTE>(-1) : static_cast<BYTE>(geosetAnimId);
+  currobj->geosetId = geosetId == (UINT)-1 ? (BYTE)-1 : (BYTE)geosetAnimId;
   return fileData;
 }
 
@@ -167,7 +167,7 @@ static BYTE *CreateHitTestShape(BYTE *fileData, CAnimData *shared, const UINT *i
   FATALASSERT(shared);
   CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
   FATALASSERT(currobj);
-  UINT sectionLength = *reinterpret_cast<UINT *>(fileData);
+  UINT sectionLength = *(UINT *)fileData;
   GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
   currobj->geosetId = 0xFF;
   return fileData + sectionLength;
@@ -177,7 +177,7 @@ static BYTE *CreateLight(BYTE *fileData, CAnimData *shared, const UINT *idConver
   FATALASSERT(shared);
   CAnimLightObj *currobj = AnimObjectCreateLight(shared);
   FATALASSERT(currobj);
-  UINT  sectionLength = *reinterpret_cast<UINT *>(fileData);
+  UINT  sectionLength = *(UINT *)fileData;
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
   data += 44;
   data = AnimObjectSetAttenuation(data, fileData + sectionLength - data, shared, currobj, forceType);
@@ -194,11 +194,11 @@ static BYTE *CreateParticleEmitter2(BYTE *fileData, CAnimData *shared, const UIN
   FATALASSERT(shared);
   CAnimEmitter2Obj *currobj = AnimObjectCreateEmitter2(shared);
   FATALASSERT(currobj);
-  UINT  sectionLength = *reinterpret_cast<UINT *>(fileData);
+  UINT  sectionLength = *(UINT *)fileData;
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
 
-  data += *reinterpret_cast<UINT *>(data);
-  currobj->squirts = *reinterpret_cast<UINT *>(data);
+  data += *(UINT *)data;
+  currobj->squirts = *(UINT *)data;
   data += sizeof(UINT);
   data = AnimObjectSetParticleEmissionRate2(data, fileData + sectionLength - data, shared, currobj, forceType);
   data = AnimObjectSetParticleGravity2(data, fileData + sectionLength - data, shared, currobj, forceType);
@@ -219,9 +219,9 @@ static BYTE *CreateRibbonEmitter(BYTE *fileData, CAnimData *shared, const UINT *
   FATALASSERT(shared);
   CAnimRibbonObj *currobj = AnimObjectCreateRibbon(shared);
   FATALASSERT(currobj);
-  UINT  sectionLength = *reinterpret_cast<UINT *>(fileData);
+  UINT  sectionLength = *(UINT *)fileData;
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
-  data += *reinterpret_cast<UINT *>(data);
+  data += *(UINT *)data;
   data = AnimObjectSetRibbonHeightAbove(data, fileData + sectionLength - data, shared, currobj, forceType);
   data = AnimObjectSetRibbonHeightBelow(data, fileData + sectionLength - data, shared, currobj, forceType);
   data = AnimObjectSetRibbonAlpha(data, fileData + sectionLength - data, shared, currobj, forceType);
@@ -236,7 +236,7 @@ static BYTE *CreateEventObject(BYTE *fileData, CAnimData *shared, const UINT *id
   FATALASSERT(shared);
   CAnimEventObj *currobj = AnimObjectCreateEvent(shared);
   FATALASSERT(currobj);
-  UINT  sectionLength = *reinterpret_cast<UINT *>(fileData);
+  UINT  sectionLength = *(UINT *)fileData;
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
   data = AnimObjectSetEventTrack(data, fileData + sectionLength - data, shared, currobj);
   ASSERT(data == (fileData + sectionLength));
@@ -254,7 +254,7 @@ static BYTE *CreateAttachmentPoint(BYTE *fileData, CAnimData *shared, const UINT
   FATALASSERT(shared);
   CAnimModelObj *currobj = AnimObjectCreateAttachment(shared);
   FATALASSERT(currobj);
-  UINT  sectionLength = *reinterpret_cast<UINT *>(fileData);
+  UINT  sectionLength = *(UINT *)fileData;
   BYTE *data = GenericHandlerAnim(fileData + 4, shared, currobj, idConversion, parentIds, forceType);
   data += sizeof(UINT);
   currobj->geosetId = *data;
@@ -275,12 +275,12 @@ static void SetObjectParent(CAnimData *shared, UINT object, UINT parent) {
 static void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT *idConversion, UINT numObjects) {
   for (UINT oldObjectId = 0; oldObjectId < numObjects; ++oldObjectId) {
     UINT objectId = idConversion[oldObjectId];
-    if (objectId == static_cast<UINT>(-1)) {
+    if (objectId == (UINT)-1) {
       continue;
     }
 
     UINT parentId = parentIds[oldObjectId];
-    if (parentId != static_cast<UINT>(-1)) {
+    if (parentId != (UINT)-1) {
       parentId = idConversion[parentId];
       FATALASSERT(parentId != 0xffffffff);
     }
@@ -292,24 +292,27 @@ static void BuildHierarchy(CAnimData *shared, const UINT *parentIds, const UINT 
 static UINT GetGenObjectCount(BYTE *fileData, UINT fileBytes) {
   BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'LDOM');
   ASSERT(data != 0);
-  return *reinterpret_cast<UINT *>(data + 373);
+  return *(UINT *)(data + 373);
 }
 
 UINT AnimBuildObjectIdTranslation(const MDLDATA &data, UINT flags, TSStackArray<UINT> *idConversion) {
   ASSERT(idConversion);
 
+  UINT numRemoved;
+  UINT offset;
   UINT numObjects = data.objects.Count();
   UINT index;
+  UINT firstObject;
   for (index = 0; index < numObjects; ++index) {
     (*idConversion)[index] = index;
   }
 
-  UINT numRemoved = 0;
+  numRemoved = 0;
   if (!(flags & 1) && data.hitTestShapes.Count() > 0) {
-    UINT firstObject = data.hitTestShapes[0].objectId;
-    UINT offset = data.hitTestShapes.Count();
+    firstObject = data.hitTestShapes[0].objectId;
+    offset = data.hitTestShapes.Count();
     for (index = firstObject; index < firstObject + offset; ++index) {
-      (*idConversion)[index] = static_cast<UINT>(-1);
+      (*idConversion)[index] = -1;
     }
     for (index = firstObject + offset; index < numObjects; ++index) {
       (*idConversion)[index] = index - offset;
@@ -318,13 +321,13 @@ UINT AnimBuildObjectIdTranslation(const MDLDATA &data, UINT flags, TSStackArray<
   }
 
   if ((flags & 2) && data.lights.Count() > 0) {
-    UINT firstObject = data.lights[0].objectId;
-    UINT offset = data.lights.Count();
+    firstObject = data.lights[0].objectId;
+    offset = data.lights.Count();
     for (index = firstObject; index < firstObject + offset; ++index) {
-      (*idConversion)[index] = static_cast<UINT>(-1);
+      (*idConversion)[index] = -1;
     }
     for (index = firstObject + offset; index < numObjects; ++index) {
-      if ((*idConversion)[index] != static_cast<UINT>(-1)) {
+      if ((*idConversion)[index] != (UINT)-1) {
         (*idConversion)[index] = index - offset;
       }
     }
@@ -347,10 +350,10 @@ UINT AnimBuildObjectIdTranslation(BYTE *fileData, UINT fileBytes, UINT flags, UI
     BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'TSTH');
     if (section) {
       section += sizeof(UINT);
-      UINT offset = *reinterpret_cast<UINT *>(section);
-      UINT firstObject = *reinterpret_cast<UINT *>(section + 92);
+      UINT offset = *(UINT *)section;
+      UINT firstObject = *(UINT *)(section + 92);
       for (index = firstObject; index < firstObject + offset; ++index) {
-        idConversion[index] = static_cast<UINT>(-1);
+        idConversion[index] = -1;
       }
       for (index = firstObject + offset; index < numObjects; ++index) {
         idConversion[index] = index - offset;
@@ -363,13 +366,13 @@ UINT AnimBuildObjectIdTranslation(BYTE *fileData, UINT fileBytes, UINT flags, UI
     BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'ETIL');
     if (section) {
       section += sizeof(UINT);
-      UINT offset = *reinterpret_cast<UINT *>(section);
-      UINT firstObject = *reinterpret_cast<UINT *>(section + 92);
+      UINT offset = *(UINT *)section;
+      UINT firstObject = *(UINT *)(section + 92);
       for (index = firstObject; index < firstObject + offset; ++index) {
-        idConversion[index] = static_cast<UINT>(-1);
+        idConversion[index] = -1;
       }
       for (index = firstObject + offset; index < numObjects; ++index) {
-        if (idConversion[index] != static_cast<UINT>(-1)) {
+        if (idConversion[index] != (UINT)-1) {
           idConversion[index] = index - offset;
         }
       }
@@ -425,7 +428,7 @@ static void CreateBone(CAnimData *shared, const MDLBONESECTION &bonedata, const 
   CAnimBoneObj *currobj = AnimObjectCreateBone(shared);
   ASSERT(currobj);
   GenericHandlerAnim(shared, currobj, bonedata, idConversion, forceType);
-  currobj->geosetId = bonedata.geosetId == static_cast<UINT>(-1) ? static_cast<BYTE>(-1) : static_cast<BYTE>(bonedata.geosetAnimId);
+  currobj->geosetId = bonedata.geosetId == (UINT)-1 ? (BYTE)-1 : (BYTE)bonedata.geosetAnimId;
 }
 
 static void CreateHitTestShape(CAnimData *shared, const MDLHITTESTSHAPE &hitTest, const TSStackArray<UINT> &idConversion, MDLTRACKTYPE forceType) {
@@ -556,13 +559,13 @@ CreateAttachmentPoint(CAnimData *shared, const MDLDATA &data, UINT attachId, con
   AnimObjectSetVisibilityTrack(shared, currobj, attachment.visibilityKeys, forceType);
 
   const MDLGENOBJECT *object = &attachment;
-  while (object->parentId != static_cast<UINT>(-1)) {
+  while (object->parentId != (UINT)-1) {
     object = data.objects[object->parentId];
-    if (static_cast<UINT>(reinterpret_cast<const BYTE *>(object) - reinterpret_cast<const BYTE *>(data.bones.Ptr())) >= data.bones.Bytes()) {
+    if ((UINT)((const BYTE *)object - (const BYTE *)data.bones.Ptr()) >= data.bones.Bytes()) {
       continue;
     }
-    const MDLBONESECTION *bone = static_cast<const MDLBONESECTION *>(object);
-    currobj->geosetId = bone->geosetId == static_cast<UINT>(-1) ? static_cast<BYTE>(-1) : static_cast<BYTE>(bone->geosetAnimId);
+    const MDLBONESECTION *bone = (const MDLBONESECTION *)object;
+    currobj->geosetId = bone->geosetId == (UINT)-1 ? (BYTE)-1 : (BYTE)bone->geosetAnimId;
     return;
   }
 }
@@ -571,12 +574,12 @@ static void BuildHierarchy(CAnimData *shared, const MDLDATA &data, const TSStack
   UINT numObjects = data.objects.Count();
   for (UINT i = 0; i < numObjects; ++i) {
     UINT objectId = idConversion[i];
-    if (objectId == static_cast<UINT>(-1)) {
+    if (objectId == (UINT)-1) {
       continue;
     }
 
     UINT parentId = data.objects[i]->parentId;
-    if (parentId != static_cast<UINT>(-1)) {
+    if (parentId != (UINT)-1) {
       parentId = idConversion[parentId];
       FATALASSERT(parentId != 0xffffffff);
     }
@@ -632,10 +635,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'ENOB');
   if (section) {
-    UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+    UINT sectionBytes = *(UINT *)section;
     section += sizeof(UINT);
     BYTE *dataDone = section + sectionBytes;
-    UINT  count = *reinterpret_cast<UINT *>(section);
+    UINT  count = *(UINT *)section;
     BYTE *data = section + sizeof(UINT);
     for (UINT index = 0; index < count; ++index) {
       data = CreateBone(data, shared, idConversion, parentIds, forceType);
@@ -646,10 +649,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
   if (flags & 1) {
     section = MDLFileBinarySeek(fileData, fileBytes, 'TSTH');
     if (section) {
-      UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+      UINT sectionBytes = *(UINT *)section;
       section += sizeof(UINT);
       BYTE *dataDone = section + sectionBytes;
-      UINT  count = *reinterpret_cast<UINT *>(section);
+      UINT  count = *(UINT *)section;
       BYTE *data = section + sizeof(UINT);
       for (UINT index = 0; index < count; ++index) {
         data = CreateHitTestShape(data, shared, idConversion, parentIds, forceType);
@@ -661,10 +664,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
   if (!(flags & 2)) {
     section = MDLFileBinarySeek(fileData, fileBytes, 'ETIL');
     if (section) {
-      UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+      UINT sectionBytes = *(UINT *)section;
       section += sizeof(UINT);
       BYTE *dataDone = section + sectionBytes;
-      UINT  count = *reinterpret_cast<UINT *>(section);
+      UINT  count = *(UINT *)section;
       BYTE *data = section + sizeof(UINT);
       for (UINT index = 0; index < count; ++index) {
         data = CreateLight(data, shared, idConversion, parentIds, forceType);
@@ -675,10 +678,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 
   section = MDLFileBinarySeek(fileData, fileBytes, 'PLEH');
   if (section) {
-    UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+    UINT sectionBytes = *(UINT *)section;
     section += sizeof(UINT);
     BYTE *dataDone = section + sectionBytes;
-    UINT  count = *reinterpret_cast<UINT *>(section);
+    UINT  count = *(UINT *)section;
     BYTE *data = section + sizeof(UINT);
     for (UINT index = 0; index < count; ++index) {
       data = CreateHelper(data, shared, idConversion, parentIds, forceType);
@@ -688,10 +691,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 
   section = MDLFileBinarySeek(fileData, fileBytes, 'HCTA');
   if (section) {
-    UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+    UINT sectionBytes = *(UINT *)section;
     section += sizeof(UINT);
     BYTE *dataDone = section + sectionBytes;
-    UINT  count = *reinterpret_cast<UINT *>(section);
+    UINT  count = *(UINT *)section;
     BYTE *data = section + 2 * sizeof(UINT);
     for (UINT index = 0; index < count; ++index) {
       data = CreateAttachmentPoint(data, shared, idConversion, parentIds, forceType);
@@ -701,10 +704,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 
   section = MDLFileBinarySeek(fileData, fileBytes, '2ERP');
   if (section) {
-    UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+    UINT sectionBytes = *(UINT *)section;
     section += sizeof(UINT);
     BYTE *dataDone = section + sectionBytes;
-    UINT  count = *reinterpret_cast<UINT *>(section);
+    UINT  count = *(UINT *)section;
     BYTE *data = section + sizeof(UINT);
     for (UINT index = 0; index < count; ++index) {
       data = CreateParticleEmitter2(data, shared, idConversion, parentIds, forceType);
@@ -714,10 +717,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 
   section = MDLFileBinarySeek(fileData, fileBytes, 'BBIR');
   if (section) {
-    UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+    UINT sectionBytes = *(UINT *)section;
     section += sizeof(UINT);
     BYTE *dataDone = section + sectionBytes;
-    UINT  count = *reinterpret_cast<UINT *>(section);
+    UINT  count = *(UINT *)section;
     BYTE *data = section + sizeof(UINT);
     for (UINT index = 0; index < count; ++index) {
       data = CreateRibbonEmitter(data, shared, idConversion, parentIds, forceType);
@@ -727,10 +730,10 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 
   section = MDLFileBinarySeek(fileData, fileBytes, 'STVE');
   if (section) {
-    UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+    UINT sectionBytes = *(UINT *)section;
     section += sizeof(UINT);
     BYTE *dataDone = section + sectionBytes;
-    UINT  count = *reinterpret_cast<UINT *>(section);
+    UINT  count = *(UINT *)section;
     BYTE *data = section + sizeof(UINT);
     for (UINT index = 0; index < count; ++index) {
       data = CreateEventObject(data, shared, idConversion, parentIds, forceType);
@@ -748,7 +751,7 @@ static BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags)
     unique->blendStatus.SetCount(unique->status.Count());
   }
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
 
@@ -759,8 +762,8 @@ static BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags)
   AnimAddMaterialLayers(fileData, fileBytes, unique, shared, forceType);
 
   UINT  numObjects = GetGenObjectCount(fileData, fileBytes);
-  UINT *idConversion = static_cast<UINT *>(_alloca(numObjects * sizeof(UINT)));
-  UINT *parentIds = static_cast<UINT *>(_alloca(numObjects * sizeof(UINT)));
+  UINT *idConversion = (UINT *)_alloca(numObjects * sizeof(UINT));
+  UINT *parentIds = (UINT *)_alloca(numObjects * sizeof(UINT));
   AnimBuildObjectIdTranslation(fileData, fileBytes, flags, idConversion, numObjects);
   IAnimCreateObjects(fileData, fileBytes, shared, flags, idConversion, parentIds);
   BuildHierarchy(shared, parentIds, idConversion, numObjects);
@@ -779,17 +782,17 @@ static UINT CountSectionEntries(BYTE *fileData, UINT fileBytes, DWORD tag) {
   if (!section) {
     return 0;
   }
-  return *reinterpret_cast<UINT *>(section + 4);
+  return *(UINT *)(section + 4);
 }
 
 HANIM AnimCreate(BYTE *fileData, UINT fileBytes, UINT flags) {
   UINT  animatedLayers = 0;
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SLTM');
   if (section) {
-    animatedLayers = *reinterpret_cast<UINT *>(section + 8);
+    animatedLayers = *(UINT *)(section + 8);
   }
 
-  UINT objectCounts[7];
+  UINT objectCounts[NUM_OBJ_TYPES];
   objectCounts[0] = CountSectionEntries(fileData, fileBytes, 'PLEH');
   objectCounts[1] = (flags & 2) ? 0 : CountSectionEntries(fileData, fileBytes, 'ETIL');
   objectCounts[2] = CountSectionEntries(fileData, fileBytes, 'HCTA');
@@ -823,7 +826,7 @@ static BOOL AnimBuild(const MDLDATA &data, CAnim *unique, UINT flags) {
     unique->blendStatus.SetCount(unique->status.Count());
   }
 
-  CAnimData *shared = reinterpret_cast<CAnimData *>(unique->hdata);
+  CAnimData *shared = (CAnimData *)unique->hdata;
   ASSERT(shared);
   MDLTRACKTYPE forceType = (flags & 4) ? TRACK_LINEAR : NUM_TRACK_TYPES;
 
@@ -834,7 +837,7 @@ static BOOL AnimBuild(const MDLDATA &data, CAnim *unique, UINT flags) {
   MaterialHandlerAnim(shared, data.materials, forceType);
 
   UINT               numObjects = data.objects.Count();
-  TSStackArray<UINT> idConversion(static_cast<UINT *>(_alloca(numObjects * sizeof(UINT))), numObjects, numObjects);
+  TSStackArray<UINT> idConversion(_alloca(numObjects * sizeof(UINT)), numObjects, numObjects);
   AnimBuildObjectIdTranslation(data, flags, &idConversion);
   IAnimCreateObjects(shared, data, flags, idConversion);
   BuildHierarchy(shared, data, idConversion);
@@ -886,7 +889,7 @@ HANIM AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status) {
   VALIDATE(sourcefile);
   VALIDATEEND;
 
-  HANIM anim = reinterpret_cast<HANIM>(GetAnim(sourcefile));
+  HANIM anim = GetAnim(sourcefile);
   if (anim) {
     return anim;
   }
@@ -904,7 +907,7 @@ HANIM AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status) {
     HandleClose(anim);
     anim = 0;
   }
-  HashNewAnim(sourcefile, reinterpret_cast<HANIM__ *>(anim));
+  HashNewAnim(sourcefile, anim);
   return anim;
 }
 

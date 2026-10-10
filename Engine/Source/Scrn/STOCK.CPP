@@ -15,7 +15,7 @@ static void CreateSysFont(SCRNSTOCK stockID, LPCSTR fontFilePath) {
   ASSERT(stockID < SCRNSTOCKOBJECTS);
 
   if (s_stockObjects[stockID]) {
-    HandleClose(reinterpret_cast<HOBJECT>(s_stockObjects[stockID]));
+    HandleClose(s_stockObjects[stockID]);
   }
 
   s_stockObjects[stockID] = TextBlockGenerateFont(fontFilePath, 0, NDCToDDCHeight(s_stockObjectHeights[stockID]));
@@ -28,7 +28,7 @@ void IStockDestroy() {
 
   for (i = 0; i < SCRNSTOCKOBJECTS; ++i) {
     if (s_stockObjects[i]) {
-      HandleClose(reinterpret_cast<HOBJECT>(s_stockObjects[i]));
+      HandleClose(s_stockObjects[i]);
     }
 
     s_stockObjects[i] = 0;

@@ -107,12 +107,12 @@ static void SetParticleStyle(const MDLPARTICLEEMITTER2 &emitterData, CParticleEm
 }
 
 static UINT GetEmitterFlags(const BYTE *emitterData) {
-  return *reinterpret_cast<const UINT *>(emitterData + 0x5C);
+  return *(const UINT *)(emitterData + 0x5C);
 }
 
 static UINT SetParticleStyle(const BYTE *emitterData, UINT flags, CParticleEmitter2 *emitter) {
-  const UINT  style = *reinterpret_cast<const UINT *>(emitterData);
-  const float tailLength = *reinterpret_cast<const float *>(emitterData + 4);
+  const UINT  style = *(const UINT *)emitterData;
+  const float tailLength = *(const float *)(emitterData + 4);
 
   if (flags & 0x00080000) {
     emitter->SetUseModelSpace(1);
@@ -167,7 +167,7 @@ static BYTE *SetKeyColors(BYTE *emitterData, CParticleKey *key1, CParticleKey *k
   NTempest::CImVector middleColor;
   NTempest::CImVector endColor;
 
-  const float *colors = reinterpret_cast<const float *>(emitterData);
+  const float *colors = (const float *)emitterData;
   startColor.r = NTempest::CMath::ftol_0_256_(colors[0] * 255.0f);
   startColor.g = NTempest::CMath::ftol_0_256_(colors[1] * 255.0f);
   startColor.b = NTempest::CMath::ftol_0_256_(colors[2] * 255.0f);
@@ -185,7 +185,7 @@ static BYTE *SetKeyColors(BYTE *emitterData, CParticleKey *key1, CParticleKey *k
 
   key1->SetColors(startColor, middleColor);
   key2->SetColors(middleColor, endColor);
-  return const_cast<BYTE *>(alpha + 3);
+  return (BYTE *)(alpha + 3);
 }
 
 static BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter2 *emitter) {
@@ -197,10 +197,10 @@ static BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter
   float        endScale;
   UINT         repeat;
 
-  middleTime = *reinterpret_cast<float *>(emitterData);
+  middleTime = *(float *)emitterData;
   emitterData = SetKeyColors(emitterData + sizeof(float), &key1, &key2);
 
-  const float *scales = reinterpret_cast<const float *>(emitterData);
+  const float *scales = (const float *)emitterData;
   startScale = scales[0];
   middleScale = scales[1];
   endScale = scales[2];
@@ -208,18 +208,18 @@ static BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter
   key2.SetScales(middleScale, endScale);
   emitterData += 3 * sizeof(float);
 
-  const int *cells = reinterpret_cast<const int *>(emitterData);
+  const int *cells = (const int *)emitterData;
   key1.SetHeadCells(cells[0], cells[1]);
   key1.SetSegment(0.0f, middleTime);
-  repeat = static_cast<UINT>(cells[2]);
-  key1.SetRepeat(static_cast<float>(repeat));
+  repeat = cells[2];
+  key1.SetRepeat((float)repeat);
   key1.SetLifeSpan(lifeSpan);
 
   cells += 3;
   key2.SetHeadCells(cells[0], cells[1]);
   key2.SetSegment(middleTime, 1.0f);
-  repeat = static_cast<UINT>(cells[2]);
-  key2.SetRepeat(static_cast<float>(repeat));
+  repeat = (UINT)cells[2];
+  key2.SetRepeat((float)repeat);
   key2.SetLifeSpan(lifeSpan);
 
   cells += 3;
@@ -230,7 +230,7 @@ static BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter
 
   emitter->SetKey(0, key1);
   emitter->SetKey(1, key2);
-  return reinterpret_cast<BYTE *>(const_cast<int *>(cells));
+  return (BYTE *)((int *)cells);
 }
 
 static void SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmitter2 *emitter) {
@@ -238,10 +238,10 @@ static void SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmi
   CParticleKey key2;
 
   key1.SetSegment(0.0f, emitterData.middleTime);
-  key1.SetRepeat(static_cast<float>(emitterData.lifespanUVAnimRepeat));
+  key1.SetRepeat((float)emitterData.lifespanUVAnimRepeat);
   key1.SetLifeSpan(emitterData.staticLife);
   key2.SetSegment(emitterData.middleTime, 1.0f);
-  key2.SetRepeat(static_cast<float>(emitterData.decayUVAnimRepeat));
+  key2.SetRepeat((float)emitterData.decayUVAnimRepeat);
   key2.SetLifeSpan(emitterData.staticLife);
 
   NTempest::CImVector startColor;
@@ -293,14 +293,14 @@ static BYTE *CreateParticleMaterial(
     CStatus                 *status,
     CParticleEmitter2       *emitter
 ) {
-  UINT blendMode = *reinterpret_cast<UINT *>(emitterData);
+  UINT blendMode = *(UINT *)emitterData;
   emitterData += 4;
 
   CParticleMat newMat;
   SetMaterialBlendMode(blendMode, &newMat);
 
   HTEXTURE hTexture = LoadModelTexture(
-      textures[*reinterpret_cast<UINT *>(emitterData)].image, modelCreateFlags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status
+      textures[*(UINT *)emitterData].image, modelCreateFlags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status
   );
   emitterData += 4;
 
@@ -344,7 +344,7 @@ static void CreateParticleMaterial(
 }
 
 static BYTE *CreateChildEmitter(BYTE *parentData, UINT flags, CStatus *status, CParticleEmitter2 *parent) {
-  char *childPath = reinterpret_cast<char *>(parentData);
+  char *childPath = (char *)parentData;
   parentData += 260;
   if (!SStrLen(childPath)) {
     return parentData;
@@ -359,17 +359,17 @@ static BYTE *CreateChildEmitter(BYTE *parentData, UINT flags, CStatus *status, C
   BYTE *section = MDLFileBinarySeek(fileData, fileBytes, 'SXET');
   ASSERT(section);
   section += 4;
-  const MDLTEXTURESECTION *textures = reinterpret_cast<const MDLTEXTURESECTION *>(section);
+  const MDLTEXTURESECTION *textures = (const MDLTEXTURESECTION *)section;
 
   section = MDLFileBinarySeek(fileData, fileBytes, '2ERP');
   ASSERT(section);
   section += 4;
-  UINT numEmitters = *reinterpret_cast<UINT *>(section);
+  UINT numEmitters = *(UINT *)section;
   section += 4;
   numEmitters = min(numEmitters, 4);
 
   for (UINT i = 0; i < numEmitters; ++i) {
-    UINT bytesThisEmitter = *reinterpret_cast<UINT *>(section);
+    UINT bytesThisEmitter = *(UINT *)section;
     section += 4;
     CParticleEmitter2 *child = CreateEmitter(section, textures, flags, status);
     parent->AddChildEmitter(child);
@@ -380,7 +380,7 @@ static BYTE *CreateChildEmitter(BYTE *parentData, UINT flags, CStatus *status, C
 }
 
 static void CreateChildEmitter(const MDLPARTICLEEMITTER2 &emitterData, UINT flags, CStatus *status, CParticleEmitter2 *parent) {
-  if (!static_cast<LPCSTR>(emitterData.recursionMdl)[0]) {
+  if (!((LPCSTR)emitterData.recursionMdl)[0]) {
     return;
   }
 
@@ -398,17 +398,17 @@ static void CreateChildEmitter(const MDLPARTICLEEMITTER2 &emitterData, UINT flag
 }
 
 static BYTE *SetParticleTumble(BYTE *emitterData, CParticleEmitter2 *emitter) {
-  float tumblexMin = *reinterpret_cast<float *>(emitterData);
+  float tumblexMin = *(float *)emitterData;
   emitterData += 4;
-  float tumblexMax = *reinterpret_cast<float *>(emitterData);
+  float tumblexMax = *(float *)emitterData;
   emitterData += 4;
-  float tumbleyMin = *reinterpret_cast<float *>(emitterData);
+  float tumbleyMin = *(float *)emitterData;
   emitterData += 4;
-  float tumbleyMax = *reinterpret_cast<float *>(emitterData);
+  float tumbleyMax = *(float *)emitterData;
   emitterData += 4;
-  float tumblezMin = *reinterpret_cast<float *>(emitterData);
+  float tumblezMin = *(float *)emitterData;
   emitterData += 4;
-  float tumblezMax = *reinterpret_cast<float *>(emitterData);
+  float tumblezMax = *(float *)emitterData;
   emitterData += 4;
   emitter->SetTumbleX(NTempest::C2Vector(tumblexMin, tumblexMax));
   emitter->SetTumbleY(NTempest::C2Vector(tumbleyMin, tumbleyMax));
@@ -417,11 +417,11 @@ static BYTE *SetParticleTumble(BYTE *emitterData, CParticleEmitter2 *emitter) {
 }
 
 static BYTE *LoadC3Vector(BYTE *emitterData, NTempest::C3Vector *vector) {
-  vector->x = *reinterpret_cast<float *>(emitterData);
+  vector->x = *(float *)emitterData;
   emitterData += sizeof(float);
-  vector->y = *reinterpret_cast<float *>(emitterData);
+  vector->y = *(float *)emitterData;
   emitterData += sizeof(float);
-  vector->z = *reinterpret_cast<float *>(emitterData);
+  vector->z = *(float *)emitterData;
   emitterData += sizeof(float);
   return emitterData;
 }
@@ -470,7 +470,7 @@ CreateEmitter(const MDLPARTICLEEMITTER2 &emitterData, const TSGrowableArray<MDLT
   emitter->SetWind(emitterData.windVector, emitterData.windTime);
   emitter->SetFollowParams(emitterData.followSpeed1, emitterData.followScale1, emitterData.followSpeed2, emitterData.followScale2);
   if (emitterData.spline.Count()) {
-    static_cast<CSplineParticleEmitter *>(emitter)->SetSpline(emitterData.spline.Ptr(), emitterData.spline.Count());
+    ((CSplineParticleEmitter *)emitter)->SetSpline(emitterData.spline.Ptr(), emitterData.spline.Count());
   }
   return emitter;
 }
@@ -478,37 +478,37 @@ CreateEmitter(const MDLPARTICLEEMITTER2 &emitterData, const TSGrowableArray<MDLT
 static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status) {
   const UINT emitterFlags = GetEmitterFlags(emitterData);
   BYTE      *cursor = emitterData;
-  cursor += *reinterpret_cast<UINT *>(cursor) + 4;
-  const UINT emitterType = *reinterpret_cast<UINT *>(cursor);
+  cursor += *(UINT *)cursor + 4;
+  const UINT emitterType = *(UINT *)cursor;
   cursor += 4;
 
   CParticleEmitter2 *emitter = CreateEmitterObject(emitterType);
   emitter->SetEnabled(0, 1);
 
-  emitter->SetVelocity(*reinterpret_cast<float *>(cursor));
+  emitter->SetVelocity(*(float *)cursor);
   cursor += 4;
-  emitter->SetVelocityVariation(*reinterpret_cast<float *>(cursor));
+  emitter->SetVelocityVariation(*(float *)cursor);
   cursor += 4;
-  emitter->SetLatitude(*reinterpret_cast<float *>(cursor));
+  emitter->SetLatitude(*(float *)cursor);
   cursor += 4;
-  emitter->SetLongitude(*reinterpret_cast<float *>(cursor));
+  emitter->SetLongitude(*(float *)cursor);
   cursor += 4;
-  emitter->SetAcceleration(*reinterpret_cast<float *>(cursor));
+  emitter->SetAcceleration(*(float *)cursor);
   cursor += 4;
-  emitter->SetZsource(*reinterpret_cast<float *>(cursor));
+  emitter->SetZsource(*(float *)cursor);
   cursor += 4;
-  const float lifeSpan = *reinterpret_cast<float *>(cursor);
+  const float lifeSpan = *(float *)cursor;
   emitter->SetLifeSpan(lifeSpan);
   cursor += 4;
-  emitter->SetEmissionRate(*reinterpret_cast<float *>(cursor));
+  emitter->SetEmissionRate(*(float *)cursor);
   cursor += 4;
-  emitter->SetHeight(*reinterpret_cast<float *>(cursor));
+  emitter->SetHeight(*(float *)cursor);
   cursor += 4;
-  emitter->SetWidth(*reinterpret_cast<float *>(cursor));
+  emitter->SetWidth(*(float *)cursor);
   cursor += 4;
-  const UINT textureRows = *reinterpret_cast<UINT *>(cursor);
+  const UINT textureRows = *(UINT *)cursor;
   cursor += 4;
-  const UINT textureColumns = *reinterpret_cast<UINT *>(cursor);
+  const UINT textureColumns = *(UINT *)cursor;
   cursor += 4;
   emitter->SetTextureDimensions(textureRows, textureColumns);
 
@@ -516,12 +516,12 @@ static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTI
   cursor = SetParticleKeys(cursor, lifeSpan, emitter);
   cursor = CreateParticleMaterial(cursor, textures, emitterFlags, flags, status, emitter);
 
-  emitter->SetPriorityPlane(*reinterpret_cast<int *>(cursor));
+  emitter->SetPriorityPlane(*(int *)cursor);
   cursor += 4;
-  emitter->SetReplaceableId(*reinterpret_cast<UINT *>(cursor));
+  emitter->SetReplaceableId(*(UINT *)cursor);
   cursor += 4;
 
-  LPCSTR modelPath = reinterpret_cast<LPCSTR>(cursor);
+  LPCSTR modelPath = (LPCSTR)cursor;
   cursor += 260;
   if (SStrLen(modelPath)) {
     CModelCreate modelCreate;
@@ -531,7 +531,7 @@ static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTI
 
   cursor = CreateChildEmitter(cursor, flags, status, emitter);
 
-  const float *twinkle = reinterpret_cast<const float *>(cursor);
+  const float *twinkle = (const float *)cursor;
   emitter->SetTwinkleFPS(twinkle[0]);
   emitter->SetTwinkleOnOff(twinkle[1]);
   if (twinkle[1] == 0.0f) {
@@ -542,23 +542,23 @@ static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTI
   cursor += 5 * sizeof(float);
 
   cursor = SetParticleTumble(cursor, emitter);
-  emitter->SetDrag(*reinterpret_cast<float *>(cursor));
+  emitter->SetDrag(*(float *)cursor);
   cursor += 4;
-  emitter->SetAngularVelocity(*reinterpret_cast<float *>(cursor));
+  emitter->SetAngularVelocity(*(float *)cursor);
   cursor += 4;
   NTempest::C3Vector windVector;
   cursor = LoadC3Vector(cursor, &windVector);
-  emitter->SetWind(windVector, *reinterpret_cast<float *>(cursor));
+  emitter->SetWind(windVector, *(float *)cursor);
   cursor += 4;
 
-  const float *follow = reinterpret_cast<const float *>(cursor);
+  const float *follow = (const float *)cursor;
   emitter->SetFollowParams(follow[0], follow[1], follow[2], follow[3]);
   cursor += 4 * sizeof(float);
 
-  const UINT numSplinePoints = *reinterpret_cast<UINT *>(cursor);
+  const UINT numSplinePoints = *(UINT *)cursor;
   cursor += 4;
   if (numSplinePoints) {
-    static_cast<CSplineParticleEmitter *>(emitter)->SetSpline(reinterpret_cast<const NTempest::C3Vector *>(cursor), numSplinePoints);
+    ((CSplineParticleEmitter *)emitter)->SetSpline((const NTempest::C3Vector *)cursor, numSplinePoints);
   }
   return emitter;
 }
@@ -590,20 +590,20 @@ void MdxReadEmitters2(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *mod
 
   BYTE *texData = MDLFileBinarySeek(data, fileBytes, 'SXET');
   ASSERT(texData);
-  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+  UINT sectionBytes = *(UINT *)section;
   section += 4;
-  UINT numEmitters = *reinterpret_cast<UINT *>(section);
+  UINT numEmitters = *(UINT *)section;
   section += 4;
   sectionBytes -= 4;
   texData += 4;
-  MDLTEXTURESECTION *textures = reinterpret_cast<MDLTEXTURESECTION *>(texData);
+  MDLTEXTURESECTION *textures = (MDLTEXTURESECTION *)texData;
   BYTE *emitterData = section;
 
   modelptr->m_emitters2.SetCount(numEmitters);
   shared->emitter2Order.SetCount(numEmitters);
   for (UINT i = 0; i < numEmitters; ++i) {
-    UINT bytesThisEmitter = *reinterpret_cast<UINT *>(emitterData);
-    UINT objectId = *reinterpret_cast<UINT *>(emitterData + 0x58);
+    UINT bytesThisEmitter = *(UINT *)emitterData;
+    UINT objectId = *(UINT *)(emitterData + 0x58);
     shared->emitter2Order[i] = objectId;
     modelptr->m_emitters2[i] = CreateEmitter(emitterData + 4, textures, flags, status);
     emitterData += bytesThisEmitter;

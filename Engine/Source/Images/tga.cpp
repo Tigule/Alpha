@@ -39,14 +39,14 @@ BOOL CTgaFile::Open(LPCSTR filename) {
   if (m_header.bIDLength == 0) {
     m_addlHeaderData = 0;
   } else {
-    m_addlHeaderData = static_cast<BYTE *>(ALLOC(m_header.bIDLength));
+    m_addlHeaderData = (BYTE *)ALLOC(m_header.bIDLength);
     if (!SFile::Read(m_file, m_addlHeaderData, m_header.bIDLength, 0, 0, 0)) {
       return 0;
     }
   }
 
   if (m_header.bColorMapType) {
-    m_colorMap = static_cast<BYTE *>(ALLOC(ColorMapBytes()));
+    m_colorMap = (BYTE *)ALLOC(ColorMapBytes());
     if (!SFile::Read(m_file, m_colorMap, ColorMapBytes(), 0, 0, 0)) {
       return 0;
     }
@@ -78,7 +78,7 @@ void CTgaFile::ConvertColorMapped(UINT flags) {
   UINT  pixelCount = m_header.wWidth * m_header.wHeight;
   BYTE *oldImage = m_image;
 
-  m_image = static_cast<BYTE *>(ALLOC(pixelCount * (addAlpha + (newPixelDepth >> 3))));
+  m_image = (BYTE *)ALLOC(pixelCount * (addAlpha + (newPixelDepth >> 3)));
 
   BYTE *dstPix = m_image + addAlpha * pixelCount;
   BYTE *srcPix = oldImage;
@@ -92,7 +92,7 @@ void CTgaFile::ConvertColorMapped(UINT flags) {
   FREE(oldImage);
   FREE(m_colorMap);
 
-  m_header.bPixelDepth = static_cast<BYTE>(newPixelDepth);
+  m_header.bPixelDepth = newPixelDepth;
   m_colorMap = 0;
   m_header.wColorMapEntries = 0;
   m_header.bColorMapType = 0;
@@ -173,7 +173,8 @@ int CTgaFile::LoadImageData(UINT flags) {
 }
 
 DWORD CTgaFile::PreImageBytes() {
-  return sizeof(m_header) + m_header.bIDLength + ColorMapBytes();
+  DWORD bytes = sizeof(m_header) + m_header.bIDLength;
+  return bytes + ColorMapBytes();
 }
 
 void CTgaFile::AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE *alpha) {
@@ -203,14 +204,14 @@ void CTgaFile::AddAlphaChannel(BYTE *pAlphaData, BYTE *pNoAlphaData, const BYTE 
 BOOL CTgaFile::ReadRawImage(UINT flags) {
   int addAlpha = (flags & 1) && m_header.Desc.bAlphaChannelBits == 0;
 
-  if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == static_cast<DWORD>(-1)) {
+  if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == (DWORD)-1) {
     return 0;
   }
 
   UINT sourceBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
   ASSERT(m_image == 0);
 
-  m_image = static_cast<BYTE *>(ALLOC(sourceBytes + addAlpha * m_header.wWidth * m_header.wHeight));
+  m_image = (BYTE *)ALLOC(sourceBytes + addAlpha * m_header.wWidth * m_header.wHeight);
   if (!m_image) {
     return 0;
   }
@@ -231,22 +232,22 @@ BOOL CTgaFile::ReadRleImage(UINT flags) {
   UINT imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
   ASSERT(m_image == 0);
 
-  m_image = static_cast<BYTE *>(ALLOC(imageBytes + addAlpha * m_header.wWidth * m_header.wHeight));
+  m_image = (BYTE *)ALLOC(imageBytes + addAlpha * m_header.wWidth * m_header.wHeight);
   if (!m_image) {
     return 0;
   }
 
   imageBytes = SFile::GetFileSize(m_file, 0) - PreImageBytes();
-  if (imageBytes == static_cast<DWORD>(-1)) {
+  if (imageBytes == (DWORD)-1) {
     return 0;
   }
 
-  BYTE *rleData = static_cast<BYTE *>(ALLOC(imageBytes));
+  BYTE *rleData = (BYTE *)ALLOC(imageBytes);
   if (!rleData) {
     return 0;
   }
 
-  if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == static_cast<DWORD>(-1)) {
+  if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == (DWORD)-1) {
     return 0;
   }
 
@@ -320,12 +321,12 @@ BOOL CTgaFile::AddAlphaChannel(LPCVOID pImg) {
     RemoveAlphaChannels();
   }
 
-  BYTE *newImage = static_cast<BYTE *>(ALLOC((BytesPerPixel() + 1) * Height() * Width()));
+  BYTE *newImage = (BYTE *)ALLOC((BytesPerPixel() + 1) * Height() * Width());
   if (!newImage) {
     return 0;
   }
 
-  AddAlphaChannel(newImage, m_image, static_cast<const BYTE *>(pImg));
+  AddAlphaChannel(newImage, m_image, (const BYTE *)pImg);
   FREE(m_image);
   m_image = newImage;
   return 1;
@@ -341,9 +342,9 @@ BOOL CTgaFile::SetTopDown(int set) {
     return 0;
   }
 
-  BYTE *newImage = static_cast<BYTE *>(ALLOC(Bytes()));
+  BYTE *inverted = (BYTE *)ALLOC(Bytes());
   BYTE *source = m_image;
-  BYTE *dest = newImage + (Height() - 1) * Width() * BytesPerPixel();
+  BYTE *dest = inverted + (Height() - 1) * Width() * BytesPerPixel();
 
   for (UINT row = Height(); row; --row) {
     memcpy(dest, source, Width() * BytesPerPixel());
@@ -352,7 +353,7 @@ BOOL CTgaFile::SetTopDown(int set) {
   }
 
   FREE(m_image);
-  m_image = newImage;
+  m_image = inverted;
   m_header.Desc.bTopBottomOrder = set != 0;
   return 1;
 }
@@ -386,7 +387,7 @@ TGA32Pixel *CTgaFile::ImageTGA32Pixel() {
     return 0;
   }
 
-  return reinterpret_cast<TGA32Pixel *>(m_image);
+  return (TGA32Pixel *)m_image;
 }
 
 const TGA32Pixel *CTgaFile::ImageTGA32Pixel() const {
@@ -400,7 +401,7 @@ const TGA32Pixel *CTgaFile::ImageTGA32Pixel() const {
     return 0;
   }
 
-  return reinterpret_cast<const TGA32Pixel *>(m_image);
+  return (const TGA32Pixel *)m_image;
 }
 
 BOOL CTgaFile::RemoveAlphaChannels() {
@@ -422,18 +423,16 @@ BOOL CTgaFile::RemoveAlphaChannels() {
     return 0;
   }
 
-  UINT pixelCount = m_header.wWidth * m_header.wHeight;
+  UINT pixelCount = Size();
   m_header.bPixelDepth -= 8;
   m_header.Desc.bAlphaChannelBits = 0;
 
-  UINT  pixelBytes = (m_header.bPixelDepth + 7) / 8;
   BYTE *dst = m_image;
   BYTE *src = m_image;
-  UINT  pixel;
-  for (pixel = 0; pixel < pixelCount; ++pixel) {
-    memmove(dst, src, pixelBytes);
-    dst += pixelBytes;
-    src += pixelBytes + 1;
+  for (; pixelCount; --pixelCount) {
+    memmove(dst, src, BytesPerPixel());
+    dst += BytesPerPixel();
+    src += BytesPerPixel() + 1;
   }
 
   return 1;
@@ -465,8 +464,8 @@ BOOL CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth,
 
   memset(&m_header, 0, sizeof(m_header));
   m_header.bImageType = 2;
-  m_header.wWidth = static_cast<WORD>(width);
-  m_header.wHeight = static_cast<WORD>(height);
+  m_header.wWidth = width;
+  m_header.wHeight = height;
   m_header.bPixelDepth = bPixelDepth;
   m_header.Desc.bAlphaChannelBits = bAlphaBits;
   m_header.Desc.bLeftRightOrder = bRightToLeft != 0;
@@ -475,7 +474,7 @@ BOOL CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth,
 
   FREEIFUSED(m_image);
 
-  m_image = static_cast<BYTE *>(ALLOC(m_imageBytes));
+  m_image = (BYTE *)ALLOC(m_imageBytes);
   if (!m_image) {
     return 0;
   }
@@ -517,9 +516,9 @@ BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
   ASSERT(compressed != 0);
   ASSERT(*compressed != 0);
 
+  BYTE *pbCopyLen = 0;
   BYTE *pRawImage = *uncompressed;
   BYTE *pRLEData = *compressed;
-  BYTE *pbCopyLen = 0;
   int   nLineWid = m_header.wWidth;
 
   while (nLineWid) {
@@ -531,17 +530,17 @@ BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
         return 0;
       }
 
-      *pRLEData = static_cast<BYTE>((nRunLen - 1) | 0x80);
-      memcpy(pRLEData + 1, pRawImage, (m_header.bPixelDepth + 7) / 8);
-      pRLEData += (m_header.bPixelDepth + 7) / 8 + 1;
+      *pRLEData++ = (nRunLen - 1) | 0x80;
+      memcpy(pRLEData, pRawImage, (m_header.bPixelDepth + 7) / 8);
+      pRLEData += (m_header.bPixelDepth + 7) / 8;
       pRawImage += nRunLen * ((m_header.bPixelDepth + 7) / 8);
       nLineWid -= nRunLen;
       continue;
     }
 
     if (!pbCopyLen || *pbCopyLen == 127) {
-      *pRLEData = 0;
       pbCopyLen = pRLEData++;
+      *pbCopyLen = 0;
       ++m_imageBytes;
     } else {
       ++*pbCopyLen;
@@ -574,23 +573,23 @@ BOOL CTgaFile::Compress() {
     return 0;
   }
 
-  BYTE *rawImage = m_image;
-  BYTE *compressedImage = static_cast<BYTE *>(ALLOC(m_imageBytes));
+  BYTE *pRawImage = m_image;
+  BYTE *compressedImage = (BYTE *)ALLOC(m_imageBytes);
+  BYTE *pRLEData = compressedImage;
   if (!compressedImage) {
     return 0;
   }
 
-  BYTE *pRawImage = rawImage;
-  BYTE *pRLEData = compressedImage;
-  int   rows = m_header.wHeight;
+  int rows = m_header.wHeight;
   m_imageBytes = 0;
 
   while (rows--) {
-    if (!RleCompressLine(&pRawImage, &pRLEData)) {
-      FREE(compressedImage);
-      m_imageBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
-      return 1;
+    if (RleCompressLine(&pRawImage, &pRLEData)) {
+      continue;
     }
+    FREE(compressedImage);
+    m_imageBytes = BytesPerPixel() * m_header.wWidth * m_header.wHeight;
+    return 1;
   }
 
   m_header.bImageType += 8;
@@ -614,7 +613,7 @@ BOOL CTgaFile::Write(LPCSTR path) {
   }
 
   fileHandle = OsCreateFile(path, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-  if (fileHandle == reinterpret_cast<HOSFILE>(-1)) {
+  if (fileHandle == (HOSFILE)-1) {
     return 0;
   }
 

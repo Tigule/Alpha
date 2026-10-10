@@ -16,7 +16,7 @@ static LISTDECL(TLSData, s_tlsList);
 static pthread_key_t s_key;
 
 static TLSData *GetTlsData() {
-  TLSData *data = static_cast<TLSData *>(pthread_getspecific(s_key));
+  TLSData *data = (TLSData *)pthread_getspecific(s_key);
 
   if (!data) {
     s_critsect.Enter();

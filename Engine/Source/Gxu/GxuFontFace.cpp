@@ -46,7 +46,7 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
   faceData = s_faceHash.Ptr(fileName);
   if (faceData) {
     ASSERT(faceData->selfReference);
-    return static_cast<HFACE>(HandleDuplicate(faceData->selfReference));
+    return (HFACE)HandleDuplicate(faceData->selfReference);
   }
 
   if (!SFile::Load(0, fileName, &data, &size, 0, 3, 0)) {
@@ -57,7 +57,7 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
     goto finallylabel;
   }
 
-  if (FT_New_Memory_Face(library, static_cast<FT_Byte *>(data), size, 0, &theFace)) {
+  if (FT_New_Memory_Face(library, (FT_Byte *)data, size, 0, &theFace)) {
     goto finallylabel;
   }
 
@@ -80,7 +80,7 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
   data = 0;
   theFace = 0;
   faceData->selfReference = CREATEHANDLE(HFACE, faceData);
-  handle = static_cast<HFACE>(HandleDuplicate(faceData->selfReference));
+  handle = (HFACE)HandleDuplicate(faceData->selfReference);
 
 finallylabel:
   if (data) {
@@ -97,7 +97,7 @@ FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
   VALIDATE(handle);
   VALIDATEEND;
 
-  dataPtr = reinterpret_cast<FACEDATA *>(handle);
+  dataPtr = (FACEDATA *)handle;
   ASSERT(dataPtr->selfReference);
   return dataPtr->face;
 }
@@ -110,7 +110,7 @@ void FontFaceCloseHandle(HFACE__ *handle) {
   VALIDATE(handle);
   VALIDATEENDVOID;
 
-  dataPtr = reinterpret_cast<FACEDATA *>(handle);
+  dataPtr = (FACEDATA *)handle;
   HandleClose(handle);
 
   refCount = dataPtr->GetRefCount();
@@ -132,6 +132,6 @@ LPCSTR FontFaceGetFontName(HFACE__ *handle) {
   VALIDATE(handle);
   VALIDATEEND;
 
-  dataPtr = reinterpret_cast<FACEDATA *>(handle);
+  dataPtr = (FACEDATA *)handle;
   return dataPtr->GetString();
 }

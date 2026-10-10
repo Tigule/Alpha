@@ -21,7 +21,7 @@ class CGContainer {
   static UINT GetUpdateMaskBlocks();
 
   void  SetStorage(DWORD *storage) {
-    m_cont = reinterpret_cast<CGContainerData *>(storage);
+    m_cont = (CGContainerData *)storage;
   }
 
  protected:

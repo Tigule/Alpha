@@ -330,7 +330,7 @@ struct SFileDirectSoundBufferVtbl {
       DWORD               flags
   );
   HRESULT(STDMETHODCALLTYPE *Play)(IDirectSoundBuffer *buffer, DWORD reserved1, DWORD reserved2, DWORD flags);
-  LPVOID SetCurrentPosition;
+  HRESULT(STDMETHODCALLTYPE *SetCurrentPosition)(IDirectSoundBuffer *buffer, DWORD newPosition);
   LPVOID SetFormat;
   HRESULT(STDMETHODCALLTYPE *SetVolume)(IDirectSoundBuffer *buffer, LONG volume);
   HRESULT(STDMETHODCALLTYPE *SetPan)(IDirectSoundBuffer *buffer, LONG pan);
@@ -643,21 +643,21 @@ int Storm::SFile::ReleaseFilePtr(FILEREC *file) {
 }
 
 static UINT __cdecl DecompressLzw_BufferRead(char *buffer, UINT *size, LPVOID param) {
-  _DECOMPRESSIONINFO *info = static_cast<_DECOMPRESSIONINFO *>(param);
+  _DECOMPRESSIONINFO *info = (_DECOMPRESSIONINFO *)param;
   UINT                bytes = info->bytes - info->sourceoffset;
 
   if (*size < bytes) {
     bytes = *size;
   }
-  memcpy(buffer, static_cast<BYTE *>(info->sourcebuffer) + info->sourceoffset, bytes);
+  memcpy(buffer, (BYTE *)info->sourcebuffer + info->sourceoffset, bytes);
   info->sourceoffset += bytes;
   return bytes;
 }
 
 static void __cdecl DecompressLzw_BufferWrite(char *buffer, UINT *size, LPVOID param) {
-  _DECOMPRESSIONINFO *info = static_cast<_DECOMPRESSIONINFO *>(param);
+  _DECOMPRESSIONINFO *info = (_DECOMPRESSIONINFO *)param;
 
-  memcpy(static_cast<BYTE *>(info->destbuffer) + info->destoffset, buffer, *size);
+  memcpy((BYTE *)info->destbuffer + info->destoffset, buffer, *size);
   info->destoffset += *size;
 }
 
@@ -687,7 +687,7 @@ static DWORD Hash(LPCSTR filename, int hashtype) {
   hash = 0x7FED7FED;
   seed = 0xEEEEEEEE;
   while (filename && *filename) {
-    int ch = (BYTE)toupper((signed char)*filename++);
+    int ch = (BYTE)toupper(*filename++);
     if (ch == '/') {
       ch = '\\';
     }
@@ -775,11 +775,11 @@ static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buff
   DWORD bytesread = bytes;
   if (diskbytesread < diskbytes) {
     if (file->block.flags & MPQ_COMPRESSEDMASK) {
+      DWORD sector = location / file->archive->sectorsize;
+
       bytesread = 0;
-      for (DWORD sector = location / file->archive->sectorsize + 1; sector <= file->sectors; ++sector) {
-        if (diskbytesread < file->sectoroffsettable[sector] - disklocation) {
-          break;
-        }
+      while (sector + 1 <= file->sectors && diskbytesread >= file->sectoroffsettable[sector + 1] - disklocation) {
+        ++sector;
         bytesread += file->archive->sectorsize;
       }
     } else {
@@ -791,19 +791,18 @@ static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buff
     DWORD offset = 0;
     DWORD sector = location / file->archive->sectorsize;
     DWORD sectors = (bytesread + file->archive->sectorsize - 1) / file->archive->sectorsize;
-    for (; sector < file->sectors && sectors--; ++sector) {
+    while (sector < file->sectors && sectors--) {
       DWORD sourcebytes;
       if (file->block.flags & MPQ_COMPRESSEDMASK) {
         sourcebytes = file->sectoroffsettable[sector + 1] - file->sectoroffsettable[sector];
       } else {
-        sourcebytes = min(bytesread - offset, file->archive->sectorsize);
-        if (sector == file->sectors - 1) {
-          if ((file->block.sizefile & (file->archive->sectorsize - 1)) && sourcebytes >= (file->block.sizefile & (file->archive->sectorsize - 1))) {
-            sourcebytes = file->block.sizefile & (file->archive->sectorsize - 1);
-          }
+        sourcebytes = min(file->archive->sectorsize, bytesread - offset);
+        if (sector == file->sectors - 1 && (file->block.sizefile & (file->archive->sectorsize - 1))) {
+          sourcebytes = min(sourcebytes, file->block.sizefile & (file->archive->sectorsize - 1));
         }
       }
       Decrypt((DWORD *)((BYTE *)diskbuffer + offset), sourcebytes & ~3, file->key + sector);
+      ++sector;
       offset += sourcebytes;
     }
   }
@@ -813,7 +812,7 @@ static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buff
     DWORD sector = location / file->archive->sectorsize;
     DWORD sourceoffset = 0;
     DWORD sectors = (bytesread + file->archive->sectorsize - 1) / file->archive->sectorsize;
-    for (; sector < file->sectors && sectors--; ++sector) {
+    while (sector < file->sectors && sectors--) {
       DWORD sourcebytes = file->sectoroffsettable[sector + 1] - file->sectoroffsettable[sector];
       DWORD targetbytes = (sector == file->sectors - 1 && (!file->block.sizefile || (file->block.sizefile & (file->archive->sectorsize - 1))))
                               ? file->block.sizefile & (file->archive->sectorsize - 1)
@@ -830,7 +829,7 @@ static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buff
               file->crcstate = 1;
             }
             if (!SCompDecompress2((BYTE *)buffer + destoffset, &destsize, (BYTE *)diskbuffer + sourceoffset, sourcebytes, file->archive->archivename)) {
-              SErrDisplayError(0x85100083, file->archive->archivename, -4, NULL, FALSE, 1);
+              SErrDisplayError(0x85100083, file->archive->archivename, SERR_LINECODE_FILE, NULL, FALSE, 1);
             }
             break;
           }
@@ -841,6 +840,7 @@ static DWORD InternalReadAligned(SFileRecData *file, DWORD location, LPVOID buff
 
       destoffset += targetbytes;
       sourceoffset += sourcebytes;
+      ++sector;
     }
   }
 
@@ -987,7 +987,7 @@ static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, 
         }
         break;
       case SFILE_ERRORMODE_FATAL:
-        SErrDisplayError(error, filename, -4, NULL, FALSE, 1);
+        SErrDisplayError(error, filename, SERR_LINECODE_FILE, NULL, FALSE, 1);
         break;
     }
   }
@@ -1005,7 +1005,7 @@ static BOOL ReadFileWin32(SFileRecData *fileptr, DWORD offset, LPVOID buffer, DW
 
   localbytesread = 0;
   newlocation = bytestoread;
-  ReadFileChecked(offset, &newlocation, (HANDLE)fileptr->handle, buffer, bytestoread, &localbytesread, fileptr->name);
+  ReadFileChecked(offset, &newlocation, fileptr->handle, buffer, bytestoread, &localbytesread, fileptr->name);
   if (bytesread) {
     *bytesread = localbytesread;
   }
@@ -1087,53 +1087,50 @@ static int ReadAdditionalAttributes(HSARCHIVE archive, SFileBlockEntryData *pBlo
   DWORD  expectedSize;
   DWORD  i;
 
-  if (!SFileOpenFileEx(archive, "(attributes)", 0, &hfile)) {
-    return ret;
-  }
-  dwSize = SFileGetFileSize(hfile, NULL);
-  pBuf = (BYTE *)ALLOC(dwSize);
-  cursor = pBuf;
-  expectedSize = 8;
-  if (SFileReadFile(hfile, pBuf, dwSize, NULL, NULL) && dwSize >= expectedSize) {
-    flags = *(DWORD *)(cursor + 4);
-    cursor += expectedSize;
-    if (flags & 1) {
-      expectedSize += dwBlockTblEntries * 4;
-    }
-    if (flags & 2) {
-      expectedSize += dwBlockTblEntries * 8;
-    }
-    if (flags & 4) {
-      expectedSize += dwBlockTblEntries * 16;
-    }
-
-    if (dwSize == expectedSize) {
-      if (flags & 1) {
-        for (i = 0; i < dwBlockTblEntries; ++i) {
-          pBlockTbl[i].crc = *(DWORD *)cursor;
-          cursor += 4;
+  if (SFileOpenFileEx(archive, "(attributes)", 0, &hfile)) {
+    dwSize = SFileGetFileSize(hfile, NULL);
+    pBuf = (BYTE *)ALLOC(dwSize);
+    cursor = pBuf;
+    if (SFileReadFile(hfile, pBuf, dwSize, NULL, NULL)) {
+      expectedSize = 2 * sizeof(DWORD);
+      if (dwSize >= expectedSize) {
+        flags = *(DWORD *)(cursor + sizeof(DWORD));
+        cursor += expectedSize;
+        if (flags & 1) {
+          expectedSize += dwBlockTblEntries * sizeof(DWORD);
+        }
+        if (flags & 2) {
+          expectedSize += dwBlockTblEntries * sizeof(FILETIME);
+        }
+        if (flags & 4) {
+          expectedSize += dwBlockTblEntries * sizeof(MD5);
+        }
+        if (dwSize == expectedSize) {
+          if (flags & 1) {
+            for (i = 0; i < dwBlockTblEntries; ++i, cursor += sizeof(DWORD)) {
+              pBlockTbl[i].crc = *(DWORD *)cursor;
+            }
+          }
+          if (flags & 2) {
+            for (i = 0; i < dwBlockTblEntries; ++i, cursor += sizeof(FILETIME)) {
+              pBlockTbl[i].time = *(FILETIME *)cursor;
+            }
+          }
+          if (flags & 4) {
+            for (i = 0; i < dwBlockTblEntries; ++i, cursor += sizeof(MD5)) {
+              pBlockTbl[i].md5 = *(MD5 *)cursor;
+            }
+          }
+          ret = TRUE;
         }
       }
-      if (flags & 2) {
-        for (i = 0; i < dwBlockTblEntries; ++i) {
-          pBlockTbl[i].time = *(FILETIME *)cursor;
-          cursor += 8;
-        }
-      }
-      if (flags & 4) {
-        for (i = 0; i < dwBlockTblEntries; ++i) {
-          pBlockTbl[i].md5 = *(MD5 *)cursor;
-          cursor += 16;
-        }
-      }
-      ret = TRUE;
     }
-  }
-  if (pBuf) {
-    FREE(pBuf);
+    if (pBuf) {
+      FREE(pBuf);
+    }
+    SFileCloseFile(hfile);
   }
 
-  SFileCloseFile(hfile);
   return ret;
 }
 
@@ -1457,7 +1454,7 @@ static void CheckRequests(
         *nextreq = request;
       }
 
-      timeout = (LONG)(request->requiredcompletiontime - currtime);
+      timeout = request->requiredcompletiontime - currtime;
       if (request->urgent && timeout >= 1000) {
         timeout = 1000;
       }
@@ -1478,7 +1475,7 @@ static DWORD WINAPI CdThreadProc(LPVOID) {
   DWORD                lastReadTime = GetTickCount();
   int                  audio_header = 0;
 
-  SErrRegisterThread((HANDLE)Storm::SFile::s_cdthread, Storm::SFile::s_cdthreadid);
+  SErrRegisterThread(Storm::SFile::s_cdthread, Storm::SFile::s_cdthreadid);
 
   while (!Storm::SFile::s_cdshutdown) {
     DWORD s_asyncBudget;
@@ -1497,7 +1494,7 @@ static DWORD WINAPI CdThreadProc(LPVOID) {
     audio_header = 0;
     Storm::SFile::s_cdlock.Enter();
     ITERATELIST(SFileEventRecData, Storm::SFile::s_signalList, curr) {
-      SetEvent((HANDLE)curr->event);
+      SetEvent(curr->event);
       ITERATE_DELETE;
     }
     Storm::SFile::s_cdlock.Leave();
@@ -1523,7 +1520,7 @@ static DWORD WINAPI CdThreadProc(LPVOID) {
         sleeptime = 250;
       }
       ASSERT(sleeptime <= 5000);
-      WaitForSingleObject((HANDLE)Storm::SFile::s_cdevent, sleeptime);
+      WaitForSingleObject(Storm::SFile::s_cdevent, sleeptime);
       continue;
     }
 
@@ -1576,7 +1573,7 @@ static DWORD WINAPI CdThreadProc(LPVOID) {
       if (Storm::SFile::s_cdrequest->file->crcavail && Storm::SFile::s_cdrequest->file->crcstate == 4 &&
           Storm::SFile::s_cdrequest->file->crc != Storm::SFile::s_cdrequest->file->block.crc)
       {
-        SErrDisplayError(0x85100083, Storm::SFile::s_cdrequest->file->name, -4, NULL, FALSE, 1);
+        SErrDisplayError(0x85100083, Storm::SFile::s_cdrequest->file->name, SERR_LINECODE_FILE, NULL, FALSE, 1);
       }
       _TASYNCPARAMBLOCK   *asyncparam = Storm::SFile::s_cdrequest->asyncparam;
       DWORD                bytes = Storm::SFile::s_cdrequest->bytesread + (DWORD)Storm::SFile::s_cdrequest->buffer - (DWORD)Storm::SFile::s_cdrequest->bufferbegin;
@@ -1598,11 +1595,11 @@ static DWORD WINAPI CdThreadProc(LPVOID) {
     Storm::SFile::s_cdrequest = NULL;
     Storm::SFile::s_cdlock.Leave();
     if (event) {
-      SetEvent((HANDLE)event);
+      SetEvent(event);
     }
   }
 
-  SErrUnregisterThread((HANDLE)Storm::SFile::s_cdthread, Storm::SFile::s_cdthreadid);
+  SErrUnregisterThread(Storm::SFile::s_cdthread, Storm::SFile::s_cdthreadid);
   Storm::SFile::s_cdshutdown = FALSE;
   return 0;
 }
@@ -1625,14 +1622,14 @@ static void CreateCdThread() {
 static void DestroyCdThread() {
   if (Storm::SFile::s_cdthread) {
     Storm::SFile::s_cdshutdown = 1;
-    SetEvent((HANDLE)Storm::SFile::s_cdevent);
-    WaitForSingleObject((HANDLE)Storm::SFile::s_cdthread, 1000);
+    SetEvent(Storm::SFile::s_cdevent);
+    WaitForSingleObject(Storm::SFile::s_cdthread, 1000);
     if (Storm::SFile::s_cdthread) {
-      CloseHandle((HANDLE)Storm::SFile::s_cdthread);
+      CloseHandle(Storm::SFile::s_cdthread);
       Storm::SFile::s_cdthread = NULL;
     }
     if (Storm::SFile::s_cdevent) {
-      CloseHandle((HANDLE)Storm::SFile::s_cdevent);
+      CloseHandle(Storm::SFile::s_cdevent);
       Storm::SFile::s_cdevent = NULL;
     }
   }
@@ -1745,7 +1742,7 @@ static SFileRequestData *IssueRequest(
   Storm::SFile::s_cdlock.Leave();
 
   if (triggerreadthread && Storm::SFile::s_cdevent) {
-    SetEvent((HANDLE)Storm::SFile::s_cdevent);
+    SetEvent(Storm::SFile::s_cdevent);
   }
 
   return request;
@@ -1861,7 +1858,7 @@ GetFileBlockEntry(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, SFileAr
             blockentry = GetBlockEntry(searchArchive, index);
             if (!(blockentry->flags & MPQ_ALLOCATED) || ((flags & 4) && (blockentry->flags & 0x1FF00))) {
               exists = 0;
-              SErrSetLastError(0x3EE);
+              SErrSetLastError(ERROR_FILE_INVALID);
             } else {
               if (archive) {
                 Storm::SFile::AddArchiveRef(searchArchive);
@@ -1907,8 +1904,8 @@ static int CheckForCdRom(LPCSTR path) {
 
   SStrCopy(rootpath, path, sizeof(rootpath));
   driveType = GetDriveTypeA(rootpath);
-  memset(fsname, 0, sizeof(fsname));
   fsflags = 0;
+  memset(fsname, 0, sizeof(fsname));
   if (!GetVolumeInformationA(rootpath, NULL, 0, NULL, NULL, &fsflags, fsname, sizeof(fsname))) {
     return FALSE;
   }
@@ -1922,7 +1919,7 @@ static int CheckForCdRom(LPCSTR path) {
   }
 
   value = (fsflags & 4) ^ *(DWORD *)fsname ^ freeclusters ^ bytespersector ^ driveType;
-  WORD check = (WORD)(value >> 16) ^ (WORD)value;
+  WORD check = (value >> 16) ^ value;
   return check == 0x1F00 || check == 0x0805;
 }
 
@@ -1985,7 +1982,7 @@ static int FindChunk(HSFILE handle, DWORD ckid, CKINFO *pck) {
       pck->offset = SFileSetFilePointer(handle, 0, NULL, FILE_CURRENT);
       return pck->offset != 0xFFFFFFFF;
     }
-    if (SFileSetFilePointer(handle, (LONG)ckhdr[1], NULL, FILE_CURRENT) == 0xFFFFFFFF) {
+    if (SFileSetFilePointer(handle, ckhdr[1], NULL, FILE_CURRENT) == 0xFFFFFFFF) {
       return FALSE;
     }
   }
@@ -2004,172 +2001,173 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchive(HSARCHIVE handle, DWORD *exten
 
   SFileBlockEntryData *block;
   SFileCryptoApi      *crypto;
-  HMODULE              library;
-  HANDLE               mapping;
+  HMODULE              lib;
+  HANDLE               map;
   LPVOID               view;
-  HRSRC                resource;
-  HGLOBAL              resourceHandle;
-  LPVOID               resourceData;
   DWORD                provider;
   DWORD                key;
   DWORD                hash;
-  DWORD                companyId;
+  DWORD                companyid;
   DWORD                signatureIndex;
   DWORD                signatureEnd;
-  BYTE                *zeros;
-  BOOL                 hashResult;
   BOOL                 result;
 
   if (extendedresult) {
     *extendedresult = SFILE_AUTH_UNABLETOAUTHENTICATE;
   }
 
-  Storm::SFile::ArchivePtr ptr(handle);
-  if (!ptr) {
+  Storm::SFile::ArchivePtr archiveptr(handle);
+  if (!archiveptr) {
     return FALSE;
   }
 
   result = FALSE;
-  signatureIndex = SearchHashTable(ptr, SIGNATUREFILE, 0, 0);
+  signatureIndex = SearchHashTable(archiveptr, SIGNATUREFILE, 0, 0);
   if (signatureIndex == NOBLOCK) {
     if (extendedresult) {
       *extendedresult = SFILE_AUTH_NOSIGNATURE;
     }
-    SErrSetLastError(0x4DC);
+    SErrSetLastError(ERROR_NOT_AUTHENTICATED);
     return FALSE;
   }
 
   crypto = NULL;
-  mapping = NULL;
-  view = NULL;
-  provider = 0;
-  key = 0;
   hash = 0;
+  key = 0;
+  map = NULL;
+  provider = 0;
+  view = NULL;
 
-  library = LoadLibraryA("advapi32.dll");
-  if (!library) {
-    goto cleanup;
+  lib = LoadLibraryA("advapi32.dll");
+  if (!lib) {
+    goto finallylabel;
   }
 
   crypto = (SFileCryptoApi *)ALLOC(sizeof(SFileCryptoApi));
 
-  crypto->acquireContext = (SFileCryptAcquireContextAProc)GetProcAddress(library, "CryptAcquireContextA");
+  crypto->acquireContext = (SFileCryptAcquireContextAProc)GetProcAddress(lib, "CryptAcquireContextA");
   if (!crypto->acquireContext) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->createHash = (SFileCryptCreateHashProc)GetProcAddress(library, "CryptCreateHash");
+  crypto->createHash = (SFileCryptCreateHashProc)GetProcAddress(lib, "CryptCreateHash");
   if (!crypto->createHash) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->destroyHash = (SFileCryptDestroyHashProc)GetProcAddress(library, "CryptDestroyHash");
+  crypto->destroyHash = (SFileCryptDestroyHashProc)GetProcAddress(lib, "CryptDestroyHash");
   if (!crypto->destroyHash) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->destroyKey = (SFileCryptDestroyKeyProc)GetProcAddress(library, "CryptDestroyKey");
+  crypto->destroyKey = (SFileCryptDestroyKeyProc)GetProcAddress(lib, "CryptDestroyKey");
   if (!crypto->destroyKey) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->hashData = (SFileCryptHashDataProc)GetProcAddress(library, "CryptHashData");
+  crypto->hashData = (SFileCryptHashDataProc)GetProcAddress(lib, "CryptHashData");
   if (!crypto->hashData) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->importKey = (SFileCryptImportKeyProc)GetProcAddress(library, "CryptImportKey");
+  crypto->importKey = (SFileCryptImportKeyProc)GetProcAddress(lib, "CryptImportKey");
   if (!crypto->importKey) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->releaseContext = (SFileCryptReleaseContextProc)GetProcAddress(library, "CryptReleaseContext");
+  crypto->releaseContext = (SFileCryptReleaseContextProc)GetProcAddress(lib, "CryptReleaseContext");
   if (!crypto->releaseContext) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->signHash = (SFileCryptSignHashAProc)GetProcAddress(library, "CryptSignHashA");
+  crypto->signHash = (SFileCryptSignHashAProc)GetProcAddress(lib, "CryptSignHashA");
   if (!crypto->signHash) {
-    goto cleanup;
+    goto finallylabel;
   }
-  crypto->verifySignature = (SFileCryptVerifySignatureAProc)GetProcAddress(library, "CryptVerifySignatureA");
+  crypto->verifySignature = (SFileCryptVerifySignatureAProc)GetProcAddress(lib, "CryptVerifySignatureA");
   if (!crypto->verifySignature) {
-    goto cleanup;
+    goto finallylabel;
   }
 
   if (!crypto->acquireContext(&provider, KEYCONTAINER, "Microsoft Base Cryptographic Provider v1.0", 1, 0) &&
       !crypto->acquireContext(&provider, KEYCONTAINER, "Microsoft Base Cryptographic Provider v1.0", 1, 8))
   {
-    goto cleanup;
+    goto finallylabel;
   }
 
-  mapping = CreateFileMappingA((HANDLE)ptr->handle, NULL, 0x08000002, 0, 0, NULL);
-  if (!mapping) {
-    goto cleanup;
+  map = CreateFileMappingA(archiveptr->handle, NULL, 0x08000002, 0, 0, NULL);
+  if (!map) {
+    goto finallylabel;
   }
-  view = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+  view = MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0);
   if (!view) {
-    goto cleanup;
+    goto finallylabel;
   }
 
-  signatureIndex = SearchHashTable(ptr, SIGNATUREFILE, 0, 0);
+  signatureIndex = SearchHashTable(archiveptr, SIGNATUREFILE, 0, 0);
   if (signatureIndex == NOBLOCK) {
-    goto cleanup;
+    goto finallylabel;
   }
-  block = GetBlockEntry(ptr, signatureIndex);
+  block = GetBlockEntry(archiveptr, signatureIndex);
   if ((block->flags & 0x1FF00) || block->sizefile <= 8 || !block->offset) {
-    goto badsignature;
+    if (extendedresult) {
+      *extendedresult = SFILE_AUTH_BADSIGNATURE;
+    }
+    goto finallylabel;
   }
 
-  companyId = *(DWORD *)((BYTE *)view + block->offset);
-  if (companyId >= sizeof(s_authcompany) / sizeof(s_authcompany[0])) {
+  companyid = *(DWORD *)((BYTE *)view + block->offset);
+  if (companyid >= sizeof(s_authcompany) / sizeof(s_authcompany[0])) {
     if (extendedresult) {
       *extendedresult = SFILE_AUTH_UNKNOWNSIGNATURE;
     }
-    goto cleanup;
+    goto finallylabel;
   }
 
-  resource = FindResourceA(StormGetInstance(), s_authcompany[companyId].keyname, "#256");
-  resourceHandle = LoadResource(StormGetInstance(), resource);
-  resourceData = LockResource(resourceHandle);
-  if (resourceData) {
-    crypto->importKey(provider, (const BYTE *)resourceData, SizeofResource(StormGetInstance(), resource), 0, 0, &key);
+  {
+    HRSRC   resource = FindResourceA(StormGetInstance(), s_authcompany[companyid].keyname, "#256");
+    HGLOBAL handle = LoadResource(StormGetInstance(), resource);
+    LPVOID  ptr = LockResource(handle);
+    if (ptr) {
+      crypto->importKey(provider, (const BYTE *)ptr, SizeofResource(StormGetInstance(), resource), 0, 0, &key);
+    }
+    FreeResource(handle);
   }
-  FreeResource(resourceHandle);
   if (!key) {
-    goto cleanup;
+    goto finallylabel;
   }
 
   if (!crypto->createHash(provider, 0x8003, 0, 0, &hash)) {
-    goto cleanup;
+    goto finallylabel;
   }
-  if (!crypto->hashData(hash, (const BYTE *)view + ptr->startinglocation, block->offset - ptr->startinglocation, 0)) {
-    goto cleanup;
+  if (!crypto->hashData(hash, (const BYTE *)view + archiveptr->startinglocation, block->offset - archiveptr->startinglocation, 0)) {
+    goto finallylabel;
   }
 
-  zeros = (BYTE *)ALLOCZERO(block->sizefile);
-  hashResult = crypto->hashData(hash, zeros, block->sizefile, 0);
-  FREE(zeros);
-  if (!hashResult) {
-    goto cleanup;
+  {
+    BYTE *zeros = (BYTE *)ALLOCZERO(block->sizefile);
+    BOOL  hashresult = crypto->hashData(hash, zeros, block->sizefile, 0);
+    FREE(zeros);
+    if (!hashresult) {
+      goto finallylabel;
+    }
   }
 
   signatureEnd = block->offset + block->sizefile;
-  if (signatureEnd < ptr->startinglocation + ptr->header.archivesize &&
-      !crypto->hashData(hash, (const BYTE *)view + signatureEnd, ptr->startinglocation + ptr->header.archivesize - signatureEnd, 0))
-  {
-    goto cleanup;
+  if (signatureEnd < archiveptr->startinglocation + archiveptr->header.archivesize) {
+    if (!crypto->hashData(
+            hash, (const BYTE *)view + signatureEnd, archiveptr->startinglocation + archiveptr->header.archivesize - block->offset - block->sizefile, 0
+        ))
+    {
+      goto finallylabel;
+    }
   }
 
-  if (!crypto->verifySignature(hash, (const BYTE *)view + block->offset + 8, block->sizefile - 8, key, NULL, 0)) {
-    goto badsignature;
+  if (crypto->verifySignature(hash, (const BYTE *)view + block->offset + 8, block->sizefile - 8, key, NULL, 0)) {
+    result = TRUE;
+    if (extendedresult) {
+      *extendedresult = s_authcompany[companyid].authresult;
+    }
+  } else {
+    if (extendedresult) {
+      *extendedresult = SFILE_AUTH_BADSIGNATURE;
+    }
   }
 
-  result = TRUE;
-  if (extendedresult) {
-    *extendedresult = s_authcompany[companyId].authresult;
-  }
-  goto cleanup;
-
-badsignature:
-  if (extendedresult) {
-    *extendedresult = SFILE_AUTH_BADSIGNATURE;
-  }
-
-cleanup:
+finallylabel:
   if (hash) {
     crypto->destroyHash(hash);
   }
@@ -2179,8 +2177,8 @@ cleanup:
   if (view) {
     UnmapViewOfFile(view);
   }
-  if (mapping) {
-    CloseHandle(mapping);
+  if (map) {
+    CloseHandle(map);
   }
   if (provider) {
     crypto->releaseContext(provider, 0);
@@ -2189,11 +2187,11 @@ cleanup:
   if (crypto) {
     FREE(crypto);
   }
-  if (library) {
-    FreeLibrary(library);
+  if (lib) {
+    FreeLibrary(lib);
   }
   if (!result) {
-    SErrSetLastError(0x4DC);
+    SErrSetLastError(ERROR_NOT_AUTHENTICATED);
   }
   return result;
 }
@@ -2234,11 +2232,11 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
   ASSERT(token);
 
   buffer = (BYTE *)ALLOC(0x10000);
-  originalreadcursor = SetFilePointer((HANDLE)archiveptr->handle, 0, NULL, FILE_CURRENT);
+  originalreadcursor = SetFilePointer(archiveptr->handle, 0, NULL, FILE_CURRENT);
   if (originalreadcursor == 0xFFFFFFFF) {
     goto cleanup;
   }
-  if (SetFilePointer((HANDLE)archiveptr->handle, archiveptr->startinglocation, NULL, FILE_BEGIN) == 0xFFFFFFFF) {
+  if (SetFilePointer(archiveptr->handle, archiveptr->startinglocation, NULL, FILE_BEGIN) == 0xFFFFFFFF) {
     goto cleanup;
   }
 
@@ -2249,7 +2247,7 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
 
     remaining -= chunk;
     actualreadbytes = 0;
-    if (!ReadFile((HANDLE)archiveptr->handle, buffer, chunk, &actualreadbytes, NULL)) {
+    if (!ReadFile(archiveptr->handle, buffer, chunk, &actualreadbytes, NULL)) {
       goto cleanup;
     }
     if (actualreadbytes != chunk) {
@@ -2257,7 +2255,7 @@ extern "C" BOOL APIENTRY SFileAuthenticateArchiveEx(
     }
     SSignatureVerifyStream_ProvideData(token, buffer, chunk);
   }
-  SetFilePointer((HANDLE)archiveptr->handle, originalreadcursor, NULL, FILE_BEGIN);
+  SetFilePointer(archiveptr->handle, originalreadcursor, NULL, FILE_BEGIN);
 
 cleanup:
   FREE(buffer);
@@ -2338,14 +2336,14 @@ extern "C" BOOL APIENTRY SFileCloseArchive(HSARCHIVE handle) {
 
   if (Storm::SFile::IsSubArchive(handle)) {
     {
-      Storm::SFile::FilePtr fileptr((HSFILE)archive->ownerarchivefile);
+      Storm::SFile::FilePtr fileptr(archive->ownerarchivefile);
       if (!fileptr) {
         SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "\"SFileCloseArchive-child archive file is closed!\"", FALSE, 1);
       }
     }
-    SFileCloseFile((HSFILE)archive->ownerarchivefile);
+    SFileCloseFile(archive->ownerarchivefile);
   } else if (Storm::SFile::IsReopenedArchive(handle)) {
-    Storm::SFile::ArchivePtr parent((HSARCHIVE)archive->parentArchive);
+    Storm::SFile::ArchivePtr parent(archive->parentArchive);
     if (parent) {
       Storm::SFile::s_archivelock.Enter();
       Storm::SFile::RemoveArchiveRef(parent);
@@ -2384,18 +2382,16 @@ extern "C" BOOL APIENTRY
 SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG volume, LONG pan, IDirectSoundBuffer *soundbuffer) {
   _MMCKINFO             mmck;
   tWAVEFORMATEX         format;
-  _DSBUFFERDESC         desc;
   CKINFO                info;
   SFileAudioStreamData *stream;
   int                   soundbufferlocal;
-  DWORD                 remainder;
 
   VALIDATEBEGIN;
   VALIDATE(buffersize);
   VALIDATEEND;
 
   if (!Storm::SFile::s_directsound) {
-    SErrSetLastError(0x85100071);
+    SErrSetLastError(STORM_ERROR_NOT_INITIALIZED);
     return FALSE;
   }
 
@@ -2413,7 +2409,7 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
     Storm::SFile::UseGlob glob;
 
     if (!((glob->s_directaccess | flags) & 1) && (fileptr->handle != INVALID_HANDLE_VALUE || !fileptr->archive)) {
-      SErrSetLastError(0x8510006F);
+      SErrSetLastError(STORM_ERROR_NOT_IN_ARCHIVE);
       return FALSE;
     }
 
@@ -2423,18 +2419,15 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
     glob->WAVECHUNKSIZE = g_opt.wavechunksize;
 
     if (!Storm::SFile::s_soundreadbuffer) {
-      Storm::SFile::s_soundreadbuffer = (BYTE *)ALLOC(glob->WAVECHUNKSIZE);
+      Storm::SFile::s_soundreadbuffer = ALLOC(glob->WAVECHUNKSIZE);
     }
 
-    if (fileptr->archive) {
-      if (fileptr->archive->cdrom == 0 || fileptr->archive->cdrom == 1) {
-        fileptr->archive->cdrom = 2;
-      }
+    if (fileptr->archive && (fileptr->archive->cdrom == 0 || fileptr->archive->cdrom == 1)) {
+      fileptr->archive->cdrom = 2;
     }
 
-    remainder = buffersize & (glob->WAVECHUNKSIZE - 1);
-    if (remainder) {
-      buffersize += glob->WAVECHUNKSIZE - remainder;
+    if (buffersize & (glob->WAVECHUNKSIZE - 1)) {
+      buffersize += glob->WAVECHUNKSIZE - (buffersize & (glob->WAVECHUNKSIZE - 1));
     }
     if (buffersize < glob->WAVECHUNKSIZE * 2) {
       buffersize = glob->WAVECHUNKSIZE * 2;
@@ -2444,44 +2437,62 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
 
   SFileSetFilePointer(handle, 0, NULL, FILE_BEGIN);
   if (!SFileReadFileEx2(handle, &mmck, 12, NULL, NULL, 0, NULL)) {
-    goto invalidData;
+    SErrSetLastError(ERROR_INVALID_DATA);
+    return FALSE;
   }
   if (mmck.ckid != 'FFIR' || mmck.fccType != 'EVAW') {
-    goto invalidData;
+    SErrSetLastError(ERROR_INVALID_DATA);
+    return FALSE;
   }
 
-  memset(&info, 0, sizeof(info));
+  info.size = 0;
+  info.offset = 0;
   if (!FindChunk(handle, ' tmf', &info)) {
-    goto invalidData;
+    SErrSetLastError(ERROR_INVALID_DATA);
+    return FALSE;
+  }
+  if (info.size < sizeof(pcmwaveformat_tag)) {
+    SErrSetLastError(ERROR_INVALID_DATA);
+    return FALSE;
   }
   {
     pcmwaveformat_tag pcm;
 
-    if (info.size < sizeof(pcm)) {
-      goto invalidData;
-    }
     if (!SFileReadFileEx2(handle, &pcm, sizeof(pcm), NULL, NULL, 0, NULL)) {
-      goto invalidData;
+      SErrSetLastError(ERROR_INVALID_DATA);
+      return FALSE;
     }
-    if (SFileSetFilePointer(handle, (LONG)(info.size - sizeof(pcm)), NULL, FILE_CURRENT) == 0xFFFFFFFF) {
-      goto invalidData;
+    if (SFileSetFilePointer(handle, info.size - sizeof(pcm), NULL, FILE_CURRENT) == 0xFFFFFFFF) {
+      SErrSetLastError(ERROR_INVALID_DATA);
+      return FALSE;
     }
-    memcpy(&format, &pcm, sizeof(pcm));
+    format.wFormatTag = pcm.wf.wFormatTag;
+    format.nChannels = pcm.wf.nChannels;
+    format.nSamplesPerSec = pcm.wf.nSamplesPerSec;
+    format.nAvgBytesPerSec = pcm.wf.nAvgBytesPerSec;
+    format.nBlockAlign = pcm.wf.nBlockAlign;
+    format.wBitsPerSample = pcm.wBitsPerSample;
     format.cbSize = 0;
   }
   if (!FindChunk(handle, 'atad', &info)) {
-    goto invalidData;
+    SErrSetLastError(ERROR_INVALID_DATA);
+    return FALSE;
   }
 
   if (offset) {
     offset %= info.size;
   }
 
-  soundbufferlocal = soundbuffer ? 0 : 1;
-  if (!soundbuffer) {
+  soundbufferlocal = soundbuffer == NULL;
+  if (soundbufferlocal) {
+    _DSBUFFERDESC desc;
+
     memset(&desc, 0, sizeof(desc));
     desc.dwSize = sizeof(desc);
-    desc.dwFlags = (flags & 0x20) ? 0xA0 : 0x80;
+    desc.dwFlags = 0x80;
+    if (flags & 0x20) {
+      desc.dwFlags |= 0x20;
+    }
     if (flags & 0x40) {
       desc.dwFlags |= 0x40;
     }
@@ -2509,19 +2520,19 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
   stream->soundbuffersize = buffersize;
   stream->waveheadersize = info.offset;
   stream->bytespersecond = format.nAvgBytesPerSec;
+  stream->pan = pan;
+  stream->volume = volume;
+  stream->loop = (flags & SFILE_DDA_LOOP) != 0;
+  stream->fillstatus = 0;
   stream->wavedatasize = info.size;
   stream->startingoffset = offset;
   stream->playcursor = offset;
   stream->writecursor = offset;
-  stream->loop = (flags & SFILE_DDA_LOOP) != 0;
-  stream->fillstatus = 0;
-  stream->volume = volume;
-  stream->pan = pan;
-  stream->soundbufferlocal = soundbufferlocal;
   stream->soundbuffer = soundbuffer;
+  stream->soundbufferlocal = soundbufferlocal;
   stream->fillvalue = (format.wBitsPerSample == 8) ? 0x80 : 0;
   Storm::SFile::AddStreamRef(stream);
-  (*(SFileDirectSoundBufferVtbl **)soundbuffer)->Play(soundbuffer, 0, 0, 0);
+  (*(SFileDirectSoundBufferVtbl **)soundbuffer)->SetCurrentPosition(soundbuffer, 0);
   Storm::SFile::s_streamlock.Leave();
 
   Storm::SFile::s_filelock.Enter();
@@ -2533,12 +2544,8 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
   fileptr.Leave();
 
   CreateCdThread();
-  SetEvent((HANDLE)Storm::SFile::s_cdevent);
+  SetEvent(Storm::SFile::s_cdevent);
   return TRUE;
-
-invalidData:
-  SErrSetLastError(ERROR_INVALID_DATA);
-  return FALSE;
 }
 
 extern "C" BOOL APIENTRY SFileDdaDestroy() {
@@ -2548,7 +2555,7 @@ extern "C" BOOL APIENTRY SFileDdaDestroy() {
       if (!Storm::SFile::s_cdrequest && Storm::SFile::s_cdreqlist.IsEmpty()) {
         break;
       }
-      if (WaitForSingleObject((HANDLE)Storm::SFile::s_cdthread, 10) != WAIT_TIMEOUT) {
+      if (WaitForSingleObject(Storm::SFile::s_cdthread, 10) != WAIT_TIMEOUT) {
         break;
       }
     } while (Storm::SFile::s_cdthread);
@@ -2626,12 +2633,12 @@ extern "C" BOOL APIENTRY SFileDdaGetPos(HSFILE handle, DWORD *position, DWORD *m
       stream = stream->Next();
     }
     if (!stream) {
-      SErrSetLastError(0x85100072);
+      SErrSetLastError(STORM_ERROR_NOT_PLAYING);
       goto finallylabel;
     }
     ddamaxpos = stream->wavedatasize;
     if (stream->fillstatus == 4) {
-      SErrSetLastError(0x85100072);
+      SErrSetLastError(STORM_ERROR_NOT_PLAYING);
       goto finallylabel;
     }
     result = TRUE;
@@ -2673,7 +2680,7 @@ extern "C" BOOL APIENTRY SFileDdaGetVolume(HSFILE handle, LONG *volume, LONG *pa
     stream = stream->Next();
   }
   if (!stream) {
-    SErrSetLastError(0x85100072);
+    SErrSetLastError(STORM_ERROR_NOT_PLAYING);
     Storm::SFile::s_streamlock.Leave();
     return FALSE;
   }
@@ -2720,7 +2727,7 @@ extern "C" BOOL APIENTRY SFileDdaSetVolume(HSFILE handle, LONG volume, LONG pan)
   }
   if (!stream) {
     Storm::SFile::s_streamlock.Leave();
-    SErrSetLastError(0x85100072);
+    SErrSetLastError(STORM_ERROR_NOT_PLAYING);
     return FALSE;
   }
 
@@ -3165,12 +3172,12 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   for (;;) {
     if (archiveptr->startinglocation >= bufferlocation + bufferbytes) {
       bufferlocation = archiveptr->startinglocation;
-      SetFilePointer((HANDLE)archiveptr->handle, archiveptr->startinglocation, NULL, FILE_BEGIN);
+      SetFilePointer(archiveptr->handle, archiveptr->startinglocation, NULL, FILE_BEGIN);
       DWORD bytesread = 0;
-      ReadFile((HANDLE)archiveptr->handle, archivebuffer, READAHEAD, &bytesread, NULL);
+      ReadFile(archiveptr->handle, archivebuffer, READAHEAD, &bytesread, NULL);
       if (bytesread < sizeof(SFileArchiveHeaderData) || archiveptr->startinglocation + sizeof(SFileArchiveHeaderData) >= archiveptr->endinglocation) {
         delete archiveptr;
-        SErrSetLastError(0x8510006C);
+        SErrSetLastError(STORM_ERROR_NOT_ARCHIVE);
         FREE(archivebuffer);
         return FALSE;
       }
@@ -3191,14 +3198,14 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
 
   archiveptr->hashtable = (SFileHashEntryData *)ALLOC(archiveptr->header.hashcount << 4);
   ReadFileChecked(
-      archiveptr->startinglocation + archiveptr->header.hashoffset, &archiveptr->lastlocation, (HANDLE)archiveptr->handle, archiveptr->hashtable,
+      archiveptr->startinglocation + archiveptr->header.hashoffset, &archiveptr->lastlocation, archiveptr->handle, archiveptr->hashtable,
       archiveptr->header.hashcount << 4, &bytesread, archiveptr->archivename
   );
   Decrypt((DWORD *)archiveptr->hashtable, archiveptr->header.hashcount << 4, Hash("(hash table)", HASH_ENCRYPTKEY));
 
   archiveptr->blocktable = (SFileBlockEntryData *)ALLOC(archiveptr->header.blockcount * sizeof(SFileBlockEntryData));
   ReadFileChecked(
-      archiveptr->startinglocation + archiveptr->header.blockoffset, &archiveptr->lastlocation, (HANDLE)archiveptr->handle, archiveptr->blocktable,
+      archiveptr->startinglocation + archiveptr->header.blockoffset, &archiveptr->lastlocation, archiveptr->handle, archiveptr->blocktable,
       archiveptr->header.blockcount << 4, &bytesread, archiveptr->archivename
   );
   Decrypt((DWORD *)archiveptr->blocktable, archiveptr->header.blockcount << 4, Hash("(block table)", HASH_ENCRYPTKEY));
@@ -3269,7 +3276,7 @@ extern "C" BOOL APIENTRY SFileOpenFileAsArchive(HSARCHIVE ownerarchive, LPCSTR f
 
   if (unsupported) {
     SFileCloseFile(filehandle);
-    SErrSetLastError(0x3EE);
+    SErrSetLastError(ERROR_FILE_INVALID);
     return FALSE;
   }
 
@@ -3419,7 +3426,7 @@ extern "C" void APIENTRY SFilePrioritizeRequest(LPVOID buffer, LONG overlappedpr
   VALIDATEENDVOID;
   MarkRequestUrgent(buffer, overlappedpriority > 0);
   if (overlappedpriority >= 1 && Storm::SFile::s_cdevent) {
-    SetEvent((HANDLE)Storm::SFile::s_cdevent);
+    SetEvent(Storm::SFile::s_cdevent);
   }
 }
 
@@ -3475,7 +3482,7 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     }
     if (!bytestoread) {
       if (fileptr->crcavail && fileptr->crcstate == 4 && fileptr->crc != fileptr->block.crc) {
-        SErrDisplayError(0x85100083, fileptr->name, -4, NULL, FALSE, 1);
+        SErrDisplayError(0x85100083, fileptr->name, SERR_LINECODE_FILE, NULL, FALSE, 1);
       }
       return TRUE;
     }
@@ -3574,7 +3581,7 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
   }
 
   if (fileptr->crcavail && fileptr->crcstate == 4 && fileptr->crc != fileptr->block.crc) {
-    SErrDisplayError(0x85100083, fileptr->name, -4, NULL, FALSE, 1);
+    SErrDisplayError(0x85100083, fileptr->name, SERR_LINECODE_FILE, NULL, FALSE, 1);
   }
   return TRUE;
 }
@@ -3631,12 +3638,12 @@ extern "C" DWORD APIENTRY SFileSetFilePointer(HSFILE handle, LONG distancetomove
     return 0xFFFFFFFF;
   }
   if (fileptr->handle != INVALID_HANDLE_VALUE) {
-    return SetFilePointer((HANDLE)fileptr->handle, distancetomove, NULL, movemethod);
+    return SetFilePointer(fileptr->handle, distancetomove, NULL, movemethod);
   }
 
   switch (movemethod) {
     case FILE_BEGIN:
-      fileptr->location = (DWORD)distancetomove;
+      fileptr->location = distancetomove;
       break;
 
     case FILE_CURRENT:
@@ -3669,7 +3676,7 @@ extern "C" BOOL APIENTRY SFileSetIoErrorMode(DWORD errormode, SFileIoErrorProc e
 
 extern "C" void APIENTRY SFileSetLocale(DWORD lcid) {
   Storm::SFile::UseGlob glob;
-  glob->s_languageId = (WORD)lcid;
+  glob->s_languageId = lcid;
 }
 
 extern "C" WORD APIENTRY SFileGetLocale() {
@@ -3682,7 +3689,7 @@ extern "C" WORD APIENTRY SFileGetLocale() {
 
 extern "C" void APIENTRY SFileSetPlatform(DWORD platformId) {
   Storm::SFile::UseGlob glob;
-  glob->s_platformId = (BYTE)platformId;
+  glob->s_platformId = platformId;
 }
 
 extern "C" BOOL APIENTRY SFileUnloadFile(LPVOID buffer) {

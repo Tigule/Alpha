@@ -1045,19 +1045,19 @@ void GxPixelShaderDestroy(CGxPixelShader *&ps) {
 void CGxShaderParam::Set(const NTempest::C4Vector &v) {
   ASSERT(type == Type_Vector4);
   dirty = 1;
-  *reinterpret_cast<NTempest::C4Vector *>(f) = v;
+  *(NTempest::C4Vector *)f = v;
 }
 
 void CGxShaderParam::Set(const NTempest::C34Matrix &m) {
   ASSERT(type == Type_Matrix34);
   dirty = 1;
-  *reinterpret_cast<NTempest::C34Matrix *>(f) = m;
+  *(NTempest::C34Matrix *)f = m;
 }
 
 void CGxShaderParam::Set(const NTempest::C44Matrix &m) {
   ASSERT(type == Type_Matrix44);
   dirty = 1;
-  *reinterpret_cast<NTempest::C44Matrix *>(f) = m;
+  *(NTempest::C44Matrix *)f = m;
 }
 
 void CGxShader::SetParam(CGxShaderParam *p, const NTempest::C4Vector &v) {
@@ -1103,7 +1103,9 @@ static TSGrowableArray<BYTE> s_pixelMem;
 LPVOID GxAllocVertexMem(UINT nBytes) {
   ASSERT(nBytes < sizeof(CGxVertexPNCT0T1) * Gx_MaxVertices);
 
-  s_vertexMem.SetCount(nBytes);
+  if (s_vertexMem.Count() < nBytes) {
+    s_vertexMem.SetCount(nBytes);
+  }
   return s_vertexMem.Ptr();
 }
 
@@ -1114,7 +1116,9 @@ void GxFreeVertexMem() {
 LPVOID GxAllocIndexMem(UINT nBytes) {
   ASSERT(nBytes < sizeof(uint16) * Gx_MaxIndices);
 
-  s_indexMem.SetCount(nBytes);
+  if (s_indexMem.Count() < nBytes) {
+    s_indexMem.SetCount(nBytes);
+  }
   return s_indexMem.Ptr();
 }
 
@@ -1125,7 +1129,9 @@ void GxFreeIndexMem() {
 LPVOID GxAllocPixelMem(UINT nBytes) {
   ASSERT(nBytes <= sizeof(CArgb) * Gx_MaxTexWidth * Gx_MaxTexHeight);
 
-  s_pixelMem.SetCount(nBytes);
+  if (s_pixelMem.Count() < nBytes) {
+    s_pixelMem.SetCount(nBytes);
+  }
   return s_pixelMem.Ptr();
 }
 

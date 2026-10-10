@@ -71,19 +71,19 @@ class CDataRecycler {
   LPVOID Unlink(LPVOID *list, int nextOffset);
 
   void Link(Node **list, Node *node) {
-    Link(reinterpret_cast<LPVOID *>(list), node, offsetof(Node, m_next));
+    Link((LPVOID *)list, node, offsetof(Node, m_next));
   }
 
   Node *Unlink(Node **list) {
-    return static_cast<Node *>(Unlink(reinterpret_cast<LPVOID *>(list), offsetof(Node, m_next)));
+    return (Node *)Unlink((LPVOID *)list, offsetof(Node, m_next));
   }
 
   void Link(NodeBlock **list, NodeBlock *nodeBlock) {
-    Link(reinterpret_cast<LPVOID *>(list), nodeBlock, offsetof(NodeBlock, m_next));
+    Link((LPVOID *)list, nodeBlock, offsetof(NodeBlock, m_next));
   }
 
   NodeBlock *Unlink(NodeBlock **list) {
-    return static_cast<NodeBlock *>(Unlink(reinterpret_cast<LPVOID *>(list), offsetof(NodeBlock, m_next)));
+    return (NodeBlock *)Unlink((LPVOID *)list, offsetof(NodeBlock, m_next));
   }
 
   void Link(Node **list, NodeBlock *nodeBlock);
@@ -124,8 +124,8 @@ class TExtraInstanceRecycler : protected CDataRecycler {
     }
 
     new (data) T;
-    static_cast<T *>(data)->SetRecycleBytes(recycleBytes);
-    return static_cast<T *>(data);
+    ((T *)data)->SetRecycleBytes(recycleBytes);
+    return (T *)data;
   }
 
   void Put(T *instance) {

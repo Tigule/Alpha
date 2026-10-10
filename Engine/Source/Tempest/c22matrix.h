@@ -45,10 +45,10 @@ namespace NTempest {
       return &a0 + row * 2;
     }
     C2Vector *Row0AsVec2() {
-      return reinterpret_cast<C2Vector *>(&a0);
+      return (C2Vector *)&a0;
     }
     C2Vector *Row1AsVec2() {
-      return reinterpret_cast<C2Vector *>(&b0);
+      return (C2Vector *)&b0;
     }
     C2Vector Row0() const {
       return C2Vector(a0, a1);

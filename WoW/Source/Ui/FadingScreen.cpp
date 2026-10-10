@@ -90,7 +90,7 @@ static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
 
   if (s_fadingMode) {
     if (s_drawingFadingScreen) {
-      elapsed = static_cast<float>(OsGetAsyncTimeMs() - s_fadingStart) * 0.001f;
+      elapsed = (float)(OsGetAsyncTimeMs() - s_fadingStart) * 0.001f;
     } else {
       s_fadingStart = OsGetAsyncTimeMs();
     }
@@ -99,8 +99,8 @@ static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
       fadeComplete = 1;
       color.a = s_fadingMode == 2 ? 255 : 0;
     } else {
-      BYTE fadeAlpha = static_cast<BYTE>(elapsed / s_fadingTime * 255.0f);
-      color.a = s_fadingMode == 2 ? fadeAlpha : static_cast<BYTE>(255 - fadeAlpha);
+      BYTE fadeAlpha = elapsed / s_fadingTime * 255.0f;
+      color.a = s_fadingMode == 2 ? fadeAlpha : (BYTE)(255 - fadeAlpha);
     }
   }
 
@@ -138,7 +138,7 @@ void EnableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID pa
     FadingScreenCleanup();
   }
 
-  GxTexCreate(8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), reinterpret_cast<LPVOID>(0xFF000000), GxuUpdateSingleColorTexture, s_textureHandle);
+  GxTexCreate(8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), (LPVOID)0xFF000000, GxuUpdateSingleColorTexture, s_textureHandle);
 
   rect.left = 0.0f;
   rect.bottom = 0.0f;

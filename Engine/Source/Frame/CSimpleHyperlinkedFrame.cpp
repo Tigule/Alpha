@@ -22,7 +22,7 @@ void CSimpleHyperlinkButton::SetHyperlink(CSimpleFontString *string, const GXUFO
     return;
   }
 
-  m_hyperlink = static_cast<char *>(SMemReAlloc(m_hyperlink, hyperlink->linkLength + 1, __FILE__, __LINE__, 0));
+  m_hyperlink = (char *)SMemReAlloc(m_hyperlink, hyperlink->linkLength + 1, __FILE__, __LINE__, 0);
   SStrCopy(m_hyperlink, hyperlink->link, hyperlink->linkLength + 1);
 
   NTempest::CRect extent;
@@ -37,15 +37,15 @@ void CSimpleHyperlinkButton::SetHyperlink(CSimpleFontString *string, const GXUFO
 }
 
 void CSimpleHyperlinkButton::OnLayerCursorEnter() {
-  static_cast<CSimpleHyperlinkedFrame *>(m_parent)->OnHyperlinkEnter(m_hyperlink);
+  ((CSimpleHyperlinkedFrame *)m_parent)->OnHyperlinkEnter(m_hyperlink);
 }
 
 void CSimpleHyperlinkButton::OnLayerCursorExit() {
-  static_cast<CSimpleHyperlinkedFrame *>(m_parent)->OnHyperlinkLeave(m_hyperlink);
+  ((CSimpleHyperlinkedFrame *)m_parent)->OnHyperlinkLeave(m_hyperlink);
 }
 
 void CSimpleHyperlinkButton::OnClick(MOUSEBUTTON button) {
-  static_cast<CSimpleHyperlinkedFrame *>(m_parent)->OnHyperlinkClick(m_hyperlink, button);
+  ((CSimpleHyperlinkedFrame *)m_parent)->OnHyperlinkClick(m_hyperlink, button);
 }
 
 CSimpleHyperlinkedFrame::CSimpleHyperlinkedFrame(CSimpleFrame *parent)

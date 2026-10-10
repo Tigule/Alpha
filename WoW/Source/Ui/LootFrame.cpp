@@ -65,7 +65,7 @@ void CGLootInfo::LeaveWorld() {
 
 void CGLootInfo::SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType) {
   if (m_object) {
-    for (UINT index = 0; index < 16; ++index) {
+    for (UINT index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
       if (m_loot[index].pending) {
         g_itemDBCache.CancelCallback(m_loot[index].itemID, LootButtonItemStatsCallback, 0);
       }
@@ -76,13 +76,13 @@ void CGLootInfo::SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType)
 
   if (object) {
     m_object = object->GetGUID();
-    m_lootType = lootType;
     m_coins = coins;
+    m_lootType = lootType;
     memset(m_loot, 0, sizeof(m_loot));
     m_itemsPending = 0;
 
     UINT itemCount = 0;
-    for (UINT slot = 0; slot < 16; ++slot) {
+    for (UINT slot = 0; slot < (sizeof(m_loot) / sizeof(m_loot[0])); ++slot) {
       UINT itemID = CGPlayer_C::GetLootItem(slot);
       if (itemID) {
         CGLootSlot &loot = m_loot[itemCount++];
@@ -112,12 +112,12 @@ void CGLootInfo::SetObject(CGObject_C *object, int coins, LOOT_ACQUIRE lootType)
 void CGLootInfo::ClearSlot(BYTE _slot) {
   UINT index;
 
-  for (index = 0; index < 16; ++index) {
+  for (index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
     if (m_loot[index].itemID && m_loot[index].slot == _slot) {
       break;
     }
   }
-  if (index < 16) {
+  if (index < (sizeof(m_loot) / sizeof(m_loot[0]))) {
     if (m_loot[index].pending) {
       g_itemDBCache.CancelCallback(m_loot[index].itemID, LootButtonItemStatsCallback, 0);
     }
@@ -140,7 +140,7 @@ int CGLootInfo::GetNumItems() {
 
   int count = 0;
 
-  for (UINT index = 0; index < 16; ++index) {
+  for (UINT index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
     if (m_loot[index].itemID > 0) {
       count = index + 1;
     }
@@ -352,7 +352,7 @@ BOOL CGLootInfo::HasLoot() {
     return 1;
   }
 
-  for (UINT index = 0; index < 16; ++index) {
+  for (UINT index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
     if (m_loot[index].itemID) {
       return 1;
     }
@@ -362,7 +362,7 @@ BOOL CGLootInfo::HasLoot() {
 }
 
 void CGLootInfo::LootButtonItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
-  for (UINT index = 0; index < 16; ++index) {
+  for (UINT index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
     if (m_loot[index].pending && m_loot[index].itemID == id) {
       m_loot[index].pending = 0;
     }
@@ -374,19 +374,11 @@ void CGLootInfo::LootButtonItemStatsCallback(int id, const DWORDLONG &guid, LPVO
 }
 
 static int Script_SetLootPortrait(lua_State *L) {
-  CSimpleTexture *texture = 0;
-  if (lua_type(L, 1) == LUA_TTABLE) {
-    lua_rawgeti(L, 1, 0);
-    texture = static_cast<CSimpleTexture *>(lua_touserdata(L, -1));
-    lua_pop(L, 1);
-  } else {
-    return luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
-  }
-  FATALASSERT(texture);
+  CSimpleTexture *texture = (CSimpleTexture *)FrameScript_GetObjectThis(L);
 
   CGObject_C *object = ClntObjMgrObjectPtr(CGLootInfo::GetObject(), __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
-    SetPortraitTexture(texture, static_cast<CGUnit_C *>(object));
+  if (object && object->IsA(ID_UNIT)) {
+    SetPortraitTexture(texture, (CGUnit_C *)object);
     lua_pushnumber(L, 1.0);
   } else {
     texture->SetTexture(0);
@@ -396,7 +388,7 @@ static int Script_SetLootPortrait(lua_State *L) {
 }
 
 static int Script_GetNumLootItems(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGLootInfo::GetNumItems()));
+  lua_pushnumber(L, CGLootInfo::GetNumItems());
   return 1;
 }
 
@@ -405,11 +397,11 @@ static int Script_GetLootSlotInfo(lua_State *L) {
     luaL_error(L, "Usage: GetLootSlotInfo(slot)");
     return 0;
   }
-  UINT slot = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT slot = (UINT)lua_tonumber(L, 1) - 1;
   lua_pushstring(L, CGLootInfo::GetLootSlotTexture(slot));
   lua_pushstring(L, CGLootInfo::GetLootSlotText(slot));
-  lua_pushnumber(L, static_cast<double>(CGLootInfo::GetLootQuantity(slot)));
-  lua_pushnumber(L, static_cast<double>(CGLootInfo::GetLootQuality(slot)));
+  lua_pushnumber(L, CGLootInfo::GetLootQuantity(slot));
+  lua_pushnumber(L, CGLootInfo::GetLootQuality(slot));
   return 4;
 }
 
@@ -418,7 +410,7 @@ static int Script_GetLootSlotLink(lua_State *L) {
     luaL_error(L, "Usage: GetLootSlotLink(slot)");
     return 0;
   }
-  int  slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int  slot = (int)lua_tonumber(L, 1) - 1;
   char link[1024];
   lua_pushstring(L, CGLootInfo::GetLootSlotLink(slot, link, sizeof(link)));
   return 1;
@@ -429,7 +421,7 @@ static int Script_LootSlotIsItem(lua_State *L) {
     luaL_error(L, "Usage: LootSlotIsItem(slot)");
     return 0;
   }
-  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int slot = (int)lua_tonumber(L, 1) - 1;
   if (CGLootInfo::GetLootItem(slot) > 0) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -443,7 +435,7 @@ static int Script_LootSlotIsCoin(lua_State *L) {
     luaL_error(L, "Usage: LootSlotIsCoin(slot)");
     return 0;
   }
-  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int slot = (int)lua_tonumber(L, 1) - 1;
   if (CGLootInfo::GetLootCoin(slot) > 0) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -457,12 +449,12 @@ static int Script_LootSlot(lua_State *L) {
     luaL_error(L, "Usage: LootSlot(slot [, force])");
     return 0;
   }
-  int slot = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int slot = (int)lua_tonumber(L, 1) - 1;
   int force = 0;
   if (lua_isnumber(L, 2)) {
-    force = static_cast<int>(lua_tonumber(L, 2));
+    force = lua_tonumber(L, 2);
   }
-  lua_pushnumber(L, static_cast<double>(CGLootInfo::LootSlot(slot, force)));
+  lua_pushnumber(L, CGLootInfo::LootSlot(slot, force));
   return 1;
 }
 
@@ -470,12 +462,12 @@ static int Script_CloseLoot(lua_State *L) {
   CGGameUI::CloseLoot(1, 0);
   int displayError = 0;
   if (lua_isnumber(L, 1)) {
-    displayError = static_cast<int>(lua_tonumber(L, 1));
+    displayError = lua_tonumber(L, 1);
   } else if (lua_isstring(L, 1)) {
     displayError = StringToBOOL(lua_tostring(L, 1));
   }
   if (displayError) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(122));
+    CGGameUI::DisplayError(GERR_LOOT_NO_UI);
   }
   return 0;
 }

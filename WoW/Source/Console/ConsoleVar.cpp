@@ -24,7 +24,7 @@ static BOOL          s_CreatePathDirectories(LPCSTR szPath) {
 
   separator = SStrChr(szPath + 1, '\\');
   while (separator) {
-    UINT chars = static_cast<UINT>(separator - szPath);
+    UINT chars = separator - szPath;
     if (chars >= MAX_PATH) {
       success = 0;
       break;
@@ -175,7 +175,7 @@ static BOOL CVarSaveFile() {
   SStrCopy(fileName, "WTF\\", sizeof(fileName));
   SStrPack(fileName, s_filename, sizeof(fileName));
   HOSFILE file = OsCreateFile(fileName, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-  if (file == reinterpret_cast<HOSFILE>(-1)) {
+  if (file == (HOSFILE)-1) {
     return 0;
   }
 
@@ -263,7 +263,7 @@ CVar *CVar::Register(LPCSTR name, LPCSTR help, UINT flags, LPCSTR value, CVar::C
   }
 
   cvar->m_flags = flags | 1;
-  ConsoleCommandRegister(cvar->m_name, CvarCommandHandler, static_cast<CATEGORY>(category), help);
+  ConsoleCommandRegister(cvar->m_name, CvarCommandHandler, (CATEGORY)category, help);
   return cvar;
 }
 
@@ -280,7 +280,7 @@ bool CVar::Set(LPCSTR value, bool setValue, bool setReset, bool setDefault) {
     }
 
     ++m_modified;
-    if (m_flags & 2) {
+    if (m_flags & LATCH) {
       FREEIFUSED(m_latchedValue);
       m_latchedValue = SStrDupA(value, __FILE__, __LINE__);
       return true;

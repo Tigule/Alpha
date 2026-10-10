@@ -30,12 +30,18 @@ struct MessageData {
 
 class CSimpleMessageFrameLine {
  public:
-  CSimpleMessageFrameLine() : offsetX(0.0f), offsetY(0.0f), stringNode(NEW(CSimpleMessageFrameLineNode)) {
+  CSimpleMessageFrameLine() {
+    stringNode = NEW(CSimpleMessageFrameLineNode);
     stringNode->IncrRef();
+    offsetX = 0.0f;
+    offsetY = 0.0f;
   }
 
-  CSimpleMessageFrameLine(const CSimpleMessageFrameLine &line) : offsetX(line.offsetX), offsetY(line.offsetY), stringNode(line.stringNode) {
+  CSimpleMessageFrameLine(const CSimpleMessageFrameLine &line) {
+    stringNode = line.stringNode;
     stringNode->IncrRef();
+    offsetX = line.offsetX;
+    offsetY = line.offsetY;
   }
 
   ~CSimpleMessageFrameLine() {

@@ -1,4 +1,5 @@
 #include <storm.h>
+#include <SAPIEXTEND.H>
 #include <ctype.h>
 #include <imagehlp.h>
 
@@ -88,7 +89,6 @@ class CDbgHelpDll {
 
 static CRITICAL_SECTION s_CrawlCritsect;
 
-typedef VOID(WINAPI *PFN_RTLCAPTURECONTEXT)(PCONTEXT context);
 static CDbgHelpDll sgDbgHelpDll;
 static LONG        sgRecursionLevel;
 static char        sgMonthString[12][4] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -124,9 +124,6 @@ struct EnumModuleData {
   ModuleData modules[0x100];
 };
 
-void SMemGenerateReport(SMEMREPORTTYPE reporttype, SMEMREPORTPROC outputproc, HOUTPUTCONTEXT outputcontext) {
-  StormCallService(2, reporttype, outputproc, outputcontext);
-}
 CDbgHelpDll::CDbgHelpDll() {
   hInstance = NULL;
   loadCount = 0;
@@ -187,7 +184,7 @@ int CDbgHelpDll::Load() {
     goto cleanup;
 
   MiniDumpWriteDump = (PFN_MINIDUMPWRITEDUMP)GetProcAddress(module, "MiniDumpWriteDump");
-  hInstance = (HINSTANCE)module;
+  hInstance = module;
   LeaveCriticalSection(&s_CrawlCritsect);
   return TRUE;
 
@@ -226,57 +223,54 @@ static void sLogHeader(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam,
   logLineProc(logLineProcParam, "");
 }
 static void sLogMemoryHexDump(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, BYTE *address, DWORD numBytes, int alignedLines) {
-  char  buffer[80];
-  BYTE *row;
-  DWORD numLines;
-  DWORD offset;
-  int   i;
-  char *cursor;
-
-  row = (BYTE *)address;
-  numLines = numBytes >> 4;
-  offset = ((DWORD)address) & 0x0F;
+  DWORD numLines = numBytes / 16;
+  DWORD offset = (DWORD)address & 0x0F;
 
   if (alignedLines) {
-    memset(buffer, ' ', 0x4E);
+    char buffer[80];
+
+    memset(buffer, ' ', sizeof(buffer) - 2);
+    buffer[sizeof(buffer) - 2] = 0;
     buffer[0] = '*';
     buffer[2] = '=';
     buffer[4] = 'a';
     buffer[5] = 'd';
     buffer[6] = 'd';
     buffer[7] = 'r';
-    buffer[0x4E] = 0;
-    buffer[0x0A + offset * 3 + (offset >> 2)] = '*';
-    buffer[0x0B + offset * 3 + (offset >> 2)] = '*';
+    char *marker = &buffer[0x0A + offset * 3 + (offset >> 2)];
+    marker[0] = '*';
+    marker[1] = '*';
     buffer[0x3E + offset] = '*';
     logLineProc(logLineProcParam, "%s", buffer);
 
     if (offset) {
-      row -= offset;
+      address -= offset;
       ++numLines;
     }
   }
 
-  while (numLines) {
-    cursor = buffer + sprintf(buffer, "%08X: ", (DWORD)row);
+  while (numLines > 0) {
+    char  buffer[80];
+    char *cursor = buffer + sprintf(buffer, "%08X: ", address);
 
-    if (IsBadReadPtr(row, 0x10)) {
+    if (IsBadReadPtr(address, 16)) {
       strcpy(cursor, "<can't read from this address>");
       logLineProc(logLineProcParam, "%s", buffer);
       return;
     }
 
-    for (i = 0; i < 16; i += 4) {
-      cursor += sprintf(cursor, "%02X %02X %02X %02X  ", row[i], row[i + 1], row[i + 2], row[i + 3]);
-    }
+    cursor += sprintf(cursor, "%02X %02X %02X %02X  ", address[0], address[1], address[2], address[3]);
+    cursor += sprintf(cursor, "%02X %02X %02X %02X  ", address[4], address[5], address[6], address[7]);
+    cursor += sprintf(cursor, "%02X %02X %02X %02X  ", address[8], address[9], address[10], address[11]);
+    cursor += sprintf(cursor, "%02X %02X %02X %02X  ", address[12], address[13], address[14], address[15]);
 
-    for (i = 0; i < 16; i++) {
-      cursor[i] = isprint(row[i]) ? row[i] : '.';
+    for (int i = 0; i < 16; i++) {
+      cursor[i] = isprint(address[i]) ? address[i] : '.';
     }
     cursor[16] = 0;
     logLineProc(logLineProcParam, "%s", buffer);
 
-    row += 0x10;
+    address += 16;
     --numLines;
   }
 }
@@ -317,12 +311,10 @@ static void sLogDateTimeString(LOGMACHINESTATEPROC logLineProc, LPVOID logLinePr
 
   hour = time->wHour;
   suffix = hour < 12 ? 'A' : 'P';
-  if (hour <= 12) {
-    if (!hour) {
-      hour = 12;
-    }
-  } else {
+  if (hour > 12) {
     hour -= 12;
+  } else if (!hour) {
+    hour = 12;
   }
 
   logLineProc(
@@ -336,7 +328,7 @@ static void sLogUserName(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcPara
 
   size = sizeof(userName);
   if (!GetUserNameA(userName, &size)) {
-    SStrCopy(userName, "<unknown>", sizeof(userName));
+    strcpy(userName, "<unknown>");
   }
   logLineProc(logLineProcParam, "%-10s%s", "User:", userName);
 }
@@ -346,7 +338,7 @@ static void sLogComputerName(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProc
 
   size = sizeof(computerName);
   if (!GetComputerNameA(computerName, &size)) {
-    SStrCopy(computerName, "<unknown>", sizeof(computerName));
+    strcpy(computerName, "<unknown>");
   }
   logLineProc(logLineProcParam, "%-10s%s", "Computer:", computerName);
 }
@@ -379,15 +371,18 @@ int __cdecl sModuleCompareProc(LPCVOID elem1, LPCVOID elem2) {
   return 0;
 }
 static BOOL CALLBACK sEnumModulesCallback(LPSTR ModuleName, ULONG BaseOfDll, PVOID UserContext) {
+  EnumModuleData *data = (EnumModuleData *)UserContext;
+  ModuleData     *module = &data->modules[data->count];
+  data->count++;
+
   if (!ModuleName || !ModuleName[0]) {
     ModuleName = "<unknown>";
   }
+  strncpy(module->name, ModuleName, sizeof(module->name) - 1);
+  module->name[sizeof(module->name) - 1] = 0;
+  module->baseAddress = BaseOfDll;
 
-  strncpy(((EnumModuleData *)UserContext)->modules[((EnumModuleData *)UserContext)->count].name, ModuleName, 0xFF);
-  ((EnumModuleData *)UserContext)->modules[((EnumModuleData *)UserContext)->count].name[0xFF] = 0;
-  ((EnumModuleData *)UserContext)->modules[((EnumModuleData *)UserContext)->count].baseAddress = BaseOfDll;
-
-  return ++((EnumModuleData *)UserContext)->count < 0x100;
+  return data->count < sizeof(data->modules) / sizeof(data->modules[0]);
 }
 static BOOL CALLBACK sEnumSymbolsCallback(LPSTR SymbolName, ULONG SymbolAddress, ULONG SymbolSize, PVOID UserContext) {
   ((LogLineParams *)UserContext)
@@ -398,7 +393,6 @@ static BOOL CALLBACK sEnumSymbolsCallback(LPSTR SymbolName, ULONG SymbolAddress,
 }
 static void sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, DWORD baseAddress, char *moduleName) {
   IMAGEHLP_MODULE module;
-  LogLineParams   params;
 
   memset(&module, 0, sizeof(module));
   module.SizeOfStruct = sizeof(module);
@@ -413,10 +407,11 @@ static void sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID 
     logLineProc(logLineProcParam, "");
     logLineProc(logLineProcParam, "    Dumping Symbols");
 
+    LogLineParams params;
     params.logLineProc = logLineProc;
     params.logLineProcParam = logLineProcParam;
 
-    if (!sgDbgHelpDll.SymEnumerateSymbols(GetCurrentProcess(), baseAddress, (PSYM_ENUMSYMBOLS_CALLBACK)sEnumSymbolsCallback, &params)) {
+    if (!sgDbgHelpDll.SymEnumerateSymbols(GetCurrentProcess(), baseAddress, sEnumSymbolsCallback, &params)) {
       logLineProc(logLineProcParam, "****  SymEnumerateModules couldn't enumerate symbols, error: %d", GetLastError());
     }
 
@@ -430,12 +425,13 @@ static void sGetLogicalAddress(LPVOID addr, char *moduleName, DWORD moduleNameSi
   PIMAGE_NT_HEADERS        ntHeaders;
   PIMAGE_SECTION_HEADER    sectionHeader;
   DWORD                    rva;
+  DWORD                    sectionStart;
   DWORD                    sectionSize;
   UINT                     i;
 
   lstrcpynA(moduleName, "<unknown>", moduleNameSize);
-  *section = 0;
   *offset = 0;
+  *section = 0;
 
   if (!VirtualQuery(addr, &memInfo, sizeof(memInfo))) {
     return;
@@ -465,18 +461,16 @@ static void sGetLogicalAddress(LPVOID addr, char *moduleName, DWORD moduleNameSi
     return;
   }
 
-  rva = (DWORD)((BYTE *)addr - (BYTE *)module);
   sectionHeader = IMAGE_FIRST_SECTION(ntHeaders);
+  rva = (BYTE *)addr - (BYTE *)module;
 
   for (i = 0; i < ntHeaders->FileHeader.NumberOfSections; i++, sectionHeader++) {
-    sectionSize = sectionHeader->SizeOfRawData;
-    if (sectionSize <= sectionHeader->Misc.VirtualSize) {
-      sectionSize = sectionHeader->Misc.VirtualSize;
-    }
+    sectionStart = sectionHeader->VirtualAddress;
+    sectionSize = max(sectionHeader->SizeOfRawData, sectionHeader->Misc.VirtualSize);
 
-    if (rva >= sectionHeader->VirtualAddress && rva <= sectionHeader->VirtualAddress + sectionSize) {
+    if (rva >= sectionStart && rva <= sectionStart + sectionSize) {
       *section = i + 1;
-      *offset = rva - sectionHeader->VirtualAddress;
+      *offset = rva - sectionStart;
       return;
     }
   }
@@ -489,12 +483,12 @@ sDbgHelpGetStackFrameInfo(DWORD address, char *moduleName, char *symbolName, DWO
   DWORD           displacement;
   int             err;
 
-  memset(&module, 0, sizeof(module));
   err = 0;
-  module.SizeOfStruct = sizeof(module);
 
+  memset(&module, 0, sizeof(module));
+  module.SizeOfStruct = sizeof(module);
   if (sgDbgHelpDll.SymGetModuleInfo(GetCurrentProcess(), address, &module)) {
-    strcpy(moduleName, sGetPathLeaf(module.ModuleName));
+    strcpy(moduleName, sGetPathLeaf(module.ImageName));
   } else {
     strcpy(moduleName, "<unknown module>");
     err |= 1;
@@ -504,32 +498,28 @@ sDbgHelpGetStackFrameInfo(DWORD address, char *moduleName, char *symbolName, DWO
   lineNumber = 0;
 
   memset(buffer, 0, sizeof(buffer));
-  ((PIMAGEHLP_SYMBOL)buffer)->SizeOfStruct = 0x18;
+  ((PIMAGEHLP_SYMBOL)buffer)->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
   ((PIMAGEHLP_SYMBOL)buffer)->Address = address;
-  ((PIMAGEHLP_SYMBOL)buffer)->MaxNameLength = 0x100;
+  ((PIMAGEHLP_SYMBOL)buffer)->MaxNameLength = sizeof(buffer) - sizeof(IMAGEHLP_SYMBOL);
+  if (sgDbgHelpDll.SymGetSymFromAddr(GetCurrentProcess(), address, &displacement, (PIMAGEHLP_SYMBOL)buffer)) {
+    strcpy(symbolName, ((PIMAGEHLP_SYMBOL)buffer)->Name);
+    symbolDisplacement = displacement;
 
-  if (!sgDbgHelpDll.SymGetSymFromAddr(GetCurrentProcess(), address, &displacement, (PIMAGEHLP_SYMBOL)buffer)) {
+    memset(&line, 0, sizeof(line));
+    line.SizeOfStruct = sizeof(line);
+    if (sgDbgHelpDll.SymGetLineFromAddr(GetCurrentProcess(), address, &displacement, &line)) {
+      LPCSTR leaf = sGetPathLeaf(line.FileName);
+      strncpy(fileName, leaf, MAX_PATH - 1);
+      fileName[MAX_PATH - 1] = 0;
+      lineNumber = line.LineNumber;
+    } else {
+      err |= 2;
+    }
+  } else {
     strcpy(symbolName, "<unknown symbol>");
     symbolDisplacement = 0;
-    return err | 4;
+    err |= 4;
   }
-
-  strcpy(symbolName, ((PIMAGEHLP_SYMBOL)buffer)->Name);
-  symbolDisplacement = displacement;
-
-  line.Key = 0;
-  line.LineNumber = 0;
-  line.FileName = NULL;
-  line.Address = 0;
-  line.SizeOfStruct = 0x14;
-
-  if (!sgDbgHelpDll.SymGetLineFromAddr(GetCurrentProcess(), address, &displacement, &line)) {
-    return err | 2;
-  }
-
-  strncpy(fileName, sGetPathLeaf(line.FileName), 0x103);
-  fileName[0x103] = 0;
-  lineNumber = line.LineNumber;
 
   return err;
 }
@@ -575,7 +565,7 @@ static int sSymInitialize(LPVOID process) {
     *pathEnd = 0;
   }
 
-  return sgDbgHelpDll.SymInitialize((HANDLE)process, path, TRUE);
+  return sgDbgHelpDll.SymInitialize(process, path, TRUE);
 }
 int sQuickStackWalkInit(int init) {
   HANDLE process;
@@ -617,16 +607,14 @@ int sQuickStackWalkInit(int init) {
 }
 extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFramesToSkip) {
 #if defined(_M_IX86) || defined(_X86_)
-  STACKFRAME            stackFrame;
-  DWORD                 registerEsp;
-  int                   maxDepth;
-  DWORD                 registerEbp;
-  HANDLE                thread;
-  DWORD                 registerEip;
-  HANDLE                process;
-  CONTEXT               context;
-  PFN_RTLCAPTURECONTEXT captureContext;
-  int                   frameIndex;
+  STACKFRAME stackFrame;
+  DWORD      registerEsp;
+  int        maxDepth;
+  DWORD      registerEbp;
+  HANDLE     thread;
+  DWORD      registerEip;
+  HANDLE     process;
+  int        frameIndex;
 
   maxDepth = depth;
   depth = 0;
@@ -639,17 +627,14 @@ extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFrames
   process = GetCurrentProcess();
   thread = GetCurrentThread();
 
-  captureContext = reinterpret_cast<PFN_RTLCAPTURECONTEXT>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlCaptureContext"));
-  memset(&context, 0, sizeof(context));
-  if (captureContext) {
-    captureContext(&context);
-    registerEip = context.Eip;
-    registerEbp = context.Ebp;
-    registerEsp = context.Esp;
-  } else {
-    registerEip = 0;
-    registerEbp = 0;
-    registerEsp = 0;
+  __asm {
+    call nextline
+  nextline:
+    pop registerEip
+    push ebp
+    pop registerEbp
+    push esp
+    pop registerEsp
   }
 
   memset(&stackFrame, 0, sizeof(stackFrame));
@@ -688,13 +673,6 @@ extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFrames
 #endif
 }
 extern "C" int APIENTRY StackWalkAddrsToNames(DWORD *crawlAddrs, int depth, char **crawlNames) {
-  char  fileName[0x104];
-  char  symbolName[0x100];
-  char  moduleName[0x20];
-  char  key[0x20];
-  DWORD symbolDisplacement;
-  DWORD lineNumber;
-
   if (!sQuickStackWalkInit(TRUE)) {
     return FALSE;
   }
@@ -702,19 +680,24 @@ extern "C" int APIENTRY StackWalkAddrsToNames(DWORD *crawlAddrs, int depth, char
   SErrPauseWatchdog();
   EnterCriticalSection(&s_CrawlCritsect);
 
-  while (depth > 0) {
-    SStrPrintf(key, sizeof(key), "<sym-%08X>", *crawlAddrs);
-    if (STypeCache::Get(key)) {
-      SStrCopy(*crawlNames, STypeCache::Get(key), 0x100);
-    } else {
-      sDbgHelpGetStackFrameInfo(*crawlAddrs, moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
-      SStrPrintf(*crawlNames, 0x100, "%s %s+%d %s(%d)", moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
-      STypeCache::Set(key, *crawlNames);
-    }
+  for (int i = 0; i < depth; i++) {
+    DWORD address = crawlAddrs[i];
+    char  key[0x20];
 
-    ++crawlAddrs;
-    ++crawlNames;
-    --depth;
+    SStrPrintf(key, sizeof(key), "<sym-%08X>", address);
+    if (STypeCache::Get(key)) {
+      SStrCopy(crawlNames[i], STypeCache::Get(NULL), 0x100);
+    } else {
+      char  moduleName[0x20];
+      char  symbolName[0x100];
+      DWORD symbolDisplacement;
+      char  fileName[MAX_PATH];
+      DWORD lineNumber;
+
+      sDbgHelpGetStackFrameInfo(address, moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
+      SStrPrintf(crawlNames[i], 0x100, "%s %s+%d %s(%d)", moduleName, symbolName, symbolDisplacement, fileName, lineNumber);
+      STypeCache::Set(key, crawlNames[i]);
+    }
   }
 
   LeaveCriticalSection(&s_CrawlCritsect);
@@ -764,20 +747,14 @@ static void sLogDbgHelpStackTrace(
   process = GetCurrentProcess();
   if (!sgDbgHelpDll.Load()) {
     logLineProc(logLineProcParam, "****  Couldn't load DBGHELP.DLL, error: %d", GetLastError());
-    sgDbgHelpDll.Unload();
-    logLineProc(logLineProcParam, "");
-    return;
+    goto cleanup;
   }
 
-  if (sgDbgHelpDll.SymGetOptions && sgDbgHelpDll.SymSetOptions) {
-    sgDbgHelpDll.SymSetOptions(sgDbgHelpDll.SymGetOptions() | 0x14);
-  }
+  sgDbgHelpDll.SymSetOptions(sgDbgHelpDll.SymGetOptions() | 0x14);
 
   if (!sSymInitialize(process)) {
     logLineProc(logLineProcParam, "****  Couldn't initialize Debug Help library, error: %d", GetLastError());
-    sgDbgHelpDll.Unload();
-    logLineProc(logLineProcParam, "");
-    return;
+    goto cleanup;
   }
 
   if (logOptions & 0x00020000) {
@@ -790,21 +767,26 @@ static void sLogDbgHelpStackTrace(
     stackFrame.AddrStack.Offset = registerEsp;
     stackFrame.AddrStack.Mode = AddrModeFlat;
 
-    for (frameIndex = 0; frameIndex < 0x64; frameIndex++) {
-      if (!sgDbgHelpDll.StackWalk || !sgDbgHelpDll.StackWalk(
-                                         IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, NULL, NULL, sgDbgHelpDll.SymFunctionTableAccess,
-                                         sgDbgHelpDll.SymGetModuleBase, NULL
-                                     ))
-      {
+    for (frameIndex = 0; frameIndex < 100; frameIndex++) {
+      success = sgDbgHelpDll.StackWalk(
+          IMAGE_FILE_MACHINE_I386, process, thread, &stackFrame, NULL, NULL, sgDbgHelpDll.SymFunctionTableAccess, sgDbgHelpDll.SymGetModuleBase,
+          NULL
+      );
+      if (!success) {
         sLogVerboseMessage(logOptions, logLineProc, logLineProcParam, "**** StackWalk() returned FALSE, error: %d", GetLastError());
         break;
       }
 
       if (!stackFrame.AddrPC.Offset) {
         sLogVerboseMessage(logOptions, logLineProc, logLineProcParam, "**** StackWalk() returned zero address - skipping stack frame", 0);
-      } else if (frameIndex >= stackFramesToSkip) {
-        sLogDbgHelpStackFrame(logOptions, logLineProc, logLineProcParam, &stackFrame);
+        continue;
       }
+
+      if (frameIndex < stackFramesToSkip) {
+        continue;
+      }
+
+      sLogDbgHelpStackFrame(logOptions, logLineProc, logLineProcParam, &stackFrame);
     }
   }
 
@@ -813,15 +795,13 @@ static void sLogDbgHelpStackTrace(
     sLogHeader(logLineProc, logLineProcParam, "Loaded Modules");
 
     data.count = 0;
-    success = FALSE;
-    if (sgDbgHelpDll.SymEnumerateModules) {
-      success = sgDbgHelpDll.SymEnumerateModules(process, (PSYM_ENUMMODULES_CALLBACK)sEnumModulesCallback, &data);
-    }
+    success = sgDbgHelpDll.SymEnumerateModules(GetCurrentProcess(), sEnumModulesCallback, &data);
 
     qsort(data.modules, data.count, sizeof(data.modules[0]), sModuleCompareProc);
 
     for (moduleIndex = 0; moduleIndex < data.count; moduleIndex++) {
-      sLogModule(logOptions, logLineProc, logLineProcParam, data.modules[moduleIndex].baseAddress, data.modules[moduleIndex].name);
+      ModuleData *module = &data.modules[moduleIndex];
+      sLogModule(logOptions, logLineProc, logLineProcParam, module->baseAddress, module->name);
     }
 
     if (!success) {
@@ -829,6 +809,7 @@ static void sLogDbgHelpStackTrace(
     }
   }
 
+cleanup:
   sgDbgHelpDll.Unload();
   logLineProc(logLineProcParam, "");
 }
@@ -840,35 +821,42 @@ static void sLogX86ManualStackTrace(
     DWORD               registerEbp,
     UINT                stackFramesToSkip
 ) {
-  char  modulePath[0x104];
-  DWORD section;
-  DWORD offset;
-  UINT  i;
+  UINT i;
 
   sLogHeader(logLineProc, logLineProcParam, "Stack Trace (Manual)");
   logLineProc(logLineProcParam, "%s", "Address  Frame    Logical addr  Module");
   logLineProc(logLineProcParam, "");
 
-  i = 0;
+  DWORD  pc = registerEip;
+  DWORD *frame = (DWORD *)registerEbp;
 
-  while (i < 0x64) {
+  for (i = 0; i < 100; i++) {
     if (i >= stackFramesToSkip) {
-      sGetLogicalAddress((LPVOID)registerEip, modulePath, sizeof(modulePath), &section, &offset);
-      logLineProc(logLineProcParam, "%08X %08X %04X:%08X %s", registerEip, registerEbp, section, offset, modulePath);
+      char  modulePath[MAX_PATH];
+      DWORD section;
+      DWORD offset;
+
+      sGetLogicalAddress((LPVOID)pc, modulePath, sizeof(modulePath), &section, &offset);
+      logLineProc(logLineProcParam, "%08X %08X %04X:%08X %s", pc, frame, section, offset, modulePath);
     }
 
-    if (IsBadWritePtr((LPVOID)registerEbp, 8)) {
-      return;
+    if (IsBadWritePtr(frame, 2 * sizeof(DWORD))) {
+      break;
     }
 
-    registerEip = ((DWORD *)registerEbp)[1];
+    pc = frame[1];
+    DWORD *prevFrame = frame;
+    frame = (DWORD *)frame[0];
 
-    if ((((DWORD *)registerEbp)[0] & 3) || ((DWORD *)registerEbp)[0] <= registerEbp || IsBadWritePtr((LPVOID)((DWORD *)registerEbp)[0], 8)) {
-      return;
+    if ((DWORD)frame & 3) {
+      break;
     }
-
-    registerEbp = ((DWORD *)registerEbp)[0];
-    ++i;
+    if (frame <= prevFrame) {
+      break;
+    }
+    if (IsBadWritePtr(frame, 2 * sizeof(DWORD))) {
+      break;
+    }
   }
 }
 static void sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, CONTEXT *context) {
@@ -939,133 +927,136 @@ void LogComputerInfoHeader(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPV
 }
 void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID logLineProcParam, UINT stackFramesToSkip, CONTEXT *context) {
 #if defined(_M_IX86) || defined(_X86_)
-  DWORD                 registerEip;
-  DWORD                 registerEbp;
-  DWORD                 registerEsp;
-  CONTEXT               capturedContext;
-  PFN_RTLCAPTURECONTEXT captureContext;
+  DWORD registerEip;
+  DWORD registerEbp;
+  DWORD registerEsp;
 #endif
 
-  if (InterlockedIncrement(&sgRecursionLevel) == 1) {
-    if (!logOptions || (logOptions & 0x00000001)) {
-      logOptions |= 0x006A0000;
-      if (context) {
-        logOptions |= 0x00110000;
-      }
-    }
-    if (logOptions & 0x00800000) {
-      logOptions |= 0x00400000;
-    }
-    if (context) {
-#if defined(_M_IX86) || defined(_X86_)
-      registerEip = context->Eip;
-      registerEbp = context->Ebp;
-      registerEsp = context->Esp;
-#endif
-      stackFramesToSkip = 0;
-    } else {
-#if defined(_M_IX86) || defined(_X86_)
-      captureContext = reinterpret_cast<PFN_RTLCAPTURECONTEXT>(GetProcAddress(GetModuleHandleA("ntdll.dll"), "RtlCaptureContext"));
-      memset(&capturedContext, 0, sizeof(capturedContext));
-      if (captureContext) {
-        captureContext(&capturedContext);
-        registerEip = capturedContext.Eip;
-        registerEbp = capturedContext.Ebp;
-        registerEsp = capturedContext.Esp;
-      } else {
-        registerEip = 0;
-        registerEbp = 0;
-        registerEsp = 0;
-      }
-#endif
-      logOptions &= 0xFFEEFFFF;
-      ++stackFramesToSkip;
-    }
-
-    sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
-
-    if ((logOptions & 0x00010000) && context) {
-      sLogX86ContextRegisters(logLineProc, logLineProcParam, context);
-    }
-#if defined(_M_IX86) || defined(_X86_)
-    if (logOptions & 0x00080000) {
-      sLogX86ManualStackTrace(logOptions, logLineProc, logLineProcParam, registerEip, registerEbp, stackFramesToSkip);
-    }
-    if (logOptions & 0x00420000) {
-      sLogDbgHelpStackTrace(logOptions, logLineProc, logLineProcParam, registerEip, registerEbp, registerEsp, stackFramesToSkip);
-    }
-    if (logOptions & 0x00300000) {
-      sLogMemory(logOptions, logLineProc, logLineProcParam, registerEip, registerEsp);
-    }
-#endif
-
-    sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
-    sShowOutOfMemory(logLineProc, logLineProcParam);
+  if (InterlockedIncrement(&sgRecursionLevel) != 1) {
+    goto cleanup;
   }
+
+  if (!logOptions || (0x00000001 & logOptions)) {
+    logOptions |= 0x006A0000;
+    if (context) {
+      logOptions |= 0x00110000;
+    }
+  }
+  if (logOptions & 0x00800000) {
+    logOptions |= 0x00400000;
+  }
+  if (context) {
+#if defined(_M_IX86) || defined(_X86_)
+    registerEip = context->Eip;
+    registerEbp = context->Ebp;
+    registerEsp = context->Esp;
+#endif
+    stackFramesToSkip = 0;
+  } else {
+#if defined(_M_IX86) || defined(_X86_)
+    __asm {
+      call nextline
+    nextline:
+      pop registerEip
+      push ebp
+      pop registerEbp
+      push esp
+      pop registerEsp
+    }
+#endif
+    logOptions &= 0xFFEEFFFF;
+    ++stackFramesToSkip;
+  }
+
+  sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
+
+  if ((logOptions & 0x00010000) && context) {
+    sLogX86ContextRegisters(logLineProc, logLineProcParam, context);
+  }
+#if defined(_M_IX86) || defined(_X86_)
+  if (logOptions & 0x00080000) {
+    sLogX86ManualStackTrace(logOptions, logLineProc, logLineProcParam, registerEip, registerEbp, stackFramesToSkip);
+  }
+  if (logOptions & 0x00420000) {
+    sLogDbgHelpStackTrace(logOptions, logLineProc, logLineProcParam, registerEip, registerEbp, registerEsp, stackFramesToSkip);
+  }
+  if (logOptions & 0x00300000) {
+    sLogMemory(logOptions, logLineProc, logLineProcParam, registerEip, registerEsp);
+  }
+#endif
+
+  sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
+  sShowOutOfMemory(logLineProc, logLineProcParam);
+
+cleanup:
   InterlockedDecrement(&sgRecursionLevel);
 }
 static DWORD WINAPI MiniDumpThreadProc(LPVOID param) {
   MINIDUMP_USER_STREAM             miniDumpUserStreamArray[16];
   MINIDUMP_EXCEPTION_INFORMATION   miniDumpExceptionInfo;
   MINIDUMP_USER_STREAM_INFORMATION miniDumpUserStreamInfo;
+  int                              result = FALSE;
+  UINT                             userStreamCount = 0;
 
-  if (!sgDbgHelpDll.Load()) {
-    ((MiniDumpParam *)param)->result = FALSE;
-    return 0;
-  }
+  if (sgDbgHelpDll.Load()) {
+    if (sgDbgHelpDll.MiniDumpWriteDump) {
+      miniDumpExceptionInfo.ThreadId = ((MiniDumpParam *)param)->threadId;
+      miniDumpExceptionInfo.ExceptionPointers = ((MiniDumpParam *)param)->exceptionPointers;
+      miniDumpExceptionInfo.ClientPointers = FALSE;
 
-  if (sgDbgHelpDll.MiniDumpWriteDump) {
-    miniDumpExceptionInfo.ThreadId = ((MiniDumpParam *)param)->threadId;
-    miniDumpExceptionInfo.ExceptionPointers = ((MiniDumpParam *)param)->exceptionPointers;
-    miniDumpExceptionInfo.ClientPointers = FALSE;
-
-    miniDumpUserStreamInfo.UserStreamCount = 0;
-    for (UINT i = 0; i < ((MiniDumpParam *)param)->userStringCount; i++) {
-      if (((MiniDumpParam *)param)->userStrings[i] && miniDumpUserStreamInfo.UserStreamCount < 16) {
-        miniDumpUserStreamArray[miniDumpUserStreamInfo.UserStreamCount].Type = miniDumpUserStreamInfo.UserStreamCount + 0x1000;
-        miniDumpUserStreamArray[miniDumpUserStreamInfo.UserStreamCount].BufferSize = strlen(((MiniDumpParam *)param)->userStrings[i]) + 1;
-        miniDumpUserStreamArray[miniDumpUserStreamInfo.UserStreamCount].Buffer = ((MiniDumpParam *)param)->userStrings[i];
-        miniDumpUserStreamInfo.UserStreamCount++;
+      for (UINT i = 0; i < ((MiniDumpParam *)param)->userStringCount; i++) {
+        if (((MiniDumpParam *)param)->userStrings[i]
+            && userStreamCount < sizeof(miniDumpUserStreamArray) / sizeof(miniDumpUserStreamArray[0])) {
+          miniDumpUserStreamArray[userStreamCount].Type = userStreamCount + 0x1000;
+          miniDumpUserStreamArray[userStreamCount].BufferSize = strlen(((MiniDumpParam *)param)->userStrings[i]) + 1;
+          miniDumpUserStreamArray[userStreamCount].Buffer = ((MiniDumpParam *)param)->userStrings[i];
+          userStreamCount++;
+        }
       }
+
+      miniDumpUserStreamInfo.UserStreamCount = userStreamCount;
+      miniDumpUserStreamInfo.UserStreamArray = miniDumpUserStreamArray;
+
+      result = sgDbgHelpDll.MiniDumpWriteDump(
+          GetCurrentProcess(), GetCurrentProcessId(), ((MiniDumpParam *)param)->logfile, (MINIDUMP_TYPE)0x40,
+          miniDumpExceptionInfo.ExceptionPointers ? &miniDumpExceptionInfo : NULL, &miniDumpUserStreamInfo, NULL
+      );
     }
 
-    miniDumpUserStreamInfo.UserStreamArray = miniDumpUserStreamArray;
-
-    ((MiniDumpParam *)param)->result = sgDbgHelpDll.MiniDumpWriteDump(
-        // 0x40: MiniDumpWithIndirectlyReferencedMemory
-        GetCurrentProcess(), GetCurrentProcessId(), ((MiniDumpParam *)param)->logfile, static_cast<MINIDUMP_TYPE>(0x40),
-        ((MiniDumpParam *)param)->exceptionPointers ? &miniDumpExceptionInfo : NULL, &miniDumpUserStreamInfo, NULL
-    );
-  } else {
-    ((MiniDumpParam *)param)->result = FALSE;
+    sgDbgHelpDll.Unload();
   }
 
-  sgDbgHelpDll.Unload();
+  ((MiniDumpParam *)param)->result = result;
   return 0;
 }
 int LogMiniDump(LPVOID logfile, EXCEPTION_POINTERS *exceptionPointers, UINT userStringCount, char *userStrings[]) {
+  int           result = FALSE;
   MiniDumpParam miniDumpParam;
-  DWORD         threadid;
+  DWORD         threadid = 0;
+  HANDLE        thread;
 
-  miniDumpParam.result = FALSE;
-  threadid = 0;
-
-  if (InterlockedIncrement(&sgRecursionLevel) == 1) {
-    miniDumpParam.logfile = (HANDLE)logfile;
-    miniDumpParam.exceptionPointers = exceptionPointers;
-    miniDumpParam.threadId = GetCurrentThreadId();
-    miniDumpParam.userStringCount = userStringCount;
-    miniDumpParam.userStrings = userStrings;
-
-    HANDLE thread = CreateThread(NULL, 0, MiniDumpThreadProc, &miniDumpParam, 0, &threadid);
-    if (thread) {
-      WaitForSingleObject(thread, INFINITE);
-      CloseHandle(thread);
-    }
+  if (InterlockedIncrement(&sgRecursionLevel) != 1) {
+    goto cleanup;
   }
 
+  miniDumpParam.logfile = logfile;
+  miniDumpParam.threadId = GetCurrentThreadId();
+  miniDumpParam.userStringCount = userStringCount;
+  miniDumpParam.userStrings = userStrings;
+  miniDumpParam.exceptionPointers = exceptionPointers;
+
+  thread = CreateThread(NULL, 0, MiniDumpThreadProc, &miniDumpParam, 0, &threadid);
+  if (!thread) {
+    goto cleanup;
+  }
+
+  WaitForSingleObject(thread, INFINITE);
+  CloseHandle(thread);
+  result = miniDumpParam.result;
+
+cleanup:
   InterlockedDecrement(&sgRecursionLevel);
-  return miniDumpParam.result;
+  return result;
 }
 int LogMiniDumpIsAvailable() {
   int loaded;
@@ -1073,12 +1064,10 @@ int LogMiniDumpIsAvailable() {
 
   available = FALSE;
   loaded = sgDbgHelpDll.Load();
-  if (!loaded) {
-    return FALSE;
+  if (loaded) {
+    available = sgDbgHelpDll.MiniDumpWriteDump != NULL;
+    sgDbgHelpDll.Unload();
   }
-
-  available = sgDbgHelpDll.MiniDumpWriteDump != NULL;
-  sgDbgHelpDll.Unload();
 
   return available;
 }

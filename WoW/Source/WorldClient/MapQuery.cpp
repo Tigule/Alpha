@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -15,8 +15,6 @@
 #include "DB/DBClient/AutoCode/GroundEffectTextureRec.h"
 
 #include <Ftol.h>
-
-#define MD_LIQUID_NPOLY 8U
 
 static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 static const float OO_COORD_TO_CHUNK = 1.0f / ((150.0f / 36.0f) * 8);
@@ -28,15 +26,6 @@ WORD  g_2bitSplatMask[8] = {0x0003, 0x000C, 0x0030, 0x00C0, 0x0300, 0x0C00, 0x30
 DWORD g_2bitSplatShft[8] = {0, 2, 4, 6, 8, 10, 12, 14};
 WORD  g_1bitSplatMask[8] = {0x0001, 0x0002, 0x0004, 0x0008, 0x0010, 0x0020, 0x0040, 0x0080};
 DWORD g_1bitSplatShft[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-
-inline int SLTiles::GetLiquid(const NTempest::C2iVector &pos, UINT &liquid, int &fishable, int &deep) const {
-  ASSERT(pos.x >= 0 && pos.x < MD_LIQUID_NPOLY && pos.y >= 0 && pos.y < MD_LIQUID_NPOLY);
-  const BYTE &tile = tiles[pos.y][pos.x];
-  liquid = tile & 0xF;
-  fishable = (tile >> 6) & 1;
-  deep = tile >> 7;
-  return liquid != 0xF;
-}
 
 UINT CMap::QueryAreaId(float x, float y) {
   float mx = -(y - 17066.666f);
@@ -241,7 +230,7 @@ bool CMap::QueryLiquidFishable(const NTempest::C3Vector &point, int &fishable) {
       int  fish;
       int  deep;
       if (cl->tiles.GetLiquid(lsub, liquid, fish, deep)) {
-        fishable = static_cast<bool>(fish);
+        fishable = (bool)fish;
         return true;
       }
     }

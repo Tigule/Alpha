@@ -141,11 +141,11 @@ namespace NTempest {
 
     T &operator[](DWORD i) const {
       ASSERT(IsValid() && i < iused);
-      return reinterpret_cast<T *>(this->mem)[i];
+      return ((T *)this->mem)[i];
     }
 
     T *GetEntry(DWORD i) const {
-      return i < iused ? &reinterpret_cast<T *>(this->mem)[i] : 0;
+      return i < iused ? &((T *)this->mem)[i] : 0;
     }
 
     void SetEntry(DWORD at, const T &entry, DWORD count = 1) const {
@@ -158,7 +158,7 @@ namespace NTempest {
       DWORD end = min(at + count, iused);
 
       for (; at < end; ++at) {
-        reinterpret_cast<T *>(this->mem)[at] = *entry;
+        ((T *)this->mem)[at] = *entry;
       }
     }
 
@@ -241,7 +241,7 @@ namespace NTempest {
       if (at > iused || !Grow(0, count)) {
         return false;
       }
-      memmove(&reinterpret_cast<T *>(this->mem)[at + count], &reinterpret_cast<T *>(this->mem)[at], sizeof(T) * (iused - at - count));
+      memmove(&((T *)this->mem)[at + count], &((T *)this->mem)[at], sizeof(T) * (iused - at - count));
       SetEntry(at, entry, count);
       return true;
     }

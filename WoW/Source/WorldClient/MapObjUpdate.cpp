@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -59,7 +59,7 @@ void CMapObjGroup::UpdateLightmapTex(
     UINT         &texelStrideInBytes,
     LPCVOID      &texels
 ) {
-  SMOLightmapTex *lightmapTex = static_cast<SMOLightmapTex *>(userArg);
+  SMOLightmapTex *lightmapTex = (SMOLightmapTex *)userArg;
   FATALASSERT(lightmapTex);
 
   switch (cmd) {

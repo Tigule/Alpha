@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -29,30 +29,18 @@ void CMap::Unload() {
   mapObjNames.Clear();
   mapObjNamesIndex.Clear();
 
-  CMapBaseObjLink *link = mapObjDefLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = mapObjDefLinkList.RawNext(link);
-    CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(link->owner);
+  CMapBaseObjLink *link;
+  CMapBaseObjLink *next;
+  for (link = mapObjDefLinkList.Head(); (int)link > 0 ? (next = mapObjDefLinkList.RawNext(link), 1) : 0; link = next) {
+    CMapObjDef *mapObjDef = (CMapObjDef *)link->owner;
     FreeBaseObjLink(link);
     PurgeMapObjDef(mapObjDef);
-    link = next;
   }
 
-  link = doodadDefLinkList.Head();
-  while (1) {
-    if ((int)link <= 0) {
-      break;
-    }
-
-    CMapBaseObjLink *next = doodadDefLinkList.RawNext(link);
-    CMapDoodadDef   *doodadDef = static_cast<CMapDoodadDef *>(link->owner);
+  for (link = doodadDefLinkList.Head(); (int)link > 0 ? (next = doodadDefLinkList.RawNext(link), 1) : 0; link = next) {
+    CMapDoodadDef *doodadDef = (CMapDoodadDef *)link->owner;
     FreeBaseObjLink(link);
     PurgeDoodadDef(doodadDef);
-    link = next;
   }
 
   FATALASSERT(doodadDefLinkList.Head() == 0);
@@ -71,18 +59,18 @@ void CMap::Unload() {
 
 void DNGlare::Destroy() {
   if (m_texid) {
-    HandleClose(reinterpret_cast<HOBJECT>(m_texid));
+    HandleClose(m_texid);
   }
 }
 
 void DNPlanet::Destroy() {
   if (m_texid) {
-    HandleClose(reinterpret_cast<HOBJECT>(m_texid));
+    HandleClose(m_texid);
   }
 }
 
 void DNStars::Destroy() {
   if (m_hModel) {
-    HandleClose(reinterpret_cast<HOBJECT>(m_hModel));
+    HandleClose(m_hModel);
   }
 }

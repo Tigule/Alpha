@@ -42,7 +42,7 @@ static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &
     return false;
   }
 
-  if (unit && !(unit->GetType() & TYPE_PLAYER)) {
+  if (unit && !unit->IsA(ID_PLAYER)) {
     nc = 0;
   }
 
@@ -78,8 +78,11 @@ static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &
     UINT oldLen = SStrLen(buf);
     SStrPack(buf, token, size);
     buf[oldLen + length] = 0;
-    while (length && buf[oldLen + length - 1] == ' ') {
-      buf[oldLen + --length] = 0;
+    while (buf[oldLen + --length] == ' ') {
+      buf[oldLen + length] = 0;
+      if (!length) {
+        break;
+      }
     }
   }
 
@@ -93,27 +96,40 @@ static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &
 }
 
 static bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target, const NameCache *nc) {
-  char      race[32];
-  char      classStr[32];
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
-
   if (!unit && !nc) {
     return false;
   }
-  if (unit && !(unit->GetType() & TYPE_PLAYER)) {
+  if (unit && !unit->IsA(ID_PLAYER)) {
     nc = 0;
   }
 
   switch (*token) {
-    case 'B':
-    case 'b':
-      SStrPack(buf, "\n", size);
+    case 'N':
+    case 'n':
+      SStrPack(buf, unit ? unit->GetUnitName() : nc->m_name, size);
+      break;
+
+    case 'R':
+    case 'r':
+      if (!unit->IsA(ID_PLAYER)) {
+        SStrPack(buf, unit->GetUnitName(), size);
+      } else {
+        const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(unit->GetRace());
+        char               race[32];
+        SStrCopy(race, raceRec->m_name_lang[CURRENT_LANGUAGE], sizeof(race));
+        if (*token == 'r') {
+          SStrLower(race);
+        }
+        SStrPack(buf, race, size);
+      }
       break;
 
     case 'C':
     case 'c': {
       UINT                 classID = unit ? unit->GetClass() : nc->m_race;
       const ChrClassesRec *classRec = g_chrClassesDB.GetRecord(classID);
+      char                 classStr[32];
       SStrCopy(classStr, classRec->m_name_lang[CURRENT_LANGUAGE], sizeof(classStr));
       if (*token == 'c') {
         SStrLower(classStr);
@@ -129,23 +145,9 @@ static bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target
       }
       return QuestParserGenderConditional(buf, size, target, nc);
 
-    case 'N':
-    case 'n':
-      SStrPack(buf, unit ? unit->GetUnitName() : nc->m_name, size);
-      break;
-
-    case 'R':
-    case 'r':
-      if (!(unit->GetType() & TYPE_PLAYER)) {
-        SStrPack(buf, unit->GetUnitName(), size);
-      } else {
-        const ChrRacesRec *raceRec = g_chrRacesDB.GetRecord(unit->GetRace());
-        SStrCopy(race, raceRec->m_name_lang[CURRENT_LANGUAGE], sizeof(race));
-        if (*token == 'r') {
-          SStrLower(race);
-        }
-        SStrPack(buf, race, size);
-      }
+    case 'B':
+    case 'b':
+      SStrPack(buf, "\n", size);
       break;
 
     default:
@@ -163,14 +165,14 @@ bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &ta
   const NameCache *nc;
   UINT             length;
   UINT             oldLen;
-  UINT             error;
+  bool             error;
 
   FATALASSERT(text);
   FATALASSERT(buf);
 
   oldToken = token;
-  error = 0;
-  nc = g_nameDBCache.GetRecord(target, target, 0, 0);
+  error = false;
+  nc = g_nameDBCache.GetRecord(target, 0, 0, 0);
   buf[0] = 0;
   token = SStrChr(text, '$');
 
@@ -185,7 +187,7 @@ bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &ta
     ++token;
     if (!QuestParserReplaceText(buf, size, target, nc)) {
       SStrPack(buf, "$", size);
-      error = 1;
+      error = true;
     }
 
     text = token;
@@ -196,7 +198,7 @@ bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &ta
   if (restoreToken) {
     token = oldToken;
   }
-  return error == 0;
+  return !error;
 }
 
 static bool SpellParserGenderConditional(char *buf, UINT size) {
@@ -204,74 +206,92 @@ static bool SpellParserGenderConditional(char *buf, UINT size) {
   if (!player) {
     return false;
   }
-  while (*token == ' ') {
+  while (*token && *token == ' ') {
     ++token;
   }
   if (!*token) {
     return true;
   }
-  LPCSTR semi = SStrChr(token, ':');
+
+  LPCSTR colon = SStrChr(token, ':');
+  if (!colon) {
+    return true;
+  }
+
+  LPCSTR semi = SStrChr(colon, ';');
   if (!semi) {
     return true;
   }
-  LPCSTR end = SStrChr(semi, ';');
-  if (!end) {
-    return true;
-  }
-  LPCSTR text = token;
-  LPCSTR stop = semi;
-  if (player->GetSex()) {
-    text = semi + 1;
-    while (*text == ' ') {
-      ++text;
+
+  UINT length;
+  if (!player->GetSex()) {
+    length = colon - token;
+  } else {
+    token = colon + 1;
+    while (*token == ' ') {
+      ++token;
     }
-    stop = end;
+    length = semi - token;
   }
-  if (stop != text) {
+
+  if (length) {
     UINT oldLen = SStrLen(buf);
-    SStrPack(buf, text, size);
-    buf[oldLen + stop - text] = 0;
-    while (oldLen < SStrLen(buf) && buf[SStrLen(buf) - 1] == ' ') {
-      buf[SStrLen(buf) - 1] = 0;
+    SStrPack(buf, token, size);
+    buf[oldLen + length] = 0;
+    while (buf[oldLen + --length] == ' ') {
+      buf[oldLen + length] = 0;
+      if (!length) {
+        break;
+      }
     }
   }
-  token = end + 1;
+
+  token = semi + 1;
   return true;
 }
 
 static bool SpellParserPluralConditional(char *buf, UINT size, int ordinal) {
-  while (*token == ' ') {
+  while (*token && *token == ' ') {
     ++token;
   }
   if (!*token) {
     return true;
   }
-  LPCSTR semi = SStrChr(token, ':');
+
+  LPCSTR colon = SStrChr(token, ':');
+  if (!colon) {
+    return true;
+  }
+
+  LPCSTR semi = SStrChr(colon, ';');
   if (!semi) {
     return true;
   }
-  LPCSTR end = SStrChr(semi, ';');
-  if (!end) {
-    return true;
-  }
-  LPCSTR text = token;
-  LPCSTR stop = semi;
-  if (FrameScript_GetPluralIndex(ordinal)) {
-    text = semi + 1;
-    while (*text == ' ') {
-      ++text;
+
+  UINT length;
+  if (!FrameScript_GetPluralIndex(ordinal)) {
+    length = colon - token;
+  } else {
+    token = colon + 1;
+    while (*token == ' ') {
+      ++token;
     }
-    stop = end;
+    length = semi - token;
   }
-  if (stop != text) {
+
+  if (length) {
     UINT oldLen = SStrLen(buf);
-    SStrPack(buf, text, size);
-    buf[oldLen + stop - text] = 0;
-    while (oldLen < SStrLen(buf) && buf[SStrLen(buf) - 1] == ' ') {
-      buf[SStrLen(buf) - 1] = 0;
+    SStrPack(buf, token, size);
+    buf[oldLen + length] = 0;
+    while (buf[oldLen + --length] == ' ') {
+      buf[oldLen + length] = 0;
+      if (!length) {
+        break;
+      }
     }
   }
-  token = end + 1;
+
+  token = semi + 1;
   return true;
 }
 
@@ -292,7 +312,7 @@ static int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, i
     case 'A':
     case 'a': {
       const SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[effect]);
-      SStrPrintf(string, sizeof(string), "%d", radius ? static_cast<int>(radius->m_radius) : 0);
+      SStrPrintf(string, sizeof(string), "%d", radius ? (int)radius->m_radius : 0);
       SStrPack(buf, string, size);
       break;
     }
@@ -422,11 +442,11 @@ static int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, i
 BOOL SpellParserParseText(const SpellRec *spell, char *buf, UINT size, BOOL isPet) {
   FATALASSERT(spell);
   FATALASSERT(buf);
+  int error = 0;
   buf[0] = 0;
   LPCSTR text = spell->m_description_lang[CURRENT_LANGUAGE];
   token = SStrChr(text, '$');
   int level = Spell_C_GetSpellLevel(spell->m_ID, isPet);
-  int error = 0;
   while (token && *token) {
     UINT length = token - text;
     if (length) {

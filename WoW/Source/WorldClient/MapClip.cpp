@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -20,22 +20,28 @@ static const DWORD vStp[4] = {8, 4, 2, 1};
 void CMapChunk::UpdateClipBuffer() {
   int   indexList[9];
   DWORD cnt = vCnt[lod];
+  int   step = vStp[lod];
 
-  DWORD step = vStp[lod];
-  DWORD start = CWorldScene::camPos.x > CWorldScene::camTarg.x ? 136 : 0;
-  DWORD index = 0;
-  DWORD vertex = 0;
+  int start = 0;
+  if (CWorldScene::camPos.x > CWorldScene::camTarg.x) {
+    start = 136;
+  }
+  int  vertex = 0;
+  int *index = indexList;
   while (vertex < 9) {
-    indexList[index++] = start + vertex;
+    *index++ = vertex + start;
     vertex += step;
   }
   CWorldScene::ClipBufferUpdate(vertexList, indexList, cnt, corner);
 
-  start = CWorldScene::camPos.y > CWorldScene::camTarg.y ? 8 : 0;
-  index = 0;
+  start = 0;
+  if (CWorldScene::camPos.y > CWorldScene::camTarg.y) {
+    start = 8;
+  }
   vertex = 0;
+  index = indexList;
   while (vertex < 9) {
-    indexList[index++] = start;
+    *index++ = start;
     start += 17 * step;
     vertex += step;
   }

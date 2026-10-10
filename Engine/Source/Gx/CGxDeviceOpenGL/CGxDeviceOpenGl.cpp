@@ -50,7 +50,7 @@ void CGxDeviceOpenGl::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<N
   pixels.SetCount((rect.r - rect.l) * (rect.b - rect.t));
   int width = rect.r - rect.l;
 
-  glReadPixels(rect.l, static_cast<int>(DeviceCurWindow().b) - rect.b, width, rect.b - rect.t, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixels.Ptr());
+  glReadPixels(rect.l, (int)DeviceCurWindow().b - rect.b, width, rect.b - rect.t, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixels.Ptr());
 
   src1 = pixels.Ptr() + width * (rect.b - rect.t - 1);
   for (NTempest::CImVector *src2 = pixels.Ptr(); src2 < src1; src2 += width, src1 -= width) {
@@ -69,7 +69,7 @@ void CGxDeviceOpenGl::DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<f
 
   depths.SetCount((rect.r - rect.l) * (rect.b - rect.t));
 
-  glReadPixels(rect.l, static_cast<int>(DeviceCurWindow().b) - rect.b, rect.r - rect.l, rect.b - rect.t, GL_DEPTH_COMPONENT, GL_FLOAT, depths.Ptr());
+  glReadPixels(rect.l, (int)DeviceCurWindow().b - rect.b, rect.r - rect.l, rect.b - rect.t, GL_DEPTH_COMPONENT, GL_FLOAT, depths.Ptr());
 
   src1 = depths.Ptr() + (rect.r - rect.l) * (rect.b - rect.t - 1);
   for (float *src2 = depths.Ptr(); src2 < src1; src2 += rect.r - rect.l, src1 -= rect.r - rect.l) {
@@ -86,7 +86,7 @@ void CGxDeviceOpenGl::DeviceOverride(EGxOverride override, DWORD value) {
 
   if (override == GxOverride_PixelShader) {
     ASSERT(value >= CGxPixelShader::Target_nvrc && value <= CGxPixelShader::Target_arbfp1);
-    m_caps.m_pixelShaderTarget = static_cast<CGxPixelShader::Target>(value);
+    m_caps.m_pixelShaderTarget = (CGxPixelShader::Target)value;
   }
 }
 
@@ -128,7 +128,7 @@ void CGxDeviceOpenGl::IAllocVAR() {
         bytes += GxVertexSize(GxVBF_PNCT0T1) << 15;
       } else {
         for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
-          bytes += m_VBReserve[freq][format] * GxVertexSize(static_cast<EGxVertexBufferFormat>(format));
+          bytes += m_VBReserve[freq][format] * GxVertexSize((EGxVertexBufferFormat)format);
         }
       }
     }
@@ -158,7 +158,7 @@ void CGxDeviceOpenGl::IAllocVertexBufferVAR(EGxBufWriteFreq freq, UINT bytes) {
 
   if (bytes && m_nvvarMem) {
     if (m_nvvarNext + bytes <= m_nvvarBytes) {
-      m_vertexBuffer[freq] = NEW(CGxMemBuffer_VAR)(bytes, static_cast<BYTE *>(m_nvvarMem) + m_nvvarNext);
+      m_vertexBuffer[freq] = NEW(CGxMemBuffer_VAR)(bytes, (BYTE *)m_nvvarMem + m_nvvarNext);
       m_nvvarNext += bytes;
     } else {
       FATALASSERT(m_nvvarNext + bytes <= m_nvvarBytes);
@@ -190,8 +190,8 @@ void CGxDeviceOpenGl::IAllocBuffers() {
       }
     }
 
-    AllocVertexBuffer(static_cast<EGxBufWriteFreq>(freqlp), maxVertices * GxVertexSize(GxVBF_PNCT0T1));
-    AllocIndexBuffer(static_cast<EGxBufWriteFreq>(freqlp), maxIndices * sizeof(WORD));
+    AllocVertexBuffer((EGxBufWriteFreq)freqlp, maxVertices * GxVertexSize(GxVBF_PNCT0T1));
+    AllocIndexBuffer((EGxBufWriteFreq)freqlp, maxIndices * sizeof(WORD));
   }
 }
 
@@ -234,7 +234,7 @@ void CGxDeviceOpenGl::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat for
 }
 
 void CGxDeviceOpenGl::ISetGlCaps() {
-  m_caps.m_numTmus = static_cast<UINT>(glExtMultiTextureCount) < 4 ? glExtMultiTextureCount : 4;
+  m_caps.m_numTmus = (UINT)glExtMultiTextureCount < 4 ? glExtMultiTextureCount : 4;
   m_caps.m_pixelCenterOnEdge = 1;
   m_caps.m_texelCenterOnEdge = 1;
   m_caps.m_maxTextureSize = 0x200;
@@ -260,7 +260,7 @@ void CGxDeviceOpenGl::ISetGlCaps() {
 
   m_caps.m_texFilterTrilinear = 1;
   if (glExtTextureFilterAnisotropic) {
-    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, reinterpret_cast<GLint *>(&m_caps.m_maxTexAnisotropy));
+    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, (GLint *)&m_caps.m_maxTexAnisotropy);
     if (m_caps.m_maxTexAnisotropy > 1) {
       m_caps.m_texFilterAnisotropic = 1;
     }
@@ -299,5 +299,5 @@ void CGxMemBuffer_VAR::Lock(LPVOID &mem, UINT bytes, UINT base) {
     base = m_base;
   }
 
-  mem = static_cast<BYTE *>(m_mem) + base;
+  mem = (BYTE *)m_mem + base;
 }

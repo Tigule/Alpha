@@ -45,7 +45,7 @@ static void DataCacheInitialize(int cacheSizeMB) {
   numCacheBlocks = (cacheSizeMB << 20) / CACHE_BLOCK_SIZE;
   s_soundFileDataCache.SetTableSize(numCacheBlocks);
   for (i = 0; i < numCacheBlocks; ++i) {
-    s_soundFileDataCacheLRU.LinkNode(s_soundFileDataCache.New(i, HASHKEY_LONGLONG(static_cast<LONGLONG>(i)), 0, 0), LIST_TAIL, 0);
+    s_soundFileDataCacheLRU.LinkNode(s_soundFileDataCache.New(i, HASHKEY_LONGLONG((LONGLONG)i), 0, 0), LIST_TAIL, 0);
   }
   s_soundFileDataCache.Clear();
 }
@@ -61,7 +61,7 @@ static SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey) {
 
   s_soundFileDataCache.Unlink(cacheBlock);
 
-  s_soundFileDataCache.Insert(cacheBlock, static_cast<UINT>(hashKey), HASHKEY_LONGLONG(hashKey));
+  s_soundFileDataCache.Insert(cacheBlock, hashKey, HASHKEY_LONGLONG(hashKey));
   s_soundFileDataCacheLRU.LinkNode(cacheBlock, LIST_TAIL, 0);
   return cacheBlock;
 }
@@ -189,12 +189,12 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
 
   while (size) {
     blockStartOffset = object->instances[instanceNumber].currentOffset & ~(CACHE_BLOCK_SIZE - 1);
-    hashKey = static_cast<LONGLONG>(object->hash) << 32;
+    hashKey = (LONGLONG)object->hash << 32;
     if (!bigFile) {
       hashKey |= blockStartOffset;
     }
 
-    SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(static_cast<UINT>(hashKey), HASHKEY_LONGLONG(hashKey));
+    SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(hashKey, HASHKEY_LONGLONG(hashKey));
     needToRead = cacheBlock == 0;
     if (!cacheBlock) {
       cacheBlock = AllocCacheBlock(hashKey);
@@ -215,11 +215,11 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
 
     UINT offsetInBlock = object->instances[instanceNumber].currentOffset & (CACHE_BLOCK_SIZE - 1);
     UINT readSize = CACHE_BLOCK_SIZE - offsetInBlock;
-    if (readSize >= static_cast<UINT>(size)) {
+    if (readSize >= (UINT)size) {
       readSize = size;
     }
 
-    memcpy(static_cast<BYTE *>(buffer) + bytesReadFromCache, cacheBlock->data + offsetInBlock, readSize);
+    memcpy((BYTE *)buffer + bytesReadFromCache, cacheBlock->data + offsetInBlock, readSize);
     object->instances[instanceNumber].currentOffset += readSize;
     size -= readSize;
     bytesReadFromCache += readSize;

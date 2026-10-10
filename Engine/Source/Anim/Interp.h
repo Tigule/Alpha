@@ -573,9 +573,6 @@ class CKeyFrameTrackBase {
   }
 
   UINT NextKeyId(UINT keyId, UINT sequence) const {
-    if (SequenceNeverChanges()) {
-      return keyId == TotalKeys() - 1 ? 0 : keyId + 1;
-    }
     return keyId == LastKeyId(sequence) ? FirstKeyId(sequence) : keyId + 1;
   }
 
@@ -678,32 +675,32 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
 
   CLinearKeyFrame<T> *GetLinearKey(UINT index) {
     ASSERT(KeyFrameSize() == sizeof(CLinearKeyFrame<T>));
-    return &reinterpret_cast<CLinearKeyFrame<T> *>(m_keyFrames)[index];
+    return &((CLinearKeyFrame<T> *)m_keyFrames)[index];
   }
 
   CSplineKeyFrame<T> *GetSplineKey(UINT index) {
     ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
-    return &reinterpret_cast<CSplineKeyFrame<T> *>(m_keyFrames)[index];
+    return &((CSplineKeyFrame<T> *)m_keyFrames)[index];
   }
 
   const CLinearKeyFrame<T> *ToLinearKey(const CKeyFrame *key) const {
     ASSERT((KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) || (KeyFrameSize() == sizeof(CSplineKeyFrame<T>)));
-    return reinterpret_cast<const CLinearKeyFrame<T> *>(key);
+    return (const CLinearKeyFrame<T> *)key;
   }
 
   CLinearKeyFrame<T> *ToLinearKey(CKeyFrame *key) {
     ASSERT((KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) || (KeyFrameSize() == sizeof(CSplineKeyFrame<T>)));
-    return reinterpret_cast<CLinearKeyFrame<T> *>(key);
+    return (CLinearKeyFrame<T> *)key;
   }
 
   const CSplineKeyFrame<T> *ToSplineKey(const CKeyFrame *key) const {
     ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
-    return reinterpret_cast<const CSplineKeyFrame<T> *>(key);
+    return (const CSplineKeyFrame<T> *)key;
   }
 
   CSplineKeyFrame<T> *ToSplineKey(CKeyFrame *key) {
     ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
-    return reinterpret_cast<CSplineKeyFrame<T> *>(key);
+    return (CSplineKeyFrame<T> *)key;
   }
 
  private:
@@ -784,7 +781,7 @@ struct CAnimBoneObj : public CAnimObj {
 inline CAnimBoneObj *AnimObjToBoneObj(CAnimObj *currobj) {
   ASSERT(currobj);
   ASSERT(currobj->type == OBJ_TYPE_BONE);
-  return static_cast<CAnimBoneObj *>(currobj);
+  return (CAnimBoneObj *)currobj;
 }
 
 struct CAnimVisibleObj {
@@ -1092,7 +1089,7 @@ template <class T, class U>
 inline int CKeyFrameTrack<T, U>::InterpolateVolatileFewKeys(const CKeyTrackStatus &keyStat, U *transform) {
   ASSERT(transform);
   const CKeyFrame *currkey = GetKeyFrame(keyStat.currKey);
-  *transform = reinterpret_cast<const CLinearKeyFrame<T> *>(currkey)->transform;
+  *transform = ((const CLinearKeyFrame<T> *)currkey)->transform;
   return 1;
 }
 
@@ -1100,7 +1097,7 @@ template <class T, class U>
 inline int CKeyFrameTrack<T, U>::InterpolateRetainedFewKeys(const CKeyTrackStatus &keyStat, U *transform) {
   ASSERT(transform);
   const CKeyFrame *currkey = GetKeyFrame(keyStat.currKey);
-  *transform = reinterpret_cast<const CLinearKeyFrame<T> *>(currkey)->transform;
+  *transform = ((const CLinearKeyFrame<T> *)currkey)->transform;
   return 1;
 }
 
@@ -1113,7 +1110,7 @@ inline void CKeyFrameTrack<T, U>::Interpolate(const CKeyTrackStatus &keyStat, UI
   float            ratio;
   KEYTYPE          trackType;
   if (timeperkey) {
-    ratio = static_cast<float>(keyStat.timepastkey) / timeperkey;
+    ratio = (float)keyStat.timepastkey / timeperkey;
     trackType = m_trackType;
   } else {
     trackType = KEYTYPE_NOINTERP;

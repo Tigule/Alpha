@@ -13,7 +13,7 @@ CSimpleStatusBar::CSimpleStatusBar(CSimpleFrame *parent)
 }
 
 CSimpleStatusBar::~CSimpleStatusBar() {
-  SetBarTexture(static_cast<CSimpleTexture *>(0), 2);
+  SetBarTexture((CSimpleTexture *)0, 2);
 
   SetOnValueChangedScript(0);
 }

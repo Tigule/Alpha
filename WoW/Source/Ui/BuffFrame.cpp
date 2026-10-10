@@ -222,7 +222,7 @@ UINT CGBuffBar::GetBuffTimeLeftByIndex(int buffIndex) {
   int  auraIndex = GetBuffByIndex(buffIndex)->GetAuraIndex();
   if (auraIndex >= 0) {
     UINT now = OsGetAsyncTimeMs();
-    timeLeft = static_cast<int>(now - m_durations[auraIndex]) >= 0 ? 0 : m_durations[auraIndex] - now;
+    timeLeft = (int)(now - m_durations[auraIndex]) >= 0 ? 0 : m_durations[auraIndex] - now;
   }
   return timeLeft;
 }
@@ -256,7 +256,7 @@ static int Script_GetPlayerBuff(lua_State *L) {
     luaL_error(L, "Usage: GetPlayerBuff(index [, \"filter\"])");
     return 0;
   }
-  int  index = static_cast<int>(lua_tonumber(L, 1));
+  int  index = lua_tonumber(L, 1);
   UINT filter = 7;
   if (lua_isstring(L, 2)) {
     LPCSTR cursor = lua_tostring(L, 2);
@@ -281,9 +281,9 @@ static int Script_GetPlayerBuff(lua_State *L) {
   }
   int               buffIndex = -1;
   const CGBuffDesc *buff = CGBuffBar::GetBuffByFilter(index, filter, buffIndex);
-  lua_pushnumber(L, static_cast<double>(buffIndex));
+  lua_pushnumber(L, buffIndex);
   if (buff) {
-    lua_pushnumber(L, static_cast<double>(buff->GetUntilCancelled()));
+    lua_pushnumber(L, buff->GetUntilCancelled());
   } else {
     lua_pushnumber(L, 0.0);
   }
@@ -295,7 +295,7 @@ static int Script_GetPlayerBuffTexture(lua_State *L) {
     luaL_error(L, "Usage: GetPlayerBuffTexture(buffIndex)");
     return 0;
   }
-  const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(static_cast<int>(lua_tonumber(L, 1)));
+  const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(lua_tonumber(L, 1));
   const SpellRec   *spell = g_spellDB.GetRecord(buff->GetAuraSpell());
   if (!spell) {
     lua_pushnil(L);
@@ -315,7 +315,7 @@ static int Script_GetPlayerBuffTimeLeft(lua_State *L) {
     luaL_error(L, "Usage: GetPlayerBuffTimeLeft(buffIndex)");
     return 0;
   }
-  lua_pushnumber(L, static_cast<double>(CGBuffBar::GetBuffTimeLeftByIndex(static_cast<int>(lua_tonumber(L, 1)))) * 0.001);
+  lua_pushnumber(L, (double)CGBuffBar::GetBuffTimeLeftByIndex(lua_tonumber(L, 1)) * 0.001);
   return 1;
 }
 
@@ -324,7 +324,7 @@ static int Script_CancelPlayerBuff(lua_State *L) {
     luaL_error(L, "Usage: CancelPlayerBuff(buffIndex)");
     return 0;
   }
-  int buffIndex = static_cast<int>(lua_tonumber(L, 1));
+  int buffIndex = lua_tonumber(L, 1);
   if (buffIndex >= 0) {
     const CGBuffDesc *buff = CGBuffBar::GetBuffByIndex(buffIndex);
     if (buff->GetAuraIndex() >= 0) {

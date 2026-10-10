@@ -143,18 +143,18 @@ void ParticleSystemManager::UpdateEmitters(float elapsedTime, const NTempest::C3
 }
 
 void ParticleSystemManager::RenderParticleEmitter(LPVOID param1, int param2) {
-  static_cast<CParticleEmitter *>(param1)->Render();
+  ((CParticleEmitter *)param1)->Render();
 }
 
 void ParticleSystemManager::RenderParticleEmitter2(LPVOID param1, int param2) {
-  static_cast<CParticleEmitter2 *>(param1)->Render();
+  ((CParticleEmitter2 *)param1)->Render();
 }
 
 void ParticleSystemManager::RenderEmitters() {
   UINT index = deletedEmitter2s.Count();
   while (index) {
     CParticleEmitter2 *emitter = deletedEmitter2s[--index];
-    ModelAddToScene(*reinterpret_cast<NTempest::C3Vector *>(&emitter->m_modelToWorld.d0), 0, RenderParticleEmitter2, emitter, 0);
+    ModelAddToScene(*(NTempest::C3Vector *)&emitter->m_modelToWorld.d0, 0, RenderParticleEmitter2, emitter, 0);
   }
 }
 
@@ -235,7 +235,8 @@ CRibbonEmitter *RibbonManager::DuplicateEmitter(const CRibbonEmitter *emitter) {
   VALIDATE(emitter != 0);
   VALIDATEEND;
 
-  CRibbonEmitter *newEmitter = (NEW(CRibbonEmitter)(*emitter))->AddRef();
+  CRibbonEmitter *newEmitter = emitter->Clone();
+  newEmitter->AddRef();
   *emitters.New() = newEmitter;
   return newEmitter;
 }
@@ -259,7 +260,7 @@ void RibbonManager::UpdateEmitters(float elapsedTime, const NTempest::C3Vector &
 }
 
 void RibbonManager::RenderEmitter(LPVOID param1, int param2) {
-  static_cast<CRibbonEmitter *>(param1)->Render();
+  ((CRibbonEmitter *)param1)->Render();
 }
 
 void RibbonManager::RenderEmitters() {

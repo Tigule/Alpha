@@ -409,7 +409,7 @@ void CGGameObject_C_TypeAnimated::UpdateState(int oldState, int newState) {
 void CGGameObject_C_TypeAnimated::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
   FATALASSERT(m_owner);
 
-  UINT event = *reinterpret_cast<const UINT *>(eventName);
+  UINT event = *(const UINT *)eventName;
   switch (event) {
     case '0OG$':
     case '1OG$':
@@ -612,27 +612,29 @@ float CGGameObject_C_Type_MapObjTransport::GetFacing() const {
 }
 
 CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameObject_C *owner)
-    : CGGameObject_C_Type_MapObj(owner), m_position(), m_facing(0.0f) {
+    : CGGameObject_C_Type_MapObj(owner) {
   MovementAddTransport(m_owner);
 
   FLOAT shipSpeed = m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 37));
-  int pathId[2] = {m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 35)), m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 36))};
+  int   pathId[2];
+  pathId[0] = m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 35));
+  pathId[1] = m_owner->GetPropertyValue(CGameObjectDef::GetPropNum(15, 36));
 
   UINT                             count = g_taxiPathNodeDB.GetNumRecords();
   TSStackArray<NTempest::C3Vector> points(_alloca(count * sizeof(NTempest::C3Vector)), count, 0);
-  for (UINT i = 0; i < 2; ++i) {
-    for (UINT j = 0; j < count; ++j) {
-      const TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(j);
-      if (node && node->m_PathID == pathId[i]) {
+  for (UINT j = 0; j < 2; ++j) {
+    for (UINT i = 0; i < count; ++i) {
+      const TaxiPathNodeRec *node = g_taxiPathNodeDB.GetRecordByIndex(i);
+      if (node->m_PathID == pathId[j]) {
         do {
-          points.New(NTempest::C3Vector(node->m_LocX, node->m_LocY, node->m_LocZ));
-          node = g_taxiPathNodeDB.GetRecordByIndex(++j);
-        } while (node && node->m_PathID == pathId[i]);
+          points.New(*(const NTempest::C3Vector *)&node->m_LocX);
+          node = g_taxiPathNodeDB.GetRecordByIndex(++i);
+        } while (node && node->m_PathID == pathId[j]);
         break;
       }
     }
-    m_path[i].SetPoints(points.Ptr(), points.Count());
-    m_tripTime[i] = NTempest::CMath::fint_n(m_path[i].Length() * (1.0f / shipSpeed) * 1000.0f);
+    m_path[j].SetPoints(points.Ptr(), points.Count());
+    m_tripTime[j] = NTempest::CMath::fint_n(m_path[j].Length() * (1.0f / shipSpeed) * 1000.0f);
     points.SetCount(0);
   }
 
@@ -646,9 +648,8 @@ void CGGameObject_C_Type_MapObjTransport::Reenable() {
 
 void CGGameObject_C_Type_MapObjTransport::Disable(int shutdown) {
   DWORD eventTime = OsGetAsyncTimeMs();
-  for (CMovementData *passenger = m_passengers.Head(), *passengernext_node;
-       (int)passenger > 0 ? (passengernext_node = m_passengers.RawNext(passenger), 1) : 0; passenger = passengernext_node) {
-    CMovement *movement = static_cast<CMovement *>(passenger);
+  SAFEITERATELIST(CMovementData, m_passengers, passenger) {
+    CMovement *movement = (CMovement *)passenger;
     if (passenger->GetGUID() == ClntObjMgrGetActivePlayer()) {
       movement->OnFallLocal(eventTime);
     } else {
@@ -670,12 +671,12 @@ void CGGameObject_C_Type_MapObjTransport::UpdateMovement(DWORD eventTime, float)
   if (time < 20000) {
     m_path[0].Frame(0.0f, matrix, NTempest::C3Spline::EVAL_ARCLENGTH);
   } else if (time < m_tripTime[0] + 20000) {
-    float t = static_cast<float>(time - 20000) / m_tripTime[0];
+    float t = (float)(time - 20000) / m_tripTime[0];
     m_path[0].Frame(t, matrix, NTempest::C3Spline::EVAL_ARCLENGTH);
   } else if (time < m_tripTime[0] + 40000) {
     m_path[1].Frame(0.0f, matrix, NTempest::C3Spline::EVAL_ARCLENGTH);
   } else {
-    float t = static_cast<float>(time - m_tripTime[0] - 40000) / m_tripTime[1];
+    float t = (float)(time - m_tripTime[0] - 40000) / m_tripTime[1];
     m_path[1].Frame(t, matrix, NTempest::C3Spline::EVAL_ARCLENGTH);
   }
 
@@ -697,11 +698,13 @@ void CGGameObject_C_Type_MapObjTransport::UpdateMovement(DWORD eventTime, float)
 
 void CGGameObject_C_Type_MapObjTransport::AddPassenger(CMovementData *passenger) {
   FATALASSERT(passenger);
+  passenger->transportLink.Unlink();
   m_passengers.LinkNode(passenger, LIST_TAIL, 0);
+  DWORD eventTime = OsGetAsyncTimeMs();
   CMovement::LogWrite(
       "0x%016I64X: Attaching to transport (0x%016I64X) at "
       "position(%g,%g).  Synced time is (0x%08X)",
-      passenger->m_guid, m_owner->GetGUID(), m_position.x, m_position.y, m_position.z, OsGetAsyncTimeMs() + m_owner->m_serverTimeOffset
+      passenger->m_guid, m_owner->GetGUID(), m_position.x, m_position.y, m_position.z, m_owner->m_serverTimeOffset + eventTime
   );
 }
 
@@ -771,7 +774,7 @@ int CGGameObject_C::GetPageTextLanguage() const {
 }
 
 int CGGameObject_C::GetPageTextMaterial() const {
-  CGGameObject_C *object = const_cast<CGGameObject_C *>(this);
+  CGGameObject_C *object = (CGGameObject_C *)this;
   int             prop = CGameObjectDef::GetPropNum(object->GetType(), 17);
   return object->GetPropertyValue(prop);
 }
@@ -851,9 +854,8 @@ void CGGameObject_C_Type_Transport::ModelJustLoaded() {
 
 void CGGameObject_C_Type_Transport::Disable(int) {
   DWORD eventTime = OsGetAsyncTimeMs();
-  for (CMovementData *passenger = m_passengers.Head(), *passengernext_node;
-       (int)passenger > 0 ? (passengernext_node = m_passengers.RawNext(passenger), 1) : 0; passenger = passengernext_node) {
-    CMovement *movement = static_cast<CMovement *>(passenger);
+  SAFEITERATELIST(CMovementData, m_passengers, passenger) {
+    CMovement *movement = (CMovement *)passenger;
     if (passenger->GetGUID() == ClntObjMgrGetActivePlayer()) {
       movement->OnFallLocal(eventTime);
     } else {
@@ -902,27 +904,23 @@ UINT CGGameObject_C_Type_Transport::NextKeyID() const {
   return m_currKey + 1 == m_numKeys ? 0 : m_currKey + 1;
 }
 
-NTempest::C3Vector CGGameObject_C_Type_Transport::GetMovement(UINT eventTime) {
+NTempest::C3Vector CGGameObject_C_Type_Transport::GetMovement(UINT time) {
   FATALASSERT(m_numKeys > 1);
 
-  UINT                         time = (eventTime + m_owner->m_serverTimeOffset) % m_keys[m_numKeys - 1].m_TimeIndex;
+  time = (m_owner->m_serverTimeOffset + time) % m_keys[m_numKeys - 1].m_TimeIndex;
   UINT                         nextKeyID = NextKeyID();
   const TransportAnimationRec *key = &m_keys[m_currKey];
   const TransportAnimationRec *nextKey = &m_keys[nextKeyID];
-  while (time < static_cast<UINT>(key->m_TimeIndex) || time >= static_cast<UINT>(nextKey->m_TimeIndex)) {
+  while (time < (UINT)key->m_TimeIndex || time >= (UINT)nextKey->m_TimeIndex) {
     m_currKey = nextKeyID;
     nextKeyID = NextKeyID();
     key = &m_keys[m_currKey];
     nextKey = &m_keys[nextKeyID];
   }
 
-  float                   ratio = static_cast<float>(time - key->m_TimeIndex) / static_cast<float>(nextKey->m_TimeIndex - key->m_TimeIndex);
-  NTempest::C4Quaternion *rotation = &m_owner->m_gameObj->m_rotation;
-  return NTempest::C33Matrix(*rotation) * NTempest::C3Vector(
-                                              key->m_PosX * (1.0f - ratio) + nextKey->m_PosX * ratio,
-                                              key->m_PosY * (1.0f - ratio) + nextKey->m_PosY * ratio,
-                                              key->m_PosZ * (1.0f - ratio) + nextKey->m_PosZ * ratio
-                                          );
+  float                   ratio = (float)(time - key->m_TimeIndex) / (UINT)(nextKey->m_TimeIndex - key->m_TimeIndex);
+  NTempest::C33Matrix rotation(m_owner->m_gameObj->m_rotation);
+  return ((1.0f - ratio) * *(const NTempest::C3Vector *)&key->m_PosX + ratio * *(const NTempest::C3Vector *)&nextKey->m_PosX) * rotation;
 }
 
 void CGGameObject_C_Type_Transport::AddPassenger(CMovementData *passenger) {
@@ -987,14 +985,14 @@ static void GameObjectStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, b
 
 static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
   FATALASSERT(param);
-  CGGameObject_C_TypeBase *obj = static_cast<CGGameObject_C *>(param)->m_baseObj;
+  CGGameObject_C_TypeBase *obj = ((CGGameObject_C *)param)->m_baseObj;
   FATALASSERT(obj);
   obj->HandleAnimEvent(eventName, position);
 }
 
 static BOOL AnimFinishedCallback(LPVOID param) {
   FATALASSERT(param);
-  CGGameObject_C_TypeBase *obj = static_cast<CGGameObject_C *>(param)->m_baseObj;
+  CGGameObject_C_TypeBase *obj = ((CGGameObject_C *)param)->m_baseObj;
   FATALASSERT(obj);
   obj->HandleAnimFinished();
   return 1;
@@ -1004,7 +1002,7 @@ static BOOL OnUpdateState(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
   CGGameObject_C *gameObj = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(gameObj);
   FATALASSERT(gameObj->m_baseObj);
-  gameObj->m_baseObj->UpdateState(*static_cast<const int *>(prevValue), gameObj->GetState());
+  gameObj->m_baseObj->UpdateState(*(const int *)prevValue, gameObj->GetState());
   return 1;
 }
 
@@ -1482,7 +1480,7 @@ void CGGameObject_C::ActivateCustomAnim(UINT anim) {
 
 BOOL CGGameObject_C::IsTransport() const {
   FATALASSERT(m_stats);
-  UINT type = *reinterpret_cast<const UINT *>(m_stats);
+  UINT type = *(const UINT *)m_stats;
   return type == 11 || type == 15;
 }
 

@@ -144,13 +144,13 @@ void CGTabardModelFrame::CycleVariation(UINT index, int delta) {
 }
 
 static int CGTabardModelFrame_Save(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   object->SaveTabard();
   return 0;
 }
 
 static int CGTabardModelFrame_CanSave(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   if (object->CanSaveTabard()) {
     lua_pushnumber(L, 1.0);
   } else {
@@ -160,22 +160,22 @@ static int CGTabardModelFrame_CanSave(lua_State *L) {
 }
 
 static int CGTabardModelFrame_CycleVariation(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3)) {
     luaL_error(L, "Usage: CycleVariation(variationIndex, delta)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 2)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 2) - 1;
   if (index >= 5) {
     luaL_error(L, "Invalid variationIndex in CycleVariation");
     return 0;
   }
-  object->CycleVariation(index, static_cast<int>(lua_tonumber(L, 3)));
+  object->CycleVariation(index, lua_tonumber(L, 3));
   return 0;
 }
 
 static int CGTabardModelFrame_GetUpperBackgroundFileName(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   char string[MAX_PATH];
   GetTabardBackgroundFileName(5, object->GetVariation(4), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -183,7 +183,7 @@ static int CGTabardModelFrame_GetUpperBackgroundFileName(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetLowerBackgroundFileName(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   char string[MAX_PATH];
   GetTabardBackgroundFileName(6, object->GetVariation(4), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -191,7 +191,7 @@ static int CGTabardModelFrame_GetLowerBackgroundFileName(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetUpperEmblemFileName(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   char string[MAX_PATH];
   GetTabardEmblemFileName(5, object->GetVariation(0), object->GetVariation(1), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -199,7 +199,7 @@ static int CGTabardModelFrame_GetUpperEmblemFileName(lua_State *L) {
 }
 
 static int CGTabardModelFrame_GetLowerEmblemFileName(lua_State *L) {
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   char string[MAX_PATH];
   GetTabardEmblemFileName(6, object->GetVariation(0), object->GetVariation(1), string, MAX_PATH);
   lua_pushstring(L, string);
@@ -211,7 +211,7 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
     luaL_error(L, "Usage: GetUpperEmblemTexture(textureName)");
     return 0;
   }
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   CSimpleTexture *texture = SimpleTextureRegistryGetEntry(lua_tostring(L, 2), 0);
   if (!texture) {
     luaL_error(L, "Invalid texture name in GetUpperEmblemTexture");
@@ -235,7 +235,7 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
     UINT  stride;
     if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
       for (UINT i = 0; i < pixels.Count(); ++i) {
-        pixels[i].Set(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
+        pixels[i].Set(0x00FFFFFF | ((DWORD)imageData[4 * i + 3] << 24));
       }
     }
     image.Unlock(0);
@@ -253,7 +253,7 @@ static int CGTabardModelFrame_GetUpperEmblemTexture(lua_State *L) {
 static void EmblemTextureUpdate(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch) {
     texelStrideInBytes = 4 * w;
-    texels = static_cast<TSFixedArray<NTempest::CImVector> *>(userArg)->Ptr();
+    texels = ((TSFixedArray<NTempest::CImVector> *)userArg)->Ptr();
   }
 }
 
@@ -262,7 +262,7 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
     luaL_error(L, "Usage: GetLowerEmblemTexture(textureName)");
     return 0;
   }
-  CGTabardModelFrame *object = static_cast<CGTabardModelFrame *>(FrameScript_GetObjectThis(L));
+  CGTabardModelFrame *object = (CGTabardModelFrame *)FrameScript_GetObjectThis(L);
   CSimpleTexture *texture = SimpleTextureRegistryGetEntry(lua_tostring(L, 2), 0);
   if (!texture) {
     luaL_error(L, "Invalid texture name in GetLowerEmblemTexture");
@@ -286,7 +286,7 @@ static int CGTabardModelFrame_GetLowerEmblemTexture(lua_State *L) {
     UINT  stride;
     if (image.Lock(PIXEL_ARGB8888, 0, imageData, stride)) {
       for (UINT i = 0; i < pixels.Count(); ++i) {
-        pixels[i].Set(0x00FFFFFF | (static_cast<DWORD>(imageData[4 * i + 3]) << 24));
+        pixels[i].Set(0x00FFFFFF | ((DWORD)imageData[4 * i + 3] << 24));
       }
     }
     image.Unlock(0);

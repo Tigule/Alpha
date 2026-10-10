@@ -7,21 +7,21 @@
 #include <lua.h>
 
 static int CSimpleHTML_SetText(lua_State *L) {
-  CSimpleHTML *object = static_cast<CSimpleHTML *>(FrameScript_GetObjectThis(L));
+  CSimpleHTML *object = (CSimpleHTML *)FrameScript_GetObjectThis(L);
 
   object->SetText(lua_tostring(L, 2), 0);
   return 0;
 }
 
 static int CSimpleHTML_SetTextColor(lua_State *L) {
-  CSimpleHTML *object = static_cast<CSimpleHTML *>(FrameScript_GetObjectThis(L));
+  CSimpleHTML *object = (CSimpleHTML *)FrameScript_GetObjectThis(L);
 
-  float red = static_cast<float>(lua_tonumber(L, 2));
-  float green = static_cast<float>(lua_tonumber(L, 3));
-  float blue = static_cast<float>(lua_tonumber(L, 4));
+  float red = lua_tonumber(L, 2);
+  float green = lua_tonumber(L, 3);
+  float blue = lua_tonumber(L, 4);
   float alpha = 1.0f;
   if (lua_isnumber(L, 5)) {
-    alpha = static_cast<float>(lua_tonumber(L, 5));
+    alpha = lua_tonumber(L, 5);
   }
 
   NTempest::CImVector color;

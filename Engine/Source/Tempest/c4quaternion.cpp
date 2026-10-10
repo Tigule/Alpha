@@ -26,7 +26,7 @@ namespace NTempest {
       y = (r.a2 - r.c0) * root;
       z = (r.b0 - r.a1) * root;
     } else {
-      const float (*r_)[3] = reinterpret_cast<const float (*)[3]>(&r);
+      const float (*r_)[3] = (const float ( *)[3])&r;
       long i = 0;
       ASSERT(r_[0][0] == r.a0 && r_[1][1] == r.b1 && r_[2][2] == r.c2);
       if (r.b1 > r.a0) {
@@ -62,16 +62,17 @@ namespace NTempest {
   void C4Quaternion::ToAngleAxis(float &angle, C3Vector &axis) const {
     float len2 = x * x + y * y + z * z;
     if (len2 > 0.0f) {
-      angle = 2.0f * static_cast<float>(acos(w));
+      float halfAngle = CMath::acos_(w);
+      angle = halfAngle * 2.0f;
       float inverseLength = 1.0f / CMath::sqrt_(len2);
       axis.x = x * inverseLength;
       axis.y = y * inverseLength;
       axis.z = z * inverseLength;
     } else {
-      angle = 0.0f;
       axis.x = 1.0f;
-      axis.y = 0.0f;
       axis.z = 0.0f;
+      axis.y = 0.0f;
+      angle = 0.0f;
     }
   }
 
@@ -101,7 +102,7 @@ namespace NTempest {
 
   C4Quaternion C4Quaternion::Log() const {
     if (CMath::fabs_(w) < 1.0f) {
-      float angle = static_cast<float>(acos(w));
+      float angle = acos(w);
       float sine = CMath::sin_(angle);
       if (CMath::fabs_(sine) >= 0.00000047683716f) {
         float coeff = angle / sine;
@@ -124,7 +125,7 @@ namespace NTempest {
       return p;
     }
 
-    float angle = static_cast<float>(atan2(s, c));
+    float angle = atan2(s, c);
     float coef0 = CMath::sin_((1.0f - t) * angle) * (1.0f / s);
     float endScale = CMath::sin_(t * angle) * (1.0f / s) * sign;
     return C4Quaternion(endScale * q.w + coef0 * p.w, endScale * q.x + coef0 * p.x, endScale * q.y + coef0 * p.y, endScale * q.z + coef0 * p.z);

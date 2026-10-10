@@ -145,7 +145,7 @@ void CCharSelectInfo::ClearPetModel() {
 }
 
 CHARACTER_INFO *CCharSelectInfo::GetSelectedCharacterInfo() {
-  if (m_selectionIndex < 0 || m_selectionIndex >= static_cast<int>(s_charList.Count())) {
+  if (m_selectionIndex < 0 || m_selectionIndex >= (int)s_charList.Count()) {
     return 0;
   }
 
@@ -181,7 +181,7 @@ void CCharSelectInfo::GuildCallback(int guildID, const DWORDLONG &guid, LPVOID a
       SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "g_guildInfoCache.GetRecord(guildID)", FALSE);
     }
 
-    for (int index = 0; index < static_cast<int>(s_charList.Count()); ++index) {
+    for (int index = 0; index < (int)s_charList.Count(); ++index) {
       if (s_charList[index].m_characterInfo.guildID == guildID) {
         s_charList[index].UpdateTabardTexture();
       }
@@ -396,7 +396,7 @@ void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType) {
 }
 
 void CCharSelectInfo::UpdateCharacterInfo() {
-  if (m_selectionIndex < 0 || m_selectionIndex >= static_cast<int>(s_charList.Count())) {
+  if (m_selectionIndex < 0 || m_selectionIndex >= (int)s_charList.Count()) {
     return;
   }
 
@@ -419,7 +419,7 @@ void CCharSelectInfo::UpdateCharacterInfo() {
 }
 
 void CCharSelectInfo::ChangeSkinTexture() {
-  if (m_selectionIndex < 0 && m_selectionIndex >= static_cast<int>(s_charList.Count())) {
+  if (m_selectionIndex < 0 && m_selectionIndex >= (int)s_charList.Count()) {
     return;
   }
   s_charList[m_selectionIndex].ChangeSkinTexture();
@@ -428,7 +428,7 @@ void CCharSelectInfo::ChangeSkinTexture() {
 void CCharSelectInfo::SelectCharacter(int index) {
   index = index < 0 ? 0 : index;
 
-  if (index >= static_cast<int>(s_charList.Count())) {
+  if (index >= (int)s_charList.Count()) {
     index = 0;
   }
 
@@ -450,7 +450,7 @@ static int Script_SetCharSelectModelFrame(lua_State *L) {
 
   CSimpleFrame *frame = SimpleFrameRegistryGetEntry(lua_tostring(L, 1), 0);
   if (frame) {
-    CCharSelectInfo::SetModelFrame(static_cast<CSimpleModel *>(frame));
+    CCharSelectInfo::SetModelFrame((CSimpleModel *)frame);
   }
 
   return 0;
@@ -474,7 +474,7 @@ static int Script_GetCharacterListUpdate(lua_State *) {
 }
 
 static int Script_GetNumCharacters(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CCharSelectInfo::GetNumCharacters()));
+  lua_pushnumber(L, CCharSelectInfo::GetNumCharacters());
   return 1;
 }
 
@@ -484,7 +484,7 @@ static int Script_GetCharacterInfo(lua_State *L) {
     return 0;
   }
 
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0 || index >= CCharSelectInfo::GetNumCharacters()) {
     lua_pushnil(L);
     lua_pushnil(L);
@@ -503,7 +503,7 @@ static int Script_GetCharacterInfo(lua_State *L) {
 
   const ChrClassesRec *playerClass = g_chrClassesDB.GetRecord(info.m_characterInfo.classID);
   lua_pushstring(L, playerClass ? playerClass->m_name_lang[CURRENT_LANGUAGE] : "");
-  lua_pushnumber(L, static_cast<double>(info.m_characterInfo.experienceLevel));
+  lua_pushnumber(L, info.m_characterInfo.experienceLevel);
 
   const AreaTableRec *area = g_areaTableDB.GetRecord(info.m_characterInfo.zoneID);
   if (area) {
@@ -521,7 +521,7 @@ static int Script_SelectCharacter(lua_State *L) {
     return 0;
   }
 
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < -1 || index >= CCharSelectInfo::GetNumCharacters()) {
     index = -1;
   }
@@ -536,7 +536,7 @@ static int Script_DeleteCharacter(lua_State *L) {
     return 0;
   }
 
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index >= 0 && index < CCharSelectInfo::GetNumCharacters()) {
     CGlueMgr::DeleteCharacter(s_charList[index].m_characterInfo.guid);
   }

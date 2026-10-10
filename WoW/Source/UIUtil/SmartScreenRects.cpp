@@ -266,7 +266,7 @@ static UINT SelectNewSearchPattern(UINT hitFlags) {
 static int CalculateMaxTraversals(const NTempest::CRect &rect) {
   ASSERT(rect.t > rect.b);
   ASSERT(rect.r > rect.l);
-  return (static_cast<int>(DEVICE_HEIGHT / (rect.t - rect.b)) + 1) * (static_cast<int>(DEVICE_WIDTH / (rect.r - rect.l)) + 1);
+  return ((int)(DEVICE_HEIGHT / (rect.t - rect.b)) + 1) * ((int)(DEVICE_WIDTH / (rect.r - rect.l)) + 1);
 }
 
 typedef NTempest::CRect (*RECTTEST)(SCREENRECTGRIDS, NTempest::CRect);
@@ -426,8 +426,8 @@ void SmartScreenRectClearAllGrids() {
 }
 
 void SmartScreenRectGridPos(SCREENRECTGRIDS grid, NTempest::CRect &rect) {
-  const float totalHeight = static_cast<float>(fabs(rect.b - rect.t));
-  const float halfWidth = static_cast<float>(fabs(rect.r - rect.l)) * 0.5f;
+  const float totalHeight = fabs(rect.b - rect.t);
+  const float halfWidth = (float)fabs(rect.r - rect.l) * 0.5f;
   const float halfHeight = totalHeight * 0.5f;
 
   ClipRect(rect);

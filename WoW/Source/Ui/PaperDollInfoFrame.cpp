@@ -162,7 +162,7 @@ void CGCharacterInfo::PickupItem(int slot) {
   }
 
   if (cursorItem) {
-    if (cursorItem == itemGUID) {
+    if (itemGUID == cursorItem) {
       CGGameUI::ClearCursor(1);
       return;
     }
@@ -335,8 +335,8 @@ void CGCharacterInfo::UpdateAllSkillLines() {
 static int __cdecl QSortCompareByCategoryAndLevel(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  const SkillLineRec *skill1 = *static_cast<const SkillLineRec *const *>(a);
-  const SkillLineRec *skill2 = *static_cast<const SkillLineRec *const *>(b);
+  const SkillLineRec *skill1 = *(const SkillLineRec *const *)a;
+  const SkillLineRec *skill2 = *(const SkillLineRec *const *)b;
   if (skill1->m_skillType == skill2->m_skillType) {
     if (skill1->m_minCharLevel <= s_qsortLevel && skill2->m_minCharLevel <= s_qsortLevel) {
       if (skill1->m_categoryID == skill2->m_categoryID) {
@@ -458,8 +458,8 @@ static const ItemSubClassRec *FindItemSubClassRecord(int classID, int subClassID
 static int __cdecl QSortCompareProficiency(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  const ProficiencyInfo *info1 = static_cast<const ProficiencyInfo *>(a);
-  const ProficiencyInfo *info2 = static_cast<const ProficiencyInfo *>(b);
+  const ProficiencyInfo *info1 = (const ProficiencyInfo *)a;
+  const ProficiencyInfo *info2 = (const ProficiencyInfo *)b;
   if (info1->minLevel == info2->minLevel) {
     return 0;
   }
@@ -474,7 +474,7 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
     const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
     if (rec->m_classID >= 0 && rec->m_classID < 16 && (rec->m_displayName_lang[CURRENT_LANGUAGE] || *rec->m_displayName_lang[CURRENT_LANGUAGE])) {
       FATALASSERT(numProfs < 24);
-      UINT proficiency = CGPlayer_C::GetProficiency(static_cast<BYTE>(rec->m_classID));
+      UINT proficiency = CGPlayer_C::GetProficiency(rec->m_classID);
       if (proficiency && (proficiency & (1 << rec->m_subClassID)) &&
           (rec->m_classID != 4 || !(proficiency & (1 << rec->m_postrequisiteProficiency))))
       {
@@ -505,7 +505,7 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
         }
         qsort(orderedSlots, count, sizeof(ProficiencyInfo), QSortCompareProficiency);
         for (i = 0; i < count; ++i) {
-          UINT proficiency = CGPlayer_C::GetProficiency(static_cast<BYTE>(proficiencyRec->m_proficiency_itemClass[orderedSlots[i].slot]));
+          UINT proficiency = CGPlayer_C::GetProficiency(proficiencyRec->m_proficiency_itemClass[orderedSlots[i].slot]);
           UINT bit;
           for (bit = 0; bit < 32; ++bit) {
             if ((proficiencyRec->m_proficiency_itemSubClassMask[orderedSlots[i].slot] & (1 << bit)) && !(proficiency & (1 << bit))) {
@@ -557,7 +557,7 @@ int CGCharacterInfo::GetSkillOffsetFromString(LPCSTR string, int &offset) {
 }
 
 const SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
-  if (index >= 0 && static_cast<UINT>(index) < 93) {
+  if (index >= 0 && (UINT)index < 93) {
     return &m_skillInfoList[index];
   }
   return 0;
@@ -565,7 +565,7 @@ const SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
 
 static BOOL GetSlotFromLua(lua_State *L, int &slot, int index) {
   if (lua_isnumber(L, index)) {
-    int value = static_cast<int>(lua_tonumber(L, index)) - 1;
+    int value = (int)lua_tonumber(L, index) - 1;
     if (value >= 0 && value <= 22 || value >= 39 && value <= 62 || value >= 63 && value <= 68) {
       slot = value;
       return 1;
@@ -606,7 +606,7 @@ static int Script_GetInventoryItemTexture(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     CGItem_C *item =
-        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(((CGPlayer_C *)unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
     if (item) {
       LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
       LPCSTR separator = *path ? "\\" : "";
@@ -633,13 +633,13 @@ static int Script_GetInventoryItemCount(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     CGItem_C *item =
-        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(((CGPlayer_C *)unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
     if (item) {
       if (item->IsA(ID_CONTAINER) && item->GetClassID() == 11) {
-        lua_pushnumber(L, static_cast<double>(max(item->GetBag()->GetItemTypeCount(-1, 0), 0)));
+        lua_pushnumber(L, max(item->GetBag()->GetItemTypeCount(-1, 0), 0));
         return 1;
       }
-      lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
+      lua_pushnumber(L, item->GetStackCount());
       return 1;
     }
   }
@@ -660,10 +660,10 @@ static int Script_GetInventoryItemQuality(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     CGItem_C *item =
-        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(((CGPlayer_C *)unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
     if (item) {
       const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
-      lua_pushnumber(L, static_cast<double>(stats && stats->m_inventoryType ? stats->m_overallQualityID : -1));
+      lua_pushnumber(L, stats && stats->m_inventoryType ? stats->m_overallQualityID : -1);
       return 1;
     }
   }
@@ -684,13 +684,13 @@ static int Script_GetInventoryItemCooldown(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     CGItem_C *item =
-        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(((CGPlayer_C *)unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
     if (item) {
       DWORD startTime = 0;
       UINT  duration = 0;
       Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
-      lua_pushnumber(L, static_cast<double>(startTime) * 0.001);
-      lua_pushnumber(L, static_cast<double>(duration) * 0.001);
+      lua_pushnumber(L, (double)startTime * 0.001);
+      lua_pushnumber(L, (double)duration * 0.001);
       lua_pushnumber(L, 1.0);
       return 3;
     }
@@ -714,7 +714,7 @@ static int Script_GetInventoryItemLink(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     CGItem_C *item =
-        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
+        static_cast<CGItem_C *>(ClntObjMgrObjectPtr(((CGPlayer_C *)unit)->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__));
     if (item) {
       const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
       if (stats) {
@@ -765,11 +765,11 @@ static int Script_IsInventoryItemLocked(lua_State *L) {
 }
 
 static int Script_GetSkillLineInfo(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumClassSkills()));
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumSpecSkills()));
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumRacialSkills()));
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumSecondarySkills()));
-  lua_pushnumber(L, static_cast<double>(CGCharacterInfo::GetNumProficiencies()));
+  lua_pushnumber(L, CGCharacterInfo::GetNumClassSkills());
+  lua_pushnumber(L, CGCharacterInfo::GetNumSpecSkills());
+  lua_pushnumber(L, CGCharacterInfo::GetNumRacialSkills());
+  lua_pushnumber(L, CGCharacterInfo::GetNumSecondarySkills());
+  lua_pushnumber(L, CGCharacterInfo::GetNumProficiencies());
   return 5;
 }
 
@@ -777,12 +777,12 @@ static int Script_GetSkillByIndex(lua_State *L) {
   if (lua_isstring(L, 1)) {
     int offset = 0;
     if (CGCharacterInfo::GetSkillOffsetFromString(lua_tostring(L, 1), offset) && lua_isnumber(L, 2)) {
-      offset += static_cast<int>(lua_tonumber(L, 2));
+      offset += (int)lua_tonumber(L, 2);
       const SkillInfo *info = CGCharacterInfo::GetSkillInfoByIndex(offset);
       if (info) {
         if (info->isProf) {
           lua_pushstring(L, info->profName);
-          lua_pushnumber(L, static_cast<double>(info->profLevel));
+          lua_pushnumber(L, info->profLevel);
           lua_pushnumber(L, 0.0);
           lua_pushnumber(L, 0.0);
           lua_pushnumber(L, 0.0);
@@ -790,13 +790,13 @@ static int Script_GetSkillByIndex(lua_State *L) {
           const SkillLineRec *skill = g_skillLineDB.GetRecord(info->skillID);
           if (skill) {
             lua_pushstring(L, skill->m_displayName_lang[CURRENT_LANGUAGE]);
-            lua_pushnumber(L, static_cast<double>(skill->m_minCharLevel));
+            lua_pushnumber(L, skill->m_minCharLevel);
             CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
             if (player) {
               int skillIndex = player->GetSkillIndex(info->skillID);
-              lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillRank(skillIndex)));
-              lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillModifier(skillIndex)));
-              lua_pushnumber(L, static_cast<double>(player->GetMirrorSkillMaxRank(skillIndex)));
+              lua_pushnumber(L, player->GetMirrorSkillRank(skillIndex));
+              lua_pushnumber(L, player->GetMirrorSkillModifier(skillIndex));
+              lua_pushnumber(L, player->GetMirrorSkillMaxRank(skillIndex));
             } else {
               lua_pushnumber(L, 0.0);
               lua_pushnumber(L, 0.0);
@@ -882,14 +882,8 @@ static int Script_ShowInventorySellCursor(lua_State *L) {
 }
 
 static int Script_SetInventoryPortaitTexture(lua_State *L) {
-  if (lua_type(L, 1) != LUA_TTABLE) {
-    return luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
-  }
-  lua_rawgeti(L, 1, 0);
-  CSimpleTexture *texture = static_cast<CSimpleTexture *>(lua_touserdata(L, -1));
-  lua_pop(L, 1);
-  FATALASSERT(texture);
-  texture->SetTexture(static_cast<HTEXTURE__ *>(0));
+  CSimpleTexture *texture = (CSimpleTexture *)FrameScript_GetObjectThis(L);
+  texture->SetTexture(0);
 
   int slot = 0;
   if (!lua_isstring(L, 2)) {
@@ -901,7 +895,7 @@ static int Script_SetInventoryPortaitTexture(lua_State *L) {
     return 0;
   }
   CGUnit_C   *unit = Script_GetUnitFromName(lua_tostring(L, 1));
-  CGPlayer_C *player = unit && unit->IsA(ID_PLAYER) ? static_cast<CGPlayer_C *>(unit) : 0;
+  CGPlayer_C *player = unit && unit->IsA(ID_PLAYER) ? (CGPlayer_C *)unit : 0;
   CGItem_C   *item = player ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(player->CGPlayer_C::GetBag()->GetItem(slot), __FILE__, __LINE__)) : 0;
   if (item) {
     LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -926,13 +920,13 @@ static int Script_GetGuildInfo(lua_State *L) {
   }
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(unit);
+    CGPlayer_C *player = (CGPlayer_C *)unit;
     int         guildID = player->GetGuildID();
     if (guildID) {
       const GuildStats_C *guild = g_guildInfoCache.GetRecord(guildID, player->GetGUID(), GuildNameCallback, 0);
       if (guild) {
         lua_pushstring(L, guild->m_guildName);
-        lua_pushnumber(L, static_cast<double>(player->GetGuildRank()));
+        lua_pushnumber(L, player->GetGuildRank());
         return 2;
       }
     }

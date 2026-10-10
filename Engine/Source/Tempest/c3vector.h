@@ -33,7 +33,7 @@ namespace NTempest {
     C3Vector(const C2Vector &a) : x(a.x), y(a.y), z(0.0f) {
     }
 
-    C3Vector(const C3iVector &a) : x(static_cast<float>(a.x)), y(static_cast<float>(a.y)), z(static_cast<float>(a.z)) {
+    C3Vector(const C3iVector &a) : x((float)a.x), y((float)a.y), z((float)a.z) {
     }
 
     ~C3Vector() {
@@ -57,7 +57,7 @@ namespace NTempest {
     }
 
     operator C2Vector() const {
-      return *reinterpret_cast<const C2Vector *>(this);
+      return *(const C2Vector *)this;
     }
 
     C3Vector &operator+=(const C3Vector &a) {
@@ -143,7 +143,7 @@ namespace NTempest {
     }
 
     void Normalize() {
-      float ooMag = 1.0f / Mag();
+      float ooMag = CMath::hypotinv_(x, y, z);
 
       x *= ooMag;
       y *= ooMag;
@@ -256,7 +256,7 @@ namespace NTempest {
   CDataStore &operator<<(CDataStore &store, const C3Vector &vector);
 
   inline C3iVector::C3iVector(const C3Vector &vector)
-      : x(static_cast<long>(vector.x)), y(static_cast<long>(vector.y)), z(static_cast<long>(vector.z)) {
+      : x((long)vector.x), y((long)vector.y), z((long)vector.z) {
   }
 
 }  // namespace NTempest

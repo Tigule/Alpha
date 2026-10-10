@@ -136,7 +136,7 @@ namespace NTempest {
       return x * x + y * y + z * z;
     }
     long Mag() const {
-      return static_cast<long>(sqrt(static_cast<double>(SquaredMag())));
+      return (long)sqrt((double)SquaredMag());
     }
     long SumC() const {
       return x + y + z;

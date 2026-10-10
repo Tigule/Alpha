@@ -12,7 +12,7 @@ struct THREADSTART {
 };
 
 static LPVOID ThreadProc(LPVOID param) {
-  THREADSTART start = *static_cast<THREADSTART *>(param);
+  THREADSTART start = *(THREADSTART *)param;
 
   SMemFree(param, __FILE__, __LINE__, 0);
   start.proc(start.param);
@@ -25,7 +25,7 @@ LPVOID SCreateThread(DWORD stackSize, STHREADPROC proc, LPVOID param, DWORD flag
   pthread_t      thread;
   THREADSTART   *start;
 
-  start = static_cast<THREADSTART *>(SMemAlloc(sizeof(THREADSTART), __FILE__, __LINE__, 0));
+  start = (THREADSTART *)SMemAlloc(sizeof(THREADSTART), __FILE__, __LINE__, 0);
   start->proc = proc;
   start->param = param;
 
@@ -41,7 +41,7 @@ LPVOID SCreateThread(DWORD stackSize, STHREADPROC proc, LPVOID param, DWORD flag
   }
 
   if (threadId) {
-    *threadId = static_cast<UINT>(reinterpret_cast<uintptr_t>(thread));
+    *threadId = (UINT)((uintptr_t)thread);
   }
 
   return thread;

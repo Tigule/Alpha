@@ -128,7 +128,7 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 
   attrib = &m_attrib[textType];
 
-  if (!static_cast<LPCSTR>(attrib->m_font)) {
+  if (!(LPCSTR)attrib->m_font) {
     attrib = &m_attrib[HTML_TEXT_NORMAL];
   }
 
@@ -148,7 +148,7 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 
   for (child = node->GetChild(); child; child = child->GetSibling()) {
     if (!SStrCmpI(child->GetName(), "BR", 0x7FFFFFFF)) {
-      char *newText = static_cast<char *>(ALLOC(SStrLen(text) + 2));
+      char *newText = (char *)ALLOC(SStrLen(text) + 2);
       UINT  childOffset = child->GetParentBodyOffset() + offset;
 
       SStrCopy(newText, text, childOffset + 1);
@@ -165,7 +165,7 @@ void CSimpleHTML::ParseP(const XMLNode *node, HTML_TEXT_TYPE textType, CStatus *
 
       if (body && *body && link && *link) {
         extralen = SStrLen(link) + SStrLen(body) + 6;
-        char *newText = static_cast<char *>(ALLOC(SStrLen(text) + extralen + 1));
+        char *newText = (char *)ALLOC(SStrLen(text) + extralen + 1);
         UINT  childOffset = child->GetParentBodyOffset() + offset;
 
         SStrCopy(newText, text, childOffset + 2);

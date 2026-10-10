@@ -59,7 +59,7 @@ class CGGameObject {
   static UINT GetUpdateMaskBlocks();
 
   void  SetStorage(DWORD *storage) {
-    m_gameObj = reinterpret_cast<CGGameObjectData *>(storage);
+    m_gameObj = (CGGameObjectData *)storage;
   }
 
   const CGGameObjectData *GameObject() const {

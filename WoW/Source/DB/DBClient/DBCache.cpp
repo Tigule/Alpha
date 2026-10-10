@@ -37,10 +37,10 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
     return 0;
   }
 
-  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
+  entry = m_table.Ptr((UINT)id, HASHKEY(id));
   if (!entry) {
     if (cb) {
-      entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
+      entry = m_table.New((UINT)id, HASHKEY(id), 0, 0);
       entry->m_dbkey = id;
       callbackEntry = entry->m_callbacks.NewNode(LIST_TAIL, 0, 0);
       callbackEntry->m_callback = cb;
@@ -87,7 +87,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::DenyItem(KEY key) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<UINT>(key), HASHKEY(key));
+  entry = m_table.Ptr((UINT)key, HASHKEY(key));
   if (!entry) {
     return;
   }
@@ -103,9 +103,9 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::AddItem(RECORD *item, KEY key) {
   DBCACHEHASH *obj;
 
-  obj = m_table.Ptr(static_cast<UINT>(key), HASHKEY(key));
+  obj = m_table.Ptr((UINT)key, HASHKEY(key));
   if (!obj) {
-    obj = m_table.New(static_cast<UINT>(key), HASHKEY(key), 0, 0);
+    obj = m_table.New((UINT)key, HASHKEY(key), 0, 0);
   }
 
   obj->m_record = *item;
@@ -140,7 +140,7 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
       id &= 0x7FFFFFFF;
     }
 
-    entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
+    entry = m_table.Ptr((UINT)id, HASHKEY(id));
     if (invalid) {
       if (entry) {
         ITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
@@ -154,7 +154,7 @@ void DBCache<RECORD, KEY, HASHKEY>::AddItems(CDataStore *msg, bool single) {
     }
 
     if (!entry) {
-      entry = m_table.New(static_cast<UINT>(id), HASHKEY(id), 0, 0);
+      entry = m_table.New((UINT)id, HASHKEY(id), 0, 0);
     }
 
     entry->m_record.Unpack(msg);
@@ -173,7 +173,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC cb, LPVOID cbArg) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
+  entry = m_table.Ptr((UINT)id, HASHKEY(id));
   if (!entry) {
     return;
   }
@@ -218,7 +218,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
     return;
   }
 
-  CDataStore header(reinterpret_cast<BYTE *>(data), HeaderSize);
+  CDataStore header(data, HeaderSize);
   header.Get(tag);
   ASSERT(tag == m_fileTag);
   if (tag != m_fileTag) {
@@ -250,7 +250,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
     OsReadFile(file, data, sizeof(DWORD) + sizeof(KEY), &bytesRead);
     ASSERT(bytesRead == sizeof(DWORD) + sizeof(KEY));
 
-    CDataStore itemHdr(reinterpret_cast<BYTE *>(data), sizeof(DWORD) + sizeof(KEY));
+    CDataStore itemHdr(data, sizeof(DWORD) + sizeof(KEY));
     itemHdr.Get(itemId);
     itemHdr.Get(itemSize);
     if (!itemId) {
@@ -264,10 +264,10 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
       break;
     }
 
-    CDataStore rec(reinterpret_cast<BYTE *>(data), itemSize);
-    entry = m_table.Ptr(static_cast<UINT>(itemId), HASHKEY(itemId));
+    CDataStore rec(data, itemSize);
+    entry = m_table.Ptr((UINT)itemId, HASHKEY(itemId));
     if (!entry) {
-      entry = m_table.New(static_cast<UINT>(itemId), HASHKEY(itemId), 0, 0);
+      entry = m_table.New((UINT)itemId, HASHKEY(itemId), 0, 0);
     }
 
     entry->m_record.Unpack(&rec);
@@ -300,9 +300,9 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   CDataStore store;
   LPVOID     ptr;
 
-  store.Put(static_cast<int>(m_fileTag));
+  store.Put((int)m_fileTag);
   store.Put(3368);
-  store.Put(static_cast<int>(sizeof(RECORD)));
+  store.Put((int)sizeof(RECORD));
   store.Put(RECORD::Version());
   store.Finalize();
   store.GetDataInSitu(ptr, store.Size());
@@ -339,7 +339,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::Invalidate(KEY id) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
+  entry = m_table.Ptr((UINT)id, HASHKEY(id));
   if (!entry) {
     return;
   }
@@ -361,7 +361,7 @@ template <class RECORD, class KEY, class HASHKEY>
 void DBCache<RECORD, KEY, HASHKEY>::SetTemporary(KEY id) {
   DBCACHEHASH *entry;
 
-  entry = m_table.Ptr(static_cast<UINT>(id), HASHKEY(id));
+  entry = m_table.Ptr((UINT)id, HASHKEY(id));
   if (entry) {
     entry->m_temp = true;
   }

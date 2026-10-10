@@ -152,11 +152,11 @@ class CGPlayer {
 
 
   void SetStorage(DWORD *storage) {
-    m_plyr = reinterpret_cast<CGPlayerData *>(storage);
+    m_plyr = (CGPlayerData *)storage;
   }
 
  protected:
-  explicit CGPlayer(DWORD *storage) : m_plyr(reinterpret_cast<CGPlayerData *>(storage)) {
+  explicit CGPlayer(DWORD *storage) : m_plyr((CGPlayerData *)storage) {
   }
 
   ~CGPlayer() {

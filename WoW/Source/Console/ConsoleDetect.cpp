@@ -205,13 +205,13 @@ void SaveHardware(const Hardware &hardware, bool &changed) {
 
   changed = false;
 
-  if (SRegLoadValue(REGKEY, HWCPUIDX, 0, reinterpret_cast<DWORD *>(&cpuIdx)) &&
-      SRegLoadValue(REGKEY, HWMEMIDX, 0, reinterpret_cast<DWORD *>(&memIdx)) &&
-      SRegLoadValue(REGKEY, HWVIDEOIDX, 0, reinterpret_cast<DWORD *>(&videoIdx)) &&
-      SRegLoadValue(REGKEY, HWSOUNDIDX, 0, reinterpret_cast<DWORD *>(&soundIdx)))
+  if (SRegLoadValue(REGKEY, HWCPUIDX, 0, (DWORD *)&cpuIdx) &&
+      SRegLoadValue(REGKEY, HWMEMIDX, 0, (DWORD *)&memIdx) &&
+      SRegLoadValue(REGKEY, HWVIDEOIDX, 0, (DWORD *)&videoIdx) &&
+      SRegLoadValue(REGKEY, HWSOUNDIDX, 0, (DWORD *)&soundIdx))
   {
-    if (hardware.cpuIdx != static_cast<UINT>(cpuIdx) || hardware.videoIdx != static_cast<UINT>(videoIdx) ||
-        hardware.soundIdx != static_cast<UINT>(soundIdx) || hardware.memIdx != static_cast<UINT>(memIdx))
+    if (hardware.cpuIdx != (UINT)cpuIdx || hardware.videoIdx != (UINT)videoIdx ||
+        hardware.soundIdx != (UINT)soundIdx || hardware.memIdx != (UINT)memIdx)
     {
       if (!OsGuiMessageBox(OsGuiGetWindow(2), 2, "Hardware changed.  Reload default settings?", "")) {
         changed = true;

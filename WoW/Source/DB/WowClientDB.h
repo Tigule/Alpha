@@ -46,9 +46,9 @@ class WowClientDB {
       FATALERROR(("%s has wrong row size (found %i, expected %i)", RECORD::GetFilename(), rowSize, RECORD::GetRowSize()));
     }
     SFileReadTyped(f, &stringSize);
-    m_records = reinterpret_cast<RECORD *>(new (__FILE__, __LINE__) char[sizeof(RECORD) * m_numRecords + stringSize]);
+    m_records = (RECORD *)(new (__FILE__, __LINE__) char[sizeof(RECORD) * m_numRecords + stringSize]);
 
-    stringBuffer = reinterpret_cast<char *>(m_records + m_numRecords);
+    stringBuffer = (char *)(m_records + m_numRecords);
     m_maxID = 0;
     for (int i = 0; i < m_numRecords; ++i) {
       new (&m_records[i]) RECORD;

@@ -51,8 +51,8 @@ void CGCharacterModelBase::UpdateModel() {
   ConfigureCamera();
 
   if (!(m_flags & 0x4) && m_camera) {
-    DataMgrGetCoord(reinterpret_cast<HDATAMGR>(m_camera), 7, &cameraPos);
-    DataMgrGetCoord(reinterpret_cast<HDATAMGR>(m_camera), 8, &cameraTarg);
+    DataMgrGetCoord(m_camera, 7, &cameraPos);
+    DataMgrGetCoord(m_camera, 8, &cameraTarg);
   }
 
   if (m_onUpdateModel) {
@@ -72,10 +72,10 @@ void CGCharacterModelBase::ConfigureCamera() {
     ModelGetBounds(m_model, &bounds);
 
     HCAMERA camera = CameraCreate();
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 4, 0.5f);
-    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 8, bounds.c, 0);
-    DataMgrSetCoord(reinterpret_cast<HDATAMGR>(camera), 7, NTempest::C3Vector(5.5555558f, 0.0f, 2.4166667f), 0);
-    DataMgrSetFloat(reinterpret_cast<HDATAMGR>(camera), 3, 0.027777778f);
+    DataMgrSetFloat(camera, 4, 0.5f);
+    DataMgrSetCoord(camera, 8, bounds.c, 0);
+    DataMgrSetCoord(camera, 7, NTempest::C3Vector(5.5555558f, 0.0f, 2.4166667f), 0);
+    DataMgrSetFloat(camera, 3, 0.027777778f);
     SetCamera(camera);
     HandleClose(camera);
   }
@@ -114,7 +114,7 @@ CGCharacterModelBase::CGCharacterModelBase(CSimpleFrame *parent) : CSimpleModel(
 }
 
 static int Script_SetUnit(lua_State *L) {
-  CGCharacterModelBase *object = static_cast<CGCharacterModelBase *>(FrameScript_GetObjectThis(L));
+  CGCharacterModelBase *object = (CGCharacterModelBase *)FrameScript_GetObjectThis(L);
   if (!lua_isstring(L, 2)) {
     luaL_error(L, "Usage: SetUnit(\"unit\")");
     return 0;
@@ -124,17 +124,17 @@ static int Script_SetUnit(lua_State *L) {
 }
 
 static int Script_UpdateModel(lua_State *L) {
-  CGCharacterModelBase *object = static_cast<CGCharacterModelBase *>(FrameScript_GetObjectThis(L));
+  CGCharacterModelBase *object = (CGCharacterModelBase *)FrameScript_GetObjectThis(L);
   object->UpdateModel();
   return 0;
 }
 
 static int Script_SetRotation(lua_State *L) {
-  CGCharacterModelBase *object = static_cast<CGCharacterModelBase *>(FrameScript_GetObjectThis(L));
+  CGCharacterModelBase *object = (CGCharacterModelBase *)FrameScript_GetObjectThis(L);
   if (!lua_isnumber(L, 2)) {
     return luaL_error(L, "Usage: SetRotation(rotation (in radians))");
   }
-  object->SetRotationScale(static_cast<float>(lua_tonumber(L, 2)));
+  object->SetRotationScale(lua_tonumber(L, 2));
   return 0;
 }
 

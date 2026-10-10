@@ -88,12 +88,12 @@ static void ProjectTexRenderVerticesPN(const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPN *vertices = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
-      vertices = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
+      vertices = (CGxVertexPN *)GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices));
       *cmd.vertex.mem[GxVM_Position] = &vertices->p;
       *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
       break;
     case GxBufOp_Fill:
-      vertices = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
+      vertices = (CGxVertexPN *)*cmd.vertex.mem[GxVM_Position];
       break;
     case GxBufOp_Nop:
       FATALASSERT(0);
@@ -111,12 +111,12 @@ static void ProjectTexRenderVerticesPC(const CGxBufCommand &cmd, CGxBuf *buf) {
   CGxVertexPC *vertices = 0;
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
-      vertices = static_cast<CGxVertexPC *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
+      vertices = (CGxVertexPC *)GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices));
       *cmd.vertex.mem[GxVM_Position] = &vertices->p;
       *cmd.vertex.mem[GxVM_Color] = &vertices->c;
       break;
     case GxBufOp_Fill:
-      vertices = static_cast<CGxVertexPC *>(*cmd.vertex.mem[GxVM_Position]);
+      vertices = (CGxVertexPC *)*cmd.vertex.mem[GxVM_Position];
       break;
     case GxBufOp_Nop:
       FATALASSERT(0);
@@ -134,11 +134,11 @@ static void ProjectTexRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
   WORD *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Assign:
-      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
+      indices = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(*indices));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
     case GxBufOp_Fill:
-      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      indices = (WORD *)*cmd.index.mem[GxVM_Indices];
       break;
     case GxBufOp_Nop:
       FATALASSERT(0);
@@ -208,7 +208,7 @@ void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const 
       NTempest::C44Matrix batchMtx = *batch.matrix * worldMtx;
       GxXformSet(GxXform_World, batchMtx);
       gxBuf->CountSet(batch.GetVertexCount(), batch.GetIndexCount());
-      s_batch = const_cast<CWTriData::Batch *>(&batch);
+      s_batch = (CWTriData::Batch *)&batch;
       GxBufLock(gxBuf);
       CGxBatch gxBatch(GxPrim_Triangles, batch.GetIndexCount(), 0, -1, -1);
       GxBufRender(gxBatch);
@@ -264,10 +264,10 @@ static void ShadowRender_LOD1(HMODEL hModel, const NTempest::C44Matrix &basis, L
   NTempest::C44Matrix sunTexMat(undoScaleMat * basisRotMat * shadowScaleMat);
 
   NTempest::CImVector shadowColor = DayNightGetInfo()->shadowClr;
-  shadowColor.a = static_cast<BYTE>(shadowColor.a * SHADOW_ALPHA_SCALE > 255.0f ? 255.0f : shadowColor.a * SHADOW_ALPHA_SCALE);
-  shadowColor.r = static_cast<BYTE>(shadowColor.r * 0.65f);
-  shadowColor.g = static_cast<BYTE>(shadowColor.g * 0.65f);
-  shadowColor.b = static_cast<BYTE>(shadowColor.b * 0.65f);
+  shadowColor.a = shadowColor.a * SHADOW_ALPHA_SCALE > 255.0f ? 255.0f : shadowColor.a * SHADOW_ALPHA_SCALE;
+  shadowColor.r = shadowColor.r * 0.65f;
+  shadowColor.g = shadowColor.g * 0.65f;
+  shadowColor.b = shadowColor.b * 0.65f;
 
   GxRsPush();
   GxRsSet(GxRs_Blend, GxBlend_Alpha);
@@ -286,7 +286,7 @@ static void s_ProjFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLev
         texelStrideInBytes = w * sizeof(NTempest::CImVector);
         texels = s_texels.Ptr();
 
-        UINT fadeCount = static_cast<UINT>(w * 0.05f);
+        UINT fadeCount = w * 0.05f;
         UINT fadeBase = w - fadeCount - 1;
         for (UINT y = 0; y < h; ++y) {
           NTempest::CImVector *tex = s_texels.Ptr() + y * w;
@@ -294,7 +294,7 @@ static void s_ProjFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLev
             if (x == 0 || x == w - 1) {
               tex[x] = NTempest::CImVector(0, 255, 255, 255);
             } else if (x >= fadeBase) {
-              tex[x] = NTempest::CImVector(static_cast<BYTE>((1.0f - static_cast<float>(x - fadeBase) / fadeCount) * 255.0f), 255, 255, 255);
+              tex[x] = NTempest::CImVector((1.0f - (float)(x - fadeBase) / fadeCount) * 255.0f, 255, 255, 255);
             } else {
               tex[x] = NTempest::CImVector(255, 255, 255, 255);
             }
@@ -319,7 +319,7 @@ static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLev
         for (UINT y = 0; y < h; ++y) {
           NTempest::CImVector *tex = s_texels.Ptr() + y * w;
           for (UINT x = 0; x < w; ++x) {
-            float position = static_cast<float>(x) / static_cast<float>(w - 1) * 12.0f;
+            float position = (float)x / (float)(w - 1) * 12.0f;
             float alpha;
             if (position < 2.0f) {
               alpha = position * 0.5f;
@@ -328,7 +328,7 @@ static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLev
             } else {
               alpha = __max((12.0f - position) * 0.5f, 0.0f);
             }
-            tex[x] = NTempest::CImVector(static_cast<BYTE>(alpha * 255.0f), 255, 255, 255);
+            tex[x] = NTempest::CImVector(alpha * 255.0f, 255, 255, 255);
           }
         }
       }

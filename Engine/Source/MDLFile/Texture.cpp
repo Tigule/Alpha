@@ -20,8 +20,8 @@ struct TOKENFLAG {
 };
 
 static TOKENFLAG s_textureFlags[2] = {
-    {0x1, 0x1DD},
-    {0x2, 0x1DC}
+    {0x1, MDLTOK_WRAPWIDTH},
+    {0x2, MDLTOK_WRAPHEIGHT}
 };
 
 static void IWriteTextureFlags(UINT flags, TSGrowableArray<char> &buffer) {
@@ -40,10 +40,10 @@ static void IReadFilename(Parser &parse, char *dest) {
 }
 
 static void IAddBitmapErrors(TSet &errors) {
-  errors.Add(0x15C, 1, 0);
-  errors.Add(0x1DD, 0, 0);
-  errors.Add(0x1DC, 0, 0);
-  errors.Add(0x1AA, 0, 0);
+  errors.Add(MDLTOK_IMAGE, 1, 0);
+  errors.Add(MDLTOK_WRAPWIDTH, 0, 0);
+  errors.Add(MDLTOK_WRAPHEIGHT, 0, 0);
+  errors.Add(MDLTOK_REPLACEABLE_ID, 0, 0);
 }
 
 static void IReadBitmap(Parser &parse, MDLTEXTURESECTION *bitmap, CMDLStatus *status) {
@@ -52,24 +52,27 @@ static void IReadBitmap(Parser &parse, MDLTEXTURESECTION *bitmap, CMDLStatus *st
   parse.Expect('{');
 
   LPCSTR tokentext;
-  UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
+  UINT   token;
+  for (token = parse.Token(&tokentext, 0); token != '}'; token = parse.Token(&tokentext, 0)) {
+    if (!token) {
+      break;
+    }
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
     }
 
     switch (token) {
-      case 0x15C:
+      case MDLTOK_IMAGE:
         IReadFilename(parse, bitmap->image);
         break;
-      case 0x1AA:
+      case MDLTOK_REPLACEABLE_ID:
         bitmap->replaceableId = parse.ExpectInt();
         break;
-      case 0x1DC:
-        bitmap->flags |= 2;
-        break;
-      case 0x1DD:
+      case MDLTOK_WRAPWIDTH:
         bitmap->flags |= 1;
+        break;
+      case MDLTOK_WRAPHEIGHT:
+        bitmap->flags |= 2;
         break;
       default:
         parse.FatalUnexpected(tokentext);
@@ -77,7 +80,6 @@ static void IReadBitmap(Parser &parse, MDLTEXTURESECTION *bitmap, CMDLStatus *st
     }
 
     parse.Expect(',');
-    token = parse.Token(&tokentext, 0);
   }
 
   parse.Expect('}', token, tokentext);
@@ -85,10 +87,10 @@ static void IReadBitmap(Parser &parse, MDLTEXTURESECTION *bitmap, CMDLStatus *st
 }
 
 static void IWriteTexture(const MDLTEXTURESECTION &texture, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x12D));
-  MDL::WriteLine(buffer, "\t\t%s \"%s\",\n", MDL::TokenText(0x15C), static_cast<LPCSTR>(texture.image));
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_BITMAP));
+  MDL::WriteLine(buffer, "\t\t%s \"%s\",\n", MDL::TokenText(MDLTOK_IMAGE), (LPCSTR)texture.image);
   if (texture.replaceableId) {
-    MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(0x1AA), texture.replaceableId);
+    MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(MDLTOK_REPLACEABLE_ID), texture.replaceableId);
   }
   IWriteTextureFlags(texture.flags, buffer);
   MDL::WriteLine(buffer, "\t}\n");
@@ -107,10 +109,10 @@ namespace MDL {
 
     long actual = 0;
     savedtoken = parse.Token(&tokentext, 0);
-    while (savedtoken == 0x12D) {
+    while (savedtoken == MDLTOK_BITMAP) {
       MDLTEXTURESECTION *texture = data.textures.New();
       texture->replaceableId = 0;
-      static_cast<char *>(texture->image)[0] = 0;
+      ((char *)texture->image)[0] = 0;
       texture->flags = 0;
       IReadBitmap(parse, texture, status);
       ++actual;
@@ -129,9 +131,10 @@ namespace MDL {
     VALIDATE((numTextures > 0) || (data.bones.Count() == 0));
     VALIDATEEND;
     if (numTextures) {
-      WriteLine(buffer, "%s %d {\n", TokenText(0x108), numTextures);
-      for (UINT i = 0; i < numTextures; ++i) {
-        IWriteTexture(data.textures.Ptr()[i], buffer);
+      WriteLine(buffer, "%s %d {\n", TokenText(MDLTOK_TEXTURES), numTextures);
+      const MDLTEXTURESECTION *texture = data.textures.Ptr();
+      for (UINT i = numTextures; i; --i, ++texture) {
+        IWriteTexture(*texture, buffer);
       }
       WriteLine(buffer, "}\n");
     }
@@ -149,11 +152,11 @@ namespace MDL {
 
     length /= 268;
     data.textures.SetCount(length);
-    for (UINT i = 0; i < length; ++i) {
-      MDLTEXTURESECTION &texture = data.textures.Ptr()[i];
-      texture.replaceableId = buf.GetUint();
-      buf.GetTcharArray(texture.image, 260);
-      texture.flags = buf.GetUint();
+    MDLTEXTURESECTION *texture = data.textures.Ptr();
+    for (UINT i = length; i; --i, ++texture) {
+      texture->replaceableId = buf.GetUint();
+      buf.GetTcharArray(texture->image, 260);
+      texture->flags = buf.GetUint();
     }
     return 1;
   }
@@ -166,11 +169,11 @@ namespace MDL {
     if (numTextures) {
       buf.AddDword('SXET');
       buf.AddUint(268 * numTextures);
-      for (UINT i = 0; i < numTextures; ++i) {
-        const MDLTEXTURESECTION &texture = data.textures.Ptr()[i];
-        buf.AddUint(texture.replaceableId);
-        buf.AddTcharArray(texture.image, 260, 1);
-        buf.AddUint(texture.flags);
+      const MDLTEXTURESECTION *texture = data.textures.Ptr();
+      for (UINT i = numTextures; i; --i, ++texture) {
+        buf.AddUint(texture->replaceableId);
+        buf.AddTcharArray(texture->image, 260, 1);
+        buf.AddUint(texture->flags);
       }
     }
     return 1;

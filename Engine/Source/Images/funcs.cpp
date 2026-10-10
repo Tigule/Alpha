@@ -73,11 +73,11 @@ UINT CalcLevelCount(UINT width, UINT height) {
 MipBits *MippedImgAllocA(UINT fourCC, UINT width, UINT height, LPCSTR fileName, int lineNumber) {
   UINT     levelCount = CalcLevelCount(width, height);
   UINT     levelDataSize = CalcLevelOffset(levelCount, width, height, fourCC);
-  MipBits *ptr = static_cast<MipBits *>(SMemAlloc(levelDataSize + 4 * levelCount, fileName, lineNumber, 0));
+  MipBits *ptr = (MipBits *)SMemAlloc(levelDataSize + 4 * levelCount, fileName, lineNumber, 0);
   UINT     offset = 0;
   UINT     level;
   for (level = 0; level < levelCount; ++level) {
-    ptr[level].mip[0] = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(&ptr->mip[levelCount]) + offset);
+    ptr[level].mip[0] = (C4Pixel *)((BYTE *)&ptr->mip[levelCount] + offset);
     offset += CalcLevelSize(level, width, height, fourCC);
   }
   ASSERT(offset == levelDataSize);
@@ -96,7 +96,7 @@ void MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits) {
   UINT offset = 0;
   UINT level;
   for (level = 0; level < levelCount; ++level) {
-    bits[level].mip[0] = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(&bits->mip[levelCount]) + offset);
+    bits[level].mip[0] = (C4Pixel *)((BYTE *)&bits->mip[levelCount] + offset);
     offset += CalcLevelSize(level, width, height, fourCC);
   }
   ASSERT(offset == levelDataSize);
@@ -137,15 +137,15 @@ void FullShrink(C4Pixel *dest, UINT destWidth, UINT destHeight, const C4Pixel so
       if (weighted.a) {
         UINT scale = yScale * xScale;
         ASSERT(yScale * xScale);
-        result.r = static_cast<BYTE>(weighted.r / weighted.a);
-        result.g = static_cast<BYTE>(weighted.g / weighted.a);
-        result.b = static_cast<BYTE>(weighted.b / weighted.a);
-        result.a = static_cast<BYTE>(weighted.a / scale);
+        result.r = weighted.r / weighted.a;
+        result.g = weighted.g / weighted.a;
+        result.b = weighted.b / weighted.a;
+        result.a = weighted.a / scale;
       } else {
         result.a = 0;
-        result.r = static_cast<BYTE>(unweighted.r / unweighted.a);
-        result.g = static_cast<BYTE>(unweighted.g / unweighted.a);
-        result.b = static_cast<BYTE>(unweighted.b / unweighted.a);
+        result.r = unweighted.r / unweighted.a;
+        result.g = unweighted.g / unweighted.a;
+        result.b = unweighted.b / unweighted.a;
       }
 
       *dest++ = result;

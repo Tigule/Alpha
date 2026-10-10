@@ -12,6 +12,7 @@
 
 #include <Base/Handle.h>
 #include <Base/Status.h>
+#include <Model/IModel.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <Tempest/cimvector.h>
@@ -20,6 +21,22 @@
 #include <storm.h>
 
 #include <malloc.h>
+
+HMODEL ModelCreateSimpleMesh(
+    LPCSTR                    name,
+    UINT                      numVertices,
+    const NTempest::C3Vector *position,
+    const NTempest::C3Vector *normal,
+    const NTempest::C2Vector *texCoord,
+    EGxPrim                   primitiveType,
+    const WORD               *primitiveVertices,
+    UINT                      numPrimVertices,
+    HTEXTURE                  texture,
+    EGxBlend                  blendMode,
+    UINT                      disables,
+    NTempest::CImVector       color,
+    UINT                      replaceableId
+);
 
 static HTEXTURE                  s_texture;
 static C4Pixel                   s_textureData[512 * 512];
@@ -32,8 +49,6 @@ static LONGLONG                  s_currentReachable;
 static LONGLONG                  s_knownNodes;
 static HTEXTURE                  s_solidColor;
 static TSGrowableArray<TAXILINE> s_lines;
-
-#include <Model/ModelInternal.h>
 
 static void FixupRegionRect(NTempest::CRect &rect) {
   float xSlide = 0.0f;
@@ -129,7 +144,7 @@ static void GenerateRouteInfo(LONGLONG allNodes, int currentContinent) {
   }
 
   for (i = 0; i < 64U; ++i) {
-    LONGLONG mask = static_cast<LONGLONG>(1) << i;
+    LONGLONG mask = (LONGLONG)1 << i;
     if (allNodes & mask) {
       const TaxiNodesRec *node = g_taxiNodesDB.GetRecord(i + 1);
       if (!node || node->m_ContinentID != currentContinent) {
@@ -142,7 +157,7 @@ static void GenerateRouteInfo(LONGLONG allNodes, int currentContinent) {
   memset(grid, 0, sizeof(grid));
   for (i = g_taxiPathDB.GetNumRecords(); i--;) {
     const TaxiPathRec *path = g_taxiPathDB.GetRecordByIndex(i);
-    LONGLONG           mask = (static_cast<LONGLONG>(1) << (path->m_FromTaxiNode - 1)) | (static_cast<LONGLONG>(1) << (path->m_ToTaxiNode - 1));
+    LONGLONG           mask = ((LONGLONG)1 << (path->m_FromTaxiNode - 1)) | ((LONGLONG)1 << (path->m_ToTaxiNode - 1));
     if ((allNodes & mask) == mask) {
       int src = min(path->m_FromTaxiNode, path->m_ToTaxiNode);
       int dst = max(path->m_FromTaxiNode, path->m_ToTaxiNode);
@@ -290,7 +305,7 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
     return TAXINODE_CURRENT;
   }
 
-  LONGLONG mask = static_cast<LONGLONG>(1) << (nodeID - 1);
+  LONGLONG mask = (LONGLONG)1 << (nodeID - 1);
   if (s_currentReachable & mask) {
     return TAXINODE_REACHABLE;
   }
@@ -339,7 +354,7 @@ HMODEL TaxiGetRouteModel(float width, float height) {
     texCoords[i * 2 + 1] = bot;
   }
 
-  for (WORD index = 0; index < static_cast<WORD>(numVertices); ++index) {
+  for (WORD index = 0; index < (WORD)numVertices; ++index) {
     primVerts[index] = index;
   }
 

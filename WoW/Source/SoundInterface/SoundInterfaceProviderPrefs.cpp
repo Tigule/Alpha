@@ -41,52 +41,50 @@ static float InterpFloat(float progress, float start, float end) {
 }
 
 static int InterpInt(float progress, int start, int end) {
-  return static_cast<int>((static_cast<float>(end) - static_cast<float>(start)) * progress + static_cast<float>(start));
+  return ((float)end - (float)start) * progress + (float)start;
 }
 
 void SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
-  if (static_cast<int>(data->time) > static_cast<int>(s_providerPrefFadeEndTime)) {
+  if ((int)data->time > (int)s_providerPrefFadeEndTime) {
     s_currentProviderDesc = s_targetProviderDesc;
     StopWorldIdleHandler();
-    Sound::SetReverbProperties(&s_currentProviderDesc);
-    return;
-  }
-
-  float progress = 0.0f;
-  if (s_providerPrefFadeDuration) {
-    progress = static_cast<float>(static_cast<int>(data->time - s_providerPrefFadeStartTime)) / static_cast<int>(s_providerPrefFadeDuration);
   } else {
-    progress = 1.0f;
+    float progress = 0.0f;
+    if (s_providerPrefFadeDuration) {
+      progress = (float)(int)(data->time - s_providerPrefFadeStartTime) / s_providerPrefFadeDuration;
+    } else {
+      progress = 1.0f;
+    }
+
+    progress = min(max(progress, 0.0f), 1.0f);
+
+    s_currentProviderDesc.DecayTime = InterpFloat(progress, s_startProviderDesc.DecayTime, s_targetProviderDesc.DecayTime);
+    s_currentProviderDesc.EnvSize = InterpFloat(progress, s_startProviderDesc.EnvSize, s_targetProviderDesc.EnvSize);
+    s_currentProviderDesc.EnvDiffusion = InterpFloat(progress, s_startProviderDesc.EnvDiffusion, s_targetProviderDesc.EnvDiffusion);
+    s_currentProviderDesc.Room = InterpInt(progress, s_startProviderDesc.Room, s_targetProviderDesc.Room);
+    s_currentProviderDesc.RoomHF = InterpInt(progress, s_startProviderDesc.RoomHF, s_targetProviderDesc.RoomHF);
+    s_currentProviderDesc.DecayHFRatio = InterpFloat(progress, s_startProviderDesc.DecayHFRatio, s_targetProviderDesc.DecayHFRatio);
+    s_currentProviderDesc.Reflections = InterpInt(progress, s_startProviderDesc.Reflections, s_targetProviderDesc.Reflections);
+    s_currentProviderDesc.ReflectionsDelay = InterpFloat(progress, s_startProviderDesc.ReflectionsDelay, s_targetProviderDesc.ReflectionsDelay);
+    s_currentProviderDesc.Reverb = InterpInt(progress, s_startProviderDesc.Reverb, s_targetProviderDesc.Reverb);
+    s_currentProviderDesc.ReverbDelay = InterpFloat(progress, s_startProviderDesc.ReverbDelay, s_targetProviderDesc.ReverbDelay);
+    s_currentProviderDesc.RoomRolloffFactor = InterpFloat(progress, s_startProviderDesc.RoomRolloffFactor, s_targetProviderDesc.RoomRolloffFactor);
+    s_currentProviderDesc.AirAbsorptionHF = InterpFloat(progress, s_startProviderDesc.AirAbsorptionHF, s_targetProviderDesc.AirAbsorptionHF);
+    s_currentProviderDesc.RoomLF = InterpInt(progress, s_startProviderDesc.RoomLF, s_targetProviderDesc.RoomLF);
+    s_currentProviderDesc.DecayLFRatio = InterpFloat(progress, s_startProviderDesc.DecayLFRatio, s_targetProviderDesc.DecayLFRatio);
+    s_currentProviderDesc.EchoTime = InterpFloat(progress, s_startProviderDesc.EchoTime, s_targetProviderDesc.EchoTime);
+    s_currentProviderDesc.EchoDepth = InterpFloat(progress, s_startProviderDesc.EchoDepth, s_targetProviderDesc.EchoDepth);
+    s_currentProviderDesc.ModulationTime = InterpFloat(progress, s_startProviderDesc.ModulationTime, s_targetProviderDesc.ModulationTime);
+    s_currentProviderDesc.ModulationDepth = InterpFloat(progress, s_startProviderDesc.ModulationDepth, s_targetProviderDesc.ModulationDepth);
+    s_currentProviderDesc.HFReference = InterpFloat(progress, s_startProviderDesc.HFReference, s_targetProviderDesc.HFReference);
+    s_currentProviderDesc.LFReference = InterpFloat(progress, s_startProviderDesc.LFReference, s_targetProviderDesc.LFReference);
   }
-
-  progress = min(max(progress, 0.0f), 1.0f);
-
-  s_currentProviderDesc.DecayTime = InterpFloat(progress, s_startProviderDesc.DecayTime, s_targetProviderDesc.DecayTime);
-  s_currentProviderDesc.EnvSize = InterpFloat(progress, s_startProviderDesc.EnvSize, s_targetProviderDesc.EnvSize);
-  s_currentProviderDesc.EnvDiffusion = InterpFloat(progress, s_startProviderDesc.EnvDiffusion, s_targetProviderDesc.EnvDiffusion);
-  s_currentProviderDesc.Room = InterpInt(progress, s_startProviderDesc.Room, s_targetProviderDesc.Room);
-  s_currentProviderDesc.RoomHF = InterpInt(progress, s_startProviderDesc.RoomHF, s_targetProviderDesc.RoomHF);
-  s_currentProviderDesc.DecayHFRatio = InterpFloat(progress, s_startProviderDesc.DecayHFRatio, s_targetProviderDesc.DecayHFRatio);
-  s_currentProviderDesc.Reflections = InterpInt(progress, s_startProviderDesc.Reflections, s_targetProviderDesc.Reflections);
-  s_currentProviderDesc.ReflectionsDelay = InterpFloat(progress, s_startProviderDesc.ReflectionsDelay, s_targetProviderDesc.ReflectionsDelay);
-  s_currentProviderDesc.Reverb = InterpInt(progress, s_startProviderDesc.Reverb, s_targetProviderDesc.Reverb);
-  s_currentProviderDesc.ReverbDelay = InterpFloat(progress, s_startProviderDesc.ReverbDelay, s_targetProviderDesc.ReverbDelay);
-  s_currentProviderDesc.RoomRolloffFactor = InterpFloat(progress, s_startProviderDesc.RoomRolloffFactor, s_targetProviderDesc.RoomRolloffFactor);
-  s_currentProviderDesc.AirAbsorptionHF = InterpFloat(progress, s_startProviderDesc.AirAbsorptionHF, s_targetProviderDesc.AirAbsorptionHF);
-  s_currentProviderDesc.RoomLF = InterpInt(progress, s_startProviderDesc.RoomLF, s_targetProviderDesc.RoomLF);
-  s_currentProviderDesc.DecayLFRatio = InterpFloat(progress, s_startProviderDesc.DecayLFRatio, s_targetProviderDesc.DecayLFRatio);
-  s_currentProviderDesc.EchoTime = InterpFloat(progress, s_startProviderDesc.EchoTime, s_targetProviderDesc.EchoTime);
-  s_currentProviderDesc.EchoDepth = InterpFloat(progress, s_startProviderDesc.EchoDepth, s_targetProviderDesc.EchoDepth);
-  s_currentProviderDesc.ModulationTime = InterpFloat(progress, s_startProviderDesc.ModulationTime, s_targetProviderDesc.ModulationTime);
-  s_currentProviderDesc.ModulationDepth = InterpFloat(progress, s_startProviderDesc.ModulationDepth, s_targetProviderDesc.ModulationDepth);
-  s_currentProviderDesc.HFReference = InterpFloat(progress, s_startProviderDesc.HFReference, s_targetProviderDesc.HFReference);
-  s_currentProviderDesc.LFReference = InterpFloat(progress, s_startProviderDesc.LFReference, s_targetProviderDesc.LFReference);
 
   Sound::SetReverbProperties(&s_currentProviderDesc);
 }
 
 static BOOL WorldIdleHandler(LPCVOID dataPtr, LPVOID param) {
-  SndInterfaceFadeProviderPrefs(static_cast<const EVENT_DATA_IDLE *>(dataPtr));
+  SndInterfaceFadeProviderPrefs((const EVENT_DATA_IDLE *)dataPtr);
   return 1;
 }
 
@@ -168,49 +166,22 @@ void SndInterfaceSetProviderPrefs(UINT index, UINT indexUnderwater, UINT transit
   }
 
   if ((g_underWater && !(s_flags & 2)) || (s_flags & 3) != 3) {
-    _FSOUND_REVERB_PROPERTIES blah;
-    blah.Room = -10000;
-    blah.RoomHF = -10000;
-    blah.Environment = 0;
-    blah.EnvSize = 7.5f;
-    blah.EnvDiffusion = 1.0f;
-    blah.RoomLF = 0;
-    blah.DecayTime = 1.0f;
-    blah.DecayHFRatio = 1.0f;
-    blah.DecayLFRatio = 1.0f;
-    blah.Reflections = -2602;
-    blah.ReflectionsDelay = 0.007f;
-    blah.ReflectionsPan[0] = 0.0f;
-    blah.ReflectionsPan[1] = 0.0f;
-    blah.ReflectionsPan[2] = 0.0f;
-    blah.Reverb = 200;
-    blah.ReverbDelay = 0.011f;
-    blah.ReverbPan[0] = 0.0f;
-    blah.ReverbPan[1] = 0.0f;
-    blah.ReverbPan[2] = 0.0f;
-    blah.EchoTime = 0.25f;
-    blah.EchoDepth = 0.0f;
-    blah.ModulationTime = 0.25f;
-    blah.ModulationDepth = 0.0f;
-    blah.AirAbsorptionHF = -5.0f;
-    blah.HFReference = 5000.0f;
-    blah.LFReference = 250.0f;
-    blah.RoomRolloffFactor = 0.0f;
-    blah.Diffusion = 0.0f;
-    blah.Density = 0.0f;
-    blah.Flags = 0x33F;
-
+    _FSOUND_REVERB_PROPERTIES blah = {
+        0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
+                                200, 0.011f, {0.0f, 0.0f, 0.0f},
+        0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
+    };
     s_currentProviderDesc = blah;
     StopProviderPrefFade();
     return;
   }
 
   const _FSOUND_REVERB_PROPERTIES &selected = g_underWater ? s_descUnderwater : s_desc;
-  if (transitionDuration) {
-    StartProviderPrefFade(selected, transitionDuration);
-  } else {
+  if (!transitionDuration) {
     s_currentProviderDesc = selected;
     StopProviderPrefFade();
+  } else {
+    StartProviderPrefFade(selected, transitionDuration);
   }
 }
 
@@ -226,17 +197,15 @@ void SndInterfaceClearProviderPrefs(int indoors) {
 
   if (rec) {
     SaveDesc(s_currentProviderDesc, rec);
-    StopProviderPrefFade();
-    return;
+  } else {
+    _FSOUND_REVERB_PROPERTIES blah = {
+        0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
+                                200, 0.011f, {0.0f, 0.0f, 0.0f},
+        0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
+    };
+    s_currentProviderDesc = blah;
   }
 
-  const _FSOUND_REVERB_PROPERTIES blah = {
-      0,     7.5f, 1.0f,  -10000, -10000, 0,       1.0f,   1.0f, 1.0f, -2602, 0.007f, {0.0f, 0.0f, 0.0f},
-                              200, 0.011f, {0.0f, 0.0f, 0.0f},
-      0.25f, 0.0f, 0.25f, 0.0f,   -5.0f,  5000.0f, 250.0f, 0.0f, 0.0f, 0.0f,  0x33F
-  };
-
-  s_currentProviderDesc = blah;
   StopProviderPrefFade();
 }
 

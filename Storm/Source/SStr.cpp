@@ -281,7 +281,7 @@ DWORD APIENTRY SStrCopy(char *dest, LPCSTR source, DWORD destsize) {
     SSTR_COPY_ALIGNED_DWORDS;
     SSTR_COPY_TRAILING_BYTES;
   endcopy:
-    return (DWORD)(sstrNegOffset - (DWORD)dest + (DWORD)enddest);
+    return sstrNegOffset - (DWORD)dest + (DWORD)enddest;
   }
 }
 
@@ -320,7 +320,7 @@ DWORD APIENTRY SStrLen(LPCSTR string) {
     SSTR_SKIP_LEADING_BYTES;
     SSTR_SKIP_ALIGNED_DWORDS;
   endskip:
-    return (DWORD)(currdest - string);
+    return currdest - string;
   }
 }
 
@@ -338,7 +338,7 @@ DWORD APIENTRY SStrLen(const WORD *string) {
     } while (*scan);
   }
 
-  return (DWORD)(scan - string);
+  return scan - string;
 }
 
 DWORD APIENTRY SStrPack(char *dest, LPCSTR source, DWORD destsize) {
@@ -368,7 +368,7 @@ DWORD APIENTRY SStrPack(char *dest, LPCSTR source, DWORD destsize) {
     SSTR_COPY_ALIGNED_DWORDS;
     SSTR_COPY_TRAILING_BYTES;
   endcopy:
-    return (DWORD)(sstrNegOffset - (DWORD)dest + (DWORD)enddest);
+    return sstrNegOffset - (DWORD)dest + (DWORD)enddest;
   }
 }
 
@@ -378,9 +378,9 @@ static int ISStrVPrintf(char *dest, UINT maxchars, LPCSTR format, char *arglist)
   if (maxchars) {
     if (maxchars != 0x7FFFFFFF) {
       if (g_opt.orderedprintfenabled) {
-        written = vsnoprintf(dest, (int)maxchars, format, arglist);
+        written = vsnoprintf(dest, maxchars, format, arglist);
       } else {
-        written = _vsnprintf(dest, maxchars, format, (va_list)arglist);
+        written = _vsnprintf(dest, maxchars, format, arglist);
       }
       if ((UINT)written >= maxchars) {
         written = maxchars - 1;
@@ -391,7 +391,7 @@ static int ISStrVPrintf(char *dest, UINT maxchars, LPCSTR format, char *arglist)
     if (g_opt.orderedprintfenabled) {
       return vsoprintf(dest, format, arglist);
     }
-    return vsprintf(dest, format, (va_list)arglist);
+    return vsprintf(dest, format, arglist);
   }
 
   return 0;
@@ -406,7 +406,7 @@ DWORD __cdecl SStrPrintf(char *dest, DWORD maxchars, LPCSTR format, ...) {
   VALIDATE(format);
   VALIDATEEND;
 
-  return ISStrVPrintf(dest, maxchars, format, (char *)args);
+  return ISStrVPrintf(dest, maxchars, format, args);
 }
 
 DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *arglist) {
@@ -415,7 +415,7 @@ DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *argli
   VALIDATE(format);
   VALIDATEEND;
 
-  return (DWORD)ISStrVPrintf(dest, maxchars, format, arglist);
+  return ISStrVPrintf(dest, maxchars, format, arglist);
 }
 
 double APIENTRY SStrToDouble(LPCSTR string) {
@@ -573,7 +573,7 @@ float APIENTRY SStrToFloat(LPCSTR string) {
   if (negative) {
     result = -result;
   }
-  return (float)result;
+  return result;
 }
 
 int APIENTRY SStrToInt(LPCSTR string) {
@@ -936,7 +936,7 @@ DWORD APIENTRY SStrHashHT(LPCSTR string) {
     } else if (ch == '/') {
       ch = '\\';
     }
-    *out++ = (char)ch;
+    *out++ = ch;
     ch = (BYTE)*string;
     used++;
   }
@@ -1052,7 +1052,7 @@ char *Int64ToString(LONGLONG num, char *buf, DWORD destsize) {
       buf[destsize - 1] = 0;
       return buf;
     }
-    *scan++ = (char)('0' + (int)(num % 10));
+    *scan++ = '0' + (int)(num % 10);
     num /= 10;
     if (++thou == 3) {
       if (num) {
@@ -1126,8 +1126,8 @@ void STypeCache::Grow() {
   s_tableSizeBits = bits;
   s_tableSize = 1 << bits;
 
-  s_table = (char **)SMemReAlloc(s_table, (DWORD)(s_tableSize * sizeof(char *)), __FILE__, __LINE__, 0);
-  memset(s_table, 0, (size_t)(s_tableSize * sizeof(char *)));
+  s_table = (char **)SMemReAlloc(s_table, s_tableSize * sizeof(char *), __FILE__, __LINE__, 0);
+  memset(s_table, 0, s_tableSize * sizeof(char *));
 
   block = s_namesBase;
   while (block) {
@@ -1156,13 +1156,13 @@ int STypeCache::GetProbe(LPCSTR rawname) {
   }
 
   s_probe1Count++;
-  probe = (int)(hash & (DWORD)(s_tableSize - 1));
+  probe = hash & (DWORD)(s_tableSize - 1);
   if (!s_table[probe] || SStrCmp(rawname, s_table[probe], 0x7FFFFFFF) == 0) {
     return probe;
   }
 
   s_probe2Count++;
-  probe = (int)((hash >> s_tableSizeBits) & (DWORD)(s_tableSize - 1));
+  probe = (hash >> s_tableSizeBits) & (DWORD)(s_tableSize - 1);
   if (s_table[probe] && SStrCmp(rawname, s_table[probe], 0x7FFFFFFF) != 0) {
     s_probe3Count++;
     for (reprobe = 0; reprobe < 8; reprobe++) {

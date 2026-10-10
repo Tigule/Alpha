@@ -8,7 +8,7 @@ void CGxDeviceD3d::IShaderForceRecreation(int freeShaders) {
   {
     ITERATELIST(CGxPixelShader, m_pixelShaderList, pixelShader) {
       if (pixelShader->apiSpecific) {
-        reinterpret_cast<IDirect3DPixelShader9 *>(pixelShader->apiSpecific)->Release();
+        ((IDirect3DPixelShader9 *)pixelShader->apiSpecific)->Release();
         pixelShader->apiSpecific = 0;
       }
     }
@@ -23,10 +23,10 @@ void CGxDeviceD3d::IShaderForceRecreation(int freeShaders) {
 void CGxDeviceD3d::IPixelShaderCreate(CGxPixelShader *ps) {
   ID3DXBuffer *buffer = 0;
 
-  if (D3DXAssembleShader(reinterpret_cast<LPCSTR>(ps->code.Ptr()), ps->code.Count(), 0, 0, 0, &buffer, 0) == 0) {
+  if (D3DXAssembleShader((LPCSTR)ps->code.Ptr(), ps->code.Count(), 0, 0, 0, &buffer, 0) == 0) {
     IDirect3DPixelShader9 *shader;
-    if (m_d3dDevice->CreatePixelShader(static_cast<const DWORD *>(buffer->GetBufferPointer()), &shader) == 0) {
-      ps->apiSpecific = reinterpret_cast<UINT>(shader);
+    if (m_d3dDevice->CreatePixelShader((const DWORD *)buffer->GetBufferPointer(), &shader) == 0) {
+      ps->apiSpecific = (UINT)shader;
       ps->valid = 1;
     }
   }
@@ -43,7 +43,7 @@ void CGxDeviceD3d::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
 
 void CGxDeviceD3d::PixelShaderDestroy(CGxPixelShader *&ps) {
   if (ps->refCount == 1 && ps->apiSpecific) {
-    reinterpret_cast<IDirect3DPixelShader9 *>(ps->apiSpecific)->Release();
+    ((IDirect3DPixelShader9 *)ps->apiSpecific)->Release();
     ps->apiSpecific = 0;
   }
 
@@ -65,7 +65,7 @@ void CGxDeviceD3d::IBindPixelShader(CGxPixelShader *ps) {
       IPixelShaderCreate(ps);
     }
 
-    m_d3dDevice->SetPixelShader(reinterpret_cast<IDirect3DPixelShader9 *>(ps->apiSpecific));
+    m_d3dDevice->SetPixelShader((IDirect3DPixelShader9 *)ps->apiSpecific);
     ISetShaderParameters(ps, 1);
   } else {
     m_d3dDevice->SetPixelShader(0);

@@ -104,7 +104,7 @@ static void SynthesizeIdle(EvtContext *context) {
   }
 
   currTime = OsGetAsyncTimeMs();
-  elapsedSec = static_cast<float>(static_cast<LONG>(currTime - context->SchedGetLastIdle())) * 0.001f;
+  elapsedSec = (float)((LONG)(currTime - context->SchedGetLastIdle())) * 0.001f;
   context->SchedSetLastIdle(currTime);
   if (context->SchedGetFlags(0x2)) {
     context->SchedSetFlags(0x4);
@@ -232,7 +232,7 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
 
   s_threadListCritsect.Leave();
   SInterlockedDecrement(&s_threadListContention);
-  return reinterpret_cast<HEVENTCONTEXT>(contextId);
+  return (HEVENTCONTEXT)contextId;
 }
 
 static void DetachContextFromThread(UINT hThread, EvtContext *context) {
@@ -368,7 +368,7 @@ static void PutContext(UINT hThread, EvtContext *context, DWORD nextWakeTime, DW
 }
 
 static UINT APIENTRY ShutdownThreadProc(LPVOID event) {
-  SEvent *shutdownEvent = static_cast<SEvent *>(event);
+  SEvent *shutdownEvent = (SEvent *)event;
 
   ASSERT(event);
   while (shutdownEvent->Wait(0) != WAIT_OBJECT_0) {
@@ -469,7 +469,7 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
       }
       signedDelay = idleTime + context->SchedGetLastIdle() - currTime;
       signedDelay = max(0, signedDelay);
-      nextDelay = min(nextDelay, static_cast<UINT>(signedDelay));
+      nextDelay = min(nextDelay, signedDelay);
     }
     context->SchedDeselect();
     PutContext(hThread, context, currTime + nextDelay, context->SchedGetSmoothWeight());
@@ -485,7 +485,7 @@ static UINT APIENTRY SchedulerThreadProc(LPVOID mainThread) {
 
 void IEvtSchedulerProcess() {
   s_startEvent.Set();
-  SchedulerThreadProc(reinterpret_cast<LPVOID>(1));
+  SchedulerThreadProc((LPVOID)1);
   s_mainThread = 0;
 }
 
@@ -547,10 +547,10 @@ void IEvtSchedulerDestroy() {
       }
     }
 
-    WaitMultiplePtr(s_schedulerThreads.Count(), reinterpret_cast<SSyncObject **>(s_schedulerThreads.Ptr()), TRUE, INFINITE);
+    WaitMultiplePtr(s_schedulerThreads.Count(), (SSyncObject **)s_schedulerThreads.Ptr(), TRUE, INFINITE);
     if (shutdownThreads.Count()) {
       shutdownThreadEvent.Set();
-      WaitMultiplePtr(shutdownThreads.Count(), reinterpret_cast<SSyncObject **>(shutdownThreads.Ptr()), TRUE, INFINITE);
+      WaitMultiplePtr(shutdownThreads.Count(), (SSyncObject **)shutdownThreads.Ptr(), TRUE, INFINITE);
       index = shutdownThreads.Count();
       while (index) {
         DEL(shutdownThreads[--index]);
@@ -718,7 +718,7 @@ void EventProcessOnce() {
     }
     signedDelay = idleTime + context->SchedGetLastIdle() - currTime;
     signedDelay = max(0, signedDelay);
-    nextDelay = min(nextDelay, static_cast<UINT>(signedDelay));
+    nextDelay = min(nextDelay, signedDelay);
   }
   PutContext(s_hThread, context, currTime + nextDelay, context->SchedGetSmoothWeight());
 }

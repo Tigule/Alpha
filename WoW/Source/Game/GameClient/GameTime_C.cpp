@@ -24,7 +24,7 @@ static void UpdateTime() {
 
   dnInfo->time = g_clientGameTime.GetHourAndMinutes();
   dnInfo->dayProgression = g_clientGameTime.GameTimeGetDayProgression();
-  dnInfo->day = static_cast<float>(g_clientGameTime.GetDaysSinceEpoch());
+  dnInfo->day = g_clientGameTime.GetDaysSinceEpoch();
   CWorld::UpdateDayNight(1, 0);
 
   for (UINT index = 0; index < 4; ++index) {
@@ -232,7 +232,7 @@ static BOOL ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg)
 
 BOOL ClientGameTimeTickHandler(LPCVOID data, LPVOID) {
   FATALASSERT(data);
-  float elapsedSec = *static_cast<const float *>(data);
+  float elapsedSec = *(const float *)data;
   g_clientGameTime.GameTimeUpdate(elapsedSec);
   return 1;
 }

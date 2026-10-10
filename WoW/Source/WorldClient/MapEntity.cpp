@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -37,8 +37,8 @@ BOOL CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
   BOOL found = 0;
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
-      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
-      mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
+      CMapObjDefGroup *mapObjDefGroup = (CMapObjDefGroup *)parentLink->ref;
+      mapObjDef = (CMapObjDef *)mapObjDefGroup->parentLinkList.Head()->ref;
       FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
       found = 1;
       break;
@@ -53,8 +53,8 @@ BOOL CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapOb
   if (flagInside) {
     ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
       if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
-        mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
-        mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
+        mapObjDefGroup = (CMapObjDefGroup *)parentLink->ref;
+        mapObjDef = (CMapObjDef *)mapObjDefGroup->parentLinkList.Head()->ref;
         FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
 
         mapObj = mapObjDef->mapObj;
@@ -223,11 +223,7 @@ void CMapEntity::UpdateMapObjLiquid() {
       flagInLiquid = 1;
       NTempest::C3Vector worldPt = NTempest::C3Vector(localPos.x, localPos.y, surface) * mapObjDef->mat;
       lqSurface = worldPt.z;
-      lqDirection = NTempest::C3Vector(
-          direction.z * mapObjDef->mat.c0 + direction.y * mapObjDef->mat.b0 + direction.x * mapObjDef->mat.a0,
-          direction.z * mapObjDef->mat.c1 + direction.y * mapObjDef->mat.b1 + direction.x * mapObjDef->mat.a1,
-          direction.z * mapObjDef->mat.c2 + direction.y * mapObjDef->mat.b2 + direction.x * mapObjDef->mat.a2
-      );
+      lqDirection = NTempest::C44Matrix::mul3v33m_(direction, mapObjDef->mat);
     }
   }
 }
@@ -239,8 +235,8 @@ void CMapEntity::QueryLiquidSounds(int *lbool, NTempest::C3Vector *ldelta, float
 
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
-      CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(parentLink->ref);
-      CMapObjDef      *mapObjDef = static_cast<CMapObjDef *>(mapObjDefGroup->parentLinkList.Head()->ref);
+      CMapObjDefGroup *mapObjDefGroup = (CMapObjDefGroup *)parentLink->ref;
+      CMapObjDef      *mapObjDef = (CMapObjDef *)mapObjDefGroup->parentLinkList.Head()->ref;
       FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
       CMapObj *mapObj = mapObjDef->mapObj;
       FATALASSERT(mapObj);
@@ -264,77 +260,76 @@ BOOL CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
   CMapObj         *mapObj;
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
-  if (!GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup) || mapObj->fogCount <= 1) {
-    return 0;
-  }
+  if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup) && mapObj->fogCount > 1) {
+    NTempest::C3Vector localPos = pos * mapObjDef->invMat;
+    oFog = mapObj->GetFog(0).fogs;
 
-  NTempest::C3Vector localPos = pos * mapObjDef->invMat;
-  oFog = mapObj->GetFog(0).fogs;
+    static NTempest::CPriorityQ<FogQ, FogQ> fogq;
+    BYTE                                    ieBlendFogId = 0;
+    float                                   ieDist = 0.0f;
+    for (int i = 0; i < SMOGroup::NUM_FOGS; ++i) {
+      BYTE fogId = mapObjGroup->GetFogId(i);
+      if (!fogId) {
+        continue;
+      }
 
-  static NTempest::CPriorityQ<FogQ, FogQ> fogq;
-  BYTE                                    ieBlendFogId = 0;
-  float                                   ieDist = 0.0f;
-  for (int i = 0; i < 4; ++i) {
-    BYTE fogId = mapObjGroup->GetFogId(i);
-    if (!fogId) {
-      continue;
-    }
-
-    const SMOFog      &fog = mapObj->GetFog(fogId);
-    NTempest::C3Vector delta = fog.pos - localPos;
-    float              dist = delta.Mag();
-    if (dist < fog.end) {
-      if (fog.flags & 1) {
-        ieBlendFogId = fogId;
-        ieDist = dist;
-      } else {
-        fogq.Enqueue(FogQ(dist, fogId));
+      const SMOFog &fog = mapObj->GetFog(fogId);
+      float         dist = (fog.pos - localPos).Mag();
+      if (dist < fog.end) {
+        if (fog.flags & 1) {
+          ieDist = dist;
+          ieBlendFogId = fogId;
+        } else {
+          fogq.Enqueue(FogQ(dist, fogId));
+        }
       }
     }
+
+    while (fogq.HasEntries()) {
+      FogQ          entry = fogq.Dequeue();
+      const SMOFog &fog = mapObj->GetFog(entry.subscript);
+      oFog.Blend(fog.fogs, ComputeFogBlend(fog, entry.dist));
+    }
+
+    if (ieBlendFogId) {
+      oPct = 1.0f - ComputeFogBlend(mapObj->GetFog(ieBlendFogId), ieDist);
+    } else {
+      oPct = 1.0f;
+    }
+    return 1;
   }
 
-  while (fogq.HasEntries()) {
-    FogQ          entry = fogq.Dequeue();
-    const SMOFog &fog = mapObj->GetFog(entry.subscript);
-    oFog.Blend(fog.fogs, ComputeFogBlend(fog, entry.dist));
-  }
-
-  if (ieBlendFogId) {
-    const SMOFog &fog = mapObj->GetFog(ieBlendFogId);
-    oPct = 1.0f - ComputeFogBlend(fog, ieDist);
-  } else {
-    oPct = 1.0f;
-  }
-  return 1;
+  return 0;
 }
 
 BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
-  CMapObjDef   *mapObjDef = CWorldScene::camMapObjDef;
-  CMapObj      *mapObj = CWorldScene::camMapObj;
-  CMapObjGroup *mapObjGroup = CWorldScene::camMapObjGroup;
-  if (!mapObjDef || !mapObj || !mapObjGroup || (mapObjGroup->GetFlags() & 0x40) || mapObjGroup->GetGroupLiquid() != 15 || mapObj->fogCount == 1) {
+  if (!CWorldScene::camMapObjDef || !CWorldScene::camMapObj || !CWorldScene::camMapObjGroup)
     return 0;
-  }
 
-  NTempest::C3Vector localPos = CWorldScene::camPos * mapObjDef->invMat;
-  oFog = mapObj->GetFog(0).fogs;
+  if ((CWorldScene::camMapObjGroup->GetFlags() & 0x40) || CWorldScene::camMapObjGroup->GetGroupLiquid() != 15)
+    return 0;
+
+  if (CWorldScene::camMapObj->fogCount == 1)
+    return 0;
+
+  NTempest::C3Vector localPos = CWorldScene::camPos * CWorldScene::camMapObjDef->invMat;
+  oFog = CWorldScene::camMapObj->GetFog(0).fogs;
 
   static NTempest::CPriorityQ<FogQ, FogQ> fogq;
   BYTE                                    ieBlendFogId = 0;
   float                                   ieDist = 0.0f;
-  for (int i = 0; i < 4; ++i) {
-    BYTE fogId = mapObjGroup->GetFogId(i);
+  for (int i = 0; i < SMOGroup::NUM_FOGS; ++i) {
+    BYTE fogId = CWorldScene::camMapObjGroup->GetFogId(i);
     if (!fogId) {
       continue;
     }
 
-    const SMOFog      &fog = mapObj->GetFog(fogId);
-    NTempest::C3Vector delta = fog.pos - localPos;
-    float              dist = delta.Mag();
+    const SMOFog &fog = CWorldScene::camMapObj->GetFog(fogId);
+    float         dist = (fog.pos - localPos).Mag();
     if (dist < fog.end) {
       if (fog.flags & 1) {
-        ieBlendFogId = fogId;
         ieDist = dist;
+        ieBlendFogId = fogId;
       } else {
         fogq.Enqueue(FogQ(dist, fogId));
       }
@@ -343,13 +338,12 @@ BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
 
   while (fogq.HasEntries()) {
     FogQ          entry = fogq.Dequeue();
-    const SMOFog &fog = mapObj->GetFog(entry.subscript);
+    const SMOFog &fog = CWorldScene::camMapObj->GetFog(entry.subscript);
     oFog.Blend(fog.fogs, ComputeFogBlend(fog, entry.dist));
   }
 
   if (ieBlendFogId) {
-    const SMOFog &fog = mapObj->GetFog(ieBlendFogId);
-    oPct = 1.0f - ComputeFogBlend(fog, ieDist);
+    oPct = 1.0f - ComputeFogBlend(CWorldScene::camMapObj->GetFog(ieBlendFogId), ieDist);
   } else {
     oPct = 1.0f;
   }
@@ -359,8 +353,7 @@ BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
 void CMap::UpdateEntity(CMapEntity *entity) {
   FATALASSERT(entity);
 
-  for (CMapBaseObjLink *parentLink = entity->parentLinkList.Head(), *next;
-       (int)parentLink > 0 ? ((next = entity->parentLinkList.RawNext(parentLink)), 1) : 0; parentLink = next) {
+  SAFEITERATELIST(CMapBaseObjLink, entity->parentLinkList, parentLink) {
     FreeBaseObjLink(parentLink);
   }
 
@@ -478,7 +471,7 @@ bool CMap::LinkIntersectMapObjs(
         NTempest::C3Vector v1 = lEnd * mapObjDef->invMat;
 
         ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
-          CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(link->owner);
+          CMapObjDefGroup *mapObjDefGroup = (CMapObjDefGroup *)link->owner;
           if (mapObj->TestGroupBounds(v0, v1, mapObjDefGroup->groupNum)) {
             CMapObjGroup *mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
             if (mapObjGroup) {
@@ -509,7 +502,7 @@ void CMapEntity::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup)
 }
 
 void CMapEntity::Tick() {
-  int amount = static_cast<int>(ambLightScaleRate * CWorld::GetTickTimeSec() * 255.0f);
+  int amount = ambLightScaleRate * CWorld::GetTickTimeSec() * 255.0f;
   if (amount < 1) {
     amount = 1;
   }

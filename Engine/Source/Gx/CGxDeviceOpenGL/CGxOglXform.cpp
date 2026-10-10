@@ -37,10 +37,10 @@ void CGxDeviceOpenGl::XformSetViewport(float minX, float maxX, float minY, float
 
   const NTempest::CRect &rect = DeviceCurWindow();
   RECT                   cr;
-  cr.left = static_cast<int>(minX * rect.r);
-  cr.top = static_cast<int>(minY * rect.b);
-  cr.right = static_cast<int>(maxX * rect.r);
-  cr.bottom = static_cast<int>(maxY * rect.b);
+  cr.left = minX * rect.r;
+  cr.top = minY * rect.b;
+  cr.right = maxX * rect.r;
+  cr.bottom = maxY * rect.b;
 
   glViewport(cr.left, cr.top, cr.right - cr.left, cr.bottom - cr.top);
   glDepthRange(minZ, maxZ);

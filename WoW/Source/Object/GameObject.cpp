@@ -14,10 +14,11 @@ void GenerateChairPoints(const NTempest::C44Matrix &matrix, UINT slots, NTempest
   FATALASSERT(slots);
   FATALASSERT(slots <= MAX_CHAIR_SLOTS);
 
-  NTempest::C3Vector currentSitPoint(0.0f, -(static_cast<float>(slots) - 1.0f) * 0.5f, 0.0f);
-  const float        sitPointOffset = 1.0f;
+  NTempest::C3Vector currentSitPoint(0.0f, -((slots - 1.0f) * 0.5f), 0.0f);
+  const float        sitPointOffset = MAX_SITCHAIR_DISTANCE * 2.0f;
   for (UINT i = 0; i < slots; ++i) {
-    out[i] = currentSitPoint * matrix;
+    *out = currentSitPoint * matrix;
     currentSitPoint.y += sitPointOffset;
+    ++out;
   }
 }

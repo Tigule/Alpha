@@ -105,7 +105,7 @@ NODEDECL(EventReg::EVENTDISPATCHREG) {
   }
   EVENTDISPATCHREG(const EVENTDISPATCHREG &);
   ~EVENTDISPATCHREG() {
-    pObserver = static_cast<CObserver *>(0);
+    pObserver = 0;
     expectedEventId = -1;
   }
 };
@@ -295,15 +295,11 @@ EventReg::EventReg() : flags(0) {
 }
 
 EventReg::~EventReg() {
-  for (EVENTCALLBACKREG *pCallbackReg = callbackList.Head(), *pCallbackRegnext_node;
-       (int)pCallbackReg > 0 ? ((pCallbackRegnext_node = callbackList.RawNext(pCallbackReg)), 1) : 0;
-       pCallbackReg = pCallbackRegnext_node) {
+  SAFEITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
     s_callbackRegAllocator.Put(pCallbackReg);
   }
 
-  for (EVENTDISPATCHREG *pDispatchReg = dispatchList.Head(), *pDispatchRegnext_node;
-       (int)pDispatchReg > 0 ? ((pDispatchRegnext_node = dispatchList.RawNext(pDispatchReg)), 1) : 0;
-       pDispatchReg = pDispatchRegnext_node) {
+  SAFEITERATELIST(EVENTDISPATCHREG, dispatchList, pDispatchReg) {
     s_dispatchRegAllocator.Put(pDispatchReg);
   }
 }
@@ -341,9 +337,7 @@ void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
 }
 
 void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
-  for (EVENTCALLBACKREG *pCallbackReg = callbackList.Head(), *pCallbackRegnext_node;
-       (int)pCallbackReg > 0 ? ((pCallbackRegnext_node = callbackList.RawNext(pCallbackReg)), 1) : 0;
-       pCallbackReg = pCallbackRegnext_node) {
+  SAFEITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
     if (pCallbackReg->callback == callback || !callback) {
       pCallbackReg->callback = 0;
       if (Locked()) {
@@ -359,11 +353,9 @@ void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
 }
 
 void EventReg::UnregisterEvent(CObserver *pObserver) {
-  for (EVENTDISPATCHREG *pDispatchReg = dispatchList.Head(), *pDispatchRegnext_node;
-       (int)pDispatchReg > 0 ? ((pDispatchRegnext_node = dispatchList.RawNext(pDispatchReg)), 1) : 0;
-       pDispatchReg = pDispatchRegnext_node) {
+  SAFEITERATELIST(EVENTDISPATCHREG, dispatchList, pDispatchReg) {
     if (pDispatchReg->pObserver.m_ptr == pObserver || !pObserver) {
-      pDispatchReg->pObserver = static_cast<CObserver *>(0);
+      pDispatchReg->pObserver = 0;
       if (Locked()) {
         MarkChanged();
       } else {
@@ -377,9 +369,7 @@ void EventReg::UnregisterEvent(CObserver *pObserver) {
 }
 
 void EventReg::CleanupCallbacks() {
-  for (EVENTCALLBACKREG *pCallbackReg = callbackList.Head(), *pCallbackRegnext_node;
-       (int)pCallbackReg > 0 ? ((pCallbackRegnext_node = callbackList.RawNext(pCallbackReg)), 1) : 0;
-       pCallbackReg = pCallbackRegnext_node) {
+  SAFEITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
     if (!pCallbackReg->callback) {
       s_callbackRegAllocator.Put(pCallbackReg);
     }
@@ -387,9 +377,7 @@ void EventReg::CleanupCallbacks() {
 }
 
 void EventReg::CleanupEvents() {
-  for (EVENTDISPATCHREG *pDispatchReg = dispatchList.Head(), *pDispatchRegnext_node;
-       (int)pDispatchReg > 0 ? ((pDispatchRegnext_node = dispatchList.RawNext(pDispatchReg)), 1) : 0;
-       pDispatchReg = pDispatchRegnext_node) {
+  SAFEITERATELIST(EVENTDISPATCHREG, dispatchList, pDispatchReg) {
     if (!pDispatchReg->pObserver) {
       s_dispatchRegAllocator.Put(pDispatchReg);
     }
@@ -397,7 +385,7 @@ void EventReg::CleanupEvents() {
 }
 
 BOOL EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
-  for (const EVENTCALLBACKREG *entry = callbackList.Head(); (int)entry > 0; entry = callbackList.RawNext(entry)) {
+  CONSTITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
     if (entry->callback == callback) {
       return 1;
     }
@@ -406,7 +394,7 @@ BOOL EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
 }
 
 BOOL EventReg::IsEventRegistered(CObserver *pObserver) const {
-  for (const EVENTDISPATCHREG *entry = dispatchList.Head(); (int)entry > 0; entry = dispatchList.RawNext(entry)) {
+  CONSTITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
     if (entry->pObserver == pObserver) {
       return 1;
     }

@@ -215,9 +215,8 @@ static void DoAreaLights(int underWater) {
   NTempest::CPriorityQ<LightQE, LightQE> lightq;
 
   for (UINT i = 1; i < g_areaLights.m_lightData.Count(); ++i) {
-    LightData         &light = g_areaLights.m_lightData[i];
-    NTempest::C3Vector delta = s_dnInfo.cameraPos - light.m_lightlist.m_lightLocation;
-    float              dist = delta.Mag();
+    LightData &light = g_areaLights.m_lightData[i];
+    float      dist = (s_dnInfo.cameraPos - light.m_lightlist.m_lightLocation).Mag();
     if (dist < light.m_lightlist.m_lightDropoff) {
       lightq.Enqueue(LightQE(dist, i));
     }
@@ -226,15 +225,8 @@ static void DoAreaLights(int underWater) {
   while (lightq.HasEntries()) {
     LightQE        entry = lightq.Dequeue();
     LightData     &light = g_areaLights.m_lightData[entry.subscript];
-    LightDataItem *lightdata;
-    LightDataItem *stormdata;
-    if (underWater) {
-      lightdata = &light.m_lightdataWater;
-      stormdata = &light.m_stormdataWater;
-    } else {
-      lightdata = &light.m_lightdata;
-      stormdata = &light.m_stormdata;
-    }
+    LightDataItem *lightdata = underWater ? &light.m_lightdataWater : &light.m_lightdata;
+    LightDataItem *stormdata = underWater ? &light.m_stormdataWater : &light.m_stormdata;
 
     CurrentLight areaLight;
     CalcLightColors(Fast_ftol(s_dnInfo.dayProgression * 2880.0f), &areaLight, lightdata, stormdata, 0);
@@ -249,23 +241,25 @@ static void DoAreaLights(int underWater) {
 
 static void ResetLightPos() {
   NTempest::C2Vector offset(0.0f, 0.0f);
+
   if (!CWorld::MapIsDungeon()) {
-    offset.x = 17066.666f;
-    offset.y = 17066.666f;
+    offset = NTempest::C2Vector(17066.666f, 17066.666f);
   }
 
-  UINT count;
-  for (UINT lp = 0; lp < g_areaLights.m_lightData.Count(); ++lp) {
+  for (int lp = 0; lp < (int)g_areaLights.m_lightData.Count(); ++lp) {
     LightData &light = g_areaLights.m_lightData[lp];
-    if (lp) {
-      NTempest::C3Vector pos = light.m_lightlist.m_lightLocation * 0.027777778f;
-      light.m_lightlist.m_lightLocation.Set(-(pos.z - offset.x), -(pos.x - offset.y), pos.y);
+
+    if (lp >= 1) {
+      light.m_lightlist.m_lightLocation *= 0.027777778f;
+
+      NTempest::C3Vector pos(-(light.m_lightlist.m_lightLocation.z - offset.x), -(light.m_lightlist.m_lightLocation.x - offset.y), light.m_lightlist.m_lightLocation.y);
+      light.m_lightlist.m_lightLocation = pos;
       light.m_lightlist.m_lightRadius *= 0.027777778f;
       light.m_lightlist.m_lightDropoff *= 0.027777778f;
     }
 
     UINT i;
-    count = light.m_lightdata.m_fogData.Count();
+    UINT count = light.m_lightdata.m_fogData.Count();
     for (i = 0; i < count; ++i) {
       light.m_lightdata.m_fogData[i].m_fogEnd *= 0.027777778f;
     }
@@ -309,8 +303,8 @@ static void SetLightColors() {
   s_dnInfo.lightInfo.windowDirColor.Blend255(128, s_dnInfo.lightInfo.ambColor);
 
   s_dnInfo.shadowClr.Set(
-      s_dnInfo.light.ShadowOpacity.r, static_cast<BYTE>((85 * s_dnInfo.light.AmbientColor.r + 255) >> 8),
-      static_cast<BYTE>((85 * s_dnInfo.light.AmbientColor.g + 255) >> 8), static_cast<BYTE>((85 * s_dnInfo.light.AmbientColor.b + 255) >> 8)
+      s_dnInfo.light.ShadowOpacity.r, (BYTE)((85 * s_dnInfo.light.AmbientColor.r + 255) >> 8),
+      (BYTE)((85 * s_dnInfo.light.AmbientColor.g + 255) >> 8), (BYTE)((85 * s_dnInfo.light.AmbientColor.b + 255) >> 8)
   );
 
   static const float HUE_SCALE = 1.0f;
@@ -348,41 +342,32 @@ static void SetFogColors() {
 
   if (liquid == 2 || liquid == 3) {
     s_dnInfo.intFogInfo = s_dnInfo.fogInfo;
-    return;
+  } else {
+    int          underWater = liquid == 1 || liquid == 0;
+    SMOFog::Fog &fog = intFog[underWater ? 1 : 0];
+    float        fogEnd = min(fog.end, s_dnInfo.farClip);
+    s_dnInfo.intFogInfo.end = (fogEnd - s_dnInfo.fogInfo.end) * intPct + s_dnInfo.fogInfo.end;
+    s_dnInfo.intFogInfo.start = ((fog.startScalar - s_dnInfo.light.FogStartScalar) * intPct + s_dnInfo.light.FogStartScalar) * s_dnInfo.intFogInfo.end;
+    s_dnInfo.intFogInfo.color.Blend255RGB(NTempest::CMath::ftol_0_256_(intPct * 255.0f), fog.color);
   }
-
-  SMOFog::Fog &fog = intFog[liquid < 2];
-  float        fogEnd = fog.end < s_dnInfo.farClip ? fog.end : s_dnInfo.farClip;
-  s_dnInfo.intFogInfo.end = (fogEnd - s_dnInfo.fogInfo.end) * intPct + s_dnInfo.fogInfo.end;
-  s_dnInfo.intFogInfo.start = ((fog.startScalar - s_dnInfo.light.FogStartScalar) * intPct + s_dnInfo.light.FogStartScalar) * s_dnInfo.intFogInfo.end;
-  s_dnInfo.intFogInfo.color.Blend255RGB(NTempest::CMath::ftol_0_256_(intPct * 255.0f), fog.color);
 }
 
 static void SetColors() {
   UINT camLiquid = CWorld::SceneCamLiquidStatus();
-  int  underWater = (camLiquid & 0xF) == 0 || (camLiquid & 0xF) == 1;
+  int  underWater = (camLiquid & 0xF) == 1 || (camLiquid & 0xF) == 0;
 
   if (g_areaLights.m_lightData.Count()) {
     if (camLiquid == 15 || underWater) {
       LightData     &global = g_areaLights.m_lightData[0];
-      LightDataItem *lightdata;
-      LightDataItem *stormdata;
-      if (underWater) {
-        lightdata = &global.m_lightdataWater;
-        stormdata = &global.m_stormdataWater;
-      } else {
-        lightdata = &global.m_lightdata;
-        stormdata = &global.m_stormdata;
-      }
-      CalcLightColors(
-          Fast_ftol(s_dnInfo.dayProgression * 2880.0f), &s_dnInfo.light, lightdata, stormdata,
-          static_cast<int>(s_dnInfo.stormPercentage * 100.0f)
-      );
+      LightDataItem *lightdata = underWater ? &global.m_lightdataWater : &global.m_lightdata;
+      LightDataItem *stormdata = underWater ? &global.m_stormdataWater : &global.m_stormdata;
+      CalcLightColors(Fast_ftol(s_dnInfo.dayProgression * 2880.0f), &s_dnInfo.light, lightdata, stormdata, s_dnInfo.stormPercentage * 100.0f);
       DoAreaLights(underWater);
-    } else if ((camLiquid & 0xF) == 2) {
-      s_dnInfo.light = s_magmaLight;
-    } else if ((camLiquid & 0xF) == 3) {
-      s_dnInfo.light = s_slimeLight;
+    } else {
+      switch (camLiquid & 0xF) {
+        case 2: s_dnInfo.light = s_magmaLight; break;
+        case 3: s_dnInfo.light = s_slimeLight; break;
+      }
     }
   } else {
     memset(&s_dnInfo.light, 0xFF, sizeof(s_dnInfo.light));
@@ -394,8 +379,10 @@ static void SetColors() {
   SetFogColors();
   if (underWater) {
     float darken = 1.0f;
-    if (camLiquid == 1) {
-      darken = 1.0f - (s_dnInfo.cameraPos.z > -30.0f ? s_dnInfo.cameraPos.z : -30.0f) * -0.033333335f;
+    switch (camLiquid) {
+      case 1:
+        darken = 1.0f - max(s_dnInfo.cameraPos.z, -30.0f) * -0.033333335f;
+        break;
     }
     s_dnInfo.fogInfo.color = DarkenColor(s_dnInfo.fogInfo.color, (darken + 1.0f) * 0.5f);
     s_dnInfo.lightInfo.ambColor = DarkenColor(s_dnInfo.lightInfo.ambColor, (darken + 1.0f) * 0.5f);
@@ -407,7 +394,7 @@ static void SetColors() {
   s_sunGlare.m_color = s_dnInfo.light.CloudArray[0];
   s_planets[1].m_color = s_dnInfo.light.CloudArray[0];
   s_moonGlare.m_color = s_dnInfo.light.CloudArray[0];
-  if (s_dnInfo.eclipseAmount) {
+  if (s_dnInfo.eclipseAmount != 0.0f) {
     s_dnInfo.fogInfo.color.Blend255RGB(s_dnInfo.eclipseAmount, s_dnInfo.eclipseColor);
     s_dnInfo.lightInfo.ambColor.Blend255RGB(s_dnInfo.eclipseAmount, s_dnInfo.eclipseColor);
     s_dnInfo.lightInfo.dirColor.Blend255RGB(s_dnInfo.eclipseAmount, s_dnInfo.eclipseColor);
@@ -497,7 +484,7 @@ static void SetPlanets() {
 
   UINT curTime = Fast_ftol(s_dnInfo.day * 65536.0f) + Fast_ftol(s_dnInfo.dayProgression * 65536.0f);
   UINT periodStart =
-      Fast_ftol(s_planets[2].m_period * static_cast<float>(floor((s_dnInfo.day + s_dnInfo.dayProgression) / s_planets[2].m_period)) * 65536.0f);
+      Fast_ftol(s_planets[2].m_period * (float)floor((s_dnInfo.day + s_dnInfo.dayProgression) / s_planets[2].m_period) * 65536.0f);
   if (periodStart >= curTime) {
     periodStart = curTime;
   }
@@ -564,7 +551,7 @@ void DNGlare::Update(float elapsedSec) {
   }
   float pct = (dot - m_dotMin) / (1.0f - m_dotMin);
   m_curScale = ((m_scaleMax - m_scaleMin) * pct + m_scaleMin) * m_baseScale * s_dnInfo.billbRescale;
-  m_color.a = static_cast<BYTE>(((m_alphaMax - m_alphaMin) * pct + m_alphaMin) * m_opacity * 255.0f);
+  m_color.a = (BYTE)(((m_alphaMax - m_alphaMin) * pct + m_alphaMin) * m_opacity * 255.0f);
 }
 
 float DNSunGlare::GetCloudDensityFade() {
@@ -618,10 +605,10 @@ float DNClouds::GetDensity(const NTempest::C3Vector &worldPoint, float area) {
     return 0.0f;
   }
 
-  NTempest::C2Vector texv;
+  NTempest::C2Vector texv(0.0f, 0.0f);
   WorldToTexture(worldPoint, texv);
-  UINT index = static_cast<UINT>(texv.x) + (static_cast<UINT>(texv.y) << m_tmShift);
-  return static_cast<float>(m_height[index]) * 0.0039215689f;
+  NTempest::C2iVector texel(texv.x, texv.y);
+  return m_height[(texel.y << m_tmShift) + texel.x] * 0.0039215689f;
 }
 
 void DNClouds::BumpMap() {
@@ -660,11 +647,11 @@ void DNClouds::BumpMap() {
   for (DWORD y = 0; y < m_updateSize; ++y) {
     for (DWORD x = 0; x < m_tmSize; ++x) {
       if (*clheight) {
-        NTempest::C3Vector texelLightPos(sunLightPos.x - static_cast<float>(x), sunLightPos.y - static_cast<float>(y + m_updateRow), 16.0f);
+        NTempest::C3Vector texelLightPos(sunLightPos.x - (float)x, sunLightPos.y - (float)(y + m_updateRow), 16.0f);
         NTempest::C3Vector color(
-            ambColor.x * (static_cast<BYTE>(((255 - *clheight) >> 1) + 64) * 0.0039215689f) + emsColor.x,
-            ambColor.y * (static_cast<BYTE>(((255 - *clheight) >> 1) + 64) * 0.0039215689f) + emsColor.y,
-            ambColor.z * (static_cast<BYTE>(((255 - *clheight) >> 1) + 64) * 0.0039215689f) + emsColor.z
+            ambColor.x * ((BYTE)(((255 - *clheight) >> 1) + 64) * 0.0039215689f) + emsColor.x,
+            ambColor.y * ((BYTE)(((255 - *clheight) >> 1) + 64) * 0.0039215689f) + emsColor.y,
+            ambColor.z * ((BYTE)(((255 - *clheight) >> 1) + 64) * 0.0039215689f) + emsColor.z
         );
         rayDir.Set(clbump->x, clbump->y, 1.0f);
         float dot = (texelLightPos.x * rayDir.x + texelLightPos.y * rayDir.y + 16.0f) *
@@ -890,7 +877,7 @@ void DNClouds::GenSphere(float size) {
     phi += phiDelta;
   }
 
-  m_nVerts = static_cast<WORD>(newGeoVert - &m_geoVerts[0]);
+  m_nVerts = (WORD)(newGeoVert - &m_geoVerts[0]);
   m_nIndices = 102;
 }
 
@@ -916,7 +903,7 @@ void DNClouds::SetSharpness(float newSharpness) {
   float clval = 0.0f;
   float cldelta = (255 - m_density) * 0.00390625f;
   for (int i = 0; i < 256; ++i) {
-    cloudTable[i] = static_cast<BYTE>(255.0f - NTempest::CMath::pow_(m_sharpness, clval) * 255.0f);
+    cloudTable[i] = (BYTE)(255.0f - NTempest::CMath::pow_(m_sharpness, clval) * 255.0f);
     clval += cldelta;
   }
 }
@@ -925,7 +912,7 @@ void DNClouds::SetDensity(float newDensity) {
   if (m_densityOverride != 0.0f) {
     newDensity = m_densityOverride;
   }
-  m_density = static_cast<BYTE>((1.0f - newDensity) * 255.0f);
+  m_density = (BYTE)((1.0f - newDensity) * 255.0f);
 }
 
 void DNClouds::SetLOD(DWORD newlod, DWORD newUpdateSize) {
@@ -1005,39 +992,38 @@ void DNSky::GenSphere(float sphRadius) {
     prevRowIdx = thisRowIdx;
   }
 
-  m_nVerts = static_cast<WORD>(newVert - &m_geoVerts[0]);
+  m_nVerts = (WORD)(newVert - &m_geoVerts[0]);
   m_nIndices = 204;
 }
 
 void DNSky::GenTexture(UINT w, UINT h, NTempest::CImVector *texels) {
-  UINT                 halfh = h >> 1;
-  float                halfhFloat = static_cast<float>(halfh);
   NTempest::CImVector *texptr = texels;
+  UINT                 halfh = h >> 1;
 
   {
     for (UINT i = 0; i < 5; ++i) {
-      UINT  startY = static_cast<UINT>((m_stripSizes[i] + m_stripSizes[i]) * halfhFloat);
-      UINT  endY = static_cast<UINT>((m_stripSizes[i + 1] + m_stripSizes[i + 1]) * halfhFloat);
+      UINT  startY = m_stripSizes[i] * 2.0f * halfh;
+      UINT  endY = m_stripSizes[i + 1] * 2.0f * halfh;
       float blend = 0.0f;
-      UINT  next = i + 1;
       float delta = 1.0f / (endY - startY + 1);
+      UINT  next = i + 1;
 
       if (i == 4) {
         next = 4;
       }
 
       for (UINT y = startY; y < endY; ++y) {
-        NTempest::CImVector clr(
-            255, Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].r, s_dnInfo.light.SkyArray[next].r, blend)),
-            Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].g, s_dnInfo.light.SkyArray[next].g, blend)),
-            Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].b, s_dnInfo.light.SkyArray[next].b, blend))
+        NTempest::CImVector clr;
+        clr.Set(
+            255, (BYTE)Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].r, s_dnInfo.light.SkyArray[next].r, blend)),
+            (BYTE)Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].g, s_dnInfo.light.SkyArray[next].g, blend)),
+            (BYTE)Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].b, s_dnInfo.light.SkyArray[next].b, blend))
         );
 
         for (UINT x = 0; x < w; ++x) {
-          texptr[x] = clr;
+          *texptr++ = clr;
         }
 
-        texptr += w;
         blend += delta;
       }
     }
@@ -1190,7 +1176,7 @@ void DNPlanet::GenGeometry(
   for (UINT j = 0; j < vertCount; ++j) {
     float fade = localZ + geov[j].z - fadeBegin;
     if (fade < 0.001) {
-      clrv[j].a = static_cast<BYTE>((fadeBegin - -fade) / fadeBegin * 255.0f);
+      clrv[j].a = (BYTE)((fadeBegin - -fade) / fadeBegin * 255.0f);
     }
   }
 }
@@ -1385,8 +1371,11 @@ void DayNightForceFullUpdate() {
 }
 
 void DayNightUpdateLighting() {
-  if (s_dnInfo.cameraDir.y * s_dnInfo.cameraDir.y + s_dnInfo.cameraDir.x * s_dnInfo.cameraDir.x > 0.0001) {
-    s_dnInfo.faceAngle = atan2(s_dnInfo.cameraDir.y, s_dnInfo.cameraDir.x);
+  double x = s_dnInfo.cameraDir.x;
+  double y = s_dnInfo.cameraDir.y;
+  if (y * y + x * x > 0.0001) {
+    float angle = atan2(y, x);
+    s_dnInfo.faceAngle = angle;
   } else {
     s_dnInfo.faceAngle = atan2(s_dnInfo.cameraDir.z, s_dnInfo.cameraDir.x);
   }
@@ -1457,7 +1446,7 @@ void DayNightRenderSky() {
 void DayNightSkyTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
   if (cmd == GxTex_Latch && mipLevel == 0) {
     texelStrideInBytes = w * sizeof(NTempest::CImVector);
-    s_sky.GenTexture(w, h, static_cast<NTempest::CImVector *>(userArg));
+    s_sky.GenTexture(w, h, (NTempest::CImVector *)userArg);
     texels = userArg;
   }
 }

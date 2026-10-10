@@ -16,26 +16,26 @@ namespace MDL {
 
 static void IAddLightErrors(TSet &errors) {
   AddObjectErrors(errors);
-  errors.Add(0x126, 1, 0);
-  errors.Add(0x127, 1, 0);
-  errors.Add(0x15F, 1, 0);
-  errors.Add(0x136, 1, 0);
-  errors.Add(0x120, 0, 0);
-  errors.Add(0x11F, 0, 0);
-  errors.Add(0x1D9, 0, 0);
-  errors.Add(0x121, 0, 0);
-  errors.Add(0x13E, 0, 0);
-  errors.Add(0x188, 0, 0);
+  errors.Add(MDLTOK_ATTENUATIONSTART, 1, 0);
+  errors.Add(MDLTOK_ATTENUATIONEND, 1, 0);
+  errors.Add(MDLTOK_INTENSITY, 1, 0);
+  errors.Add(MDLTOK_COLOR, 1, 0);
+  errors.Add(MDLTOK_AMB_INTENSITY, 0, 0);
+  errors.Add(MDLTOK_AMB_COLOR, 0, 0);
+  errors.Add(MDLTOK_VISIBILITY, 0, 0);
+  errors.Add(MDLTOK_AMBIENT, 0, 0);
+  errors.Add(MDLTOK_DIRECTIONAL, 0, 0);
+  errors.Add(MDLTOK_OMNIDIRECTIONAL, 0, 0);
 }
 
 static BOOL IllegalStaticToken(UINT token) {
   switch (token) {
-    case 0x11F:
-    case 0x120:
-    case 0x126:
-    case 0x127:
-    case 0x136:
-    case 0x15F:
+    case MDLTOK_AMB_COLOR:
+    case MDLTOK_AMB_INTENSITY:
+    case MDLTOK_ATTENUATIONSTART:
+    case MDLTOK_ATTENUATIONEND:
+    case MDLTOK_COLOR:
+    case MDLTOK_INTENSITY:
       return 0;
     default:
       return 1;
@@ -44,33 +44,33 @@ static BOOL IllegalStaticToken(UINT token) {
 
 static void IReadLightKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLLIGHTSECTION *light, UINT version) {
   switch (savedToken) {
-    case 0x126:
+    case MDLTOK_ATTENUATIONSTART:
       ReadObjectFloatKeyframes(parse, &light->attenstartkeys);
       break;
-    case 0x127:
+    case MDLTOK_ATTENUATIONEND:
       ReadObjectFloatKeyframes(parse, &light->attenendkeys);
       break;
-    case 0x136:
+    case MDLTOK_COLOR:
       if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
         ReadObjectFloatKeyframes(parse, &light->ambcolorkeys);
       } else {
         ReadObjectFloatKeyframes(parse, &light->colorkeys);
       }
       break;
-    case 0x15F:
+    case MDLTOK_INTENSITY:
       if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
         ReadObjectFloatKeyframes(parse, &light->ambintensitykeys);
       } else {
         ReadObjectFloatKeyframes(parse, &light->intensitykeys);
       }
       break;
-    case 0x11F:
+    case MDLTOK_AMB_COLOR:
       ReadObjectFloatKeyframes(parse, &light->ambcolorkeys);
       break;
-    case 0x120:
+    case MDLTOK_AMB_INTENSITY:
       ReadObjectFloatKeyframes(parse, &light->ambintensitykeys);
       break;
-    case 0x1D9:
+    case MDLTOK_VISIBILITY:
       ReadObjectFloatKeyframes(parse, &light->visibilityKeys);
       break;
     default:
@@ -81,30 +81,30 @@ static void IReadLightKeyFrames(Parser &parse, UINT savedToken, LPCSTR tokenText
 
 static void IReadLightStaticData(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLLIGHTSECTION *light, UINT version) {
   switch (savedToken) {
-    case 0x126:
+    case MDLTOK_ATTENUATIONSTART:
       ReadFloatKeyData(parse, &light->staticAttenStart, 1);
       break;
-    case 0x127:
+    case MDLTOK_ATTENUATIONEND:
       ReadFloatKeyData(parse, &light->staticAttenEnd, 1);
       break;
-    case 0x136:
+    case MDLTOK_COLOR:
       if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
         ReadFloatKeyData(parse, &light->staticAmbColor.b, 3);
       } else {
         ReadFloatKeyData(parse, &light->staticColor.b, 3);
       }
       break;
-    case 0x15F:
+    case MDLTOK_INTENSITY:
       if (version < 700 && light->type == LIGHTTYPE_AMBIENT) {
         ReadFloatKeyData(parse, &light->staticAmbIntensity, 1);
       } else {
         ReadFloatKeyData(parse, &light->staticIntensity, 1);
       }
       break;
-    case 0x11F:
+    case MDLTOK_AMB_COLOR:
       ReadFloatKeyData(parse, &light->staticAmbColor.b, 3);
       break;
-    case 0x120:
+    case MDLTOK_AMB_INTENSITY:
       ReadFloatKeyData(parse, &light->staticAmbIntensity, 1);
       break;
     default:
@@ -116,13 +116,13 @@ static void IReadLightStaticData(Parser &parse, UINT savedToken, LPCSTR tokenTex
 
 static BOOL IReadLightProperties(Parser &parse, UINT savedToken, MDLLIGHTSECTION *light, UINT) {
   switch (savedToken) {
-    case 0x121:
+    case MDLTOK_AMBIENT:
       light->type = LIGHTTYPE_AMBIENT;
       break;
-    case 0x13E:
+    case MDLTOK_DIRECTIONAL:
       light->type = LIGHTTYPE_DIRECT;
       break;
-    case 0x188:
+    case MDLTOK_OMNIDIRECTIONAL:
       light->type = LIGHTTYPE_OMNI;
       break;
     default:
@@ -173,69 +173,70 @@ static void IWriteLightProperties(const MDLLIGHTSECTION &section, TSGrowableArra
   UINT token;
   switch (section.type) {
     case LIGHTTYPE_DIRECT:
-      token = 0x13E;
+      token = MDLTOK_DIRECTIONAL;
       break;
     case LIGHTTYPE_AMBIENT:
-      token = 0x121;
+      token = MDLTOK_AMBIENT;
       break;
     default:
-      token = 0x188;
+      token = MDLTOK_OMNIDIRECTIONAL;
       break;
   }
   MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(token));
 }
 
 static void IWriteLightSection(const MDLDATA &data, const MDLLIGHTSECTION &section, int needObjIds, TSGrowableArray<char> &buffer) {
-  WriteObjectHeader(data, section, 0x10E, needObjIds, buffer);
+  WriteObjectHeader(data, section, MDLTOK_LIGHT, needObjIds, buffer);
   IWriteLightProperties(section, buffer);
   if (section.attenstartkeys.keys.Count()) {
-    WriteFloatKeyFrames(0x126, "\t", section.attenstartkeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_ATTENUATIONSTART, "\t", section.attenstartkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x126));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ATTENUATIONSTART));
     WriteKeyData(buffer, &section.staticAttenStart, 1);
   }
   if (section.attenendkeys.keys.Count()) {
-    WriteFloatKeyFrames(0x127, "\t", section.attenendkeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_ATTENUATIONEND, "\t", section.attenendkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x127));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ATTENUATIONEND));
     WriteKeyData(buffer, &section.staticAttenEnd, 1);
   }
   if (section.intensitykeys.keys.Count()) {
-    WriteFloatKeyFrames(0x15F, "\t", section.intensitykeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_INTENSITY, "\t", section.intensitykeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x15F));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_INTENSITY));
     WriteKeyData(buffer, &section.staticIntensity, 1);
   }
   if (section.colorkeys.keys.Count()) {
-    WriteFloatKeyFrames(0x136, "\t", section.colorkeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_COLOR, "\t", section.colorkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x136));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_COLOR));
     WriteKeyData(buffer, &section.staticColor.b, 3);
   }
   if (section.ambintensitykeys.keys.Count()) {
-    WriteFloatKeyFrames(0x120, "\t", section.ambintensitykeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_AMB_INTENSITY, "\t", section.ambintensitykeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x120));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_AMB_INTENSITY));
     WriteKeyData(buffer, &section.staticAmbIntensity, 1);
   }
   if (section.ambcolorkeys.keys.Count()) {
-    WriteFloatKeyFrames(0x11F, "\t", section.ambcolorkeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_AMB_COLOR, "\t", section.ambcolorkeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x11F));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_AMB_COLOR));
     WriteKeyData(buffer, &section.staticAmbColor.b, 3);
   }
-  WriteFloatKeyFrames(0x1D9, "\t", section.visibilityKeys, buffer);
+  WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", section.visibilityKeys, buffer);
   WriteObjectTrailer(section, buffer);
 }
 
 BOOL MDL::WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (!data.model.animationFile[0]) {
-    UINT numLights = data.lights.Count();
-    int needObjIds = numLights != data.objects.Count();
-    const MDLLIGHTSECTION *pLight = data.lights.Ptr();
-    for (UINT i = numLights; i; --i, ++pLight) {
-      IWriteLightSection(data, *pLight, needObjIds, buffer);
-    }
+  if (data.model.animationFile[0]) {
+    return 1;
+  }
+  UINT numLights = data.lights.Count();
+  int needObjIds = numLights != data.objects.Count();
+  const MDLLIGHTSECTION *pLight = data.lights.Ptr();
+  for (UINT i = numLights; i; --i, ++pLight) {
+    IWriteLightSection(data, *pLight, needObjIds, buffer);
   }
   return 1;
 }
@@ -287,19 +288,23 @@ static void IWriteBinLightSection(const MDLLIGHTSECTION &section, CMsgBuffer &bu
 }
 
 BOOL MDL::WriteBinLights(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-  if (!data.model.animationFile[0] && data.lights.Count()) {
-    buf.AddDword('ETIL');
-    UINT numLights = data.lights.Count();
-    UINT totalSize = 4;
-    UINT i;
-    for (i = 0; i < numLights; ++i) {
-      totalSize += GetBinLightSize(data.lights[i]);
-    }
-    buf.AddUint(totalSize);
-    buf.AddUint(numLights);
-    for (i = 0; i < numLights; ++i) {
-      IWriteBinLightSection(data.lights[i], buf, status);
-    }
+  if (data.model.animationFile[0]) {
+    return 1;
+  }
+  if (!data.lights.Count()) {
+    return 1;
+  }
+  buf.AddDword('ETIL');
+  UINT numLights = data.lights.Count();
+  UINT totalSize = 4;
+  UINT i;
+  for (i = 0; i < numLights; ++i) {
+    totalSize += GetBinLightSize(data.lights[i]);
+  }
+  buf.AddUint(totalSize);
+  buf.AddUint(numLights);
+  for (i = 0; i < numLights; ++i) {
+    IWriteBinLightSection(data.lights[i], buf, status);
   }
   return 1;
 }
@@ -311,7 +316,7 @@ static BOOL ReadBinLight(CMsgBuffer &buf, MDLLIGHTSECTION *pLight, CMDLStatus *s
     status->Add(STATUS_ERROR, "Error reading gen object portion of light.\n");
     return 0;
   }
-  pLight->type = static_cast<LIGHT_TYPE>(buf.GetDword());
+  pLight->type = (LIGHT_TYPE)buf.GetDword();
   localBytesRead += 4;
   pLight->staticAttenStart = buf.GetFloat();
   localBytesRead += 4;

@@ -227,7 +227,7 @@ struct _PKWAREINFO {
 };
 
 CBitInput::CBitInput(LPCVOID source) {
-  m_currsource = static_cast<const DWORD *>(source);
+  m_currsource = (const DWORD *)source;
   m_rack = *m_currsource;
   ++m_currsource;
   m_rackbits = 32;
@@ -257,8 +257,8 @@ inline DWORD CBitInput::InputBits(DWORD count, DWORD mask) {
 
 inline DWORD CBitInput::PeekBits(DWORD count, DWORD mask) {
   if (m_rackbits <= count) {
-    m_rack |= static_cast<DWORD>(*reinterpret_cast<const WORD *>(m_currsource)) << m_rackbits;
-    m_currsource = reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(m_currsource) + sizeof(WORD));
+    m_rack |= (DWORD)(*(const WORD *)m_currsource) << m_rackbits;
+    m_currsource = (const DWORD *)((const BYTE *)m_currsource + sizeof(WORD));
     m_rackbits += 16;
   }
   return m_rack & mask;
@@ -986,7 +986,7 @@ extern "C" int __stdcall zlib_compress(BYTE *dest, DWORD *destLen, const BYTE *s
   z_stream                stream;
   int                     result;
 
-  stream.next_in = const_cast<Bytef *>(source);
+  stream.next_in = (Bytef *)source;
   stream.avail_in = sourceLen;
   stream.next_out = dest;
   stream.avail_out = *destLen;
@@ -1026,7 +1026,7 @@ static void ZlibCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sou
       break;
   }
   finalsize = *destsize;
-  result = zlib_compress(static_cast<BYTE *>(dest), &finalsize, static_cast<const BYTE *>(source), sourcesize, level);
+  result = zlib_compress((BYTE *)dest, &finalsize, (const BYTE *)source, sourcesize, level);
   if (result == Z_OK) {
     *destsize = finalsize;
   }
@@ -1038,7 +1038,7 @@ extern "C" int __stdcall zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE 
   z_stream                  stream;
   int                       result;
 
-  stream.next_in = const_cast<Bytef *>(source);
+  stream.next_in = (Bytef *)source;
   stream.avail_in = sourceLen;
   stream.next_out = dest;
   stream.avail_out = *destLen;
@@ -1065,8 +1065,8 @@ static void ZlibDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD s
   DWORD size;
 
   size = *destsize;
-  if (zlib_uncompress(static_cast<BYTE *>(dest), &size, static_cast<const BYTE *>(source), sourcesize) != Z_OK) {
-    SErrDisplayError(0x85100083, filename, -4, NULL, FALSE, 1);
+  if (zlib_uncompress((BYTE *)dest, &size, (const BYTE *)source, sourcesize) != Z_OK) {
+    SErrDisplayError(0x85100083, filename, SERR_LINECODE_FILE, NULL, FALSE, 1);
   }
   *destsize = size;
 }
@@ -1122,12 +1122,12 @@ static BOOL BuffersOverlap(LPCVOID buf1, LPCVOID buf2, DWORD length) {
 }
 
 static LPVOID s_AllocDecompressBuffer(DWORD size, int *global) {
-  DWORD  tid;
+  DWORD  myTID;
   LPVOID result;
 
   s_decompCrit.Enter();
-  tid = GetCurrentThreadId();
-  if (!tid) {
+  myTID = GetCurrentThreadId();
+  if (!myTID) {
     SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "myTID != 0", FALSE, 1);
   }
 
@@ -1148,9 +1148,9 @@ static LPVOID s_AllocDecompressBuffer(DWORD size, int *global) {
     s_DecompressBuffer = SMemAlloc(size, __FILE__, __LINE__, 0);
   }
 
-  *global = 1;
-  s_DecompressBufferTID = tid;
   result = s_DecompressBuffer;
+  *global = 1;
+  s_DecompressBufferTID = myTID;
   s_decompCrit.Leave();
   return result;
 }
@@ -1198,18 +1198,22 @@ static const _DECOMPRESSALGORITHM s_decompressalgorithm[ALGORITHMS] = {
 
 extern "C" int APIENTRY
 SCompCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization) {
-  BYTE       *work;
-  const BYTE *current;
-  DWORD       targetsize;
-  DWORD       remainingTypes;
-  DWORD       operations;
-  DWORD       i;
-  int         global;
+  LPVOID  work;
+  LPVOID  target;
+  LPCVOID current;
+  DWORD   bytes;
+  DWORD   targetsize;
+  DWORD   remainingTypes;
+  DWORD   operations;
+  int     i;
+  int     global;
 
-  FATALASSERT(dest);
-  FATALASSERT(destsize);
-  FATALASSERT(*destsize >= sourcesize);
-  FATALASSERT(source);
+  VALIDATEBEGIN;
+  VALIDATE(dest);
+  VALIDATE(destsize);
+  VALIDATE(*destsize >= sourcesize);
+  VALIDATE(source);
+  VALIDATEEND;
 
   operations = 0;
   remainingTypes = compressiontypes;
@@ -1223,54 +1227,47 @@ SCompCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DW
     return FALSE;
   }
 
-  work = NULL;
   global = 0;
-  if (operations >= 2 || (operations && BuffersOverlap(dest, source, sourcesize))) {
-    work = (BYTE *)s_AllocDecompressBuffer(sourcesize, &global);
+  work = NULL;
+  if (operations >= 2 || (BuffersOverlap(dest, source, sourcesize) && operations)) {
+    work = s_AllocDecompressBuffer(sourcesize, &global);
   }
 
-  current = (const BYTE *)source;
-  targetsize = sourcesize;
-
+  current = source;
+  bytes = sourcesize;
   for (i = 0; i < ALGORITHMS; ++i) {
-    DWORD codec = s_compressalgorithm[i].id;
-    DWORD outSize;
-    BYTE *target;
+    if (compressiontypes & s_compressalgorithm[i].id) {
+      --operations;
+      target = (operations & 1) ? work : (BYTE *)dest + 1;
+      if (BuffersOverlap(target, current, bytes)) {
+        target = BuffersOverlap(target, work, bytes) ? (BYTE *)dest + 1 : work;
+      }
 
-    if ((compressiontypes & codec) == 0) {
-      continue;
-    }
+      targetsize = bytes - 1;
+      s_compressalgorithm[i].func(target, &targetsize, current, bytes, &hint, optimization);
 
-    --operations;
-    target = (operations & 1) ? work : (BYTE *)dest + 1;
-    if (BuffersOverlap(target, current, targetsize)) {
-      target = BuffersOverlap(target, work, targetsize) ? (BYTE *)dest + 1 : work;
-    }
-
-    outSize = targetsize - 1;
-    s_compressalgorithm[i].func(target, &outSize, current, targetsize, &hint, optimization);
-
-    if (outSize + 1 < targetsize) {
-      current = target;
-      targetsize = outSize;
-    } else {
-      compressiontypes &= ~codec;
+      if (targetsize + 1 < bytes) {
+        current = target;
+        bytes = targetsize;
+      } else {
+        compressiontypes &= ~s_compressalgorithm[i].id;
+      }
     }
   }
 
-  if (current != (const BYTE *)dest) {
-    if (current == (const BYTE *)dest + 1) {
+  if (current != dest) {
+    if (current == (BYTE *)dest + 1) {
       *(BYTE *)dest = (BYTE)compressiontypes;
-      ++targetsize;
+      ++bytes;
     } else if (compressiontypes) {
-      memcpy((BYTE *)dest + 1, current, targetsize);
+      memcpy((BYTE *)dest + 1, current, bytes);
       *(BYTE *)dest = (BYTE)compressiontypes;
-      ++targetsize;
+      ++bytes;
     } else {
-      memcpy(dest, current, targetsize);
+      memcpy(dest, current, bytes);
     }
   }
-  *destsize = targetsize;
+  *destsize = bytes;
   s_FreeDecompressBuffer(work, global);
   return TRUE;
 }
@@ -1280,36 +1277,39 @@ extern "C" int APIENTRY SCompDecompress(LPVOID dest, DWORD *destsize, LPCVOID so
 }
 
 int APIENTRY SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
-  BYTE        compressiontypes;
-  BYTE       *work;
-  const BYTE *current;
-  DWORD       destbuffersize;
-  DWORD       targetsize;
-  DWORD       remainingTypes;
-  DWORD       operations;
-  DWORD       i;
-  int         global;
+  DWORD  compressiontypes;
+  LPVOID work;
+  LPVOID target;
+  DWORD  destbuffersize;
+  DWORD  targetsize;
+  DWORD  remainingTypes;
+  DWORD  operations;
+  int    i;
+  int    global;
 
   destbuffersize = *destsize;
-  FATALASSERT(dest);
-  FATALASSERT(destbuffersize >= sourcesize);
-  FATALASSERT(source);
-  FATALASSERT(sourcesize >= sizeof(BYTE));
 
-  if (destbuffersize == sourcesize) {
+  VALIDATEBEGIN;
+  VALIDATE(dest);
+  VALIDATE(destbuffersize >= sourcesize);
+  VALIDATE(source);
+  VALIDATE(sourcesize >= sizeof(BYTE));
+  VALIDATEEND;
+
+  if (sourcesize == destbuffersize) {
     if (dest != source) {
       memcpy(dest, source, sourcesize);
     }
     return TRUE;
   }
 
-  current = (const BYTE *)source;
-  compressiontypes = *current++;
-  targetsize = sourcesize - 1;
+  compressiontypes = *(const BYTE *)source;
+  source = (const BYTE *)source + 1;
+  --sourcesize;
 
   operations = 0;
   remainingTypes = compressiontypes;
-  for (i = 0; i < ALGORITHMS; ++i) {
+  for (i = ALGORITHMS - 1; i >= 0; --i) {
     if (compressiontypes & s_decompressalgorithm[i].id) {
       ++operations;
     }
@@ -1319,37 +1319,31 @@ int APIENTRY SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWOR
     return FALSE;
   }
 
-  work = NULL;
   global = 0;
-  if (operations >= 2 || (operations && BuffersOverlap(dest, current, targetsize))) {
-    work = (BYTE *)s_AllocDecompressBuffer(destbuffersize, &global);
+  work = NULL;
+  if (operations >= 2 || (BuffersOverlap(dest, source, sourcesize) && operations)) {
+    work = s_AllocDecompressBuffer(destbuffersize, &global);
   }
 
-  for (i = 0; i < ALGORITHMS; ++i) {
-    DWORD codec = s_decompressalgorithm[i].id;
-    DWORD outSize;
-    BYTE *target;
+  for (i = ALGORITHMS - 1; i >= 0; --i) {
+    if (compressiontypes & s_decompressalgorithm[i].id) {
+      --operations;
+      target = (operations & 1) ? work : dest;
+      if (BuffersOverlap(target, source, sourcesize)) {
+        target = BuffersOverlap(target, work, sourcesize) ? dest : work;
+      }
 
-    if ((compressiontypes & codec) == 0) {
-      continue;
+      targetsize = destbuffersize;
+      s_decompressalgorithm[i].func(target, &targetsize, source, sourcesize, filename);
+      source = target;
+      sourcesize = targetsize;
     }
-
-    --operations;
-    target = (operations & 1) ? work : (BYTE *)dest;
-    if (BuffersOverlap(target, current, targetsize)) {
-      target = BuffersOverlap(target, work, targetsize) ? (BYTE *)dest : work;
-    }
-
-    outSize = destbuffersize;
-    s_decompressalgorithm[i].func(target, &outSize, current, targetsize, filename);
-    current = target;
-    targetsize = outSize;
   }
 
-  if ((LPCVOID)dest != (LPCVOID)current && targetsize) {
-    memcpy(dest, current, targetsize);
+  if (source != dest) {
+    memcpy(dest, source, sourcesize);
   }
-  *destsize = targetsize;
+  *destsize = sourcesize;
   s_FreeDecompressBuffer(work, global);
   return TRUE;
 }

@@ -10,7 +10,7 @@
 typedef DWORD ulong;
 typedef UINT  BoltID;
 
-const BoltID BADBOLT = static_cast<BoltID>(-1);
+const BoltID BADBOLT = (BoltID)-1;
 const ulong  NOTUSEDFLAG = 0x80000000;
 
 struct LightningCoordUpdateData {

@@ -125,14 +125,15 @@ inline CDataStore &operator>>(CDataStore &s_, CMoveSpline &d_) {
     s_ >> d_.face.facing;
   }
   DWORD timeNow = OsGetAsyncTimeMs();
-  int   elapsed = s_.GetInt();
+  int   elapsed;
+  s_ >> elapsed;
   d_.start = timeNow - elapsed;
   s_ >> d_.time;
-  UINT pointCount = s_.GetUint();
+  UINT   pointCount = s_.GetUint();
+  LPVOID points;
   if (pointCount) {
-    LPVOID points;
     s_.GetDataInSitu(points, 12 * pointCount);
-    d_.spline.SetPoints(static_cast<const NTempest::C3Vector *>(points), pointCount);
+    d_.spline.SetPoints((const NTempest::C3Vector *)points, pointCount);
   }
   return s_;
 }
@@ -259,14 +260,14 @@ class CGObject {
     return (GetType() & type) != 0;
   }
   BYTE IsA(OBJECT_TYPE_ID type) const {
-    return (static_cast<UINT>(GetType()) >> type) & 1;
+    return ((UINT)GetType() >> type) & 1;
   }
   BYTE IsExactlyA(OBJECT_TYPE_ID type) const {
     return GetType() == g_heirTypeFlags[type];
   }
 
   DWORDLONG GetGUID() const {
-    return *reinterpret_cast<const DWORDLONG *>(m_obj);
+    return *(const DWORDLONG *)m_obj;
   }
 
   OBJECT_TYPE GetType() const {
@@ -282,7 +283,7 @@ class CGObject {
   }
 
   BYTE *GetData(UINT index) const {
-    return reinterpret_cast<BYTE *>(m_data + index);
+    return (BYTE *)(m_data + index);
   }
 
   static UINT               GetDataSize();
@@ -295,7 +296,7 @@ class CGObject {
 
   void SetStorage(DWORD *storage) {
     m_data = storage;
-    m_obj = reinterpret_cast<CGObjectData *>(storage);
+    m_obj = (CGObjectData *)storage;
   }
 
   DWORD *GetStorage() {

@@ -88,6 +88,8 @@ struct ANIMKIT : public TSHashObject<ANIMKIT, HASHKEY_NONE> {
   WEAPONHANDCHANCES chancesArray[NUMHANDS];
 };
 
+static const float MIN_COMBAT_FACING_CHECK_RANGE = 0.33333334f;
+
 static TSHashTable<ANIMKIT, HASHKEY_NONE> s_animKitTable;
 static HASHKEY_NONE                       s_nullHashKey;
 static BYTE                               s_didHitConnect[NUM_VICTIMSTATES] = {0, 1, 0, 0, 1, 1, 0, 0, 1};
@@ -174,7 +176,7 @@ void ATTACKROUNDINFO::UI(CDataStore &msg) {
     msg.Get(dmg.absorbed[d]);
   }
 
-  msg.Get(reinterpret_cast<UINT &>(newVictimState));
+  msg.Get((UINT &)newVictimState);
   msg.Get(victimRoundDuration);
   msg.Get(spellDamageAdded);
   msg.Get(spellAddedDamage);
@@ -337,16 +339,61 @@ void PARTYKILLLOG::UI(CDataStore &msg) {
   msg.Get(victim);
 }
 
+inline void CGUnit_C::ClearAttackSent() {
+  m_combat.ClearAttackSent();
+}
+
 static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FATALASSERT(msg);
 
   switch (msgId) {
+    case SMSG_ENVIRONMENTALDAMAGELOG: {
+      ENVIRONMENTALDAMAGE log;
+      log.UI(*msg);
+      UnitCombatLog(log);
+      return 1;
+    }
+
+    case SMSG_MIRRORTIMERDAMAGELOG: {
+      MIRRORTIMERDAMAGE log;
+      log.UI(*msg);
+      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(log.victim, __FILE__, __LINE__));
+      if (unit) {
+        unit->HandleMirrorTimerDamage(log);
+      }
+      return 1;
+    }
+
+    case SMSG_ENCHANTMENTLOG: {
+      ENCHANTMENTLOG log;
+      log.UI(*msg);
+      UnitCombatLogEnchantment(log);
+      return 1;
+    }
+
+    case SMSG_RESISTLOG: {
+      RESISTLOG log;
+      log.UI(*msg);
+      UnitCombatLogHeartbeatResist(log);
+      return 1;
+    }
+
+    case SMSG_LOG_XPGAIN: {
+      DWORDLONG guid;
+      UINT      count;
+      msg->Get(guid);
+      msg->Get(count);
+      UnitCombatLogXPGain(guid, msg, count);
+      return 1;
+    }
+
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFO: {
       ATTACKROUNDINFO attackInfo;
       attackInfo.UI(*msg);
       UnitCombatLog(attackInfo);
       return 1;
     }
+
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELL: {
       SPELLLOG log(0, 0, 0);
       log.UI(*msg);
@@ -354,25 +401,36 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       CGGameUI::ShowCombatFeedback(log);
       return 1;
     }
+
+    case SMSG_PARTYKILLLOG: {
+      PARTYKILLLOG log;
+      log.UI(*msg);
+      UnitCombatLogPartyKill(log);
+      return 1;
+    }
+
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELLMISS: {
       SPELLMISSLOG log(0, 0, 0);
       log.UI(*msg);
       UnitCombatLog(log);
       return 1;
     }
+
     case SMSG_ATTACKSTART: {
       DWORDLONG attacker;
       DWORDLONG victim;
       msg->Get(attacker);
       msg->Get(victim);
       CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
-      if (unit) {
-        unit->m_combat.ClearAttackSent();
-        unit->OnAttackStart(victim);
-        return 1;
+      if (!unit) {
+        break;
       }
-      return 0;
+
+      unit->ClearAttackSent();
+      unit->OnAttackStart(victim);
+      return 1;
     }
+
     case SMSG_ATTACKSTOP: {
       DWORDLONG attacker;
       DWORDLONG victim;
@@ -380,25 +438,30 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       msg->Get(attacker);
       msg->Get(victim);
       msg->Get(nowDead);
+
       CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
       if (unit) {
         unit->OnAttackStop(victim, nowDead);
       }
       return 1;
     }
+
     case SMSG_ATTACKERSTATEUPDATE: {
       ATTACKROUNDINFO attackInfo;
       attackInfo.UI(*msg);
       CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attackInfo.attacker, __FILE__, __LINE__));
-      if (unit) {
-        unit->m_combat.ClearAttackSent();
-        unit->OnAttackerStateChange(attackInfo);
-        unit->m_hitInformation.attackFlags = 0;
-        unit->SetDebugHitRolls(attackInfo);
-        UnitCombatLog(attackInfo);
+      if (!unit) {
+        break;
       }
-      return 0;
+
+      unit->ClearAttackSent();
+      unit->OnAttackerStateChange(attackInfo);
+      unit->m_hitInformation.attackFlags = 0;
+      unit->SetDebugHitRolls(attackInfo);
+      UnitCombatLog(attackInfo);
+      break;
     }
+
     case SMSG_ATTACKSWING_NOTINRANGE:
     case SMSG_ATTACKSWING_BADFACING:
     case SMSG_ATTACKSWING_NOTSTANDING:
@@ -408,10 +471,12 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       DWORDLONG victim;
       msg->Get(attacker);
       msg->Get(victim);
+
       CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__));
       if (!unit) {
-        return 0;
+        break;
       }
+
       if (msgId == SMSG_ATTACKSWING_NOTINRANGE) {
         unit->OnBadAttackPosition(victim, 0.0f);
       } else if (msgId == SMSG_ATTACKSWING_BADFACING) {
@@ -423,53 +488,15 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       } else if (msgId == SMSG_ATTACKSWING_CANT_ATTACK) {
         unit->OnBadAttackTarget(victim);
       }
-      return 0;
+      break;
     }
-    case SMSG_RESISTLOG: {
-      RESISTLOG log;
-      log.UI(*msg);
-      UnitCombatLogHeartbeatResist(log);
-      return 1;
-    }
-    case SMSG_ENCHANTMENTLOG: {
-      ENCHANTMENTLOG log;
-      log.UI(*msg);
-      UnitCombatLogEnchantment(log);
-      return 1;
-    }
-    case SMSG_MIRRORTIMERDAMAGELOG: {
-      MIRRORTIMERDAMAGE log;
-      log.UI(*msg);
-      CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(log.victim, __FILE__, __LINE__));
-      if (unit) {
-        unit->HandleMirrorTimerDamage(log);
-      }
-      return 1;
-    }
-    case SMSG_ENVIRONMENTALDAMAGELOG: {
-      ENVIRONMENTALDAMAGE log;
-      log.UI(*msg);
-      UnitCombatLog(log);
-      return 1;
-    }
-    case SMSG_LOG_XPGAIN: {
-      DWORDLONG guid;
-      UINT      count;
-      msg->Get(guid);
-      msg->Get(count);
-      UnitCombatLogXPGain(guid, msg, count);
-      return 1;
-    }
-    case SMSG_PARTYKILLLOG: {
-      PARTYKILLLOG log;
-      log.UI(*msg);
-      UnitCombatLogPartyKill(log);
-      return 1;
-    }
+
     default:
       FATALASSERT(!"Error, unrecognized message ID!");
-      return 0;
+      break;
   }
+
+  return 0;
 }
 
 static BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -609,7 +636,7 @@ void CGUnit_C::SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criti
   if (m_currentTorsoAnimState == ANIM_STATE_SPELLPRECAST) {
     UINT anim = SpellGetRangedPrecastHoldAnim(GetCurrentTorsoAnim());
     if (anim != RESET_ANIMATION_INDICES0) {
-      SetSpellPreCastingAnimation(static_cast<ANIMENUMERATION>(anim));
+      SetSpellPreCastingAnimation((ANIMENUMERATION)anim);
     }
   }
 
@@ -631,45 +658,47 @@ BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int proces
   if (!processNow) {
     if (ObjectIsRendering()) {
       QueueAnim(ANIMQUEUE_ATTACK, roundInfo);
-      return 1;
-    }
-    if (victimPtr) {
+    } else if (victimPtr) {
       victimPtr->DoVictimFeedback(roundInfo, 1);
     }
-    return 1;
-  }
+  } else {
+    CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player) {
+      char buff[256];
+      SStrPrintf(buff, sizeof(buff), "%s setting attacker anim", GetUnitName());
+      player->DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
+    }
 
-  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    char buff[256];
-    SStrPrintf(buff, sizeof(buff), "%s setting attacker anim", GetUnitName());
-    player->DDGENLOG(GetGUID(), buff, __FILE__, __LINE__);
-  }
+    ANIM_STATE state;
+    if (roundInfo->flags & 1) {
+      state = s_attackAnimMissStates[hand];
+    } else {
+      state = s_attackAnimHitStates[hand];
+    }
+    if (!SetTorsoAnimation(state, 0, 0)) {
+      if (victimPtr) {
+        victimPtr->DoVictimFeedback(roundInfo, 1);
+      }
+      return m_currentTorsoAnimState == ANIM_STATE_SPELLCAST;
+    }
 
-  ANIM_STATE state = (roundInfo->flags & 1) ? s_attackAnimMissStates[hand] : s_attackAnimHitStates[hand];
-  if (!SetTorsoAnimation(state, 0, 0)) {
     if (victimPtr) {
-      victimPtr->DoVictimFeedback(roundInfo, 1);
+      AddVictimDeathHold(victimPtr);
     }
-    return m_currentTorsoAnimState == ANIM_STATE_SPELLCAST;
-  }
 
-  if (victimPtr) {
-    AddVictimDeathHold(victimPtr);
-  }
-  PlayUnitSound((roundInfo->flags & 8) ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION, 0);
+    PlayUnitSound((roundInfo->flags & 8) ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION, 0);
 
-  UINT   sequence = ChooseAnimation(state);
-  UINT   seqDuration;
-  HMODEL model = m_model;
-  if (ModelGetSequenceDuration(model, sequence, &seqDuration)) {
-    UINT random = NTempest::CMath::mulhwu_(NTempest::CRandom::uint32_(g_rndSeed), 16);
-    UINT scaledDuration = NTempest::CMath::fint_((random + 85.0f) * seqDuration * 0.01f);
-    UINT attackTime = GetAttackRoundTime(static_cast<COMBATHAND>((roundInfo->flags >> 9) & 1));
-    if (scaledDuration >= attackTime) {
-      scaledDuration = attackTime;
+    UINT sequence = ChooseAnimation(state);
+    UINT seqDuration;
+    if (ModelGetSequenceDuration(GetObjectModel(), sequence, &seqDuration)) {
+      UINT random = NTempest::CRandom::dice_(16, g_rndSeed);
+      UINT scaledDuration = NTempest::CMath::fint_((random + 85.0f) * seqDuration * 0.01f);
+      UINT attackTime = GetAttackRoundTime((COMBATHAND)((roundInfo->flags >> 9) & 1));
+      if (scaledDuration >= attackTime) {
+        scaledDuration = attackTime;
+      }
+      ModelSetObjectTimeScale(GetObjectModel(), 4, (float)seqDuration / (float)scaledDuration, 0);
     }
-    ModelSetObjectTimeScale(model, 4, static_cast<float>(seqDuration) / static_cast<float>(scaledDuration), 0);
   }
   return 1;
 }
@@ -712,7 +741,7 @@ UINT CGUnit_C::DetermineAttackerSequence(COMBATHAND hand) const {
     UINT sequence = GetAttackerAnimEx(hand, virtualItem);
     if (sequence == INVALID_ANIMATION || !ModelHasSequenceId(GetObjectModel(), sequence)) {
       WEAPONATTACKSEQ weaponSeq = ClientDBGetWeaponSubclassWeaponSeq(virtualItem->m_subclassID);
-      if ((weaponSeq >= WEAPONATTACKSEQ_2HTIGHT && weaponSeq <= WEAPONATTACKSEQ_BOW) || weaponSeq == WEAPONATTACKSEQ_RIFLE) {
+      if (weaponSeq >= WEAPONATTACKSEQ_2HTIGHT && (weaponSeq <= WEAPONATTACKSEQ_BOW || weaponSeq == WEAPONATTACKSEQ_RIFLE)) {
         sequence = s_anims[weaponSeq];
       } else {
         sequence = hand == COMBAT_MAINHAND ? ANIM_ATTACK1H : ANIM_ATTACKOFF;
@@ -843,7 +872,7 @@ void CGUnit_C::DetermineReadySequence(bool forceNormal) {
     sequence = ANIM_READYUNARMED;
   }
 
-  if (static_cast<UINT>(sequence) != m_readySequence) {
+  if ((UINT)sequence != m_readySequence) {
     m_readySequence = sequence;
     if (m_currentBaseAnimState == ANIM_STATE_ATTACK_READY) {
       UpdateBaseAnimation(0);
@@ -870,6 +899,7 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
     victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_currentDamageInfo->roundInfo.victim, __FILE__, __LINE__));
   }
 
+  ATTACKROUNDINFO *roundInfo = 0;
   switch (value) {
     case '0HA$':
     case '1HA$':
@@ -896,25 +926,39 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
       break;
     }
 
-    case 'PPC$':
-      if (m_currentDamageInfo && victimPtr) {
-        ATTACKROUNDINFO &roundInfo = m_currentDamageInfo->roundInfo;
-        if ((roundInfo.flags & 2) && ((1 << roundInfo.newVictimState) & 0x14C)) {
-          victimPtr->SetVictimAnimation(roundInfo.newVictimState, roundInfo.flags & 4, roundInfo.flags & 8, roundInfo.victimRoundDuration, 0);
-          roundInfo.flags &= ~2u;
-        }
+    case 'PPC$': {
+      if (m_currentDamageInfo) {
+        victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_currentDamageInfo->roundInfo.victim, __FILE__, __LINE__));
+        roundInfo = &m_currentDamageInfo->roundInfo;
+      }
+
+      bool showAnimation = roundInfo && ((1 << roundInfo->newVictimState) & 0x14C);
+      if (victimPtr && roundInfo && showAnimation && (roundInfo->flags & 2)) {
+        victimPtr->SetVictimAnimation(roundInfo->newVictimState, roundInfo->flags & 4, roundInfo->flags & 8, roundInfo->victimRoundDuration, 0);
+        roundInfo->flags &= ~2u;
       }
       break;
+    }
+
+    case 'SSC$': {
+      WEAPONSWING_SOUNDTYPES type = WEAPONSWING_LIGHT;
+      bool                   playSound = m_currentDamageInfo && GetWeaponSwingType(!(m_currentDamageInfo->roundInfo.flags & 0x200), type);
+      if (m_currentDamageInfo && playSound) {
+        SndInterfacePlayWeaponSwooshSound(type, m_currentDamageInfo->roundInfo.flags & 8, position, m_currentDamageInfo->roundInfo.flags & 1);
+      }
+      break;
+    }
 
     case 'HTD$':
       PlayDeathThud();
       PlayDeathThudCameraShake();
       break;
 
-    case 'PWB$': {  // $BWP
-      m_flags = m_flags & ~0x800u | 0x400;
+    case 'PWB$': {
+      m_flags &= ~0x800u;
+      m_flags |= 0x400;
       UINT currentTime = OsGetAsyncTimeMsPrecise();
-      if (m_animEndTime && static_cast<int>(m_animEndTime - currentTime) > 0) {
+      if (m_animEndTime && (int)(m_animEndTime - currentTime) > 0) {
         int duration = m_animStartTime + m_animBaseDuration - currentTime;
         if (duration > 0) {
           SetRangedWeaponPullAnim(duration);
@@ -923,19 +967,12 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
       ShowHandArrow(1);
       break;
     }
-
-    case 'SSC$': {  // $CSS
-      WEAPONSWING_SOUNDTYPES type = WEAPONSWING_LIGHT;
-      if (m_currentDamageInfo && GetWeaponSwingType(!(m_currentDamageInfo->roundInfo.flags & 0x200), type)) {
-        SndInterfacePlayWeaponSwooshSound(type, m_currentDamageInfo->roundInfo.flags & 8, position, m_currentDamageInfo->roundInfo.flags & 1);
-      }
-      break;
-    }
   }
 }
 
 void CGUnit_C::OnAttackSwing(DWORDLONG victimGUID, UINT clientTimeStamp) {
-  if ((!m_combat.IsAttacking() && !m_combat.AttackBeenSent()) || m_combat.StopBeenSent()) {
+  DWORDLONG attacking = m_combat.IsAttacking();
+  if (m_combat.StopBeenSent() || (!attacking && !m_combat.AttackBeenSent())) {
     CDataStore msg;
     msg.Put(CMSG_ATTACKSWING);
     msg.Put(victimGUID);
@@ -957,7 +994,6 @@ void CGUnit_C::OnAttackStart(DWORDLONG victim) {
   FATALASSERT(victim);
 
   m_combat.SetAttacking(victim);
-  m_combat.ClearAttackSent();
   m_hitInformation.attackFlags = 0;
 
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(victim, __FILE__, __LINE__));
@@ -970,7 +1006,6 @@ void CGUnit_C::OnAttackStop(DWORDLONG previousTarget, int nowDead) {
   m_hitInformation.attackFlags = 0;
   m_combat.ClearAttackSent();
   m_combat.StopAttack();
-  m_combat.SetStopSent(0);
 
   if (!CurrentAnimIncludesHit()) {
     UpdateBaseAnimation(0);
@@ -986,12 +1021,18 @@ void CGUnit_C::OnAttackStop(DWORDLONG previousTarget, int nowDead) {
   }
 }
 
+inline void CGGameUI::TargetIfNone(const DWORDLONG &target) {
+  if (!m_lockedTarget) {
+    Target(target, 0);
+  }
+}
+
 void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
   m_hitInformation.attackFlags = 0;
 
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo.victim, __FILE__, __LINE__));
   if (victimPtr) {
-    victimPtr->AdjustVictimState(const_cast<ATTACKROUNDINFO *>(&roundInfo));
+    victimPtr->AdjustVictimState((ATTACKROUNDINFO *)&roundInfo);
   }
 
   if (roundInfo.flags & 0x1000) {
@@ -1013,11 +1054,10 @@ void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
     }
   } else {
     m_combat.StopAttack();
-    m_combat.SetStopSent(0);
   }
 
-  if (roundInfo.victim == ClntObjMgrGetActivePlayer() && !CGGameUI::GetLockedTarget()) {
-    CGGameUI::Target(GetGUID(), 0);
+  if (roundInfo.victim == ClntObjMgrGetActivePlayer()) {
+    CGGameUI::TargetIfNone(GetGUID());
   }
 }
 
@@ -1047,19 +1087,21 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
     attackerPtr->SetMeleeDeathHold(0);
   }
 
+  int absorbed = roundInfo->flags & 0x10000;
   if (roundInfo->newVictimState == VS_PARRY) {
     PlayParrySound(0, roundInfo, GetPosition());
   } else if (roundInfo->newVictimState == VS_BLOCK) {
     PlayParrySound(1, roundInfo, GetPosition());
   } else if (roundInfo->newVictimState == VS_IMMUNE) {
     SndInterfacePlayImmuneSound(GetPosition());
-  } else if (roundInfo->flags & 0x10000) {
+  } else if (absorbed) {
     SndInterfacePlayAbsorbedSound(GetPosition());
   }
 
+  int criticalHit = roundInfo->flags & 8;
   if (roundInfo->flags & 2) {
     if (showAnimation) {
-      SetVictimAnimation(roundInfo->newVictimState, roundInfo->flags & 4, roundInfo->flags & 8, roundInfo->victimRoundDuration, 0);
+      SetVictimAnimation(roundInfo->newVictimState, roundInfo->flags & 4, criticalHit, roundInfo->victimRoundDuration, 0);
     }
     if (roundInfo->dmg.totalDamage && (roundInfo->newVictimState == VS_WOUND || roundInfo->newVictimState == VS_INTERRUPT)) {
       ShowBloodSpurt(static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(roundInfo->attacker, __FILE__, __LINE__)), roundInfo->flags & 0x400);
@@ -1078,8 +1120,7 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
       if (roundInfo->newVictimState == VS_DEFLECT) {
         SndInterfacePlayDeflectedSound(GetPosition());
       } else {
-        COMBATHAND hand = (roundInfo->flags & 0x200) ? COMBAT_OFFHAND : COMBAT_MAINHAND;
-        PlayImpactSound(roundInfo->attacker, roundInfo->flags & 8, hand);
+        PlayImpactSound(roundInfo->attacker, criticalHit, (roundInfo->flags & 0x200) ? COMBAT_OFFHAND : COMBAT_MAINHAND);
       }
     } else {
       PlayCustomAttackSound(m_customAttackSound, m_customAttackPosition);
@@ -1192,23 +1233,25 @@ void CGUnit_C::PerformSpellProcImpact(int spell) {
 
 void CGUnit_C::ShowBloodSpurt(CGUnit_C *attacker, int crushingBlow) {
   const UnitBloodRec *bloodRec = GetBloodRecord();
-  if (!attacker || !bloodRec) {
-    return;
-  }
+  if (attacker && bloodRec) {
+    BLOODSPURTLOCATION linkPoint = DetermineBloodLinkPoint(attacker);
+    int                effectID;
+    crushingBlow = crushingBlow != 0;
+    switch (linkPoint) {
+      case BLOODSPURT_BACK:
+        effectID = bloodRec->m_CombatBloodSpurtBack[crushingBlow];
+        break;
+      default:
+        effectID = bloodRec->m_CombatBloodSpurtFront[crushingBlow];
+        break;
+    }
 
-  BLOODSPURTLOCATION linkPoint = DetermineBloodLinkPoint(attacker);
-  int                effectID;
-  if (linkPoint == BLOODSPURT_BACK) {
-    effectID = bloodRec->m_CombatBloodSpurtBack[crushingBlow != 0];
-  } else {
-    effectID = bloodRec->m_CombatBloodSpurtFront[crushingBlow != 0];
+    const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
+    if (effectRec) {
+      UnitEffectOneShot((UNITEFFECTSPECIALS)effectRec->m_specialID, GetGUID(), 0, 0.0f, 1.0f, 0);
+    }
+    QueueBloodSplat(linkPoint);
   }
-
-  const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
-  if (effectRec) {
-    UnitEffectOneShot(static_cast<UNITEFFECTSPECIALS>(effectRec->m_specialID), GetGUID(), 0, 0.0f, 1.0f, 0);
-  }
-  QueueBloodSplat(linkPoint);
 }
 
 BLOODSPURTLOCATION CGUnit_C::DetermineBloodLinkPoint(CGUnit_C *attacker) {
@@ -1216,7 +1259,7 @@ BLOODSPURTLOCATION CGUnit_C::DetermineBloodLinkPoint(CGUnit_C *attacker) {
 
   NTempest::C3Vector toAttacker = attacker->GetPosition() - GetPosition();
   float facing = GetDisplayFacing();
-  return toAttacker.x * cos(facing) + toAttacker.y * sin(facing) < 0.0f ? BLOODSPURT_BACK : BLOODSPURT_FRONT;
+  return NTempest::CMath::sin_(facing) * toAttacker.y + NTempest::CMath::cos_(facing) * toAttacker.x < 0.0f ? BLOODSPURT_BACK : BLOODSPURT_FRONT;
 }
 
 void CGUnit_C::OnDeathAnimate() {
@@ -1408,73 +1451,70 @@ void UnitCombatClientShutdown() {
   s_animKitTable.Clear();
 }
 
+inline float CGUnit::LinearDistanceSquared(const NTempest::C3Vector &position) const {
+  return (GetPosition() - position).SquaredMag();
+}
+
 void CGUnit_C::OnCombatModeTimer() {
   DWORDLONG lockedTarget = CGGameUI::GetLockedTarget();
   CGUnit_C *victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(lockedTarget, __FILE__, __LINE__));
   FATALASSERT(victimPtr);
 
-  NTempest::C3Vector victimPosition;
-  NTempest::C3Vector position;
-  victimPtr->GetPosition(victimPosition);
-  position = GetPosition();
-  float rangeSquared = (victimPosition - position).SquaredMag();
+  float rangeSquared = LinearDistanceSquared(victimPtr->GetPosition());
   float maxRange = g_combatModeMaxDistance->GetFloat();
 
-  if (m_unit->health > 0 && !(m_unit->flags & 0x2000) && victimPtr->m_unit->health > 0 && CanAttack(victimPtr) && rangeSquared <= maxRange * maxRange)
-  {
-    float attackRange = victimPtr->m_unit->weaponReach + victimPtr->m_unit->combatReach + m_unit->weaponReach + m_unit->combatReach + 1.3333334f;
-    bool  inPosition = false;
-    if (rangeSquared <= attackRange * attackRange) {
-      if (rangeSquared < 0.33333334f * 0.33333334f) {
-        inPosition = true;
-      } else {
-        float desiredFacing = CalculateFacingTo(position, victimPosition);
-        float facing = GetFacing();
-        float minFacing = desiredFacing - 1.2217305f;
-        float maxFacing = desiredFacing + 1.2217305f;
-        while (minFacing < 0.0f) {
-          minFacing += 6.2831855f;
-          maxFacing += 6.2831855f;
-        }
-        while (facing < minFacing) {
-          facing += 6.2831855f;
-        }
-        inPosition = facing <= maxFacing;
-      }
-
-      if (inPosition) {
-        if (!m_castingSpell && !m_combat.IsAttacking() && !m_combat.AttackBeenSent()) {
-          m_flags &= ~0xC0u;
-          AttackUnit(victimPtr);
-        }
-      } else {
-        OnBadAttackFacing(lockedTarget);
-      }
-    } else {
-      OnBadAttackPosition(lockedTarget, attackRange);
+  if (GetHealth() <= 0 || IsMounted() || victimPtr->GetHealth() <= 0 || !CanAttack(victimPtr) || maxRange * maxRange < rangeSquared) {
+    if (IsA(TYPE_PLAYER)) {
+      ((CGPlayer_C *)this)->SetCombatMode(0);
     }
 
-    if ((!inPosition || rangeSquared > attackRange * attackRange) && (m_combat.IsAttacking() || m_combat.AttackBeenSent())) {
+    if (m_combat.IsAttacking() || m_combat.AttackBeenSent()) {
       StopAttack();
-    }
-
-    CGPlayer_C *player;
-    if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-      player = static_cast<CGPlayer_C *>(this);
-    } else {
-      player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    }
-    if (player) {
-      player->ResetCombatModeTimer(0);
     }
     return;
   }
 
-  if (GetType() & TYPE_PLAYER) {
-    static_cast<CGPlayer_C *>(this)->SetCombatMode(0);
+  float attackRange = victimPtr->GetCombatReach() + GetCombatReach() + 1.3333334f;
+  bool  inPosition = false;
+
+  if (attackRange * attackRange < rangeSquared) {
+    OnBadAttackPosition(lockedTarget, attackRange);
+  } else {
+    inPosition = true;
+    if (MIN_COMBAT_FACING_CHECK_RANGE * MIN_COMBAT_FACING_CHECK_RANGE <= rangeSquared) {
+      float desiredFacing = CalculateFacingTo(GetPosition(), victimPtr->GetPosition());
+      float facing = GetFacing();
+
+      float maxFacing = desiredFacing + 1.2217305f;
+      float minFacing = desiredFacing - 1.2217305f;
+      while (minFacing < 0.0f) {
+        maxFacing += TWO_PI;
+        minFacing += TWO_PI;
+      }
+      while (facing < minFacing) {
+        facing += TWO_PI;
+      }
+      if (facing > maxFacing) {
+        OnBadAttackFacing(lockedTarget);
+        inPosition = false;
+      }
+    }
   }
-  if (m_combat.IsAttacking() || m_combat.AttackBeenSent()) {
+
+  if (inPosition) {
+    if (!GetCastingSpell() && !m_combat.IsAttacking() && !m_combat.AttackBeenSent()) {
+      m_flags &= ~0xC0u;
+      AttackUnit(victimPtr);
+    }
+  } else if (m_combat.IsAttacking() || m_combat.AttackBeenSent()) {
     StopAttack();
+  }
+
+  CGPlayer_C *player = GetGUID() == ClntObjMgrGetActivePlayer()
+                           ? (CGPlayer_C *)this
+                           : static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (player) {
+    player->ResetCombatModeTimer(0);
   }
 }
 
@@ -1489,21 +1529,22 @@ void CGUnit_C::AttackUnit(CGUnit_C *newVictim) {
 
   CGPlayer_C *player;
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
-    player = static_cast<CGPlayer_C *>(this);
+    player = (CGPlayer_C *)this;
   } else {
     player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   }
-  if (!player || !player->CanEngageTarget(newVictim)) {
-    return;
-  }
+  if (player && player->CanEngageTarget(newVictim)) {
+    if (m_castingSpell) {
+      const SpellRec *spell = g_spellDB.GetRecord(m_castingSpell);
+      if (spell && (spell->m_interruptFlags & 8)) {
+        return;
+      }
+    }
 
-  const SpellRec *spell = m_castingSpell ? g_spellDB.GetRecord(m_castingSpell) : 0;
-  if (spell && (spell->m_interruptFlags & 8)) {
-    return;
-  }
-
-  if (!m_combat.IsAttacking() && !m_combat.AttackBeenSent()) {
-    OnAttackSwing(currentVictim ? currentVictim : newVictim->GetGUID(), OsGetAsyncTimeMs());
+    currentVictim = !currentVictim ? newVictim->GetGUID() : currentVictim;
+    if (!m_combat.IsAttacking() && !m_combat.AttackBeenSent()) {
+      OnAttackSwing(currentVictim, OsGetAsyncTimeMs());
+    }
   }
 }
 

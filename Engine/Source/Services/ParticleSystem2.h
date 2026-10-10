@@ -280,7 +280,7 @@ class CParticleEmitter2 {
   void                      RenderParticles();
   void                      RenderParticleModels();
   CParticle2 *GetParticle(UINT index) {
-    return m_particleType == PT_QUAD ? &m_particles[index] : static_cast<CParticle2 *>(&m_modelParticles[index]);
+    return m_particleType == PT_QUAD ? &m_particles[index] : (CParticle2 *)&m_modelParticles[index];
   }
 
   CParticleEmitter2();

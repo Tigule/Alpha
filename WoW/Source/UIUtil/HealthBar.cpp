@@ -20,11 +20,11 @@
 static BOOL SimpleHealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID data, LPVOID parameter) {
   FATALASSERT(parameter);
 
-  CGSimpleHealthBar *healthBar = static_cast<CGSimpleHealthBar *>(parameter);
+  CGSimpleHealthBar *healthBar = (CGSimpleHealthBar *)parameter;
   CGUnit_C          *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (unit) {
-    healthBar->SetMinMaxValues(0.0f, static_cast<float>(unit->GetMaxHealth()));
-    healthBar->SetValue(static_cast<float>(unit->GetHealth()));
+    healthBar->SetMinMaxValues(0.0f, unit->GetMaxHealth());
+    healthBar->SetValue(unit->GetHealth());
   }
 
   return 1;
@@ -48,8 +48,8 @@ void CGSimpleHealthBar::SetUnit(CGUnit_C *unit) {
   m_unitGUID = unit->GetGUID();
   InstallMirrorHandlers();
 
-  SetMinMaxValues(0.0f, static_cast<float>(unit->GetMaxHealth()));
-  SetValue(static_cast<float>(unit->GetHealth()));
+  SetMinMaxValues(0.0f, unit->GetMaxHealth());
+  SetValue(unit->GetHealth());
 }
 
 void CGSimpleHealthBar::SetValue(float value) {

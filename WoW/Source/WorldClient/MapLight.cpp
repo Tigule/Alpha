@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -48,25 +48,25 @@ void CMap::GxuLightShutdown() {
 }
 
 DWORD CMap::GxuLightCreate() {
-  return reinterpret_cast<DWORD>(CreateLight(true));
+  return (DWORD)CreateLight(true);
 }
 
 void CMap::GxuLightDestroy(DWORD lightId) {
-  CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
+  CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   DestroyLight(light);
 }
 
 CGxLight *CMap::GxuLightLock(DWORD lightId) {
-  CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
+  CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   return &light->gxLight;
 }
 
 void CMap::GxuLightUnlock(DWORD lightId) {
-  CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
+  CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   UpdateLight(light);
@@ -81,7 +81,7 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
     whichLight = 1;
   } else {
     ITERATELIST(CMapBaseObjLink, CMapLight::dirLightLinkList, link) {
-      CMapLight *light = static_cast<CMapLight *>(link->owner);
+      CMapLight *light = (CMapLight *)link->owner;
       if (light->flags & CMapBaseObj::Flag_Enabled) {
         GxLightSet(whichLight, light->gxLight, cameraWorldPos);
         ++whichLight;
@@ -92,21 +92,21 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
     }
   }
 
-  while (whichLight < 8) {
+  while (whichLight != 8) {
     GxLightEnable(whichLight, 0);
     ++whichLight;
   }
 }
 
 BOOL CMap::GxuLightEnable(DWORD lightId) {
-  CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
+  CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
-  return static_cast<BYTE>(light->flags) >> 7;
+  return (BYTE)light->flags >> 7;
 }
 
 void CMap::GxuLightEnableSet(DWORD lightId, int enable) {
-  CMapLight *light = reinterpret_cast<CMapLight *>(lightId);
+  CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   if (enable) {
@@ -158,9 +158,9 @@ CMapLight *CMap::CreateLight(bool dynamic) {
 
   light->pos = NTempest::C3Vector(0.0f);
   light->aaSphere.c = NTempest::C3Vector(0.0f);
+  light->aaSphere.r = 0.0f;
   light->aaBox.b = NTempest::C3Vector(0.0f);
   light->aaBox.t = NTempest::C3Vector(0.0f);
-  light->aaSphere.r = 0.0f;
   light->flags = 0;
   light->attenStart = light->attenEnd = light->attenDenom = 0.0f;
   light->dynamic = dynamic;
@@ -172,13 +172,12 @@ CMapLight *CMap::CreateLight(bool dynamic) {
 void CMap::DestroyLight(CMapLight *light) {
   ASSERT(light);
 
-  for (CMapBaseObjLink *link = light->parentLinkList.Head(), *next;
-       (int)link > 0 ? ((next = light->parentLinkList.RawNext(link)), 1) : 0; link = next) {
+  SAFEITERATELIST(CMapBaseObjLink, light->parentLinkList, link) {
     if (link->ref) {
       if (link->ref->GetType() == CMapBaseObj::Type_Chunk) {
-        static_cast<CMapChunk *>(link->ref)->UpdateLights();
+        ((CMapChunk *)link->ref)->UpdateLights();
       } else if (link->ref->GetType() == CMapBaseObj::Type_MapObjDefGroup) {
-        static_cast<CMapObjDefGroup *>(link->ref)->UpdateLights();
+        ((CMapObjDefGroup *)link->ref)->UpdateLights();
       }
     }
 
@@ -200,11 +199,8 @@ void CMap::UpdateLight(CMapLight *light) {
   if (bActive && light->gxLight.m_isOmni) {
     ActivityBegin(ACTIVITY_LIGHTING);
 
-    CMapBaseObjLink *link = light->parentLinkList.Head();
-    while (link) {
-      CMapBaseObjLink *next = light->parentLinkList.Next(link);
+    SAFEITERATELIST(CMapBaseObjLink, light->parentLinkList, link) {
       FreeBaseObjLink(link);
-      link = next;
     }
 
     UpdateLightBounds(light);
@@ -223,14 +219,14 @@ void CMap::UpdateLightBounds(CMapLight *light) {
 
   light->attenEnd = radius;
 
-  NTempest::C3Vector min = NTempest::C3Vector(light->gxLight.m_dir.x - radius, light->gxLight.m_dir.y - radius, light->gxLight.m_dir.z - radius);
-  NTempest::C3Vector max = NTempest::C3Vector(light->gxLight.m_dir.x + radius, light->gxLight.m_dir.y + radius, light->gxLight.m_dir.z + radius);
+  NTempest::C3Vector min = light->gxLight.m_dir - NTempest::C3Vector(radius);
+  NTempest::C3Vector max = light->gxLight.m_dir + NTempest::C3Vector(radius);
 
   light->pos = light->gxLight.m_dir;
   light->aaBox.b = min;
   light->aaBox.t = max;
-  light->aaSphere.r = radius;
   light->aaSphere.c = light->gxLight.m_dir;
+  light->aaSphere.r = radius;
 }
 
 void CMap::EnableLight(CMapLight *light) {
@@ -257,7 +253,7 @@ void CMap::SelectLight(CMapBaseObj *baseObj) {
 }
 
 void CMap::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
-  CMapBaseObj *baseObj = static_cast<CMapBaseObj *>(parm);
+  CMapBaseObj *baseObj = (CMapBaseObj *)parm;
 
   ASSERT(baseObj);
   if (baseObj->camDist >= CWorld::farFog) {
@@ -268,18 +264,18 @@ void CMap::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest:
 }
 
 void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
-  const CWTriData::Batch *batch = static_cast<const CWTriData::Batch *>(buf->UserArg());
+  const CWTriData::Batch *batch = (const CWTriData::Batch *)buf->UserArg();
   CGxVertexPN            *vertices = 0;
 
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
-      vertices = static_cast<CGxVertexPN *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
+      vertices = (CGxVertexPN *)GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices));
       *cmd.vertex.mem[GxVM_Position] = &vertices->p;
       *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
       break;
 
     case GxBufOp_Fill:
-      vertices = static_cast<CGxVertexPN *>(*cmd.vertex.mem[GxVM_Position]);
+      vertices = (CGxVertexPN *)*cmd.vertex.mem[GxVM_Position];
       break;
 
     case GxBufOp_Nop:
@@ -296,12 +292,12 @@ void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
   WORD *indices = 0;
   switch (cmd.index.op) {
     case GxBufOp_Assign:
-      indices = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*indices)));
+      indices = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(*indices));
       *cmd.index.mem[GxVM_Indices] = indices;
       break;
 
     case GxBufOp_Fill:
-      indices = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      indices = (WORD *)*cmd.index.mem[GxVM_Indices];
       break;
 
     case GxBufOp_Nop:
@@ -353,7 +349,7 @@ void CMapLight::Project() {
     const CWTriData::Batch &batch = triData.GetBatch(i);
     NTempest::C44Matrix     batchMtx = *batch.matrix * worldMtx;
     GxXformSet(GxXform_World, batchMtx);
-    buf->UserArgSet(const_cast<CWTriData::Batch *>(&batch));
+    buf->UserArgSet((CWTriData::Batch *)&batch);
     buf->CountSet(batch.GetVertexCount(), batch.GetIndexCount());
     GxBufLock(buf);
     CGxBatch gxBatch(GxPrim_Triangles, batch.GetIndexCount(), 0, -1, -1);
@@ -389,7 +385,7 @@ void CMap::LinkLightToMapObjDefs(CMapLight *light) {
       CMapObj *mapObj = mapObjDef->mapObj;
       if (mapObj && mapObj->TestBounds(tBox)) {
         ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, link) {
-          CMapObjDefGroup *group = static_cast<CMapObjDefGroup *>(link->owner);
+          CMapObjDefGroup *group = (CMapObjDefGroup *)link->owner;
           if (!(group->flags & CMapBaseObj::Flag_InteriorLit) && mapObj->TestGroupBounds(tBox, group->groupNum)) {
             CMapBaseObjLink *lightLink = AllocBaseObjLink(light);
             lightLink->ref = group;

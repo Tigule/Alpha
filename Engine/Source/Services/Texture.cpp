@@ -46,7 +46,7 @@ class HASHKEY_TEXTUREFILE {
   }
 
   bool operator==(const HASHKEY_TEXTUREFILE &source) const {
-    return *reinterpret_cast<const UINT *>(&m_flags) == *reinterpret_cast<const UINT *>(&source.m_flags) &&
+    return *(const UINT *)&m_flags == *(const UINT *)&source.m_flags &&
            SStrCmpI(m_filename, source.m_filename, 0x104) == 0;
   }
 
@@ -80,7 +80,7 @@ struct CTextureItem {
   }
 
   CTextureItem(const CTextureItem &source) : fromColor(source.fromColor), timeStamp(source.timeStamp) {
-    texture = reinterpret_cast<HTEXTURE>(HandleDuplicate(source.texture));
+    texture = (HTEXTURE)HandleDuplicate(source.texture);
   }
 
   ~CTextureItem() {
@@ -289,7 +289,7 @@ UpdateTextureDefault(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, L
 
 void
 UpdateBlpTextureAsync(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
-  CTexture *texture = static_cast<CTexture *>(userArg);
+  CTexture *texture = (CTexture *)userArg;
 
   ASSERT(texture);
 
@@ -299,7 +299,7 @@ UpdateBlpTextureAsync(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, 
         EGxTexFormat gxFormat;
 
         OsOutputDebugString("UpdateBlpTextureAsync(): GxTex_Lock loading: %s\n", texture->filename);
-        texture->mipBits = static_cast<MipBits *>(g_textureMipBits);
+        texture->mipBits = (MipBits *)g_textureMipBits;
         if (!LoadBlpMips(texture->filename, texture->mipBits, 0, 0, &gxFormat, 0, 0)) {
           texture->mipBits = GetDefaultTexture(w, h, GxTex_Argb8888);
           GetGlobalStatusObj().Add(STATUS_ERROR, "Texture %s not loaded -- replaced with default.\n", texture->filename);
@@ -349,7 +349,7 @@ static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *he
   PIXEL_FORMAT pixelFormat = PIXEL_ARGB8888;
 
   if (texFile.m_header.colorEncoding == COLOR_DXT) {
-    pixelFormat = static_cast<PIXEL_FORMAT>(texFile.m_header.preferredFormat);
+    pixelFormat = (PIXEL_FORMAT)texFile.m_header.preferredFormat;
 
     switch (pixelFormat) {
       case PIXEL_DXT1:
@@ -461,8 +461,7 @@ static void AsyncTextureHandler() {
   s_asyncLoadBufferUsed = 0;
   bufferRemaining = s_asyncLoadBuffer.MaxCount();
 
-  for (CAsyncObject *asyncObject = s_asyncLoadList.Head(), *asyncObjectnext_node;
-       (int)asyncObject > 0 ? ((asyncObjectnext_node = s_asyncLoadList.RawNext(asyncObject)), 1) : 0; asyncObject = asyncObjectnext_node) {
+  SAFEITERATELIST(CAsyncObject, s_asyncLoadList, asyncObject) {
     if (bufferRemaining >= asyncObject->size) {
       asyncObject->link.Unlink();
       asyncObject->buffer = &s_asyncLoadBuffer[s_asyncLoadBufferUsed];
@@ -505,12 +504,10 @@ void TextureGxCacheFlush() {
 void TextureCacheUpdate(DWORD currentTime, CStatus *status) {
   UINT numTexturesFlushed = 0;
 
-  while (CTextureItem *textureItem = s_textureCacheLRU.Head()) {
-    if (numTexturesFlushed >= 4) {
-      break;
-    }
-
-    if (static_cast<long>(currentTime - textureItem->timeStamp) < 30000L) {
+  CTextureItem *textureItem;
+  while ((textureItem = s_textureCacheLRU.Head()) != 0 && numTexturesFlushed < 4) {
+    long elapsed = currentTime - textureItem->timeStamp;
+    if (elapsed < 30000) {
       break;
     }
 
@@ -524,9 +521,9 @@ void TextureCacheUpdate(DWORD currentTime, CStatus *status) {
       textureItem->texture = 0;
 
       if (textureItem->fromColor) {
-        s_solidTextureCache.DeleteNode(static_cast<CSolidTextureHash *>(textureItem));
+        s_solidTextureCache.DeleteNode((CSolidTextureHash *)textureItem);
       } else {
-        s_textureCache.DeleteNode(static_cast<CTextureHash *>(textureItem));
+        s_textureCache.DeleteNode((CTextureHash *)textureItem);
       }
 
       ++numTexturesFlushed;
@@ -539,7 +536,7 @@ void TextureCacheUpdate(DWORD currentTime, CStatus *status) {
 }
 
 static int TextureIsUsed(HTEXTURE texture) {
-  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = (CTexture *)texture;
   ASSERT(textureptr);
   return textureptr->GetRefCount() > 1;
 }
@@ -579,7 +576,7 @@ MipBits *TextureLoadImage(LPCSTR filename, UINT *width, UINT *height, UINT *gxTe
       break;
     }
 
-    imageFormat = static_cast<EImageFormat>((imageFormat + 1) % NUM_IMAGE_FORMATS);
+    imageFormat = (EImageFormat)((imageFormat + 1) % NUM_IMAGE_FORMATS);
   }
 
   if (!mipImages && status) {
@@ -799,7 +796,7 @@ HTEXTURE TextureLoadImage(LPCSTR filename) {
 }
 
 static void AsyncTextureLoadImageCallback(LPVOID arg) {
-  CTexture *texture = static_cast<CTexture *>(arg);
+  CTexture *texture = (CTexture *)arg;
 
   ASSERT(texture);
   AsyncTextureLoadImageCreate(texture);
@@ -817,7 +814,7 @@ static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
     return 0;
   }
 
-  texture->alphaBits = static_cast<WORD>(image.AlphaBits());
+  texture->alphaBits = image.AlphaBits();
   if (!texture->alphaBits) {
     texture->flags |= 1;
   }
@@ -846,7 +843,7 @@ static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
 }
 
 MipBits *TextureLoadImage(HTEXTURE texture, UINT *width, UINT *height, UINT *gxTexFormat, CStatus *status, UINT *alphaBits) {
-  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = (CTexture *)texture;
   int       isOpaque;
 
   VALIDATEBEGIN;
@@ -1039,7 +1036,7 @@ HTEXTURE TextureCreate(LPCSTR fileName, CGxTexFlags flags, CStatus *status, int 
       break;
     }
 
-    imageFormat = static_cast<EImageFormat>((imageFormat + 1) % NUM_IMAGE_FORMATS);
+    imageFormat = (EImageFormat)((imageFormat + 1) % NUM_IMAGE_FORMATS);
   }
 
   if (texture) {
@@ -1062,7 +1059,7 @@ static HTEXTURE GetTexture(LPCSTR texMap, CGxTexFlags flags) {
   HASHKEY_TEXTUREFILE hashKey(texMap, flags);
   CTextureHash       *textureHash = s_textureCache.Ptr(hash, hashKey);
 
-  return textureHash ? reinterpret_cast<HTEXTURE>(HandleDuplicate(textureHash->texture)) : 0;
+  return textureHash ? (HTEXTURE)HandleDuplicate(textureHash->texture) : 0;
 }
 
 static void HashNewTexture(LPCSTR texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status) {
@@ -1078,7 +1075,7 @@ static void HashNewTexture(LPCSTR texMap, CGxTexFlags flags, HTEXTURE texture, C
   HASHKEY_TEXTUREFILE hashKey(texMap, flags);
   textureHash = s_textureCache.New(hash, hashKey, 0, 0);
   s_textureCacheLRU.LinkNode(textureHash, LIST_TAIL, 0);
-  textureHash->texture = reinterpret_cast<HTEXTURE>(HandleDuplicate(texture));
+  textureHash->texture = (HTEXTURE)HandleDuplicate(texture);
   textureHash->timeStamp = currentTime;
 }
 
@@ -1087,7 +1084,7 @@ static void FileError(CStatus *status, LPCSTR description, LPCSTR path) {
 
   SErrGetErrorStr(SErrGetLastError(), error, sizeof(error));
   status->Add(STATUS_FATAL, "Error loading %s file \"%s\": %s\n", description, path, error);
-  SErrSetLastError(0);
+  SErrSetLastError(ERROR_SUCCESS);
 }
 
 static HTEXTURE CreateTgaTexture(LPCSTR file, CGxTexFlags flags, CStatus *status) {
@@ -1116,7 +1113,7 @@ static HTEXTURE CreateTgaTexture(LPCSTR file, CGxTexFlags flags, CStatus *status
 }
 
 static void UpdateTgaTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
-  CTexture *texture = static_cast<CTexture *>(userArg);
+  CTexture *texture = (CTexture *)userArg;
 
   switch (cmd) {
     case GxTex_Lock:
@@ -1177,7 +1174,7 @@ static HTEXTURE CreateBlpTexture(LPCSTR filename, CGxTexFlags flags, CStatus *st
 }
 
 static void AsyncCreateBlpTextureCallback(LPVOID arg) {
-  CTexture *texture = static_cast<CTexture *>(arg);
+  CTexture *texture = (CTexture *)arg;
 
   ASSERT(texture);
   if (!PumpBlpTextureAsync(texture)) {
@@ -1199,7 +1196,7 @@ static BOOL PumpBlpTextureAsync(CTexture *texture) {
     return 0;
   }
 
-  texture->alphaBits = static_cast<WORD>(image.m_header.alphaSize);
+  texture->alphaBits = image.m_header.alphaSize;
   if (!texture->alphaBits) {
     texture->flags |= 1;
   }
@@ -1212,9 +1209,9 @@ static BOOL PumpBlpTextureAsync(CTexture *texture) {
   EGxTexFormat gxTexFormat;
 
   RequestImageDimensions(&width, &height, &bestMip);
-  GetTextureFormats(texture, pixFormat, dataFormat, gxTexFormat, static_cast<PIXEL_FORMAT>(image.m_header.preferredFormat), image.m_header.alphaSize);
+  GetTextureFormats(texture, pixFormat, dataFormat, gxTexFormat, (PIXEL_FORMAT)image.m_header.preferredFormat, image.m_header.alphaSize);
 
-  texture->mipBits = static_cast<MipBits *>(g_textureMipBits);
+  texture->mipBits = (MipBits *)g_textureMipBits;
   if (!image.LockChain2(pixFormat, texture->mipBits, bestMip)) {
     texture->loadStatus.Add(STATUS_FATAL, "Texture failure: \"%s\" decompression failed.\n", texture->filename);
     return 0;
@@ -1341,7 +1338,7 @@ static void GetTextureFormats(
 
 static void FillInSolidTexture(const NTempest::CImVector &color, CTexture *texture) {
   GxTexCreate(
-      8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), reinterpret_cast<LPVOID>(static_cast<DWORD>(color)), GxuUpdateSingleColorTexture,
+      8, 8, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), (LPVOID)((DWORD)color), GxuUpdateSingleColorTexture,
       texture->gxTex
   );
 
@@ -1393,7 +1390,7 @@ static HTEXTURE GetTexture(const NTempest::CImVector &color) {
     return 0;
   }
 
-  return reinterpret_cast<HTEXTURE>(HandleDuplicate(textureHash->texture));
+  return (HTEXTURE)HandleDuplicate(textureHash->texture);
 }
 
 static void HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, CStatus *status) {
@@ -1403,12 +1400,12 @@ static void HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, C
   TextureCacheUpdate(currentTime, status);
   textureHash = s_solidTextureCache.New(*color.IV_(), s_hashKeyNone, 0, 0);
   s_textureCacheLRU.LinkNode(textureHash, LIST_TAIL, 0);
-  textureHash->texture = reinterpret_cast<HTEXTURE>(HandleDuplicate(texture));
+  textureHash->texture = (HTEXTURE)HandleDuplicate(texture);
   textureHash->timeStamp = currentTime;
 }
 
 CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
-  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = (CTexture *)texture;
 
   VALIDATEBEGIN;
   VALIDATE(textureptr);
@@ -1437,7 +1434,7 @@ static void AsyncTextureWait(CTexture *texture) {
 }
 
 MipBits *TextureGetMips(HTEXTURE texture, int force) {
-  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = (CTexture *)texture;
 
   VALIDATEBEGIN;
   VALIDATE(textureptr);
@@ -1456,7 +1453,7 @@ MipBits *TextureGetMips(HTEXTURE texture, int force) {
 }
 
 int TextureIsOpaque(HTEXTURE__ *texture) {
-  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = (CTexture *)texture;
 
   VALIDATEBEGIN;
   VALIDATE(textureptr);
@@ -1516,16 +1513,16 @@ MipBits *TextureAllocMippedImg(EGxTexFormat format, UINT width, UINT height) {
 
   mipCount = TextureCalcMipCount(width, height);
   levelDataSize = CalcLevelOffset(mipCount, width, height, format);
-  ptr = static_cast<UINT *>(ALLOC(levelDataSize + 4 * mipCount));
+  ptr = (UINT *)ALLOC(levelDataSize + 4 * mipCount);
   offset = 0;
 
   for (level = 0; level < mipCount; ++level) {
-    reinterpret_cast<MipBits *>(ptr)->mip[level] = reinterpret_cast<C4Pixel *>(reinterpret_cast<BYTE *>(&ptr[mipCount]) + offset);
+    ((MipBits *)ptr)->mip[level] = (C4Pixel *)((BYTE *)&ptr[mipCount] + offset);
     offset += CalcLevelSize(level, width, height, format);
   }
 
   ASSERT(offset == levelDataSize);
-  return reinterpret_cast<MipBits *>(ptr);
+  return (MipBits *)ptr;
 }
 
 static UINT CalcLevelSize(UINT level, UINT width, UINT height, EGxTexFormat format) {
@@ -1615,15 +1612,15 @@ UINT TexturePickAlternateFilename(LPCSTR path, TEXFILETYPE fileType, char *newpa
 }
 
 DWORD TextureGetUniqueID(HTEXTURE__ *texture) {
-  return reinterpret_cast<DWORD>(texture);
+  return (DWORD)texture;
 }
 
 void TextureGetDimensions(HTEXTURE texture, UINT *width, UINT *height) {
   if (width) {
-    *width = reinterpret_cast<CTexture *>(texture)->gxWidth;
+    *width = ((CTexture *)texture)->gxWidth;
   }
   if (height) {
-    *height = reinterpret_cast<CTexture *>(texture)->gxHeight;
+    *height = ((CTexture *)texture)->gxHeight;
   }
 }
 
@@ -1645,7 +1642,7 @@ void TextureDestroy() {
 }
 
 LPCSTR TextureGetFilename(HTEXTURE texture) {
-  CTexture *textureptr = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureptr = (CTexture *)texture;
 
   VALIDATEBEGIN;
   VALIDATE(textureptr);
@@ -1655,7 +1652,7 @@ LPCSTR TextureGetFilename(HTEXTURE texture) {
 }
 
 BOOL TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &format, int &opaque, UINT &alphaBits, BOOL bForce) {
-  CTexture *textureObject = reinterpret_cast<CTexture *>(texture);
+  CTexture *textureObject = (CTexture *)texture;
 
   if (!textureObject->mipBits) {
     if (!bForce) {
@@ -1728,7 +1725,7 @@ void TextureLogTextures(HSLOG log) {
     }
 
     if (texture->gxTexFlags.m_filter > GxTex_Linear) {
-      textureSize = static_cast<UINT>(textureSize * 1.33f);
+      textureSize = textureSize * 1.33f;
     }
 
     for (UINT type = 0; type < 7; ++type) {
@@ -1743,10 +1740,10 @@ void TextureLogTextures(HSLOG log) {
 
   SLogWrite(log, "##############################################################");
   for (i = 0; i < 7; ++i) {
-    SLogWrite(log, "%s Texture in Mbytes:\t\t%.2f", s_textureLogString[i], static_cast<float>(texTypeTotal[i]) / 1048576.0f);
+    SLogWrite(log, "%s Texture in Mbytes:\t\t%.2f", s_textureLogString[i], (float)texTypeTotal[i] / 1048576.0f);
   }
   SLogWrite(log, "##############################################################");
-  SLogWrite(log, "Total Texture in Mbytes:\t\t%.2f", static_cast<float>(texTotal) / 1048576.0f);
+  SLogWrite(log, "Total Texture in Mbytes:\t\t%.2f", (float)texTotal / 1048576.0f);
   SLogWrite(log, "##############################################################");
 }
 
@@ -1754,7 +1751,7 @@ static int __cdecl TextureLogSortCallback(LPCVOID elem1, LPCVOID elem2) {
   ASSERT(elem1);
   ASSERT(elem2);
 
-  CTexture *const *texture1 = static_cast<CTexture *const *>(elem1);
-  CTexture *const *texture2 = static_cast<CTexture *const *>(elem2);
+  CTexture *const *texture1 = (CTexture *const *)elem1;
+  CTexture *const *texture2 = (CTexture *const *)elem2;
   return SStrCmpI((*texture1)->filename, (*texture2)->filename, 0x7FFFFFFF);
 }

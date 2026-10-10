@@ -181,7 +181,7 @@ BOOL OsFileNameIsValid(LPCSTR filename) {
 
   char   filenameNoExt[MAX_PATH];
   LPCSTR extension = SStrChrR(filename, '.');
-  UINT   chars = extension ? static_cast<UINT>(extension - filename + 1) : sizeof(filenameNoExt);
+  UINT   chars = extension ? (UINT)(extension - filename + 1) : sizeof(filenameNoExt);
   if (chars >= sizeof(filenameNoExt)) {
     chars = sizeof(filenameNoExt);
   }

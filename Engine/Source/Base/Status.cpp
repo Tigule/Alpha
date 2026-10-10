@@ -96,7 +96,7 @@ void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
 }
 
 void CStatus::Add(const CStatus &source) {
-  for (const STATUSENTRY *entry = source.statusList.Head(); (int)entry > 0; entry = source.statusList.RawNext(entry)) {
+  CONSTITERATELIST(STATUSENTRY, source.statusList, entry) {
     Add(entry->severity, entry->text);
   }
 }
@@ -115,7 +115,7 @@ void CStatus::GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity)
   VALIDATEENDVOID;
 
   *buffer = 0;
-  for (const STATUSENTRY *entry = statusList.Head(); (int)entry > 0; entry = statusList.RawNext(entry)) {
+  CONSTITERATELIST(STATUSENTRY, statusList, entry) {
     if (entry->severity >= minSeverity) {
       DWORD length = SStrLen(entry->text);
       if (length >= bufchars) {
@@ -131,7 +131,7 @@ void CStatus::GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity)
 UINT CStatus::GetErrorStrLen(STATUS_TYPE minSeverity) const {
   UINT length = 0;
 
-  for (const STATUSENTRY *entry = statusList.Head(); (int)entry > 0; entry = statusList.RawNext(entry)) {
+  CONSTITERATELIST(STATUSENTRY, statusList, entry) {
     if (entry->severity >= minSeverity) {
       length += SStrLen(entry->text);
     }
@@ -141,7 +141,7 @@ UINT CStatus::GetErrorStrLen(STATUS_TYPE minSeverity) const {
 
 char *CStatus::GetErrorStrAlloc(STATUS_TYPE minSeverity) const {
   UINT  bufchars = GetErrorStrLen(minSeverity) + 1;
-  char *buffer = static_cast<char *>(ALLOC(bufchars));
+  char *buffer = (char *)ALLOC(bufchars);
   GetErrorStr(buffer, bufchars, minSeverity);
   return buffer;
 }

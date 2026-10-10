@@ -8,13 +8,8 @@
 #include <MapDefs.h>
 #include <WorldClient/World.h>
 #include "Ui/GameUI.h"
-
-struct lua_State;
-static int Script_HasFullControl(lua_State *L);
-
 #include <FrameScript/FrameScript.h>
 #include <Frame/CSimpleRender.h>
-
 #include "DB/DBClient/AutoCode/ChrClassesRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/DBCacheInstances.h"
@@ -29,11 +24,13 @@ static int Script_HasFullControl(lua_State *L);
 #include "Ui/GameUI.h"
 #include "Ui/PartyFrame.h"
 #include <Os/OsTime.h>
-
 #include <lauxlib.h>
 #include <lua.h>
 #include <storm.h>
 #include <windows.h>
+
+struct lua_State;
+static int Script_HasFullControl(lua_State *L);
 
 static int Script_GetTime(lua_State *L);
 static int Script_GetGameTime(lua_State *L);
@@ -114,7 +111,7 @@ CGUnit_C *Script_GetUnitFromName(LPCSTR name) {
   }
   if (!SStrCmpI(name, "target", 0x7FFFFFFF)) {
     CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__);
-    return object && object->IsA(ID_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
+    return object && object->IsA(ID_UNIT) ? (CGUnit_C *)object : 0;
   }
   if (!SStrCmpI(name, "party", SStrLen("party"))) {
     int index = name[SStrLen(name) - 1] - '0';
@@ -122,11 +119,11 @@ CGUnit_C *Script_GetUnitFromName(LPCSTR name) {
   }
   if (!SStrCmpI(name, "npc", 0x7FFFFFFF)) {
     CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetInteractTarget(), __FILE__, __LINE__);
-    return object && object->IsA(ID_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
+    return object && object->IsA(ID_UNIT) ? (CGUnit_C *)object : 0;
   }
   if (!SStrCmpI(name, "mouseover", 0x7FFFFFFF)) {
     CGObject_C *object = ClntObjMgrObjectPtr(CGGameUI::GetCurrentObjectTrack(), __FILE__, __LINE__);
-    return object && object->IsA(ID_UNIT) ? static_cast<CGUnit_C *>(object) : 0;
+    return object && object->IsA(ID_UNIT) ? (CGUnit_C *)object : 0;
   }
 
   FrameScript_DisplayError("Unknown unit name: %s", name);
@@ -299,7 +296,7 @@ static BOOL UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID
     UINT slot = offset >> 3;
     if (guid == ClntObjMgrGetActivePlayer()) {
       DWORDLONG item = player->CGPlayer_C::GetBag()->GetItem(slot);
-      if (*static_cast<const DWORDLONG *>(prevValue) != item) {
+      if (*(const DWORDLONG *)prevValue != item) {
         CGGameUI::UnlockItem(item);
       }
     }
@@ -314,7 +311,7 @@ static BOOL PlayerXPUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVO
 }
 
 static int Script_GetTime(lua_State *L) {
-  double currentTime = static_cast<double>(OsGetAsyncTimeMs()) * 0.001;
+  double currentTime = (double)OsGetAsyncTimeMs() * 0.001;
   lua_pushnumber(L, currentTime);
   return 1;
 }
@@ -494,9 +491,9 @@ static int Script_UnitName(lua_State *L) {
   DWORDLONG   guid = Script_GetGUIDFromName(unit);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (object && object->IsA(ID_UNIT)) {
-    name = static_cast<CGUnit_C *>(object)->GetUnitName();
+    name = ((CGUnit_C *)object)->GetUnitName();
   } else if (object && object->IsA(ID_GAMEOBJECT)) {
-    name = static_cast<CGGameObject_C *>(object)->GetName();
+    name = ((CGGameObject_C *)object)->GetName();
   } else if (object && object->IsA(ID_ITEM)) {
     const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), 0, 0, 0);
     if (stats) {
@@ -519,7 +516,7 @@ static int Script_UnitXP(lua_State *L) {
   }
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
-    lua_pushnumber(L, static_cast<CGPlayer_C *>(unit)->GetXP());
+    lua_pushnumber(L, ((CGPlayer_C *)unit)->GetXP());
   } else {
     lua_pushnumber(L, 0.0);
   }
@@ -533,7 +530,7 @@ static int Script_UnitXPMax(lua_State *L) {
   }
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
-    lua_pushnumber(L, static_cast<CGPlayer_C *>(unit)->GetNextLevelXP());
+    lua_pushnumber(L, ((CGPlayer_C *)unit)->GetNextLevelXP());
   } else {
     lua_pushnumber(L, 0.0);
   }
@@ -797,7 +794,7 @@ static int Script_UnitClass(lua_State *L) {
 
 static int Script_UnitResistance(lua_State *L) {
   if (lua_isstring(L, 1) && lua_isnumber(L, 2)) {
-    int resistance = static_cast<int>(lua_tonumber(L, 2));
+    int resistance = lua_tonumber(L, 2);
     if (resistance >= 0 && resistance <= 6) {
       int       r = 0;
       int       er = 0;
@@ -822,7 +819,7 @@ static int Script_UnitResistance(lua_State *L) {
 
 static int Script_UnitStat(lua_State *L) {
   if (lua_isstring(L, 1) && lua_isnumber(L, 2)) {
-    int stat = static_cast<int>(lua_tonumber(L, 2)) - 1;
+    int stat = (int)lua_tonumber(L, 2) - 1;
     if (stat >= 0 && stat <= 5) {
       CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
       if (unit) {
@@ -904,7 +901,7 @@ static int Script_UnitAttackSpeed(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     lua_pushnumber(L, unit->GetAttackRoundTime(COMBAT_MAINHAND) * 0.001f);
-    CGItem_C *offhand = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(static_cast<CGPlayer_C *>(unit)->CGPlayer_C::GetBag()->GetItem(INVSLOT_OFFHAND), __FILE__, __LINE__));
+    CGItem_C *offhand = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(((CGPlayer_C *)unit)->CGPlayer_C::GetBag()->GetItem(INVSLOT_OFFHAND), __FILE__, __LINE__));
     if (offhand && offhand->GetClassID() == 2) {
       lua_pushnumber(L, unit->GetAttackRoundTime(COMBAT_OFFHAND) * 0.001f);
     } else {
@@ -963,7 +960,7 @@ static int Script_UnitCharacterPoints(lua_State *L) {
   CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
   if (unit && unit->IsA(ID_PLAYER)) {
     for (i = 0; i < 2; ++i) {
-      lua_pushnumber(L, static_cast<CGPlayer_C *>(unit)->GetCharacterPoints(i));
+      lua_pushnumber(L, ((CGPlayer_C *)unit)->GetCharacterPoints(i));
     }
   } else {
     for (i = 0; i < 2; ++i) {
@@ -986,7 +983,7 @@ static int Script_SetPortraitTexture(lua_State *L) {
       object = 0;
     } else {
       lua_rawgeti(L, 1, 0);
-      object = static_cast<CSimpleTexture *>(lua_touserdata(L, -1));
+      object = (CSimpleTexture *)lua_touserdata(L, -1);
       lua_pop(L, 1);
       ASSERT(object);
     }

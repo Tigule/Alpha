@@ -27,7 +27,7 @@ typedef unsigned long ulong;
 
 #if defined(_MSC_VER) && _MSC_VER == 1200
 const UINT  INFINITY_ENCODING = 0x7F800000;
-const float INFINITY = *reinterpret_cast<const float *>(&INFINITY_ENCODING);
+const float INFINITY = *(const float *)&INFINITY_ENCODING;
 #endif
 
 #define DECLARE_STRICT_HANDLE(name) \

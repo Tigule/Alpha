@@ -56,8 +56,8 @@ BOOL SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC ca
   startInfo.cb = sizeof(startInfo);
   ZeroMemory(&processInfo, sizeof(processInfo));
 
-  SUniConvertUTF8to16((WORD *)appNameW, MAX_PATH, appName, 0x7FFFFFFF, NULL, NULL);
-  SUniConvertUTF8to16((WORD *)commandLineW, MAX_PATH, commandLine, 0x7FFFFFFF, NULL, NULL);
+  SUniConvertUTF8to16(appNameW, MAX_PATH, appName, 0x7FFFFFFF, NULL, NULL);
+  SUniConvertUTF8to16(commandLineW, MAX_PATH, commandLine, 0x7FFFFFFF, NULL, NULL);
 
   if (!CreateProcessW(appNameW, commandLineW, NULL, NULL, FALSE, 0, NULL, NULL, &startInfo, &processInfo)) {
     return 0;

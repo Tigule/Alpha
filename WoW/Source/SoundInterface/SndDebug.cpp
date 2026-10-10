@@ -75,15 +75,15 @@ static BOOL RoomType(LPCSTR command, LPCSTR arguments) {
     roomType = SNDROOMTYPE_PSYCHOTIC;
   }
 
-  SndSetRoomType(static_cast<SNDROOMTYPE>(roomType));
+  SndSetRoomType((SNDROOMTYPE)roomType);
   return 1;
 }
 
 static void SndDebugTick() {
   if (s_pingSound) {
-    int currentTime = static_cast<int>(OsGetAsyncTimeMs());
+    int currentTime = OsGetAsyncTimeMs();
 
-    if (currentTime >= static_cast<int>(s_lastPingTime + s_pingFrequency)) {
+    if (currentTime >= (int)(s_lastPingTime + s_pingFrequency)) {
       CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
       if (object) {
         SndInterfacePlaySound(s_pingSound, s_pingPosition, -1, 1.0f);

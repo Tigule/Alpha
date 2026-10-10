@@ -50,9 +50,9 @@ static void AddTriangle(
   debugIndices->SetCount(numIndices + 3);
   debugVertColors->SetCount(numVerts + 3);
 
-  (*debugIndices)[numIndices] = static_cast<WORD>(numVerts);
-  (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
-  (*debugIndices)[numIndices + 2] = static_cast<WORD>(numVerts + 2);
+  (*debugIndices)[numIndices] = numVerts;
+  (*debugIndices)[numIndices + 1] = numVerts + 1;
+  (*debugIndices)[numIndices + 2] = numVerts + 2;
 
   (*debugVertColors)[numVerts] = s_facetColor[color];
   (*debugVertColors)[numVerts + 1] = s_facetColor[color];
@@ -75,8 +75,8 @@ static void AddNormalLine(
 
   (*debugVerts)[numVerts] = position;
   (*debugVerts)[numVerts + 1] = normalVert;
-  (*debugIndices)[numIndices] = static_cast<WORD>(numVerts);
-  (*debugIndices)[numIndices + 1] = static_cast<WORD>(numVerts + 1);
+  (*debugIndices)[numIndices] = numVerts;
+  (*debugIndices)[numIndices + 1] = numVerts + 1;
 }
 
 static void AddNormalLine(const NTempest::CFacet &face) {

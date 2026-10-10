@@ -66,84 +66,6 @@ int       CGTradeInfo::m_targetEnchantSlot = -1;
 UINT      CGTradeInfo::m_playerMoney;
 UINT      CGTradeInfo::m_targetMoney;
 
-void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID) {
-  switch (status) {
-    case TRADE_STATUS_PLAYER_BUSY:
-    case TRADE_STATUS_ALREADY_TRADING:
-      if (Trade_C_IsInitiator()) {
-        CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), __FILE__, __LINE__));
-        if (unit) {
-          CGGameUI::DisplayError(GERR_PLAYER_BUSY_S, unit->GetUnitName());
-        }
-      }
-      break;
-    case TRADE_STATUS_PLAYER_IGNORED:
-      if (Trade_C_IsInitiator()) {
-        CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), __FILE__, __LINE__));
-        if (unit) {
-          CGGameUI::DisplayError(GERR_IGNORING_YOU_S, unit->GetUnitName());
-        }
-      }
-      break;
-    case TRADE_STATUS_PROPOSED:
-      if (!Trade_C_IsInitiator()) {
-        if (g_friendList->IsIgnored(Trade_C_GetTradeTarget())) {
-          Trade_C_PlayerIgnored();
-        } else {
-          CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), __FILE__, __LINE__));
-          if (unit) {
-            if (unit->GetHealth() > 0) {
-              Trade_C_BeginTrade();
-            } else {
-              Trade_C_PlayerBusy();
-            }
-          }
-        }
-      }
-      break;
-    case TRADE_STATUS_PLAYER_NOT_FOUND:
-      CGGameUI::DisplayError(GERR_GENERIC_NO_TARGET);
-      break;
-    case TRADE_STATUS_INITIATED:
-      SetTradePartner(Trade_C_GetTradeTarget());
-      break;
-    case TRADE_STATUS_CANCELLED:
-      FrameScript_SignalEvent(267);
-      UnlockTradeItems();
-      SetTradePartner(0);
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(172));
-      break;
-    case TRADE_STATUS_ACCEPTED:
-      TargetAccept(1);
-      break;
-    case TRADE_STATUS_STATE_CHANGED:
-      PlayerAccept(0);
-      TargetAccept(0);
-      break;
-    case TRADE_STATUS_COMPLETE:
-      UnlockTradeItems();
-      SetTradePartner(0);
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(173));
-      break;
-    case TRADE_STATUS_UNACCEPTED:
-      TargetAccept(0);
-      break;
-    case TRADE_STATUS_TOO_FAR_AWAY:
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(171));
-      break;
-    case TRADE_STATUS_WRONG_FACTION:
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(229));
-      break;
-    case TRADE_STATUS_FAILED:
-      UnlockTradeItems();
-      CGGameUI::DisplayError(GetGameError(bagResult, myFailure));
-      SetTradePartner(0);
-      break;
-    default:
-      break;
-  }
-}
-
 static void TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {
   if (granted) {
     FrameScript_SignalEvent(298);
@@ -151,21 +73,21 @@ static void TradeItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool g
 }
 
 void CGTradeInfo::EnterWorld() {
+  m_tradingPlayer = 0;
   m_playerEnchantSlot = -1;
   m_targetEnchantSlot = -1;
-  memset(m_targetItemEnchantment, 0, sizeof(m_targetItemEnchantment));
-  memset(m_targetItemCount, 0, sizeof(m_targetItemCount));
-  memset(m_targetItems, 0, sizeof(m_targetItems));
-  m_playerItemBag[0] = 0;
-  memcpy(&m_playerItemBag[1], &m_playerItemBag[0], sizeof(m_playerItemBag) - sizeof(m_playerItemBag[0]));
-  m_playerItems[0] = 0;
-  memcpy(&m_playerItems[1], &m_playerItems[0], sizeof(m_playerItems) - sizeof(m_playerItems[0]));
-  memset(m_playerItemSlot, 0, sizeof(m_playerItemSlot));
-  m_tradingPlayer = 0;
   m_playerAccepted = 0;
   m_targetAccepted = 0;
   m_playerMoney = 0;
   m_targetMoney = 0;
+  for (int index = 0; index < 8; ++index) {
+    m_playerItems[index] = 0;
+    m_playerItemBag[index] = 0;
+    m_playerItemSlot[index] = 0;
+    m_targetItems[index] = 0;
+    m_targetItemCount[index] = 0;
+    m_targetItemEnchantment[index] = 0;
+  }
 }
 
 void CGTradeInfo::LeaveWorld() {
@@ -247,18 +169,18 @@ void CGTradeInfo::SetTradePartner(DWORDLONG partner) {
   m_tradingPlayer = partner;
   m_playerEnchantSlot = -1;
   m_targetEnchantSlot = -1;
-  memset(m_targetItemEnchantment, 0, sizeof(m_targetItemEnchantment));
-  memset(m_targetItemCount, 0, sizeof(m_targetItemCount));
-  memset(m_targetItems, 0, sizeof(m_targetItems));
-  m_playerItemBag[0] = 0;
-  memcpy(&m_playerItemBag[1], &m_playerItemBag[0], sizeof(m_playerItemBag) - sizeof(m_playerItemBag[0]));
-  m_playerItems[0] = 0;
-  memcpy(&m_playerItems[1], &m_playerItems[0], sizeof(m_playerItems) - sizeof(m_playerItems[0]));
-  memset(m_playerItemSlot, 0, sizeof(m_playerItemSlot));
   m_playerAccepted = 0;
   m_targetAccepted = 0;
   m_playerMoney = 0;
   m_targetMoney = 0;
+  for (int index = 0; index < 8; ++index) {
+    m_playerItems[index] = 0;
+    m_playerItemBag[index] = 0;
+    m_playerItemSlot[index] = 0;
+    m_targetItems[index] = 0;
+    m_targetItemCount[index] = 0;
+    m_targetItemEnchantment[index] = 0;
+  }
 
   if (Trade_C_UseCursorItem()) {
     DWORDLONG item;
@@ -274,6 +196,84 @@ void CGTradeInfo::SetTradePartner(DWORDLONG partner) {
     }
   }
   FrameScript_SignalEvent(296);
+}
+
+void CGTradeInfo::HandleTradeMessage(TRADE_STATUS status, BAG_RESULT bagResult, int myFailure, int itemID) {
+  switch (status) {
+    case TRADE_STATUS_PLAYER_BUSY:
+    case TRADE_STATUS_ALREADY_TRADING:
+      if (Trade_C_IsInitiator()) {
+        CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), __FILE__, __LINE__));
+        if (unit) {
+          CGGameUI::DisplayError(GERR_PLAYER_BUSY_S, unit->GetUnitName());
+        }
+      }
+      break;
+    case TRADE_STATUS_PLAYER_IGNORED:
+      if (Trade_C_IsInitiator()) {
+        CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), __FILE__, __LINE__));
+        if (unit) {
+          CGGameUI::DisplayError(GERR_IGNORING_YOU_S, unit->GetUnitName());
+        }
+      }
+      break;
+    case TRADE_STATUS_CANCELLED:
+      FrameScript_SignalEvent(267);
+      UnlockTradeItems();
+      SetTradePartner(0);
+      CGGameUI::DisplayError(GERR_TRADE_CANCELLED);
+      break;
+    case TRADE_STATUS_PLAYER_NOT_FOUND:
+      CGGameUI::DisplayError(GERR_GENERIC_NO_TARGET);
+      break;
+    case TRADE_STATUS_TOO_FAR_AWAY:
+      CGGameUI::DisplayError(GERR_TRADE_TOO_FAR);
+      break;
+    case TRADE_STATUS_PROPOSED:
+      if (!Trade_C_IsInitiator()) {
+        if (g_friendList->IsIgnored(Trade_C_GetTradeTarget())) {
+          Trade_C_PlayerIgnored();
+        } else {
+          CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(Trade_C_GetTradeTarget(), __FILE__, __LINE__));
+          if (unit) {
+            if (unit->GetHealth() <= 0) {
+              Trade_C_PlayerBusy();
+            } else {
+              Trade_C_BeginTrade();
+            }
+          }
+        }
+      }
+      break;
+    case TRADE_STATUS_INITIATED:
+      SetTradePartner(Trade_C_GetTradeTarget());
+      break;
+    case TRADE_STATUS_ACCEPTED:
+      TargetAccept(1);
+      break;
+    case TRADE_STATUS_UNACCEPTED:
+      TargetAccept(0);
+      break;
+    case TRADE_STATUS_COMPLETE:
+      UnlockTradeItems();
+      SetTradePartner(0);
+      CGGameUI::DisplayError(GERR_TRADE_COMPLETE);
+      break;
+    case TRADE_STATUS_FAILED:
+      UnlockTradeItems();
+      CGGameUI::DisplayError(GetGameError(bagResult, myFailure));
+      SetTradePartner(0);
+      break;
+    case TRADE_STATUS_STATE_CHANGED:
+      PlayerAccept(0);
+      TargetAccept(0);
+      break;
+    case TRADE_STATUS_WRONG_FACTION:
+      CGGameUI::DisplayError(GERR_PLAYER_WRONG_FACTION);
+      break;
+    default:
+      break;
+  }
 }
 
 BOOL CGTradeInfo::SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE slot) {
@@ -327,14 +327,19 @@ void CGTradeInfo::UnlockTradeItems() {
 }
 
 GAME_ERROR_TYPE CGTradeInfo::GetGameError(BAG_RESULT bagResult, int myFailure) {
+  GAME_ERROR_TYPE error;
   switch (bagResult) {
-    case 4:
-      return static_cast<GAME_ERROR_TYPE>(myFailure ? 174 : 175);
-    case 16:
-      return static_cast<GAME_ERROR_TYPE>(myFailure ? 176 : 177);
+    case BAG_FULL:
+      error = myFailure ? GERR_TRADE_BAG_FULL : GERR_TRADE_TARGET_BAG_FULL;
+      break;
+    case BAG_ITEM_MAX_COUNT_EXCEEDED:
+      error = myFailure ? GERR_TRADE_MAX_COUNT_EXCEEDED : GERR_TRADE_TARGET_MAX_COUNT_EXCEEDED;
+      break;
     default:
-      return CGBag_C::GetGameError(bagResult);
+      error = CGBag_C::GetGameError(bagResult);
+      break;
   }
+  return error;
 }
 
 static int Script_CloseTrade(lua_State *) {
@@ -353,7 +358,7 @@ static int Script_ClickTradeButton(lua_State *L) {
     CGGameUI::ClearCursor(1);
     return 0;
   }
-  int       index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int       index = (int)lua_tonumber(L, 1) - 1;
   DWORDLONG cursorItem;
   DWORDLONG cursorContainer;
   UINT      cursorSlot;
@@ -381,10 +386,6 @@ static int Script_ClickTradeButton(lua_State *L) {
   DWORDLONG bag;
   BYTE      slot;
   CGTradeInfo::GetPlayerItemInfo(index, item, bag, slot);
-  if (!item) {
-    bag = 0;
-    slot = 0;
-  }
   if (cursorItem == item) {
     CGGameUI::ClearCursor(1);
   } else {
@@ -403,7 +404,7 @@ static int Script_ClickTargetTradeButton(lua_State *L) {
     Trade_C_AddMoney(CGGameUI::GetCursorMoney());
     CGGameUI::ClearCursor(1);
   } else {
-    int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    int index = (int)lua_tonumber(L, 1) - 1;
     Spell_C_TargetTradeItem(index);
   }
   return 0;
@@ -414,39 +415,41 @@ static int Script_GetTradeTargetItemInfo(lua_State *L) {
     luaL_error(L, "Usage: GetTradeTargetItemInfo(index)");
     return 0;
   }
-  int              index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  int              itemID = CGTradeInfo::GetTargetTradeItem(index);
-  const ItemStats *stats = itemID ? g_itemDBCache.GetRecord(itemID, CGTradeInfo::GetTradePartner(), TradeItemStatsCallback, 0) : 0;
-  if (!itemID || !stats) {
-    lua_pushnil(L);
-    lua_pushnil(L);
-    lua_pushnumber(L, 0.0);
-    lua_pushnil(L);
-    lua_pushnumber(L, 0.0);
-    lua_pushnil(L);
-    return 6;
+  int index = (int)lua_tonumber(L, 1) - 1;
+  int itemID = CGTradeInfo::GetTargetTradeItem(index);
+  if (itemID) {
+    const ItemStats *stats = g_itemDBCache.GetRecord(itemID, CGTradeInfo::GetTradePartner(), TradeItemStatsCallback, 0);
+    if (stats) {
+      lua_pushstring(L, stats->m_displayName[0]);
+      LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+      LPCSTR separator = *path ? "\\" : "";
+      char   buffer[MAX_PATH];
+      SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
+      SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
+      lua_pushstring(L, buffer);
+      lua_pushnumber(L, CGTradeInfo::GetTargetTradeItemCount(index));
+      if (CGTradeInfo::GetTargetEnchantSlot() == index) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      lua_pushnumber(L, stats->m_inventoryType ? stats->m_overallQualityID : -1);
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      GAME_ERROR_TYPE reason;
+      if (!player || player->CanUseItem(stats, reason)) {
+        lua_pushnumber(L, 1.0);
+      } else {
+        lua_pushnil(L);
+      }
+      return 6;
+    }
   }
-  lua_pushstring(L, stats->m_displayName[0]);
-  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  LPCSTR separator = *path ? "\\" : "";
-  char   buffer[MAX_PATH];
-  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
-  SStrPack(buffer, CGItem_C::GetInventoryArt(stats->m_displayInfoID), sizeof(buffer));
-  lua_pushstring(L, buffer);
-  lua_pushnumber(L, static_cast<double>(CGTradeInfo::GetTargetTradeItemCount(index)));
-  if (CGTradeInfo::GetTargetEnchantSlot() == index) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
-  lua_pushnumber(L, static_cast<double>(stats->m_inventoryType ? stats->m_overallQualityID : -1));
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  GAME_ERROR_TYPE reason;
-  if (!player || player->CanUseItem(stats, reason)) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
+  lua_pushnil(L);
+  lua_pushnil(L);
+  lua_pushnumber(L, 0.0);
+  lua_pushnil(L);
+  lua_pushnumber(L, 0.0);
+  lua_pushnil(L);
   return 6;
 }
 
@@ -455,7 +458,7 @@ static int Script_GetTradeTargetItemLink(lua_State *L) {
     luaL_error(L, "Usage: GetTradeTargetItemLink(index)");
     return 0;
   }
-  int              itemID = CGTradeInfo::GetTargetTradeItem(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  int              itemID = CGTradeInfo::GetTargetTradeItem((int)lua_tonumber(L, 1) - 1);
   if (itemID) {
     const ItemStats *stats = g_itemDBCache.GetRecord(itemID, 0, 0, 0);
     if (stats) {
@@ -473,39 +476,35 @@ static int Script_GetTradePlayerItemInfo(lua_State *L) {
     luaL_error(L, "Usage: GetTradePlayerItemInfo(index)");
     return 0;
   }
-  int       index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-  DWORDLONG guid;
-  DWORDLONG bag;
-  BYTE      slot;
-  CGTradeInfo::GetPlayerItemInfo(index, guid, bag, slot);
-  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (!item) {
+  int       index = (int)lua_tonumber(L, 1) - 1;
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGTradeInfo::GetPlayerTradeSlot(index), __FILE__, __LINE__));
+  if (item) {
+    const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), ClntObjMgrGetActivePlayer(), TradeItemStatsCallback, 0);
+    if (stats) {
+      lua_pushstring(L, stats->m_displayName[0]);
+    } else {
+      lua_pushnil(L);
+    }
+    LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
+    LPCSTR separator = *path ? "\\" : "";
+    char   buffer[MAX_PATH];
+    SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
+    SStrPack(buffer, item->GetInventoryArt(), sizeof(buffer));
+    lua_pushstring(L, buffer);
+    lua_pushnumber(L, item->GetStackCount());
+    if (CGTradeInfo::GetPlayerEnchantSlot() == index) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    lua_pushnumber(L, stats && stats->m_inventoryType ? stats->m_overallQualityID : -1);
+  } else {
     lua_pushnil(L);
     lua_pushnil(L);
     lua_pushnumber(L, 0.0);
     lua_pushnil(L);
     lua_pushnumber(L, 0.0);
-    return 5;
   }
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), ClntObjMgrGetActivePlayer(), TradeItemStatsCallback, 0);
-  if (stats) {
-    lua_pushstring(L, stats->m_displayName[0]);
-  } else {
-    lua_pushnil(L);
-  }
-  LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
-  LPCSTR separator = *path ? "\\" : "";
-  char   buffer[MAX_PATH];
-  SStrPrintf(buffer, sizeof(buffer), "%s%s", path, separator);
-  SStrPack(buffer, item->GetInventoryArt(), sizeof(buffer));
-  lua_pushstring(L, buffer);
-  lua_pushnumber(L, static_cast<double>(item->GetStackCount()));
-  if (CGTradeInfo::GetPlayerEnchantSlot() == index) {
-    lua_pushnumber(L, 1.0);
-  } else {
-    lua_pushnil(L);
-  }
-  lua_pushnumber(L, static_cast<double>(stats && stats->m_inventoryType ? stats->m_overallQualityID : -1));
   return 5;
 }
 
@@ -514,22 +513,18 @@ static int Script_GetTradePlayerItemLink(lua_State *L) {
     luaL_error(L, "Usage: GetTradePlayerItemLink(index)");
     return 0;
   }
-  DWORDLONG guid;
-  DWORDLONG bag;
-  BYTE      slot;
-  CGTradeInfo::GetPlayerItemInfo(static_cast<int>(lua_tonumber(L, 1)) - 1, guid, bag, slot);
-  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-  if (!item) {
-    return 0;
+  int       index = (int)lua_tonumber(L, 1) - 1;
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(CGTradeInfo::GetPlayerTradeSlot(index), __FILE__, __LINE__));
+  if (item) {
+    const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
+    if (stats) {
+      char link[1024];
+      SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", item->GetEntryID(), stats->m_displayName[0]);
+      lua_pushstring(L, link);
+      return 1;
+    }
   }
-  const ItemStats *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
-  if (!stats) {
-    return 0;
-  }
-  char link[1024];
-  SStrPrintf(link, sizeof(link), "|Hitem:%d|h[%s]|h", item->GetEntryID(), stats->m_displayName[0]);
-  lua_pushstring(L, link);
-  return 1;
+  return 0;
 }
 
 static int Script_AcceptTrade(lua_State *) {
@@ -543,12 +538,12 @@ static int Script_CancelTradeAccept(lua_State *) {
 }
 
 static int Script_GetPlayerTradeMoney(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGTradeInfo::GetTradePartner() ? Trade_C_GetPlayerTradeGold() : 0));
+  lua_pushnumber(L, CGTradeInfo::GetTradePartner() ? Trade_C_GetPlayerTradeGold() : 0);
   return 1;
 }
 
 static int Script_GetTargetTradeMoney(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(Trade_C_GetTargetTradeGold()));
+  lua_pushnumber(L, Trade_C_GetTargetTradeGold());
   return 1;
 }
 
@@ -557,8 +552,8 @@ static int Script_PickupTradeMoney(lua_State *L) {
     luaL_error(L, "Usage: PickupTradeMoney(amount)");
     return 0;
   }
-  int amount = static_cast<int>(lua_tonumber(L, 1));
-  if (amount > 0 && amount <= static_cast<int>(Trade_C_GetPlayerTradeGold())) {
+  int amount = lua_tonumber(L, 1);
+  if (amount > 0 && amount <= (int)Trade_C_GetPlayerTradeGold()) {
     Trade_C_RemoveMoney(amount);
     CGGameUI::SetCursorMoney(amount);
   }

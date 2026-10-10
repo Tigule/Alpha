@@ -3,6 +3,8 @@
 #include <BLPFile/blp.h>
 
 #include "Camera.h"
+#include "Camera_const.h"
+#include "Services/DataMgrInt.h"
 
 #include <Tempest/c2vector.h>
 #include <Tempest/c3vector.h>
@@ -10,12 +12,6 @@
 #include <Tempest/crect.h>
 
 #include <math.h>
-
-static const float DEFAULT_DIST = 100.0f;
-static const float DEFAULT_FARZ = 5000.0f;
-static const float DEFAULT_NEARZ = 8.0f;
-static const float DEFAULT_FOV = PI * 0.5f;
-static const float DEFAULT_SCREEN_FRUSTUM_LENGTH = 500.0f;
 
 class CCamera : public CDataMgr {
  public:
@@ -70,7 +66,7 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, UINT f
 }
 
 void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
-  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  CCamera *cameraPtr = (CCamera *)camera;
   VALIDATEBEGIN;
   VALIDATE(cameraPtr);
   VALIDATE(position);
@@ -85,7 +81,7 @@ void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
 }
 
 void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
-  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  CCamera *cameraPtr = (CCamera *)camera;
   VALIDATEBEGIN;
   VALIDATE(cameraPtr);
   VALIDATE(target);
@@ -105,7 +101,7 @@ HCAMERA CameraCreate() {
 }
 
 HCAMERA CameraDuplicate(HCAMERA source) {
-  CCamera *srcPtr = reinterpret_cast<CCamera *>(source);
+  CCamera *srcPtr = (CCamera *)source;
   VALIDATEBEGIN;
   VALIDATE(srcPtr);
   VALIDATEEND;
@@ -179,7 +175,7 @@ void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NT
 }
 
 void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, UINT flags) {
-  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  CCamera *cameraPtr = (CCamera *)camera;
   VALIDATEBEGIN;
   VALIDATE(cameraPtr);
   VALIDATEENDVOID;
@@ -187,10 +183,8 @@ void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectio
   cameraPtr->SetupWorldProjection(projectionRect, flags);
 }
 
-#include "Services/DataMgrInt.h"
-
 void CameraUpdate(HCAMERA__ *camera, float elapsedSec) {
-  CCamera *cameraPtr = reinterpret_cast<CCamera *>(camera);
+  CCamera *cameraPtr = (CCamera *)camera;
   VALIDATEBEGIN;
   VALIDATE(cameraPtr);
   VALIDATEENDVOID;

@@ -73,7 +73,7 @@ static void UpdateProgress() {
   float progress = 0.0f;
 
   if (s_xmlTotal) {
-    progress = static_cast<float>(s_xmlLoaded) / static_cast<float>(s_xmlTotal) * 0.75f;
+    progress = (float)s_xmlLoaded / (float)s_xmlTotal * 0.75f;
   }
 
   if (s_worldLoaded) {
@@ -199,7 +199,7 @@ static void LoadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
 }
 
 static void TextureCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
-  UINT     image = reinterpret_cast<UINT>(userArg);
+  UINT     image = (UINT)userArg;
   MipBits *mipBits = s_mipBits[image];
 
   ASSERT(mipBits);
@@ -227,11 +227,11 @@ static void LoadImage(TEXTURETYPE image) {
   UINT height;
   BOOL isOpaque;
 
-  s_mipBits[image] = TextureLoadImage(s_textureInfo[image].name, &width, &height, reinterpret_cast<UINT *>(&s_textureFormat[image]), &isOpaque, 0, 0);
+  s_mipBits[image] = TextureLoadImage(s_textureInfo[image].name, &width, &height, (UINT *)&s_textureFormat[image], &isOpaque, 0, 0);
 
   if (s_mipBits[image]) {
     GxTexCreate(
-        width, height, s_textureFormat[image], CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), reinterpret_cast<LPVOID>(static_cast<UINT>(image)),
+        width, height, s_textureFormat[image], CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), (LPVOID)image,
         TextureCallback, s_textureHandles[image]
     );
     ASSERT(s_textureHandles[image]);
@@ -242,7 +242,7 @@ void EnableLoadingScreen() {
   DisableLoadingScreen();
 
   for (int image = 0; image < TEXTURETYPE_NUMTEXTURETYPES; ++image) {
-    LoadImage(static_cast<TEXTURETYPE>(image));
+    LoadImage((TEXTURETYPE)image);
   }
 
   RECTF rect = {0.0f, 0.0f, 1.0f, 1.0f};

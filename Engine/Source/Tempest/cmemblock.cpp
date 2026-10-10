@@ -7,7 +7,7 @@
 namespace NTempest {
 
   void CMemBlock::Set32b_(char *d, BYTE c, DWORD size) {
-    DWORD prefix = -reinterpret_cast<DWORD>(d) & 3;
+    DWORD prefix = -(DWORD)d & 3;
     DWORD suffix = (size - prefix) & 3;
     DWORD body = size - suffix - prefix;
 
@@ -25,7 +25,7 @@ namespace NTempest {
     if (body) {
       ASSERT((body & 0x3) == 0);
 
-      Set32b_(reinterpret_cast<DWORD *>(d), ((static_cast<DWORD>(c) << 8 | c) << 8 | c) << 8 | c, body);
+      Set32b_((DWORD *)d, (((DWORD)c << 8 | c) << 8 | c) << 8 | c, body);
       d += body;
     }
 
@@ -107,11 +107,11 @@ namespace NTempest {
   }
 
   inline char *CMemBlock::Allocate(DWORD size, LPCSTR filen, long linen) {
-    return size ? static_cast<char *>(SMemAlloc(size, filen, linen, SMEM_FLAG_ZEROMEMORY)) : reinterpret_cast<char *>(-1);
+    return size ? (char *)SMemAlloc(size, filen, linen, SMEM_FLAG_ZEROMEMORY) : (char *)-1;
   }
 
   inline void CMemBlock::Dispose(char *mem, LPCSTR filen, long linen) {
-    if (mem != reinterpret_cast<char *>(-1)) {
+    if (mem != (char *)-1) {
       SMemFree(mem, filen, linen, 0);
     }
   }
@@ -230,10 +230,10 @@ namespace NTempest {
       DWORD prologue = size_ - size;
       DWORD allocSize = prologue + newsize;
 
-      if (mem_ != reinterpret_cast<char *>(-1)) {
-        mem_ = static_cast<char *>(SMemReAlloc(mem_, allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY));
+      if (mem_ != (char *)-1) {
+        mem_ = (char *)SMemReAlloc(mem_, allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY);
       } else {
-        mem_ = static_cast<char *>(SMemAlloc(allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY));
+        mem_ = (char *)SMemAlloc(allocSize, FileN_(), LineN_(), SMEM_FLAG_ZEROMEMORY);
       }
 
       mem = mem_ + prologue;

@@ -138,11 +138,11 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   }
 
   HEVENTCONTEXT Handle() const {
-    return reinterpret_cast<HEVENTCONTEXT>(Id());
+    return (HEVENTCONTEXT)Id();
   }
 
   BOOL IsCurrentContext() const {
-    return !Id() || reinterpret_cast<LPVOID>(Id()) == PropGet(PROP_EVENTCONTEXT);
+    return !Id() || (LPVOID)Id() == PropGet(PROP_EVENTCONTEXT);
   }
 
   DWORD GetCurrTime() const {
@@ -157,7 +157,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
 
   void SchedSelect() {
     PropSelectContext(m_propContext);
-    PropSet(PROP_EVENTCONTEXT, reinterpret_cast<LPVOID>(Id()));
+    PropSet(PROP_EVENTCONTEXT, (LPVOID)Id());
     OsCallSetContext(m_callContext);
   }
 
@@ -350,7 +350,7 @@ inline T &EvtIdTable<T>::operator[](UINT id) {
 
 template <class T>
 inline const T &EvtIdTable<T>::operator[](UINT id) const {
-  return const_cast<EvtIdTable<T> *>(this)->m_allocArray[id];
+  return ((EvtIdTable<T> *)this)->m_allocArray[id];
 }
 
 template <class T>

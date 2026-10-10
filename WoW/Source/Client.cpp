@@ -277,7 +277,7 @@ static BOOL MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD tim
     DWORDLONG   guid = ClntObjMgrGetActivePlayer();
     CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
-      DWORDLONG target = reinterpret_cast<CGPlayer_C *>(object)->GetLocalTarget();
+      DWORDLONG target = ((CGPlayer_C *)object)->GetLocalTarget();
       CMovement::FallLogWrite("Local target guid (0x%016I64X)\n", target);
     }
   } else {
@@ -313,9 +313,9 @@ static BOOL LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDat
   msg->GetDataInSitu(data, numResults * 0xC4);
   ASSERT(data);
 
-  char *result = static_cast<char *>(data) + 68;
+  char *result = (char *)data + 68;
   for (UINT i = 0; i < numResults; ++i, result += 0xC4) {
-    UINT id = *reinterpret_cast<UINT *>(result - 68);
+    UINT id = *(UINT *)(result - 68);
     ConsoleWriteA("[%.04d] \"%s\" \"%s\" %s", DEFAULT_COLOR, id, result - 64, result, result + 64);
     OsOutputDebugString("[%.04d] \"%s\" \"%s\" %s\n", id, result - 64, result, result + 64);
   }
@@ -498,7 +498,7 @@ static bool ErrorDisplayMinLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newVal
   int level = SStrToInt(newValue);
 
   if (level >= 0 && level < SYSMSG_NUMTYPES) {
-    SysMsgSetMinDisplayLevel(static_cast<SYSMSG_TYPE>(level));
+    SysMsgSetMinDisplayLevel((SYSMSG_TYPE)level);
     DisplayErrorLevelStatus();
     return true;
   }
@@ -511,7 +511,7 @@ static bool ErrorDisplayMaxLevelCallback(CVar *h, LPCSTR oldValue, LPCSTR newVal
   int level = SStrToInt(newValue);
 
   if (level >= 0 && level < SYSMSG_NUMTYPES) {
-    SysMsgSetMaxDisplayLevel(static_cast<SYSMSG_TYPE>(level));
+    SysMsgSetMaxDisplayLevel((SYSMSG_TYPE)level);
     DisplayErrorLevelStatus();
     return true;
   }
@@ -978,7 +978,7 @@ static BOOL InitializeHandlerPlayer(LPCVOID, LPVOID) {
   BaseInitializeContext();
   ScrnInitialize(0);
   ConsoleScreenInitialize("World of Warcraft");
-  s_errorFileCvar = CVar::Register("ErrorFileLog", 0, 0, "0", ErrorFileLogCallback, 0, false, 0);
+  s_errorFileCvar = CVar::Register("ErrorFileLog", 0, 0, "0", ErrorFileLogCallback, DEBUG, false, 0);
   AsyncFileReadInitialize();
   TextureInitialize();
   ModelInitialize();
@@ -1090,7 +1090,7 @@ static bool InitializeGlobal() {
   } else {
     memcpy(&s_loginData, shm.Data(), sizeof(s_loginData));
     memset(shm.Data(), 0, sizeof(s_loginData));
-    static_cast<BYTE *>(shm.Data())[sizeof(s_loginData)] = 1;
+    ((BYTE *)shm.Data())[sizeof(s_loginData)] = 1;
     shm.Destroy();
   }
 
@@ -1145,7 +1145,7 @@ static BOOL ClientIdle(LPCVOID data, LPVOID) {
 }
 
 static BOOL ClientFocus(LPCVOID packetData, LPVOID) {
-  Player_C_AppFocusMovementHandler(*static_cast<const int *>(packetData));
+  Player_C_AppFocusMovementHandler(*(const int *)packetData);
   return 1;
 }
 
@@ -1305,7 +1305,7 @@ void BotClientLoseTarget(const CGUnit_C *) {
 }
 
 static void LogZoneInfo(CGPlayer_C *player, char *log, DWORD size) {
-  NTempest::C3Vector location(reinterpret_cast<CGObject_C *>(player)->GetPosition());
+  NTempest::C3Vector location(player->GetPosition());
   char               text[MAX_PATH];
   UINT               area;
 
@@ -1347,15 +1347,15 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   }
 
   guid = ClntObjMgrGetActivePlayer();
-  player = reinterpret_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
+  player = (CGPlayer_C *)ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!player || !ClientIsValidPointer(player, 0x1860, FALSE)) {
     return 1;
   }
 
   LogZoneInfo(player, log, size);
-  LogObjectInfo("Local Player", reinterpret_cast<CGObject_C *>(player), log, size);
+  LogObjectInfo("Local Player", player, log, size);
 
-  object = ClntObjMgrObjectPtr(player->CGPlayer_C::GetLocalTarget(), __FILE__, __LINE__);
+  object = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);
   if (object) {
     LogObjectInfo("Local Target", object, log, size);
   }

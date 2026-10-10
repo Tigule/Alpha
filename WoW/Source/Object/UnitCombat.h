@@ -312,6 +312,9 @@ inline ATTACKROUNDINFO::ATTACKROUNDINFO()
 
 inline SPELLLOG::SPELLLOG(DWORDLONG attacker, DWORDLONG victim, int spellID)
     : DAMAGELOGBASE(attacker, victim), auraEffectID(0), spellID(spellID), damageType(0), resistanceCoefficient(0.0f) {
+  dmg.Clear();
+  dmg.minDamage[0] = 0;
+  dmg.maxDamage[0] = 0;
 }
 
 inline SPELLMISSLOG::SPELLMISSLOG(DWORDLONG attacker, DWORDLONG victim, UINT spellID)
@@ -360,9 +363,11 @@ class CCombatClient : public CCombat {
   void StopAttack() {
     CCombat::StopAttack();
     m_attackSent = 0;
+    m_stopSent = 0;
   }
   void SetAttacking(DWORDLONG victim) {
     CCombat::SetAttacking(victim);
+    m_attackSent = 0;
   }
 
   int AttackBeenSent() const {

@@ -155,7 +155,7 @@ NODEDECL(Sound) {
   static void SetMasterVolume(float volume);
   static void MuteSFX(bool m);
   static int    GetMixRate();
-  static void   SetPositionUpdateCallback(BYTE(*callback)(LONGLONG handle, NTempest::C3Vector & position)) {
+  static void   SetPositionUpdateCallback(bool(*callback)(LONGLONG handle, NTempest::C3Vector & position)) {
     m_positionUpdateCallback = callback;
   }
   Sound();
@@ -186,7 +186,7 @@ NODEDECL(Sound) {
   void          AddToCutoffList();
   static void   ProcessCutoffList(const NTempest::C3Vector &listenerPos);
   void          RemoveFromCutoffList();
-  static BYTE (*m_positionUpdateCallback)(LONGLONG handle, NTempest::C3Vector &position);
+  static bool (*m_positionUpdateCallback)(LONGLONG handle, NTempest::C3Vector &position);
   static void   UpdateSoundVolumes(bool music);
   static bool   DupeCheckFailed(SOUNDCATEGORIES category, LPCSTR fileName, int flags);
   void          IncrementCategory(SOUNDCATEGORIES category);

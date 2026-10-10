@@ -18,9 +18,9 @@ namespace MDL {
 
 static void IAddAttachmentErrors(TSet &errors) {
   AddObjectErrors(errors);
-  errors.Add(0x1A0, 0, 0);
-  errors.Add(0x1D9, 0, 0);
-  errors.Add(0x124, 0, 0);
+  errors.Add(MDLTOK_PATH, 0, 0);
+  errors.Add(MDLTOK_VISIBILITY, 0, 0);
+  errors.Add(MDLTOK_ATTACHMENTID, 0, 0);
 }
 
 static void IReadAttachment(Parser &parse, TSet &errors, NTempest::C3Vector *pivot, MDLATTACHMENTSECTION *attachment, CMDLStatus *status) {
@@ -32,13 +32,13 @@ static void IReadAttachment(Parser &parse, TSet &errors, NTempest::C3Vector *piv
     }
     if (!ReadObjectBody(parse, token, pivot, attachment, status)) {
       switch (token) {
-        case 0x1A0:
+        case MDLTOK_PATH:
           SStrCopy(attachment->path, parse.ExpectString(), 260);
           break;
-        case 0x1D9:
+        case MDLTOK_VISIBILITY:
           ReadObjectFloatKeyframes(parse, &attachment->visibilityKeys);
           continue;
-        case 0x124:
+        case MDLTOK_ATTACHMENTID:
           attachment->attachmentId = parse.ExpectInt();
           break;
         default:
@@ -59,7 +59,7 @@ BOOL MDL::ReadAttachment(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   IAddAttachmentErrors(errors);
   ReadObjectName(parse, attachment->name);
   IReadAttachment(parse, errors, pivot, attachment, status);
-  if (errors.NotFound(0x124)) {
+  if (errors.NotFound(MDLTOK_ATTACHMENTID)) {
     attachment->attachmentId = data.attachments.Count() - 1;
   }
   ReadObjectEnd(errors, data, attachment, data.attachments.Count() - 1, 0x40000000);
@@ -68,19 +68,19 @@ BOOL MDL::ReadAttachment(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 BOOL MDL::WriteAttachments(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (static_cast<LPCSTR>(data.model.animationFile)[0]) {
+  if (((LPCSTR)data.model.animationFile)[0]) {
     return 1;
   }
   int                         needObjIds = data.attachments.Count() != data.objects.Count();
   const MDLATTACHMENTSECTION *attachment = data.attachments.Ptr();
   for (UINT n = 0; n < data.attachments.Count(); ++n, ++attachment) {
-    WriteObjectHeader(data, *attachment, 0x110, needObjIds, buffer);
+    WriteObjectHeader(data, *attachment, MDLTOK_ATTACHMENT, needObjIds, buffer);
     if (SStrLen(attachment->path)) {
-      MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x1A0), static_cast<LPCSTR>(attachment->path));
+      MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(MDLTOK_PATH), (LPCSTR)attachment->path);
     }
-    WriteFloatKeyFrames(0x1D9, "\t", attachment->visibilityKeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", attachment->visibilityKeys, buffer);
     if (attachment->attachmentId != n) {
-      MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x124), attachment->attachmentId);
+      MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_ATTACHMENTID), attachment->attachmentId);
     }
     WriteObjectTrailer(*attachment, buffer);
   }
@@ -100,7 +100,7 @@ static void IWriteBinAttachmentSection(const MDLATTACHMENTSECTION &section, UINT
   buf.AddUint(GetBinAttachmentSize(section));
   WriteBinGenObject(section, buf, status);
   buf.AddUint(section.attachmentId);
-  buf.AddByte(static_cast<BYTE>(geosetAnimId));
+  buf.AddByte(geosetAnimId);
   buf.AddTcharArray(section.path, 260, 1);
   WriteBinFloatKeyFrames(section.visibilityKeys, 'SIVK', buf);
 }
@@ -176,35 +176,39 @@ BOOL MDL::ReadBinAttachments(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLSt
 static UINT GetParentGeosetAnimId(const MDLDATA &data, const MDLATTACHMENTSECTION &attachmentData) {
   const MDLGENOBJECT *object = &attachmentData;
   do {
-    if (object->parentId == static_cast<UINT>(-1)) {
-      return static_cast<UINT>(-1);
+    if (object->parentId == (UINT)-1) {
+      return -1;
     }
     object = data.objects[object->parentId];
-  } while (!(static_cast<UINT>(reinterpret_cast<LPCSTR>(object) - reinterpret_cast<LPCSTR>(data.bones.Ptr())) < sizeof(MDLBONESECTION) * data.bones.Count()));
-  return static_cast<const MDLBONESECTION *>(object)->geosetId == static_cast<UINT>(-1) ? static_cast<UINT>(-1) : static_cast<const MDLBONESECTION *>(object)->geosetAnimId;
+  } while (!((UINT)((LPCSTR)object - (LPCSTR)data.bones.Ptr()) < sizeof(MDLBONESECTION) * data.bones.Count()));
+  return ((const MDLBONESECTION *)object)->geosetId == (UINT)-1 ? (UINT)-1 : ((const MDLBONESECTION *)object)->geosetAnimId;
 }
 
 BOOL MDL::WriteBinAttachments(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.attachments.Count()) {
-    buf.AddDword('HCTA');
-    UINT totalSize = 8;
-    UINT numAttached = data.attachments.Count();
-    UINT highestId = 0;
-    UINT i;
+  if (((LPCSTR)data.model.animationFile)[0]) {
+    return 1;
+  }
+  if (!data.attachments.Count()) {
+    return 1;
+  }
+  buf.AddDword('HCTA');
+  UINT totalSize = 8;
+  UINT numAttached = data.attachments.Count();
+  UINT highestId = 0;
+  UINT i;
 
-    for (i = 0; i < numAttached; ++i) {
-      totalSize += GetBinAttachmentSize(data.attachments[i]);
-      if (highestId < data.attachments[i].attachmentId) {
-        highestId = data.attachments[i].attachmentId;
-      }
+  for (i = 0; i < numAttached; ++i) {
+    totalSize += GetBinAttachmentSize(data.attachments[i]);
+    if (highestId < data.attachments[i].attachmentId) {
+      highestId = data.attachments[i].attachmentId;
     }
-    buf.AddUint(totalSize);
-    buf.AddUint(numAttached);
-    buf.AddUint(highestId);
-    for (i = 0; i < numAttached; ++i) {
-      UINT geosetAnimId = GetParentGeosetAnimId(data, data.attachments[i]);
-      IWriteBinAttachmentSection(data.attachments[i], geosetAnimId, buf, status);
-    }
+  }
+  buf.AddUint(totalSize);
+  buf.AddUint(numAttached);
+  buf.AddUint(highestId);
+  for (i = 0; i < numAttached; ++i) {
+    UINT geosetAnimId = GetParentGeosetAnimId(data, data.attachments[i]);
+    IWriteBinAttachmentSection(data.attachments[i], geosetAnimId, buf, status);
   }
   return 1;
 }

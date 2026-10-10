@@ -503,7 +503,7 @@ enum TRACKTYPE {
 };
 
 struct AuraVisual {
-  AuraVisual() : flags(0), spellID(0), effectID(0), theModel(0) {
+  AuraVisual() : flags(0) {
   }
  private:
   int  flags;
@@ -655,7 +655,7 @@ class CGUnit {
     return m_unit->health;
   }
   float GetHealthPercent() const {
-    return static_cast<float>(m_unit->health) / m_unit->maxHealth;
+    return (float)m_unit->health / m_unit->maxHealth;
   }
   int GetPower(POWER_TYPE powerType) const {
     return powerType == -2 ? m_unit->health : m_unit->power[powerType];
@@ -665,7 +665,7 @@ class CGUnit {
   }
   float GetPowerPercent(POWER_TYPE powerType) const;
   POWER_TYPE GetDisplayPower() const {
-    return static_cast<POWER_TYPE>(m_unit->displayPower);
+    return (POWER_TYPE)m_unit->displayPower;
   }
   __forceinline int GetMaxHealth() const {
     return m_unit->maxHealth;
@@ -716,7 +716,7 @@ class CGUnit {
     return m_unit->classId;
   }
   UNIT_SEX GetSex() const {
-    return static_cast<UNIT_SEX>(m_unit->sex);
+    return (UNIT_SEX)m_unit->sex;
   }
   int GetModDamageDone(UINT school) const {
     return m_unit->modDamageDone[school];
@@ -966,23 +966,23 @@ class CGUnit {
   static UINT GetUpdateMaskBytes();
   static UINT GetUpdateMaskBlocks();
   void      SetStorage(DWORD *storage) {
-    m_unit = reinterpret_cast<CGUnitData *>(storage);
+    m_unit = (CGUnitData *)storage;
   }
   UINT GetAttackRoundTime(COMBATHAND hand) const {
     FATALASSERT(hand<NUMHANDS);
     return m_unit->attackRoundBaseTime[hand];
   }
   WEAPONMODE GetWeaponMode() const {
-    return static_cast<WEAPONMODE>(m_unit->weaponMode);
+    return (WEAPONMODE)m_unit->weaponMode;
   }
   BYTE                    IsUsingRangedWeapon() const;
-  BYTE                    GetSheathed() const;
+  bool                    GetSheathed() const;
   virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
   void                    SetWaterSurfaceElevation(float elevation);
 
  protected:
   CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
-      : m_unit(reinterpret_cast<CGUnitData *>(storage)), m_move(position, facing, guid) {
+      : m_unit((CGUnitData *)storage), m_move(position, facing, guid) {
   }
 
   CGUnit(const CGUnit &);
@@ -1763,7 +1763,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
   virtual int             GetSpellRank(int spellID) const;
   int          GetSpellLevel(int spellID) const {
-    return static_cast<UINT>(GetSpellRank(spellID)) / 5;
+    return (UINT)GetSpellRank(spellID) / 5;
   }
   virtual bool  GetDefenseSkillRank(int &base, int &modifier) const;
   virtual bool  GetAttackSkillRank(int hand, int &base, int &modifier) const;
@@ -1930,7 +1930,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void SetSheatheEventEncountered(bool encountered);
 
   int             m_sheatheReasons;
-  ANIMENUMERATION m_handAnim[2];
+  ANIMENUMERATION m_handAnim[NUMHANDS];
   UINT            m_deferredSheatheFlags;
   SHEATHEREASONS  m_deferredSheatheReason;
 

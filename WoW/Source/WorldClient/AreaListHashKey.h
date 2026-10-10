@@ -11,7 +11,7 @@ class AREAHASHKEY {
   UINT subArea;
 
  public:
-  AREAHASHKEY() : cont(0), area(0), subArea(0) {
+  AREAHASHKEY() : area(0), subArea(0) {
   }
 
   AREAHASHKEY(const AREAHASHKEY &rhs) : cont(rhs.cont), area(rhs.area), subArea(rhs.subArea) {
@@ -51,7 +51,7 @@ struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
   UINT                continent;
   UINT                area;
   UINT                subArea;
-  AREAHASHOBJECT() {
+  AREAHASHOBJECT() : rec(0), midi(0), midiUnderwater(0), zoneMusic(0), reverb(0), reverbUnderwater(0) {
   }
   AREAHASHOBJECT(const AREAHASHOBJECT &);
 

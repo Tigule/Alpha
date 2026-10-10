@@ -80,43 +80,43 @@ class unreal {
   }
 
   void divideBy2() {
-    bits = (bits - 0x00800000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x01000000)) >> 31);
+    bits = (bits - 0x00800000) & ~(UINT)((int)(bits ^ (bits - 0x01000000)) >> 31);
   }
 
   void divideBy4() {
-    bits = (bits - 0x01000000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x01800000)) >> 31);
+    bits = (bits - 0x01000000) & ~(UINT)((int)(bits ^ (bits - 0x01800000)) >> 31);
   }
 
   void divideBy8() {
-    bits = (bits - 0x01800000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x02000000)) >> 31);
+    bits = (bits - 0x01800000) & ~(UINT)((int)(bits ^ (bits - 0x02000000)) >> 31);
   }
 
   void divideBy16() {
-    bits = (bits - 0x02000000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x02800000)) >> 31);
+    bits = (bits - 0x02000000) & ~(UINT)((int)(bits ^ (bits - 0x02800000)) >> 31);
   }
 
   void divideBy32() {
-    bits = (bits - 0x02800000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x03000000)) >> 31);
+    bits = (bits - 0x02800000) & ~(UINT)((int)(bits ^ (bits - 0x03000000)) >> 31);
   }
 
   void divideBy64() {
-    bits = (bits - 0x03000000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x03800000)) >> 31);
+    bits = (bits - 0x03000000) & ~(UINT)((int)(bits ^ (bits - 0x03800000)) >> 31);
   }
 
   void divideBy128() {
-    bits = (bits - 0x03800000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x04000000)) >> 31);
+    bits = (bits - 0x03800000) & ~(UINT)((int)(bits ^ (bits - 0x04000000)) >> 31);
   }
 
   void divideBy256() {
-    bits = (bits - 0x04000000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x04800000)) >> 31);
+    bits = (bits - 0x04000000) & ~(UINT)((int)(bits ^ (bits - 0x04800000)) >> 31);
   }
 
   void divideBy512() {
-    bits = (bits - 0x04800000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x05000000)) >> 31);
+    bits = (bits - 0x04800000) & ~(UINT)((int)(bits ^ (bits - 0x05000000)) >> 31);
   }
 
   void divideBy1024() {
-    bits = (bits - 0x05000000) & ~static_cast<UINT>(static_cast<int>(bits ^ (bits - 0x05800000)) >> 31);
+    bits = (bits - 0x05000000) & ~(UINT)((int)(bits ^ (bits - 0x05800000)) >> 31);
   }
 
   unreal &operator+=(const unreal &value);

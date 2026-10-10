@@ -4,6 +4,17 @@
 #include <float.h>
 #include <math.h>
 
+typedef char             int8;
+typedef short            int16;
+typedef long             int32;
+typedef __int64          int64;
+typedef unsigned char    uint8;
+typedef unsigned short   uint16;
+typedef unsigned long    uint32;
+typedef float            real;
+typedef double           lreal;
+typedef char            *pointer;
+
 namespace NTempest {
 
   class CMath {
@@ -22,13 +33,13 @@ namespace NTempest {
     static double log2_(double x);
 
     static float  log2_(float x) {
-      return static_cast<float>(log2_(static_cast<double>(x)));
+      return (float)log2_((double)x);
     }
 
     static double exp2_(double x);
 
     static float  exp2_(float x) {
-      return static_cast<float>(exp2_(static_cast<double>(x)));
+      return (float)exp2_((double)x);
     }
 
     static double log_(double x) {
@@ -36,7 +47,7 @@ namespace NTempest {
     }
 
     static float log_(float x) {
-      return static_cast<float>(log(x));
+      return (float)log(x);
     }
 
     static double log10_(double x) {
@@ -44,7 +55,7 @@ namespace NTempest {
     }
 
     static float log10_(float x) {
-      return static_cast<float>(log10(x));
+      return (float)log10(x);
     }
 
     static double exp_(double x) {
@@ -52,15 +63,15 @@ namespace NTempest {
     }
 
     static float exp_(float x) {
-      return static_cast<float>(exp(x));
+      return (float)exp(x);
     }
 
     static short ftol_round_n32768_32767_(float x) {
-      return static_cast<short>(x + (x < 0.0f ? -0.5f : 0.5f));
+      return (short)(x + (x < 0.0f ? -0.5f : 0.5f));
     }
 
     static short ftol_n32767_32767_(float x) {
-      return static_cast<short>(x);
+      return (short)x;
     }
 
     static BYTE ftol_round_0_256_(float x) {
@@ -71,7 +82,7 @@ namespace NTempest {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x <= 255.4999f", "x", x);
       }
       x += 512.5f;
-      return static_cast<BYTE>(*reinterpret_cast<DWORD *>(&x) >> 14);
+      return (BYTE)(*(DWORD *)&x >> 14);
     }
 
     static BYTE ftol_0_256_(float x) {
@@ -82,11 +93,11 @@ namespace NTempest {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x <= 255.9999f", "x", x);
       }
       x += 512.0f;
-      return static_cast<BYTE>(*reinterpret_cast<DWORD *>(&x) >> 14);
+      return (BYTE)(*(DWORD *)&x >> 14);
     }
 
     static BYTE ftol_0_1_(float x) {
-      return static_cast<BYTE>(x);
+      if (x < 0.0f) x = 0.0f; if (x > 1.0f) x = 1.0f; return ftol_0_256_(x * 255.0f);
     }
 
     static char iabs_(char x) {
@@ -98,7 +109,7 @@ namespace NTempest {
     }
 
     static long iabs_(long x) {
-      return x < 0 ? -x : x;
+      return x > 0 ? x : -x;
     }
 
     static LONGLONG iabs_(LONGLONG x) {
@@ -126,7 +137,7 @@ namespace NTempest {
     }
 
     static float fabs_(float x) {
-      return static_cast<float>(fabs(x));
+      return (float)fabs(x);
     }
 
     static double fnabs_(double x) {
@@ -142,7 +153,7 @@ namespace NTempest {
     }
 
     static float fmod_(float x, float y) {
-      return static_cast<float>(fmod(x, y));
+      return (float)fmod(x, y);
     }
 
     static bool fequalz_(double x, double y, double e) {
@@ -245,54 +256,54 @@ namespace NTempest {
       if (!(r >= .0f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "r >= .0f", "r", r);
       }
-      return static_cast<DWORD>(r + 0.5f);
+      return r + 0.5f;
     }
 
     static DWORD fuint_(float r) {
       if (!(r >= .0f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "r >= .0f", "r", r);
       }
-      return static_cast<DWORD>(r);
+      return (DWORD)r;
     }
 
     static DWORD fuint_pi(float r) {
-      return static_cast<DWORD>(r + 0.5f);
+      return (DWORD)(r + 0.5f);
     }
 
     static long fint_(float x) {
-      return x > .0f ? static_cast<long>(fuint_(x)) : -static_cast<long>(fuint_(-x));
+      return x > .0f ? (long)fuint_(x) : -(long)fuint_(-x);
     }
 
     static long fint_n(float x) {
-      return x > .0f ? static_cast<long>(fuint_n(x)) : -static_cast<long>(fuint_n(-x));
+      return x > .0f ? (long)fuint_n(x) : -(long)fuint_n(-x);
     }
 
     static long fint_pi(float x) {
-      return static_cast<long>(x + 0.5f);
+      return (long)(x + 0.5f);
     }
 
     static long fint_mi(float x) {
-      return static_cast<long>(x - 0.5f);
+      return (long)(x - 0.5f);
     }
 
     static long fint_si(float x) {
-      return static_cast<long>(x + (x < 0.0f ? -0.5f : 0.5f));
+      return (long)(x + (x < 0.0f ? -0.5f : 0.5f));
     }
 
     static float int32asreal_(long x) {
-      return *reinterpret_cast<float *>(&x);
+      return *(float *)&x;
     }
 
     static long realasint32_(float x) {
-      return *reinterpret_cast<long *>(&x);
+      return *(long *)&x;
     }
 
     static double int64aslreal_(LONGLONG x) {
-      return *reinterpret_cast<double *>(&x);
+      return *(double *)&x;
     }
 
     static LONGLONG lrealasint64_(double x) {
-      return *reinterpret_cast<LONGLONG *>(&x);
+      return *(LONGLONG *)&x;
     }
 
     static DWORD rotl16_(DWORD x) {
@@ -436,7 +447,7 @@ namespace NTempest {
     }
 
     static float cos_(float x) {
-      return static_cast<float>(cos(x));
+      return (float)cos(x);
     }
 
     static double sin_(double x) {
@@ -444,7 +455,7 @@ namespace NTempest {
     }
 
     static float sin_(float x) {
-      return static_cast<float>(sin(x));
+      return (float)sin(x);
     }
 
     static void sincos_(float x, float &s, float &c) {
@@ -462,7 +473,7 @@ namespace NTempest {
     }
 
     static float tan_(float x) {
-      return static_cast<float>(tan(x));
+      return (float)tan(x);
     }
 
     static double acos_(double x) {
@@ -470,7 +481,7 @@ namespace NTempest {
     }
 
     static float acos_(float x) {
-      return static_cast<float>(acos(x));
+      return (float)acos(x);
     }
 
     static double asin_(double x) {
@@ -478,7 +489,7 @@ namespace NTempest {
     }
 
     static float asin_(float x) {
-      return static_cast<float>(asin(x));
+      return (float)asin(x);
     }
 
     static double atan_(double x) {
@@ -486,7 +497,7 @@ namespace NTempest {
     }
 
     static float atan_(float x) {
-      return static_cast<float>(atan(x));
+      return (float)atan(x);
     }
 
     static double atan2_(double y, double x) {
@@ -494,7 +505,7 @@ namespace NTempest {
     }
 
     static float atan2_(float y, float x) {
-      return static_cast<float>(atan2(y, x));
+      return (float)atan2(y, x);
     }
 
     static float sinoid_(float x, const float oneOverPi);
@@ -508,7 +519,7 @@ namespace NTempest {
     }
 
     static float pow_(float x, float y) {
-      return static_cast<float>(pow(x, y));
+      return (float)pow(x, y);
     }
 
     static double hypot_(double x, double y) {
@@ -670,7 +681,7 @@ namespace NTempest {
       if (!(x >= .0f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= .0f", "x", x);
       }
-      return static_cast<float>(sqrt(x));
+      return (float)sqrt(x);
     }
 
     static double sqrt_(double x) {
@@ -752,7 +763,7 @@ namespace NTempest {
     static void  splitr_(float x, float &fraction, float &integer);
 
     static float copysign_(float x, float y) {
-      return static_cast<float>(_copysign(x, y));
+      return (float)_copysign(x, y);
     }
 
     static double copysign_(double x, double y) {
@@ -760,7 +771,7 @@ namespace NTempest {
     }
 
     static long iclamp_(long x, DWORD high) {
-      return x < 0 ? 0 : static_cast<DWORD>(x) > high ? high : x;
+      return x < 0 ? 0 : (DWORD)x > high ? high : x;
     }
 
     static long iclamp_(long x, long low, long high) {

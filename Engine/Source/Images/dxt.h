@@ -24,7 +24,7 @@ struct C4Pixel {
   }
 
   operator UINT() {
-    return *reinterpret_cast<UINT *>(this);
+    return *(UINT *)this;
   }
 
   BYTE b;
@@ -131,34 +131,34 @@ struct DxtRect {
 };
 
 inline BYTE Dxt3A4(UINT alphaBits) {
-  return static_cast<BYTE>(alphaBits);
+  return (BYTE)alphaBits;
 }
 
 inline BYTE Dxt3A8(UINT alphaBits) {
-  return static_cast<BYTE>(alphaBits << 4);
+  return (BYTE)(alphaBits << 4);
 }
 
 template <class Pixel>
 inline void DxtMakeTableAlpha(const DxtColorBlock &block, Pixel *table) {
-  if (static_cast<WORD>(block.color0) > static_cast<WORD>(block.color1)) {
+  if ((WORD)block.color0 > (WORD)block.color1) {
     table[0] = block.color0;
     table[1] = block.color1;
     table[2].From565(
-        static_cast<BYTE>((DxtColorBlock::tables.dt235[block.color0.r] + DxtColorBlock::tables.dt135[block.color1.r]) >> 8),
-        static_cast<BYTE>((DxtColorBlock::tables.dt236[block.color0.g] + DxtColorBlock::tables.dt136[block.color1.g]) >> 8),
-        static_cast<BYTE>((DxtColorBlock::tables.dt235[block.color0.b] + DxtColorBlock::tables.dt135[block.color1.b]) >> 8)
+        (BYTE)((DxtColorBlock::tables.dt235[block.color0.r] + DxtColorBlock::tables.dt135[block.color1.r]) >> 8),
+        (BYTE)((DxtColorBlock::tables.dt236[block.color0.g] + DxtColorBlock::tables.dt136[block.color1.g]) >> 8),
+        (BYTE)((DxtColorBlock::tables.dt235[block.color0.b] + DxtColorBlock::tables.dt135[block.color1.b]) >> 8)
     );
     table[3].From565(
-        static_cast<BYTE>((DxtColorBlock::tables.dt135[block.color0.r] + DxtColorBlock::tables.dt235[block.color1.r]) >> 8),
-        static_cast<BYTE>((DxtColorBlock::tables.dt136[block.color0.g] + DxtColorBlock::tables.dt236[block.color1.g]) >> 8),
-        static_cast<BYTE>((DxtColorBlock::tables.dt135[block.color0.b] + DxtColorBlock::tables.dt235[block.color1.b]) >> 8)
+        (BYTE)((DxtColorBlock::tables.dt135[block.color0.r] + DxtColorBlock::tables.dt235[block.color1.r]) >> 8),
+        (BYTE)((DxtColorBlock::tables.dt136[block.color0.g] + DxtColorBlock::tables.dt236[block.color1.g]) >> 8),
+        (BYTE)((DxtColorBlock::tables.dt135[block.color0.b] + DxtColorBlock::tables.dt235[block.color1.b]) >> 8)
     );
   } else {
     table[0] = block.color0;
     table[1] = block.color1;
     table[2].From565(
-        static_cast<BYTE>((block.color0.r + block.color1.r) / 2), static_cast<BYTE>((block.color0.g + block.color1.g) / 2),
-        static_cast<BYTE>((block.color0.b + block.color1.b) / 2)
+        (BYTE)((block.color0.r + block.color1.r) / 2), (BYTE)((block.color0.g + block.color1.g) / 2),
+        (BYTE)((block.color0.b + block.color1.b) / 2)
     );
     table[3] = Pixel(0ul);
   }
@@ -171,7 +171,7 @@ inline void DxtDecompress(const Dxt1Block *block, Pixel **dest, const DxtRect &r
 
   UINT colorShift = rect.l * DxtColorBlock::BPP;
   for (UINT r = rect.t; r <= rect.b; ++r) {
-    UINT colorBitRow = block->color.row[r] >> static_cast<BYTE>(colorShift);
+    UINT colorBitRow = block->color.row[r] >> (BYTE)colorShift;
     for (UINT c = rect.l; c <= rect.r; ++c, colorBitRow >>= DxtColorBlock::BPP) {
       dest[r][c] = colorTable[colorBitRow & DxtColorBlock::PIXEL_LSB_MASK];
     }
@@ -186,21 +186,21 @@ inline void DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &r
   colorTable[0] = block->color.color0;
   colorTable[1] = block->color.color1;
   colorTable[2].From565(
-      static_cast<BYTE>((DxtColorBlock::tables.dt235[block->color.color0.r] + DxtColorBlock::tables.dt135[block->color.color1.r]) >> 8),
-      static_cast<BYTE>((DxtColorBlock::tables.dt236[block->color.color0.g] + DxtColorBlock::tables.dt136[block->color.color1.g]) >> 8),
-      static_cast<BYTE>((DxtColorBlock::tables.dt235[block->color.color0.b] + DxtColorBlock::tables.dt135[block->color.color1.b]) >> 8)
+      (BYTE)((DxtColorBlock::tables.dt235[block->color.color0.r] + DxtColorBlock::tables.dt135[block->color.color1.r]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt236[block->color.color0.g] + DxtColorBlock::tables.dt136[block->color.color1.g]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt235[block->color.color0.b] + DxtColorBlock::tables.dt135[block->color.color1.b]) >> 8)
   );
   colorTable[3].From565(
-      static_cast<BYTE>((DxtColorBlock::tables.dt135[block->color.color0.r] + DxtColorBlock::tables.dt235[block->color.color1.r]) >> 8),
-      static_cast<BYTE>((DxtColorBlock::tables.dt136[block->color.color0.g] + DxtColorBlock::tables.dt236[block->color.color1.g]) >> 8),
-      static_cast<BYTE>((DxtColorBlock::tables.dt135[block->color.color0.b] + DxtColorBlock::tables.dt235[block->color.color1.b]) >> 8)
+      (BYTE)((DxtColorBlock::tables.dt135[block->color.color0.r] + DxtColorBlock::tables.dt235[block->color.color1.r]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt136[block->color.color0.g] + DxtColorBlock::tables.dt236[block->color.color1.g]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt135[block->color.color0.b] + DxtColorBlock::tables.dt235[block->color.color1.b]) >> 8)
   );
 
   UINT colorShift = rect.l * DxtColorBlock::BPP;
   UINT alphaShift = rect.l * Dxt3AlphaBlock::BPP;
   for (UINT r = rect.t; r <= rect.b; ++r) {
-    UINT colorBitRow = block->color.row[r] >> static_cast<BYTE>(colorShift);
-    UINT alphaBitRow = block->alpha.row[r] >> static_cast<WORD>(alphaShift);
+    UINT colorBitRow = block->color.row[r] >> (BYTE)colorShift;
+    UINT alphaBitRow = block->alpha.row[r] >> (WORD)alphaShift;
     for (UINT c = rect.l; c <= rect.r; ++c, alphaBitRow >>= Dxt3AlphaBlock::BPP, colorBitRow >>= DxtColorBlock::BPP) {
       dest[r][c].FromARGB(afunc(alphaBitRow & Dxt3AlphaBlock::PIXEL_LSB_MASK), colorTable[colorBitRow & DxtColorBlock::PIXEL_LSB_MASK]);
     }

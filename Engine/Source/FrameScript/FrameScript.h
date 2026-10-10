@@ -71,7 +71,7 @@ inline FrameScript_Object *FrameScript_GetObjectThis(lua_State *L) {
   }
 
   lua_rawgeti(L, 1, 0);
-  FrameScript_Object *object = static_cast<FrameScript_Object *>(lua_touserdata(L, -1));
+  FrameScript_Object *object = (FrameScript_Object *)lua_touserdata(L, -1);
   lua_pop(L, 1);
   ASSERT(object);
   return object;

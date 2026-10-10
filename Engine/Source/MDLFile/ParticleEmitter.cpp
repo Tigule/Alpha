@@ -15,29 +15,29 @@ namespace MDL {
 
 static void IAddParticleEmitterErrors(TSet &errors) {
   AddObjectErrors(errors);
-  errors.Add(0x144, 1, 0);
-  errors.Add(0x153, 1, 0);
-  errors.Add(0x161, 1, 0);
-  errors.Add(0x162, 1, 0);
-  errors.Add(0x1D9, 0, 0);
-  errors.Add(0x18C, 1, 0);
+  errors.Add(MDLTOK_EMISSION_RATE, 1, 0);
+  errors.Add(MDLTOK_GRAVITY, 1, 0);
+  errors.Add(MDLTOK_LATITUDE, 1, 0);
+  errors.Add(MDLTOK_LONGITUDE, 1, 0);
+  errors.Add(MDLTOK_VISIBILITY, 0, 0);
+  errors.Add(MDLTOK_PARTICLE, 1, 0);
 }
 
 static void IAddParticleErrors(TSet &errors) {
-  errors.Add(0x165, 1, 0);
-  errors.Add(0x15D, 1, 0);
-  errors.Add(0x1A0, 1, 0);
+  errors.Add(MDLTOK_LIFESPAN, 1, 0);
+  errors.Add(MDLTOK_INIT_VELOCITY, 1, 0);
+  errors.Add(MDLTOK_PATH, 1, 0);
 }
 
 static void IReadParticleKeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLE *options) {
   switch (savedtoken) {
-    case 0x165:
+    case MDLTOK_LIFESPAN:
       ReadObjectFloatKeyframes(parse, &options->life);
       break;
-    case 0x15D:
+    case MDLTOK_INIT_VELOCITY:
       ReadObjectFloatKeyframes(parse, &options->speed);
       break;
-    case 0x1A0:
+    case MDLTOK_PATH:
       SStrCopy(options->path, parse.ExpectString(), 260);
       parse.Expect(',');
       break;
@@ -50,10 +50,10 @@ static void IReadParticleKeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokenT
 
 static void IReadParticleStaticData(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLE *options) {
   switch (savedtoken) {
-    case 0x165:
+    case MDLTOK_LIFESPAN:
       ReadFloatKeyData(parse, &options->staticLife, 1);
       break;
-    case 0x15D:
+    case MDLTOK_INIT_VELOCITY:
       ReadFloatKeyData(parse, &options->staticSpeed, 1);
       break;
     default:
@@ -86,22 +86,22 @@ static void IReadParticleOptions(Parser &parse, MDLPARTICLE *options) {
 
 static void IReadParticleEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLEEMITTER *emitter) {
   switch (savedtoken) {
-    case 0x144:
+    case MDLTOK_EMISSION_RATE:
       ReadObjectFloatKeyframes(parse, &emitter->emissionRate);
       break;
-    case 0x153:
+    case MDLTOK_GRAVITY:
       ReadObjectFloatKeyframes(parse, &emitter->gravity);
       break;
-    case 0x161:
+    case MDLTOK_LATITUDE:
       ReadObjectFloatKeyframes(parse, &emitter->latitude);
       break;
-    case 0x162:
+    case MDLTOK_LONGITUDE:
       ReadObjectFloatKeyframes(parse, &emitter->longitude);
       break;
-    case 0x1D9:
+    case MDLTOK_VISIBILITY:
       ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
       break;
-    case 0x18C:
+    case MDLTOK_PARTICLE:
       IReadParticleOptions(parse, &emitter->particle);
       break;
     default:
@@ -112,16 +112,16 @@ static void IReadParticleEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR
 
 static void IReadParticleEmitterStaticData(Parser &parse, UINT savedtoken, LPCSTR tokenText, MDLPARTICLEEMITTER *emitter) {
   switch (savedtoken) {
-    case 0x144:
+    case MDLTOK_EMISSION_RATE:
       ReadFloatKeyData(parse, &emitter->staticEmissionRate, 1);
       break;
-    case 0x153:
+    case MDLTOK_GRAVITY:
       ReadFloatKeyData(parse, &emitter->staticGravity, 1);
       break;
-    case 0x161:
+    case MDLTOK_LATITUDE:
       ReadFloatKeyData(parse, &emitter->staticLatitude, 1);
       break;
-    case 0x162:
+    case MDLTOK_LONGITUDE:
       ReadFloatKeyData(parse, &emitter->staticLongitude, 1);
       break;
     default:
@@ -133,11 +133,11 @@ static void IReadParticleEmitterStaticData(Parser &parse, UINT savedtoken, LPCST
 
 static BOOL IReadParticleEmitterFlags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER *emitter) {
   switch (savedtoken) {
-    case 0x145:
+    case MDLTOK_EMITTER_USES_MDL:
       emitter->flags |= 0x8000;
       parse.Expect(',');
       return 1;
-    case 0x146:
+    case MDLTOK_EMITTER_USES_TGA:
       emitter->flags |= 0x10000;
       parse.Expect(',');
       return 1;
@@ -183,61 +183,61 @@ namespace MDL {
 }  // namespace MDL
 
 static void IWriteParticleOptions(const MDLPARTICLE &options, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x18C));
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_PARTICLE));
   if (options.life.keys.Count()) {
-    WriteFloatKeyFrames(0x165, "\t\t", options.life, buffer);
+    WriteFloatKeyFrames(MDLTOK_LIFESPAN, "\t\t", options.life, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t\t", MDL::TokenText(0x1BB), MDL::TokenText(0x165));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LIFESPAN));
     WriteKeyData(buffer, &options.staticLife, 1);
   }
   if (options.speed.keys.Count()) {
-    WriteFloatKeyFrames(0x15D, "\t\t", options.speed, buffer);
+    WriteFloatKeyFrames(MDLTOK_INIT_VELOCITY, "\t\t", options.speed, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t\t", MDL::TokenText(0x1BB), MDL::TokenText(0x15D));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_INIT_VELOCITY));
     WriteKeyData(buffer, &options.staticSpeed, 1);
   }
   if (SStrLen(options.path)) {
-    MDL::WriteLine(buffer, "\t\t%s \"%s\",\n", MDL::TokenText(0x1A0), static_cast<LPCSTR>(options.path));
+    MDL::WriteLine(buffer, "\t\t%s \"%s\",\n", MDL::TokenText(MDLTOK_PATH), (LPCSTR)options.path);
   }
   MDL::WriteLine(buffer, "\t}\n");
 }
 
 static void IWritePEFlags(const MDLPARTICLEEMITTER &emitter, TSGrowableArray<char> &buffer) {
   if (emitter.flags & 0x10000) {
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x146));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_EMITTER_USES_TGA));
   } else {
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x145));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_EMITTER_USES_MDL));
   }
 }
 
 static void IWriteParticleEmitter(const MDLDATA &data, const MDLPARTICLEEMITTER &emitter, int needObjIds, TSGrowableArray<char> &buffer) {
-  WriteObjectHeader(data, emitter, 0x112, needObjIds, buffer);
+  WriteObjectHeader(data, emitter, MDLTOK_PARTICLEEMITTER, needObjIds, buffer);
   IWritePEFlags(emitter, buffer);
   if (emitter.emissionRate.keys.Count()) {
-    WriteFloatKeyFrames(0x144, "\t", emitter.emissionRate, buffer);
+    WriteFloatKeyFrames(MDLTOK_EMISSION_RATE, "\t", emitter.emissionRate, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x144));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_EMISSION_RATE));
     WriteKeyData(buffer, &emitter.staticEmissionRate, 1);
   }
   if (emitter.gravity.keys.Count()) {
-    WriteFloatKeyFrames(0x153, "\t", emitter.gravity, buffer);
+    WriteFloatKeyFrames(MDLTOK_GRAVITY, "\t", emitter.gravity, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x153));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_GRAVITY));
     WriteKeyData(buffer, &emitter.staticGravity, 1);
   }
-  if (emitter.latitude.keys.Count()) {
-    WriteFloatKeyFrames(0x162, "\t", emitter.latitude, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x162));
-    WriteKeyData(buffer, &emitter.staticLatitude, 1);
-  }
   if (emitter.longitude.keys.Count()) {
-    WriteFloatKeyFrames(0x161, "\t", emitter.longitude, buffer);
+    WriteFloatKeyFrames(MDLTOK_LONGITUDE, "\t", emitter.longitude, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x161));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LONGITUDE));
     WriteKeyData(buffer, &emitter.staticLongitude, 1);
   }
-  WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
+  if (emitter.latitude.keys.Count()) {
+    WriteFloatKeyFrames(MDLTOK_LATITUDE, "\t", emitter.latitude, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LATITUDE));
+    WriteKeyData(buffer, &emitter.staticLatitude, 1);
+  }
+  WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", emitter.visibilityKeys, buffer);
   IWriteParticleOptions(emitter.particle, buffer);
   WriteObjectTrailer(emitter, buffer);
 }
@@ -245,13 +245,14 @@ static void IWriteParticleEmitter(const MDLDATA &data, const MDLPARTICLEEMITTER 
 namespace MDL {
 
   BOOL WriteParticleEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-    if (!data.model.animationFile[0]) {
-      UINT numEmitters = data.particleEmitters.Count();
-      int needObjIds = numEmitters != data.objects.Count();
-      const MDLPARTICLEEMITTER *pEmit = data.particleEmitters.Ptr();
-      for (UINT i = numEmitters; i; --i, ++pEmit) {
-        IWriteParticleEmitter(data, *pEmit, needObjIds, buffer);
-      }
+    if (data.model.animationFile[0]) {
+      return 1;
+    }
+    UINT numEmitters = data.particleEmitters.Count();
+    int needObjIds = numEmitters != data.objects.Count();
+    const MDLPARTICLEEMITTER *pEmit = data.particleEmitters.Ptr();
+    for (UINT i = numEmitters; i; --i, ++pEmit) {
+      IWriteParticleEmitter(data, *pEmit, needObjIds, buffer);
     }
     return 1;
   }
@@ -386,19 +387,23 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
 namespace MDL {
 
   BOOL WriteBinParticleEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-    if (!data.model.animationFile[0] && data.particleEmitters.Count()) {
-      buf.AddDword('MERP');
-      UINT numEmitters = data.particleEmitters.Count();
-      UINT totalSize = 4;
-      UINT i;
-      for (i = 0; i < numEmitters; ++i) {
-        totalSize += GetBinParticleEmitterSize(data.particleEmitters[i]);
-      }
-      buf.AddUint(totalSize);
-      buf.AddUint(numEmitters);
-      for (i = 0; i < numEmitters; ++i) {
-        IWriteBinParticleEmitter(data.particleEmitters[i], buf, status);
-      }
+    if (data.model.animationFile[0]) {
+      return 1;
+    }
+    if (!data.particleEmitters.Count()) {
+      return 1;
+    }
+    buf.AddDword('MERP');
+    UINT numEmitters = data.particleEmitters.Count();
+    UINT totalSize = 4;
+    UINT i;
+    for (i = 0; i < numEmitters; ++i) {
+      totalSize += GetBinParticleEmitterSize(data.particleEmitters[i]);
+    }
+    buf.AddUint(totalSize);
+    buf.AddUint(numEmitters);
+    for (i = 0; i < numEmitters; ++i) {
+      IWriteBinParticleEmitter(data.particleEmitters[i], buf, status);
     }
     return 1;
   }

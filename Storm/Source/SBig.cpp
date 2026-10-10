@@ -62,7 +62,7 @@ class BigStack {
   }
   BigBuffer &Alloc(UINT *count) {
     if (m_used >= 0x10) {
-      SErrDisplayError(0x85100000, __FILE__, __LINE__, "m_used < SIZE", NULL, 1);
+      SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "m_used < SIZE", NULL, 1);
     }
     if (count) {
       ++*count;
@@ -71,7 +71,7 @@ class BigStack {
   }
   void Free(UINT count) {
     if (count > m_used) {
-      SErrDisplayError(0x85100000, __FILE__, __LINE__, "count <= m_used", NULL, 1);
+      SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "count <= m_used", NULL, 1);
     }
     m_used -= count;
   }
@@ -184,7 +184,7 @@ static void      ToUnsigned(UINT *val, const BigBuffer &a);
 
 static UINT ExtractLowPart(DWORDLONG *b) {
   UINT result;
-  result = (UINT)*b;
+  result = *b;
   *b >>= 32;
   return result;
 }
@@ -199,7 +199,7 @@ static UINT ExtractLowPartLargeSum(DWORDLONG *carry, DWORDLONG add) {
 
 static UINT ExtractLowPartSx(DWORDLONG *b) {
   UINT result;
-  result = (UINT)*b;
+  result = *b;
   *b >>= 32;
   if (*b >= 0x80000000) {
     *b |= 0xFFFFFFFF00000000ui64;
@@ -271,11 +271,11 @@ static void Div(BigBuffer &a, UINT *b, const BigBuffer &c, DWORDLONG d) {
   UINT      index = c.Count();
   while (index--) {
     InsertLowPart(&data, c[index]);
-    a[index] = (UINT)(data / d);
+    a[index] = data / d;
     data %= d;
   }
   a.Trim();
-  *b = (UINT)data;
+  *b = data;
 }
 
 static void Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer &d, BigStack &stack) {
@@ -310,7 +310,7 @@ static void Div(BigBuffer &a, BigBuffer &b, const BigBuffer &c, const BigBuffer 
     if (!t) {
       a[0] = cc[dCount];
     } else {
-      a[0] = (UINT)(MakeLarge(cc[dCount - 1], cc[dCount]) / t);
+      a[0] = MakeLarge(cc[dCount - 1], cc[dCount]) / t;
     }
     if (a[0]) {
       Mul(work, dd, a[0]);
@@ -804,7 +804,7 @@ static void DecodeDataBytes(LPCVOID data, UINT maxBytes, UINT *offset, UINT *dat
 
 static void EncodeDataBytes(SBigOutputArray &output, UINT dataBytes) {
   while (dataBytes) {
-    *output.New() = (BYTE)(dataBytes % 0xFF);
+    *output.New() = dataBytes % 0xFF;
     dataBytes /= 0xFF;
   }
   *output.New() = 0xFF;
@@ -823,8 +823,8 @@ static void FromBinary(BigBuffer &a, LPCVOID data, UINT bytes) {
 static void FromStr(BigBuffer &a, LPCSTR str) {
   SetZero(a);
   while (*str) {
-    Mul(a, a, (DWORDLONG)10);
-    Add(a, a, (UINT)(*str++ - '0'));
+    Mul(a, a, 10);
+    Add(a, a, *str++ - '0');
   }
 }
 
@@ -854,7 +854,7 @@ static void ToBinaryAppend(SBigOutputArray &output, const BigBuffer &a) {
   for (byte = 0; byte < a.Count() * 4; ++byte) {
     UINT value = a[byte >> 2] >> ((byte & 3) * 8);
     if (value || (byte >> 2) + 1 < a.Count()) {
-      *output.New() = (BYTE)value;
+      *output.New() = value;
     }
   }
 }
@@ -872,7 +872,7 @@ static void ToStr(SBigOutputArray &output, const BigBuffer &a, BigStack &stack) 
     BYTE digit;
 
     Div(work, &remainder, work, 10);
-    digit = (BYTE)('0' + remainder);
+    digit = '0' + remainder;
     output.Add(&digit);
   } while (Compare(work, 0));
 

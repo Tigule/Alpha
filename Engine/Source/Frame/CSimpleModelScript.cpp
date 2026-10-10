@@ -7,7 +7,7 @@
 #include <lua.h>
 
 static int CSimpleModel_SetModel(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isstring(L, 2)) {
     LPCSTR filename = lua_tostring(L, 2);
@@ -26,28 +26,27 @@ static int CSimpleModel_SetModel(lua_State *L) {
 }
 
 static int CSimpleModel_ClearModel(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   object->SetModel(0);
   return 0;
 }
 
 static int CSimpleModel_SetPosition(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
-  NTempest::C3Vector pos;
-  pos.x = static_cast<float>(lua_tonumber(L, 2));
-  pos.y = static_cast<float>(lua_tonumber(L, 3));
-  pos.z = static_cast<float>(lua_tonumber(L, 4));
+  float              x = lua_tonumber(L, 2);
+  float              y = lua_tonumber(L, 3);
+  NTempest::C3Vector pos(x, y, lua_tonumber(L, 4));
   object->SetPosition(pos);
   return 0;
 }
 
 static int CSimpleModel_SetFacing(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetFacing(static_cast<float>(lua_tonumber(L, 2)));
+    object->SetFacing(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -56,10 +55,10 @@ static int CSimpleModel_SetFacing(lua_State *L) {
 }
 
 static int CSimpleModel_SetScale(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetScale(static_cast<float>(lua_tonumber(L, 2)));
+    object->SetScale(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -68,10 +67,10 @@ static int CSimpleModel_SetScale(lua_State *L) {
 }
 
 static int CSimpleModel_SetSequence(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetSequence(static_cast<UINT>(lua_tonumber(L, 2)));
+    object->SetSequence(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -80,10 +79,10 @@ static int CSimpleModel_SetSequence(lua_State *L) {
 }
 
 static int CSimpleModel_SetSequenceTime(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
-    object->SetSequenceTime(static_cast<UINT>(lua_tonumber(L, 2)), static_cast<int>(lua_tonumber(L, 3)));
+    object->SetSequenceTime(lua_tonumber(L, 2), lua_tonumber(L, 3));
     return 0;
   }
 
@@ -92,10 +91,10 @@ static int CSimpleModel_SetSequenceTime(lua_State *L) {
 }
 
 static int CSimpleModel_SetAlpha(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetAlpha(static_cast<BYTE>(lua_tonumber(L, 2)));
+    object->SetAlpha(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -104,10 +103,10 @@ static int CSimpleModel_SetAlpha(lua_State *L) {
 }
 
 static int CSimpleModel_SetCamera(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetCameraByIndex(static_cast<UINT>(lua_tonumber(L, 2)));
+    object->SetCameraByIndex(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -116,58 +115,51 @@ static int CSimpleModel_SetCamera(lua_State *L) {
 }
 
 static int CSimpleModel_SetLight(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   CSimpleModel *model = object;
+  if (lua_isnumber(L, 2)) {
+    CGxLight light;
+    light.m_enabled = (int)lua_tonumber(L, 2) != 0;
+    if (!light.m_enabled) {
+      return 0;
+    }
 
-  if (!lua_isnumber(L, 2)) {
-    luaL_error(L, "Usage: SetLight(enabled[, omni, dirX, dirY, dirZ, ambIntensity[, ambR, ambG, ambB], dirIntensity[, dirR, dirG, dirB]])");
+    if (lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5) && lua_isnumber(L, 6) && lua_isnumber(L, 7)) {
+      light.m_isOmni = (int)lua_tonumber(L, 3) != 0;
+      light.m_dir = NTempest::C3Vector(lua_tonumber(L, 4), lua_tonumber(L, 5), lua_tonumber(L, 6));
+
+      int index = 8;
+      light.m_ambIntensity = lua_tonumber(L, 7);
+      if (!NTempest::CMath::fequal_(light.m_ambIntensity, 0.0f) && lua_isnumber(L, index) && lua_isnumber(L, index + 1) && lua_isnumber(L, index + 2)) {
+        float red = lua_tonumber(L, index);
+        float green = lua_tonumber(L, index + 1);
+        float blue = lua_tonumber(L, index + 2);
+        light.m_ambColor.Set(1.0f, red, green, blue);
+        index += 3;
+      }
+
+      if (lua_isnumber(L, index)) {
+        light.m_dirIntensity = lua_tonumber(L, index++);
+        if (!NTempest::CMath::fequal_(light.m_dirIntensity, 0.0f) && lua_isnumber(L, index) && lua_isnumber(L, index + 1) && lua_isnumber(L, index + 2)) {
+          float red = lua_tonumber(L, index);
+          float green = lua_tonumber(L, index + 1);
+          float blue = lua_tonumber(L, index + 2);
+          light.m_dirColor.Set(1.0f, red, green, blue);
+        }
+
+        model->SetLight(light);
+        return 0;
+      }
+    }
   }
 
-  CGxLight light;
-  light.m_enabled = static_cast<int>(lua_tonumber(L, 2)) != 0;
-  if (!light.m_enabled) {
-    return 0;
-  }
-
-  if (!lua_isnumber(L, 3) || !lua_isnumber(L, 4) || !lua_isnumber(L, 5) || !lua_isnumber(L, 6) || !lua_isnumber(L, 7)) {
-    luaL_error(L, "Usage: SetLight(enabled[, omni, dirX, dirY, dirZ, ambIntensity[, ambR, ambG, ambB], dirIntensity[, dirR, dirG, dirB]])");
-  }
-
-  light.m_isOmni = static_cast<int>(lua_tonumber(L, 3)) != 0;
-  light.m_dir =
-      NTempest::C3Vector(static_cast<float>(lua_tonumber(L, 4)), static_cast<float>(lua_tonumber(L, 5)), static_cast<float>(lua_tonumber(L, 6)));
-  light.m_ambIntensity = static_cast<float>(lua_tonumber(L, 7));
-
-  int index = 8;
-  if (!NTempest::CMath::fequal_(light.m_ambIntensity, 0.0f) && lua_isnumber(L, 8) && lua_isnumber(L, 9) && lua_isnumber(L, 10)) {
-    float red = static_cast<float>(lua_tonumber(L, 8));
-    float green = static_cast<float>(lua_tonumber(L, 9));
-    float blue = static_cast<float>(lua_tonumber(L, 10));
-    light.m_ambColor.Set(1.0f, red, green, blue);
-    index = 11;
-  }
-
-  if (!lua_isnumber(L, index)) {
-    luaL_error(L, "Usage: SetLight(enabled[, omni, dirX, dirY, dirZ, ambIntensity[, ambR, ambG, ambB], dirIntensity[, dirR, dirG, dirB]])");
-  }
-
-  light.m_dirIntensity = static_cast<float>(lua_tonumber(L, index));
-  ++index;
-
-  if (!NTempest::CMath::fequal_(light.m_dirIntensity, 0.0f) && lua_isnumber(L, index) && lua_isnumber(L, index + 1) && lua_isnumber(L, index + 2)) {
-    float red = static_cast<float>(lua_tonumber(L, index));
-    float green = static_cast<float>(lua_tonumber(L, index + 1));
-    float blue = static_cast<float>(lua_tonumber(L, index + 2));
-    light.m_dirColor.Set(1.0f, red, green, blue);
-  }
-
-  model->SetLight(light);
+  luaL_error(L, "Usage: SetLight(enabled[, omni, dirX, dirY, dirZ, ambIntensity[, ambR, ambG, ambB], dirIntensity[, dirR, dirG, dirB]])");
   return 0;
 }
 
 static int CSimpleModel_GetPosition(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   NTempest::C3Vector pos = object->GetPosition();
   lua_pushnumber(L, pos.x);
@@ -177,28 +169,28 @@ static int CSimpleModel_GetPosition(lua_State *L) {
 }
 
 static int CSimpleModel_GetFacing(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, object->GetFacing());
   return 1;
 }
 
 static int CSimpleModel_GetScale(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   lua_pushnumber(L, object->GetScale());
   return 1;
 }
 
 static int CSimpleModel_AdvanceTime(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   object->AdvanceTime();
   return 0;
 }
 
 static int CSimpleModel_ReplaceIconTexture(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isstring(L, 2)) {
     object->ReplaceTexture(14, lua_tostring(L, 2));
@@ -210,14 +202,14 @@ static int CSimpleModel_ReplaceIconTexture(lua_State *L) {
 }
 
 static int CSimpleModel_SetFogColor(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
-  float red = static_cast<float>(lua_tonumber(L, 2));
-  float green = static_cast<float>(lua_tonumber(L, 3));
-  float blue = static_cast<float>(lua_tonumber(L, 4));
+  float red = lua_tonumber(L, 2);
+  float green = lua_tonumber(L, 3);
+  float blue = lua_tonumber(L, 4);
   float alpha = 1.0f;
   if (lua_isnumber(L, 5)) {
-    alpha = static_cast<float>(lua_tonumber(L, 5));
+    alpha = lua_tonumber(L, 5);
   }
 
   NTempest::CImVector color;
@@ -228,10 +220,10 @@ static int CSimpleModel_SetFogColor(lua_State *L) {
 }
 
 static int CSimpleModel_SetFogNear(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetFogNear(static_cast<float>(lua_tonumber(L, 2)));
+    object->SetFogNear(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -240,10 +232,10 @@ static int CSimpleModel_SetFogNear(lua_State *L) {
 }
 
 static int CSimpleModel_SetFogFar(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   if (lua_isnumber(L, 2)) {
-    object->SetFogFar(static_cast<float>(lua_tonumber(L, 2)));
+    object->SetFogFar(lua_tonumber(L, 2));
     return 0;
   }
 
@@ -252,7 +244,7 @@ static int CSimpleModel_SetFogFar(lua_State *L) {
 }
 
 static int CSimpleModel_ClearFog(lua_State *L) {
-  CSimpleModel *object = static_cast<CSimpleModel *>(FrameScript_GetObjectThis(L));
+  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
   object->SetFog(0);
   return 0;

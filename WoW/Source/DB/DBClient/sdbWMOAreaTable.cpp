@@ -12,9 +12,7 @@ LPCSTR SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
   key.m_NameSetID = nameSetID;
   key.m_WMOGroupID = wmoGroupID;
 
-  const WMOAreaTableRec *rec = static_cast<const WMOAreaTableRec *>(
-      bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare)
-  );
+  const WMOAreaTableRec *rec = (const WMOAreaTableRec *)bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare);
 
   if (rec) {
     return rec->m_AreaName_lang[CURRENT_LANGUAGE];
@@ -23,11 +21,11 @@ LPCSTR SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID) {
 }
 
 static int __cdecl bscompare(LPCVOID e1, LPCVOID e2) {
-  return static_cast<const WMOAreaTableRec *>(e1)->m_WMOID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOID
-             ? static_cast<const WMOAreaTableRec *>(e1)->m_WMOID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOID
-         : static_cast<const WMOAreaTableRec *>(e1)->m_NameSetID - static_cast<const WMOAreaTableRec *>(e2)->m_NameSetID
-             ? static_cast<const WMOAreaTableRec *>(e1)->m_NameSetID - static_cast<const WMOAreaTableRec *>(e2)->m_NameSetID
-             : static_cast<const WMOAreaTableRec *>(e1)->m_WMOGroupID - static_cast<const WMOAreaTableRec *>(e2)->m_WMOGroupID;
+  return ((const WMOAreaTableRec *)e1)->m_WMOID - ((const WMOAreaTableRec *)e2)->m_WMOID
+             ? ((const WMOAreaTableRec *)e1)->m_WMOID - ((const WMOAreaTableRec *)e2)->m_WMOID
+         : ((const WMOAreaTableRec *)e1)->m_NameSetID - ((const WMOAreaTableRec *)e2)->m_NameSetID
+             ? ((const WMOAreaTableRec *)e1)->m_NameSetID - ((const WMOAreaTableRec *)e2)->m_NameSetID
+             : ((const WMOAreaTableRec *)e1)->m_WMOGroupID - ((const WMOAreaTableRec *)e2)->m_WMOGroupID;
 }
 
 bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAreaTableRec *&rec) {
@@ -36,9 +34,7 @@ bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAr
   key.m_NameSetID = nameSetID;
   key.m_WMOGroupID = wmoGroupID;
 
-  rec = static_cast<const WMOAreaTableRec *>(
-      bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare)
-  );
+  rec = (const WMOAreaTableRec *)bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare);
 
   return rec != 0;
 }

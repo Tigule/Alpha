@@ -32,7 +32,7 @@ struct FindItemClassData {
 static const UINT inventoryFlags = 7;
 
 static BOOL GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
-  GetItemTypeCountData *data = static_cast<GetItemTypeCountData *>(param);
+  GetItemTypeCountData *data = (GetItemTypeCountData *)param;
   if (item->GetEntryID() == data->entryID || data->entryID == -1) {
     data->count += item->GetStackCount();
   }
@@ -40,7 +40,7 @@ static BOOL GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
 }
 
 static BOOL FindItemIDCallback(const CGItem_C *item, LPVOID param) {
-  return item->GetEntryID() == *static_cast<int *>(param);
+  return item->GetEntryID() == *(int *)param;
 }
 
 int CGBag_C::GetWidth(UINT offset) const {
@@ -71,7 +71,7 @@ int CGBag_C::GetItemTypeCount(int entryID, UINT flags) const {
 }
 
 static BOOL FindItemClassCallback(const CGItem_C *item, LPVOID param) {
-  FindItemClassData *data = static_cast<FindItemClassData *>(param);
+  FindItemClassData *data = (FindItemClassData *)param;
   return item->GetClassID() == data->classID && (!data->subclassMask || (data->subclassMask & (1 << item->GetSubtypeID())));
 }
 

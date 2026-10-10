@@ -22,18 +22,18 @@ void WriteBounds(const CMdlBounds &, LPCSTR, TSGrowableArray<char> &);
 
 
 static void IModelAddErrors(TSet &errors) {
-  errors.Add(0x181, 0, 0);
-  errors.Add(0x182, 0, 0);
-  errors.Add(0x17D, 0, 0);
-  errors.Add(0x170, 0, 0);
-  errors.Add(0x16F, 0, 0);
-  errors.Add(0x134, 0, 0);
-  errors.Add(0x17C, 0, 0);
-  errors.Add(0x17E, 0, 0);
-  errors.Add(0x184, 0, 0);
-  errors.Add(0x185, 0, 0);
-  errors.Add(0x186, 0, 0);
-  errors.Add(0x154, 0, 0);
+  errors.Add(MDLTOK_NUMHELPERS, 0, 0);
+  errors.Add(MDLTOK_NUMLIGHTS, 0, 0);
+  errors.Add(MDLTOK_NUMBONES, 0, 0);
+  errors.Add(MDLTOK_MINIMUMEXTENT, 0, 0);
+  errors.Add(MDLTOK_MAXIMUMEXTENT, 0, 0);
+  errors.Add(MDLTOK_BOUNDS_RADIUS, 0, 0);
+  errors.Add(MDLTOK_NUMATTACHMENTS, 0, 0);
+  errors.Add(MDLTOK_NUMEVENTS, 0, 0);
+  errors.Add(MDLTOK_NUMPARTICLEEMITTERS, 0, 0);
+  errors.Add(MDLTOK_NUMPARTICLEEMITTERS2, 0, 0);
+  errors.Add(MDLTOK_NUMRIBBONEMITTERS, 0, 0);
+  errors.Add(MDLTOK_GROUNDTRACK, 0, 0);
 }
 
 static void IReadVertex(Parser &parse, NTempest::C3Vector *vertex) {
@@ -47,9 +47,9 @@ static void IReadVertex(Parser &parse, NTempest::C3Vector *vertex) {
 }
 
 static void AddGroundTrackErrors(TSet &errors) {
-  errors.Add(0x1A1, 0, 0);
-  errors.Add(0x1DE, 0, 0);
-  errors.Add(0x1AC, 0, 0);
+  errors.Add(MDLTOK_PITCH, 0, 0);
+  errors.Add(MDLTOK_YAW, 0, 0);
+  errors.Add(MDLTOK_ROLL, 0, 0);
 }
 
 static void IReadGroundTrack(Parser &parse, MDLMODELSECTION *model, CMDLStatus *status) {
@@ -63,9 +63,9 @@ static void IReadGroundTrack(Parser &parse, MDLMODELSECTION *model, CMDLStatus *
       parse.FatalDuplicate(tokentext);
     }
     switch (savedtoken) {
-      case 0x1A1:
-      case 0x1AC:
-      case 0x1DE:
+      case MDLTOK_PITCH:
+      case MDLTOK_ROLL:
+      case MDLTOK_YAW:
         break;
       default:
         parse.FatalUnexpected(tokentext);
@@ -75,9 +75,9 @@ static void IReadGroundTrack(Parser &parse, MDLMODELSECTION *model, CMDLStatus *
   parse.Expect('}', savedtoken, tokentext);
 
   model->flags = (model->flags & ~GROUND_TRACK_MASK) |
-                 ((errors.NotFound(0x1AC) && errors.NotFound(0x1A1))
-                      ? static_cast<BYTE>(TRACK_YAW_ONLY)
-                      : static_cast<BYTE>(errors.NotFound(0x1AC) ? TRACK_PITCH_YAW : TRACK_PITCH_YAW_ROLL));
+                 ((errors.NotFound(MDLTOK_ROLL) && errors.NotFound(MDLTOK_PITCH))
+                      ? (BYTE)TRACK_YAW_ONLY
+                      : (BYTE)(errors.NotFound(MDLTOK_ROLL) ? TRACK_PITCH_YAW : TRACK_PITCH_YAW_ROLL));
   errors.Complete(status);
 }
 
@@ -90,60 +90,60 @@ static void IReadModelGlobals(Parser &parse, TSet *errors, MDLMODELSECTION *mode
       parse.FatalDuplicate(tokenText);
     }
     switch (token) {
-      case 0x17F:
+      case MDLTOK_NUMGEOSETS:
         model->geosetCount = parse.ExpectInt();
         break;
-      case 0x181:
+      case MDLTOK_NUMHELPERS:
         model->helperCount = parse.ExpectInt();
         break;
-      case 0x182:
+      case MDLTOK_NUMLIGHTS:
         model->lightCount = parse.ExpectInt();
         break;
-      case 0x17E:
+      case MDLTOK_NUMEVENTS:
         model->eventCount = parse.ExpectInt();
         break;
-      case 0x17D:
-      case 0x183:
+      case MDLTOK_NUMBONES:
+      case MDLTOK_NUMMESHES:
         model->boneCount = parse.ExpectInt();
         break;
-      case 0x130:
+      case MDLTOK_BLEND_TIME:
         model->blendTime = parse.ExpectInt();
         break;
-      case 0x184:
+      case MDLTOK_NUMPARTICLEEMITTERS:
         model->particleCount = parse.ExpectInt();
         break;
-      case 0x185:
+      case MDLTOK_NUMPARTICLEEMITTERS2:
         model->particle2Count = parse.ExpectInt();
         break;
-      case 0x186:
+      case MDLTOK_NUMRIBBONEMITTERS:
         model->ribbonCount = parse.ExpectInt();
         break;
-      case 0x17C:
+      case MDLTOK_NUMATTACHMENTS:
         model->attachmentCount = parse.ExpectInt();
         break;
-      case 0x180:
+      case MDLTOK_NUMGEOSETANIMS:
         model->geosetAnimCount = parse.ExpectInt();
         break;
-      case 0x170:
+      case MDLTOK_MINIMUMEXTENT:
         IReadVertex(parse, &model->bounds.extent.b);
         break;
-      case 0x16F:
+      case MDLTOK_MAXIMUMEXTENT:
         IReadVertex(parse, &model->bounds.extent.t);
         break;
-      case 0x134:
+      case MDLTOK_BOUNDS_RADIUS:
         model->bounds.radius = parse.ExpectFloat();
         break;
-      case 0x123: {
+      case MDLTOK_ANIMATIONFILE: {
         LPCSTR animationFile = parse.ExpectString();
         if (animationFile) {
           SStrCopy(model->animationFile, animationFile, 260);
         }
         break;
       }
-      case 0x154:
+      case MDLTOK_GROUNDTRACK:
         IReadGroundTrack(parse, model, status);
         break;
-      case 0x11E:
+      case MDLTOK_ALWAYS_ANIMATE:
         model->flags |= 4;
         break;
       default:
@@ -188,37 +188,37 @@ BOOL MDL::ReadModelGlobals(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 
 static void IWriteModelObjectCounts(const MDLDATA &data, TSGrowableArray<char> &buffer) {
   if (data.geosets.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x17F), data.geosets.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMGEOSETS), data.geosets.Count());
   if (data.geosetAnims.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x180), data.geosetAnims.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMGEOSETANIMS), data.geosetAnims.Count());
   if (data.helpers.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x181), data.helpers.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMHELPERS), data.helpers.Count());
   if (data.lights.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x182), data.lights.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMLIGHTS), data.lights.Count());
   if (data.bones.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x17D), data.bones.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMBONES), data.bones.Count());
   if (data.attachments.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x17C), data.attachments.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMATTACHMENTS), data.attachments.Count());
   if (data.particleEmitters.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x184), data.particleEmitters.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMPARTICLEEMITTERS), data.particleEmitters.Count());
   if (data.particleEmitters2.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x185), data.particleEmitters2.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMPARTICLEEMITTERS2), data.particleEmitters2.Count());
   if (data.ribbonEmitters.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x186), data.ribbonEmitters.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMRIBBONEMITTERS), data.ribbonEmitters.Count());
   if (data.events.Count() > 0)
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x17E), data.events.Count());
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_NUMEVENTS), data.events.Count());
 }
 
 static void IWriteGroundTrack(TSGrowableArray<char> &buffer, GROUND_TRACK groundTrack) {
   switch (groundTrack) {
     case TRACK_YAW_ONLY:
-      MDL::WriteLine(buffer, "\t%s { %s },\n", MDL::TokenText(0x154), MDL::TokenText(0x1DE));
+      MDL::WriteLine(buffer, "\t%s { %s },\n", MDL::TokenText(MDLTOK_GROUNDTRACK), MDL::TokenText(MDLTOK_YAW));
       break;
     case TRACK_PITCH_YAW:
-      MDL::WriteLine(buffer, "\t%s { %s, %s },\n", MDL::TokenText(0x154), MDL::TokenText(0x1A1), MDL::TokenText(0x1DE));
+      MDL::WriteLine(buffer, "\t%s { %s, %s },\n", MDL::TokenText(MDLTOK_GROUNDTRACK), MDL::TokenText(MDLTOK_PITCH), MDL::TokenText(MDLTOK_YAW));
       break;
     case TRACK_PITCH_YAW_ROLL:
-      MDL::WriteLine(buffer, "\t%s { %s, %s, %s },\n", MDL::TokenText(0x154), MDL::TokenText(0x1A1), MDL::TokenText(0x1DE), MDL::TokenText(0x1AC));
+      MDL::WriteLine(buffer, "\t%s { %s, %s, %s },\n", MDL::TokenText(MDLTOK_GROUNDTRACK), MDL::TokenText(MDLTOK_PITCH), MDL::TokenText(MDLTOK_YAW), MDL::TokenText(MDLTOK_ROLL));
       break;
   }
 }
@@ -231,16 +231,16 @@ BOOL MDL::WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, 
       model.bounds.extent.b.y != 0.0f || model.bounds.extent.b.z != 0.0f || model.bounds.extent.t.x != 0.0f || model.bounds.extent.t.y != 0.0f ||
       model.bounds.extent.t.z != 0.0f || model.flags)
   {
-    MDL::WriteLine(buffer, "%s \"%s\" {\n", MDL::TokenText(0x104), static_cast<LPCSTR>(model.name));
+    MDL::WriteLine(buffer, "%s \"%s\" {\n", MDL::TokenText(MDLTOK_MODEL), (LPCSTR)model.name);
     IWriteModelObjectCounts(data, buffer);
     WriteBounds(model.bounds, "\t", buffer);
     if (SStrLen(model.animationFile)) {
-      MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(0x123), static_cast<LPCSTR>(model.animationFile));
+      MDL::WriteLine(buffer, "\t%s \"%s\",\n", MDL::TokenText(MDLTOK_ANIMATIONFILE), (LPCSTR)model.animationFile);
     }
     if (data.sequences.Count()) {
-      IWriteGroundTrack(buffer, static_cast<GROUND_TRACK>(model.flags & GROUND_TRACK_MASK));
+      IWriteGroundTrack(buffer, (GROUND_TRACK)(model.flags & GROUND_TRACK_MASK));
       if (model.flags & 4) {
-        MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x11E));
+        MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_ALWAYS_ANIMATE));
       }
     }
     MDL::WriteLine(buffer, "}\n");
@@ -274,7 +274,7 @@ BOOL MDL::WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStat
   buffer.AddFloat(data.model.bounds.radius);
   buffer.AddFloatArray(&data.model.bounds.extent.b.x, 3);
   buffer.AddFloatArray(&data.model.bounds.extent.t.x, 3);
-  buffer.AddByte(static_cast<BYTE>(data.model.flags));
+  buffer.AddByte(data.model.flags);
   buffer.AddUint(data.objects.Count());
   return 1;
 }

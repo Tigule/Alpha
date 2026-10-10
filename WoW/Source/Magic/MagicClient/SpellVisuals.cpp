@@ -41,6 +41,7 @@
 #include <string.h>
 
 class CDataStore;
+void DayNightSetEclipse(NTempest::CImVector color, float amount);
 
 struct SPELLVISUALNODE : public TSHashObject<SPELLVISUALNODE, HASHKEY_NONE> {
   SPELLVISUALNODE();
@@ -285,19 +286,19 @@ BlizzardObject::Shard *BlizzardObject::AllocShard() {
   }
 
   Shard *shard = shardPool.Head();
-  shardPool.UnlinkNode(shard);
+  shard->Unlink();
   shard->Init();
   return shard;
 }
 
 void BlizzardObject::FreeShard(Shard *&shard) {
-  shardPool.UnlinkNode(shard);
+  shard->Unlink();
   shardPool.LinkNode(shard, LIST_TAIL, 0);
   shard = 0;
 }
 
 void BlizzardObject::WorldObjectRender(LPVOID param, const NTempest::C44Matrix &mtx) {
-  static_cast<BlizzardObject *>(param)->Render(mtx);
+  ((BlizzardObject *)param)->Render(mtx);
 }
 
 void BlizzardObject::Init(const NTempest::C3Vector &pos, LPCSTR modelName, float pRadius, float pEmissionRate) {
@@ -329,14 +330,14 @@ void BlizzardObject::Destroy() {
 }
 
 void BlizzardObject::Update() {
-  if (dead) {
-    if (!shards.Head()) {
-      CWorld::RemoveObject(hWorldObject);
-      Destroy();
-      FreeBlizzard(this);
-      return;
-    }
-  } else {
+  if (dead && !shards.Head()) {
+    CWorld::RemoveObject(hWorldObject);
+    Destroy();
+    FreeBlizzard(this);
+    return;
+  }
+
+  if (!dead) {
     numEmitted += CWorld::GetTickTimeSec() * emissionRate;
     while (numEmitted >= 1.0f) {
       if (ModelIsLoaded(shardModel, 1)) {
@@ -361,7 +362,7 @@ void BlizzardObject::Update() {
     }
   }
 
-  for (Shard *shard = shards.Head(), *next; (int)shard > 0 ? ((next = shards.RawNext(shard)), 1) : 0; shard = next) {
+  SAFEITERATELIST(Shard, shards, shard) {
     if (CWorld::GetCurTimeMs() >= shard->startTime && !ModelAdvanceTime(shard->hModel)) {
       HandleClose(shard->hModel);
       FreeShard(shard);
@@ -377,7 +378,7 @@ static void ShardEventCallback(LPCSTR eventName, const NTempest::C3Vector &posit
   static int s_counter;
 
   ++s_counter;
-  if ((s_counter & 1) && *reinterpret_cast<const UINT *>(eventName) == 'DNS$') {
+  if ((s_counter & 1) && *(const UINT *)eventName == 'DNS$') {
     SpellSoundEffectCallback(eventName + 4, position);
   }
 }
@@ -512,7 +513,7 @@ void SpellVisualsInitialize() {
   }
 
   for (i = 0; i < g_spellVisualKitDB.GetNumRecords(); ++i) {
-    constKit = const_cast<SpellVisualKitRec *>(g_spellVisualKitDB.GetRecordByIndex(i));
+    constKit = (SpellVisualKitRec *)g_spellVisualKitDB.GetRecordByIndex(i);
     if (constKit) {
       if (constKit->m_anim <= 0) {
         constKit->m_anim = -1;
@@ -572,7 +573,7 @@ void SpellVisualsInitialize() {
       }
     }
     if (destination < NUM_OBJECTANIMATIONS) {
-      s_precastAnimTransitions[source] = static_cast<ANIMENUMERATION>(destination);
+      s_precastAnimTransitions[source] = (ANIMENUMERATION)destination;
     }
   }
 
@@ -589,7 +590,7 @@ static void InitializeAuraNames() {
     const SpellAuraNamesRec *auraName = g_spellAuraNamesDB.GetRecordByIndex(i);
     int                      enumID = auraName->m_EnumID;
 
-    if (enumID < static_cast<int>(s_auraNames.Count())) {
+    if (enumID < (int)s_auraNames.Count()) {
       FATALASSERT(!s_auraNames[enumID]);
       s_auraNames[enumID] = auraName;
     }
@@ -604,8 +605,8 @@ static void InitializeFishingLineIntervals() {
   float current = 0.0f;
   int   index;
 
-  for (index = 0; index < static_cast<int>(s_segmentPoints.Count()); ++index) {
-    s_segmentPoints[index] = -NTempest::CMath::sin_(3.1415927f * min(max(0.0f, current), 1.0f));
+  for (index = 0; index < (int)s_segmentPoints.Count(); ++index) {
+    s_segmentPoints[index] = -NTempest::CMath::sin_(PI * min(max(0.0f, current), 1.0f));
     current += 0.005f;
   }
 }
@@ -613,8 +614,8 @@ static void InitializeFishingLineIntervals() {
 static void InitializeFishingLineIndices() {
   int index;
 
-  for (index = 0; index < static_cast<int>(s_fishingLineIndices.Count()); ++index) {
-    s_fishingLineIndices[index] = static_cast<WORD>(index);
+  for (index = 0; index < (int)s_fishingLineIndices.Count(); ++index) {
+    s_fishingLineIndices[index] = index;
   }
 }
 
@@ -623,7 +624,7 @@ void SpellVisualsShutdown() {
     s_lightning.DeleteNode(s_lightning.Head());
   }
 
-  DELIFUSED(s_lightningManager);
+  DEL(s_lightningManager);
   s_auraNames.Clear();
 }
 
@@ -691,9 +692,9 @@ void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster
   }
 
   int animSet = 0;
-  if (!instant && caster->SetSpellPreCastingAnimation(static_cast<ANIMENUMERATION>(visualRec->m_anim))) {
+  if (!instant && caster->SetSpellPreCastingAnimation((ANIMENUMERATION)visualRec->m_anim)) {
     bool specialAnim = visualRec->m_anim == 105 || visualRec->m_anim == 106;
-    animSet = caster->SetTorsoAnimation(37, specialAnim ? animDuration : 0, specialAnim ? 0x20 : 0);
+    animSet = caster->SetTorsoAnimation(ANIM_STATE_SPELLPRECAST, specialAnim ? animDuration : 0, specialAnim ? 0x20 : 0);
   }
 
   caster->StartSpellFizzleTimer(id, duration, animSet);
@@ -727,8 +728,6 @@ struct EclipseObject {
 } EclipseObject_HuhHuhHuh_Huh;
 
 static EclipseObject s_eclipseObject;
-
-#include "DayNight.h"
 
 bool LightningObject::Tick(UINT currentTime) {
   for (UINT i = 0; i < bolts.Count(); ++i) {
@@ -767,7 +766,7 @@ bool LightningObject::Tick(UINT currentTime) {
 
         if (bolt.boltID == BADBOLT) {
           bolt.boltID = s_lightningManager->Add(
-              sourcePosition, destPosition, avgSegLen, width, NTempest::CImVector(static_cast<DWORD>(-1)), noiseScale, texCoordScale, duration,
+              sourcePosition, destPosition, avgSegLen, width, NTempest::CImVector(-1), noiseScale, texCoordScale, duration,
               texture, 0, 0
           );
         } else {
@@ -815,11 +814,11 @@ void EclipseObject::Update(UINT currentTime) {
 
   float amount = 0.0f;
   if (currentTime < fadeInTime) {
-    amount = static_cast<float>(currentTime - startTime) / static_cast<float>(fadeInTime - startTime);
+    amount = (float)(currentTime - startTime) / (float)(fadeInTime - startTime);
   } else if (currentTime < fadeOutTime) {
     amount = 1.0f;
   } else if (currentTime < endTime) {
-    amount = 1.0f - static_cast<float>(currentTime - fadeOutTime) / static_cast<float>(endTime - fadeOutTime);
+    amount = 1.0f - (float)(currentTime - fadeOutTime) / (float)(endTime - fadeOutTime);
   } else {
     endTime = 0;
     startTime = 0;
@@ -865,8 +864,8 @@ static void SpellVisualsProc_Eclipse(CGUnit_C *caster, const SpellVisualKitRec *
   FATALASSERT(kitRec->m_characterParam[1] >= 0.0f && kitRec->m_characterParam[1] <= 1.0f);
 
   UINT duration = Spell_C_GetCastTime(spellID, 0);
-  s_eclipseObject.color = NTempest::CImVector(static_cast<DWORD>(kitRec->m_characterParam[0]) | 0xFF000000ul);
-  UINT fadeDuration = static_cast<UINT>(duration * kitRec->m_characterParam[1]);
+  s_eclipseObject.color = NTempest::CImVector((DWORD)kitRec->m_characterParam[0] | 0xFF000000ul);
+  UINT fadeDuration = duration * kitRec->m_characterParam[1];
   s_eclipseObject.startTime = OsGetAsyncTimeMs();
   s_eclipseObject.fadeInTime = s_eclipseObject.startTime + fadeDuration;
   s_eclipseObject.fadeOutTime = s_eclipseObject.startTime + duration;
@@ -886,7 +885,7 @@ static void CreateLightningObj(
     return;
   }
 
-  const SpellChainEffectsRec *rec = g_spellChainEffectsDB.GetRecord(static_cast<int>(kitRec->m_characterParam[0]));
+  const SpellChainEffectsRec *rec = g_spellChainEffectsDB.GetRecord(kitRec->m_characterParam[0]);
   if (!rec) {
     return;
   }
@@ -933,11 +932,11 @@ static void CreateLightningObj(
         lightning->guids[i + 1] = guids[i];
         bolt.birthTime = currentTime + i * rec->m_SegDelay;
         bolt.deathTime = bolt.birthTime + rec->m_SegDuration;
-        bolt.srcGuidSub = static_cast<WORD>(srcGuidSub);
-        bolt.dstGuidSub = static_cast<WORD>(i + 1);
+        bolt.srcGuidSub = srcGuidSub;
+        bolt.dstGuidSub = i + 1;
 
         if (!lightning->forever && !target->IsA(TYPE_GAMEOBJECT)) {
-          CGUnit_C *targetUnit = static_cast<CGUnit_C *>(target);
+          CGUnit_C *targetUnit = (CGUnit_C *)target;
           if (i > 0 && i < numGuids - 1) {
             targetUnit->DDADDLOG(unitPtr->GetGUID(), "CreateLightningObj", __FILE__, __LINE__);
           }
@@ -984,7 +983,7 @@ void SpellVisualsHandleSpellStart(
       for (i = 0; i < targets.Count(); ++i) {
         CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
         if (target && target->IsA(TYPE_UNIT)) {
-          PlayImpactKit(static_cast<CGUnit_C *>(target), impactKit);
+          PlayImpactKit((CGUnit_C *)target, impactKit);
         }
       }
     }
@@ -1021,7 +1020,7 @@ void SpellVisualsTick(float elapsed) {
   DWORD currentTime = OsGetAsyncTimeMs();
 
   {
-    for (LightningObject *lightning = s_lightning.Head(), *next; (int)lightning > 0 ? ((next = s_lightning.RawNext(lightning)), 1) : 0; lightning = next) {
+    SAFEITERATELIST(LightningObject, s_lightning, lightning) {
       if (!lightning->Tick(currentTime)) {
         s_lightning.UnlinkNode(lightning);
         lightning->DelRef();
@@ -1032,7 +1031,7 @@ void SpellVisualsTick(float elapsed) {
   s_lightningManager->Update(elapsed);
   s_eclipseObject.Update(currentTime);
 
-  for (BlizzardObject *blizzard = s_blizzard.Head(), *next; (int)blizzard > 0 ? ((next = s_blizzard.RawNext(blizzard)), 1) : 0; blizzard = next) {
+  SAFEITERATELIST(BlizzardObject, s_blizzard, blizzard) {
     blizzard->Update();
   }
 }
@@ -1043,7 +1042,7 @@ void SpellVisualsRender() {
 }
 
 static void RenderFishingLines() {
-  for (FishingLineObject *object = s_fishingLineObjects.Head(), *next; (int)object > 0 ? ((next = s_fishingLineObjects.RawNext(object)), 1) : 0; object = next) {
+  SAFEITERATELIST(FishingLineObject, s_fishingLineObjects, object) {
     object->Render();
   }
 }
@@ -1111,7 +1110,7 @@ FishingLineObject *SpellVisualsFishingLineCreate(const SpellVisualKitRec *kitRec
   FishingLineObject *object = s_freeFishingObjects.Get(0);
   object->object = gameObj;
   object->caster = caster;
-  object->color.Set(static_cast<UINT>(kitRec->m_characterParam[0]) | 0xFF000000);
+  object->color.Set((UINT)kitRec->m_characterParam[0] | 0xFF000000);
   object->visible = 0;
   s_fishingLineObjects.LinkNode(object, LIST_TAIL, 0);
   return object;
@@ -1246,7 +1245,7 @@ void SpellVisualsHandleSpellStartHits(
       for (i = 0; i < targets.Count(); ++i) {
         CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
         if (target && target->IsA(TYPE_UNIT)) {
-          caster->SetImpactKitEffect(spellID, static_cast<CGUnit_C *>(target), impactKit, torsoAnimSet == 0);
+          caster->SetImpactKitEffect(spellID, (CGUnit_C *)target, impactKit, torsoAnimSet == 0);
         }
       }
     }
@@ -1268,7 +1267,7 @@ static bool GetSpellRecords(
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
     return 0;
   }
-  visRec = caster->GetAppropriateSpellVisual(const_cast<SpellRec *>(srec), visRecData);
+  visRec = caster->GetAppropriateSpellVisual((SpellRec *)srec, visRecData);
   if (!visRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spellID);
     return 0;
@@ -1289,13 +1288,13 @@ static void PlayCastAnim(
   if (kitRec->m_anim) {
     ANIMENUMERATION finalAnim;
     bool            animValid = caster->SetSpellCastingAnimation(
-        static_cast<ANIMENUMERATION>(kitRec->m_anim), visRec->m_castKit, kitRec->m_soundID, kitRec->m_shakeID, finalAnim
+        (ANIMENUMERATION)kitRec->m_anim, visRec->m_castKit, kitRec->m_soundID, kitRec->m_shakeID, finalAnim
     );
     caster->AddSpellProcOneShotEffect(srec->m_ID, kitRec);
     SpellVisualsPlayCameraShakeID(kitRec->m_shakeID, caster->GetPosition());
     int oldCastingSpell = caster->SetCastingSpell(srec->m_ID, 0, 0);
     if (animValid) {
-      torsoAnimSet = caster->SetTorsoAnimation(38, 0, 0);
+      torsoAnimSet = caster->SetTorsoAnimation(ANIM_STATE_SPELLCAST, 0, 0);
     }
     if (torsoAnimSet) {
       caster->HandlePrecastStop(srec->m_ID, true);
@@ -1356,10 +1355,10 @@ void SpellVisualsHandleSpellStartMisses(
     SpellVisualsProcedure(caster, kitRec, spellID, &targets, &missReasons);
   }
 
-  for (int i = 0; i < static_cast<int>(targets.Count()); ++i) {
+  for (int i = 0; i < (int)targets.Count(); ++i) {
     CGObject_C *target = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
     if (target && target->IsA(TYPE_UNIT)) {
-      missReasons[i] = static_cast<CGUnit_C *>(target)->AdjustVictimState(missReasons[i]);
+      missReasons[i] = ((CGUnit_C *)target)->AdjustVictimState(missReasons[i]);
     }
   }
 
@@ -1367,7 +1366,7 @@ void SpellVisualsHandleSpellStartMisses(
     for (UINT i = 0; i < targets.Count(); ++i) {
       CGObject_C *targetObject = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
       if (targetObject && targetObject->IsA(TYPE_UNIT) && caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
-        CGUnit_C *target = static_cast<CGUnit_C *>(targetObject);
+        CGUnit_C *target = (CGUnit_C *)targetObject;
         if (srec->m_attributes & 0x404) {
           CGPlayer_C::AddDeferredSpellMiss(targets[i], target->AdjustVictimState(missReasons[i]), spellID);
         } else {
@@ -1382,14 +1381,14 @@ void SpellVisualsHandleSpellStartMisses(
 }
 
 LPCSTR GetSpellAuraEffectName(int effectID) {
-  if (effectID >= static_cast<int>(s_auraNames.Count())) {
+  if (effectID >= (int)s_auraNames.Count()) {
     return "INVALID_SPELL_AURA_EFFECT";
   }
   return s_auraNames[effectID]->m_name_lang[0];
 }
 
 LPCSTR GetSpellAuraEffectToken(int effectID) {
-  if (effectID >= static_cast<int>(s_auraNames.Count())) {
+  if (effectID >= (int)s_auraNames.Count()) {
     return "INVALID_SPELL_AURA_EFFECT";
   }
   return s_auraNames[effectID]->m_globalstrings_tag;

@@ -5,7 +5,7 @@
 #include <windows.h>
 
 COsSharedMemory::COsSharedMemory() : m_data(0), m_size(0) {
-  *reinterpret_cast<HANDLE *>(m_opaqueData) = 0;
+  *(HANDLE *)m_opaqueData = 0;
 }
 
 COsSharedMemory::~COsSharedMemory() {
@@ -18,34 +18,34 @@ bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
   switch (mode) {
     case 0:
     case 2:
-      *reinterpret_cast<HANDLE *>(m_opaqueData) = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, 0x08000004, 0, size, name);
+      *(HANDLE *)m_opaqueData = CreateFileMappingA(INVALID_HANDLE_VALUE, 0, 0x08000004, 0, size, name);
       break;
 
     case 3:
       access = FILE_MAP_READ;
 
     case 1:
-      *reinterpret_cast<HANDLE *>(m_opaqueData) = OpenFileMappingA(access, FALSE, name);
+      *(HANDLE *)m_opaqueData = OpenFileMappingA(access, FALSE, name);
       break;
 
     default:
       return true;
   }
 
-  if (!*reinterpret_cast<HANDLE *>(m_opaqueData)) {
+  if (!*(HANDLE *)m_opaqueData) {
     return true;
   }
 
   if (GetLastError() == ERROR_ALREADY_EXISTS && mode == 0) {
-    CloseHandle(*reinterpret_cast<HANDLE *>(m_opaqueData));
-    *reinterpret_cast<HANDLE *>(m_opaqueData) = 0;
+    CloseHandle(*(HANDLE *)m_opaqueData);
+    *(HANDLE *)m_opaqueData = 0;
     return true;
   }
 
-  m_data = MapViewOfFile(*reinterpret_cast<HANDLE *>(m_opaqueData), access, 0, 0, 0);
+  m_data = MapViewOfFile(*(HANDLE *)m_opaqueData, access, 0, 0, 0);
   if (!m_data) {
-    CloseHandle(*reinterpret_cast<HANDLE *>(m_opaqueData));
-    *reinterpret_cast<HANDLE *>(m_opaqueData) = 0;
+    CloseHandle(*(HANDLE *)m_opaqueData);
+    *(HANDLE *)m_opaqueData = 0;
     return true;
   }
 
@@ -57,7 +57,7 @@ bool COsSharedMemory::ChangeAccess(int newAccess) {
   DWORD oldAccess;
   DWORD protection;
 
-  if (!*reinterpret_cast<HANDLE *>(m_opaqueData)) {
+  if (!*(HANDLE *)m_opaqueData) {
     return true;
   }
   if (!m_data) {
@@ -91,9 +91,9 @@ void COsSharedMemory::Destroy() {
     m_data = 0;
   }
 
-  mapping = *reinterpret_cast<HANDLE *>(m_opaqueData);
+  mapping = *(HANDLE *)m_opaqueData;
   if (mapping) {
     CloseHandle(mapping);
-    *reinterpret_cast<HANDLE *>(m_opaqueData) = 0;
+    *(HANDLE *)m_opaqueData = 0;
   }
 }

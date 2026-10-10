@@ -68,12 +68,12 @@ static void MakeSocketPipe(int *pipes) {
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-  WORD port = static_cast<WORD>(rand() % 10000 + 40000);
+  WORD port = (WORD)(rand() % 10000 + 40000);
   int  b;
 
   while (1) {
     addr.sin_port = htons(port);
-    b = bind(listener, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr));
+    b = bind(listener, (const sockaddr *)&addr, sizeof(addr));
     if (b >= 0) {
       break;
     }
@@ -89,7 +89,7 @@ static void MakeSocketPipe(int *pipes) {
   }
 
   pipes[1] = socket(AF_INET, SOCK_STREAM, 0);
-  if (connect(pipes[1], reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) < 0) {
+  if (connect(pipes[1], (const sockaddr *)&addr, sizeof(addr)) < 0) {
     ASSERT(0);
   }
 
@@ -99,7 +99,7 @@ static void MakeSocketPipe(int *pipes) {
   }
 
   len = sizeof(incoming);
-  pipes[0] = accept(listener, reinterpret_cast<sockaddr *>(&incoming), &len);
+  pipes[0] = accept(listener, (sockaddr *)&incoming, &len);
   ASSERT(pipes[0] >= 0);
 
   {
@@ -173,7 +173,7 @@ void WowConnectionNet::PlatformRun() {
           continue;
       }
 
-      if (numConns >= static_cast<int>(conns.Count())) {
+      if (numConns >= (int)conns.Count()) {
         *conns.New() = conn;
         ++numConns;
       } else {

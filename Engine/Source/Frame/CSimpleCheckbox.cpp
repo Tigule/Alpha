@@ -12,8 +12,8 @@ CSimpleCheckbox::CSimpleCheckbox(CSimpleFrame *parent) : CSimpleButton(parent), 
 }
 
 CSimpleCheckbox::~CSimpleCheckbox() {
-  SetCheckedTexture(static_cast<CSimpleTexture *>(0));
-  SetDisabledCheckedTexture(static_cast<CSimpleTexture *>(0));
+  SetCheckedTexture((CSimpleTexture *)0);
+  SetDisabledCheckedTexture((CSimpleTexture *)0);
 }
 
 void CSimpleCheckbox::LoadXML(const XMLNode *node, CStatus *status) {

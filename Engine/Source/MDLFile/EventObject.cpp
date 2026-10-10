@@ -20,8 +20,8 @@ void ReadEventKeyframes(Parser &parse, MDLSIMPLEKEYTRACK<MDLEVENTKEY> *keyTrack)
   }
   parse.Expect('{', savedtoken, tokentext);
   savedtoken = parse.Token(&tokentext, &value);
-  while (savedtoken == 0x140 || savedtoken == 0x152) {
-    if (savedtoken == 0x152) {
+  while (savedtoken == MDLTOK_DONTINTERP || savedtoken == MDLTOK_GLOBALSEQID) {
+    if (savedtoken == MDLTOK_GLOBALSEQID) {
       if (keyTrack) {
         keyTrack->globalSeqId = parse.ExpectInt();
       } else {
@@ -31,7 +31,7 @@ void ReadEventKeyframes(Parser &parse, MDLSIMPLEKEYTRACK<MDLEVENTKEY> *keyTrack)
     parse.Expect(',');
     savedtoken = parse.Token(&tokentext, &value);
   }
-  while (savedtoken == 0x100) {
+  while (savedtoken == MDLTOK_LONG) {
     if (keyTrack) {
       keyTrack->keys.New()->time = value.lVal;
     }
@@ -46,16 +46,19 @@ void ReadEventKeyframes(Parser &parse, MDLSIMPLEKEYTRACK<MDLEVENTKEY> *keyTrack)
 }
 
 void WriteEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, TSGrowableArray<char> &buffer) {
-  if (keyframes.keys.Count()) {
-    MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x147), keyframes.keys.Count());
-    if (keyframes.globalSeqId != static_cast<UINT>(-1)) {
-      MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(0x152), keyframes.globalSeqId);
-    }
-    for (UINT i = 0; i < keyframes.keys.Count(); ++i) {
-      MDL::WriteLine(buffer, "\t\t%d,\n", keyframes.keys.Ptr()[i].time);
-    }
-    MDL::WriteLine(buffer, "\t}\n");
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
   }
+  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(MDLTOK_EVENT_TRACK), numKeys);
+  if (keyframes.globalSeqId != (UINT)-1) {
+    MDL::WriteLine(buffer, "\t\t%s %d,\n", MDL::TokenText(MDLTOK_GLOBALSEQID), keyframes.globalSeqId);
+  }
+  const MDLEVENTKEY *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    MDL::WriteLine(buffer, "\t\t%d,\n", key->time);
+  }
+  MDL::WriteLine(buffer, "\t}\n");
 }
 
 BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf, UINT *totalRead) {
@@ -69,7 +72,7 @@ BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer
   }
   keyframes.globalSeqId = buf.GetUint();
   *totalRead += sizeof(UINT);
-  if (static_cast<int>(numKeys * sizeof(MDLEVENTKEY)) > buf.Bytes()) {
+  if ((int)(numKeys * sizeof(MDLEVENTKEY)) > buf.Bytes()) {
     return 0;
   }
   keyframes.keys.SetCount(numKeys);
@@ -82,13 +85,16 @@ BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer
 }
 
 void WriteBinEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf) {
-  if (keyframes.keys.Count()) {
-    buf.AddDword('TVEK');
-    buf.AddUint(keyframes.keys.Count());
-    buf.AddUint(keyframes.globalSeqId);
-    for (UINT i = 0; i < keyframes.keys.Count(); ++i) {
-      buf.AddInt(keyframes.keys.Ptr()[i].time);
-    }
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
+  }
+  buf.AddDword('TVEK');
+  buf.AddUint(numKeys);
+  buf.AddUint(keyframes.globalSeqId);
+  const MDLEVENTKEY *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    buf.AddInt(key->time);
   }
 }
 
@@ -114,7 +120,7 @@ namespace MDL {
         parse.FatalDuplicate(tokentext);
       }
       if (!ReadObjectBody(parse, token, 0, eventObject, status)) {
-        if (token == 0x147) {
+        if (token == MDLTOK_EVENT_TRACK) {
           ReadEventKeyframes(parse, &eventObject->eventKeys);
         } else {
           parse.FatalUnexpected(tokentext);
@@ -129,41 +135,42 @@ namespace MDL {
   }
 
   BOOL WriteEventObjects(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-    if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
-      int                    needObjIds = data.events.Count() != data.objects.Count();
-      const MDLEVENTSECTION *eventObject = data.events.Ptr();
-      while (eventObject != data.events.Ptr() + data.events.Count()) {
-        WriteObjectHeader(data, *eventObject, 0x115, needObjIds, buffer);
-        WriteEventKeyFrames(eventObject->eventKeys, buffer);
-        WriteObjectTrailer(*eventObject, buffer);
-        ++eventObject;
-      }
+    if (data.model.animationFile[0]) {
+      return 1;
+    }
+    UINT                   numEvents = data.events.Count();
+    int                    needObjIds = numEvents != data.objects.Count();
+    const MDLEVENTSECTION *eventObject = data.events.Ptr();
+    for (UINT i = numEvents; i; --i, ++eventObject) {
+      WriteObjectHeader(data, *eventObject, MDLTOK_EVENTOBJECT, needObjIds, buffer);
+      WriteEventKeyFrames(eventObject->eventKeys, buffer);
+      WriteObjectTrailer(*eventObject, buffer);
     }
     return 1;
   }
 
   BOOL WriteBinEventObjects(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     UINT numEvents = data.events.Count();
+    if (data.model.animationFile[0] || !numEvents) {
+      return 1;
+    }
+    buf.AddDword('STVE');
     UINT totalSize = 4;
-    UINT n = 0;
-    if (!static_cast<LPCSTR>(data.model.animationFile)[0] && numEvents) {
-      buf.AddDword('STVE');
-      while (n < numEvents) {
-        const MDLEVENTSECTION &eventObject = data.events[n];
-        totalSize += GetBinEventKeyFramesSize(eventObject.eventKeys) + GetBinGenObjectSize(eventObject);
-        ++n;
-      }
-      buf.AddUint(totalSize);
-      buf.AddUint(numEvents);
-      n = 0;
-      while (n < numEvents) {
-        const MDLEVENTSECTION &eventObject = data.events[n];
-        UINT                   size = GetBinEventKeyFramesSize(eventObject.eventKeys) + GetBinGenObjectSize(eventObject);
-        buf.AddUint(size);
-        WriteBinGenObject(eventObject, buf, status);
-        WriteBinEventKeyFrames(eventObject.eventKeys, buf);
-        ++n;
-      }
+    for (UINT n = 0; n < numEvents; ++n) {
+      const MDLEVENTSECTION &eventObject = data.events[n];
+      UINT                   size = GetBinGenObjectSize(eventObject) + 4;
+      size += GetBinEventKeyFramesSize(eventObject.eventKeys);
+      totalSize += size;
+    }
+    buf.AddUint(totalSize);
+    buf.AddUint(numEvents);
+    for (n = 0; n < numEvents; ++n) {
+      const MDLEVENTSECTION &eventObject = data.events[n];
+      UINT                   size = GetBinGenObjectSize(eventObject) + 4;
+      size += GetBinEventKeyFramesSize(eventObject.eventKeys);
+      buf.AddUint(size);
+      WriteBinGenObject(eventObject, buf, status);
+      WriteBinEventKeyFrames(eventObject.eventKeys, buf);
     }
     return 1;
   }
@@ -188,13 +195,16 @@ namespace MDL {
       if (read < sectionLength) {
         DWORD tag = buf.GetDword();
         read += 4;
-        if (tag != 'TVEK') {
-          SkipUnknown(buf, read);
-        } else {
-          if (!ReadBinEventKeyFrames(eventObject->eventKeys, buf, &read)) {
-            status->Add(STATUS_ERROR, "Error reading event keys portion of event object.\n");
-            return 0;
-          }
+        switch (tag) {
+          case 'TVEK':
+            if (!ReadBinEventKeyFrames(eventObject->eventKeys, buf, &read)) {
+              status->Add(STATUS_ERROR, "Error reading event keys portion of event object.\n");
+              return 0;
+            }
+            break;
+          default:
+            SkipUnknown(buf, read);
+            break;
         }
       }
       totalRead += read;

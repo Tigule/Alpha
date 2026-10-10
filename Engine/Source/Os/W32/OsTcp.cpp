@@ -69,11 +69,11 @@ namespace OsNet {
     }
 
     long Inc() {
-      return InterlockedIncrement(const_cast<long *>(&m_value));
+      return InterlockedIncrement(&m_value);
     }
 
     long Dec() {
-      return InterlockedDecrement(const_cast<long *>(&m_value));
+      return InterlockedDecrement(&m_value);
     }
   };
 
@@ -218,7 +218,7 @@ namespace OsNet {
     TCPNET   *m_net;
 
     CONNLIST ConnList() const {
-      return static_cast<CONNLIST>(m_list);
+      return (CONNLIST)m_list;
     }
     void         Disconnect(int notify);
     virtual void CloseAndUnlock() = 0;
@@ -566,7 +566,7 @@ namespace OsNet {
       m_lists[slot].LinkNode(ptr, LIST_TAIL, 0);
       m_locks[slot].Leave();
       m_count.Inc();
-      return static_cast<BYTE>(slot);
+      return (BYTE)slot;
     }
 
     void Unlink(T *ptr, BYTE slot) {
@@ -972,7 +972,7 @@ namespace OsNet {
     UINT    selectSet;
 
     timeout.tv_sec = 0;
-    timeout.tv_usec = 1000 * timeoutTotal / ((static_cast<DWORD>(selsockTotal) >> 6) + 1);
+    timeout.tv_usec = 1000 * timeoutTotal / (((DWORD)selsockTotal >> 6) + 1);
 
     result = select(
         0, m_sets[SELECTSET_R].fd_count ? &m_sets[SELECTSET_R] : 0, m_sets[SELECTSET_W].fd_count ? &m_sets[SELECTSET_W] : 0,
@@ -988,7 +988,7 @@ namespace OsNet {
         while (m_sets[selectSet].fd_count > 0) {
           NETSELSOCKPTR *selsockPtr = m_selsockTable.Ptr(m_sets[selectSet].fd_array[--m_sets[selectSet].fd_count], s_hashKey);
 
-          selsockPtr->ptr->Selected(m_net, static_cast<SELECTSET>(selectSet));
+          selsockPtr->ptr->Selected(m_net, (SELECTSET)selectSet);
         }
       }
     }
@@ -1056,11 +1056,11 @@ namespace OsNet {
     sock = m_sock;
     if (makeSock) {
       TCPNET::s_GetAcceptExSockaddrs(
-          m_addr, 0, 0x20, 0x20, reinterpret_cast<sockaddr **>(&pselfAddr), &selfSize, reinterpret_cast<sockaddr **>(&ppeerAddr), &peerSize
+          m_addr, 0, 0x20, 0x20, (sockaddr **)&pselfAddr, &selfSize, (sockaddr **)&ppeerAddr, &peerSize
       );
       connAddr->peerAddr = *ppeerAddr;
       connAddr->selfAddr = *pselfAddr;
-      setsockopt(sock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, reinterpret_cast<LPCSTR>(&m_listen->m_sock), sizeof(m_listen->m_sock));
+      setsockopt(sock, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (LPCSTR)&m_listen->m_sock, sizeof(m_listen->m_sock));
     } else {
       closesocket(sock);
       sock = INVALID_SOCKET;
@@ -1131,7 +1131,7 @@ namespace OsNet {
 
     memset(&connAddr, 0, sizeof(connAddr));
     addrSize = sizeof(connAddr.peerAddr);
-    sock = accept(m_sock, reinterpret_cast<sockaddr *>(&connAddr.peerAddr), &addrSize);
+    sock = accept(m_sock, (sockaddr *)&connAddr.peerAddr, &addrSize);
     if (sock != INVALID_SOCKET) {
       if (!m_enabled) {
         closesocket(sock);
@@ -1139,7 +1139,7 @@ namespace OsNet {
       }
 
       addrSize = sizeof(connAddr.selfAddr);
-      getsockname(sock, reinterpret_cast<sockaddr *>(&connAddr.selfAddr), &addrSize);
+      getsockname(sock, (sockaddr *)&connAddr.selfAddr, &addrSize);
       pnet->CompleteAccept(this, sock, &connAddr);
     } else {
       TCPNET::LogWrite(OSNETERR_ACCEPTFAILED);
@@ -1183,9 +1183,9 @@ namespace OsNet {
     sockaddr_in *peerAddr;
 
     memset(&connAddr, 0, sizeof(connAddr));
-    peerAddr = reinterpret_cast<sockaddr_in *>(&connAddr.peerAddr);
+    peerAddr = (sockaddr_in *)&connAddr.peerAddr;
     peerAddr->sin_family = AF_INET;
-    peerAddr->sin_port = htons(static_cast<WORD>(m_portAddr));
+    peerAddr->sin_port = htons(m_portAddr);
     peerAddr->sin_addr.s_addr = m_nodeNumber;
     NoteCantConnect(m_eventProc, &connAddr);
 
@@ -1238,16 +1238,16 @@ namespace OsNet {
     int          selfSize;
     sockaddr_in *addr;
 
-    addr = reinterpret_cast<sockaddr_in *>(&connAddr->selfAddr);
+    addr = (sockaddr_in *)&connAddr->selfAddr;
     selfSize = sizeof(connAddr->selfAddr);
-    getsockname(sock, reinterpret_cast<sockaddr *>(addr), &selfSize);
-    addr->sin_port = htons(static_cast<WORD>(port));
+    getsockname(sock, (sockaddr *)addr, &selfSize);
+    addr->sin_port = htons(port);
     memset(addr->sin_zero, 0, sizeof(addr->sin_zero));
 
-    addr = reinterpret_cast<sockaddr_in *>(&connAddr->peerAddr);
+    addr = (sockaddr_in *)&connAddr->peerAddr;
     peerSize = sizeof(connAddr->peerAddr);
-    getpeername(sock, reinterpret_cast<sockaddr *>(addr), &peerSize);
-    addr->sin_port = htons(static_cast<WORD>(port));
+    getpeername(sock, (sockaddr *)addr, &peerSize);
+    addr->sin_port = htons(port);
     memset(addr->sin_zero, 0, sizeof(addr->sin_zero));
   }
 
@@ -1262,12 +1262,12 @@ namespace OsNet {
     }
 
     mode = 1;
-    ioctlsocket(sock, FIONBIO, reinterpret_cast<DWORD *>(&mode));
+    ioctlsocket(sock, FIONBIO, (DWORD *)&mode);
     memset(&addr, 0, sizeof(addr));
     addr.sin_port = htons(port);
     addr.sin_family = AF_INET;
 
-    if (bind(sock, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr))) {
+    if (bind(sock, (const sockaddr *)&addr, sizeof(addr))) {
       LogWrite("%s 1", OSNETERR_BINDFAILED);
       closesocket(sock);
       return INVALID_SOCKET;
@@ -1310,12 +1310,9 @@ namespace OsNet {
   }
 
   BOOL TCPNET::Initialize(DWORD hints, DWORD parts) {
-    OSVERSIONINFOA versionInfo;
-    LARGE_INTEGER  freq;
-
     IncludeDependantParts(&parts);
     s_initLock.Enter();
-    BYTE  selectedParts = static_cast<BYTE>(parts);
+    BYTE  selectedParts = parts;
     DWORD initializedParts = 0;
     int   result = 1;
 
@@ -1326,6 +1323,7 @@ namespace OsNet {
           s_log = 0;
         }
 
+        LARGE_INTEGER freq;
         s_qpcexists = QueryPerformanceFrequency(&freq);
         if (s_qpcexists) {
           s_qpctoms = 1000.0f / freq.QuadPart;
@@ -1333,6 +1331,7 @@ namespace OsNet {
           s_qpctoms = 0.0f;
         }
 
+        OSVERSIONINFOA versionInfo;
         versionInfo.dwOSVersionInfoSize = sizeof(versionInfo);
         if (GetVersionExA(&versionInfo)) {
           s_preTerminateHostAddr = 1;
@@ -1393,7 +1392,7 @@ namespace OsNet {
     s_initLock.Enter();
 
     if (s_pnet) {
-      BYTE selectedParts = static_cast<BYTE>(parts);
+      BYTE selectedParts = parts;
 
       if ((selectedParts & 2) && --s_initCount[1] == 0) {
         s_pnet->TcpDestroy();
@@ -1468,7 +1467,7 @@ namespace OsNet {
     }
 
     BOOL completed =
-        GetQueuedCompletionStatus(m_port, &bytes, reinterpret_cast<DWORD *>(&pconn), reinterpret_cast<OVERLAPPED **>(&poverlap), timeout);
+        GetQueuedCompletionStatus(m_port, &bytes, (DWORD *)&pconn, (OVERLAPPED **)&poverlap, timeout);
 
     while (!s_pumpShutdown) {
       if (timeout != INFINITE && !completed && !poverlap) {
@@ -1507,7 +1506,7 @@ namespace OsNet {
       if (timeout != INFINITE) {
         if (s_qpcexists) {
           QueryPerformanceCounter(&currtime);
-          elapsed = static_cast<long>((currtime.QuadPart - starttime.QuadPart) * s_qpctoms);
+          elapsed = (currtime.QuadPart - starttime.QuadPart) * s_qpctoms;
           if (elapsed < 0) {
             return;
           }
@@ -1521,7 +1520,7 @@ namespace OsNet {
       }
 
       completed =
-          GetQueuedCompletionStatus(m_port, &bytes, reinterpret_cast<DWORD *>(&pconn), reinterpret_cast<OVERLAPPED **>(&poverlap), timeout - elapsed);
+          GetQueuedCompletionStatus(m_port, &bytes, (DWORD *)&pconn, (OVERLAPPED **)&poverlap, timeout - elapsed);
     }
   }
 
@@ -1537,7 +1536,7 @@ namespace OsNet {
   }
 
   UINT __stdcall TCPNET::IoPumpThread(LPVOID lpnet) {
-    TCPNET *net = static_cast<TCPNET *>(lpnet);
+    TCPNET *net = (TCPNET *)lpnet;
 
     net->IoPump(INFINITE);
     net->WakePumpThread();
@@ -1546,7 +1545,7 @@ namespace OsNet {
   }
 
   UINT __stdcall TCPNET::SlPumpThread(LPVOID lpnet) {
-    TCPNET                 *net = static_cast<TCPNET *>(lpnet);
+    TCPNET                 *net = (TCPNET *)lpnet;
     TCPLISTENLIST::Iterator listenIt(net->m_listenList);
     NETCONNLIST::Iterator   connIt(net->m_connList[CONNLIST_TCP_CONNECTED]);
     NETSELECTSETS           selectSets(net);
@@ -1617,7 +1616,7 @@ namespace OsNet {
   }
 
   UINT __stdcall TCPNET::ListenThread(LPVOID lpnet) {
-    TCPNET                 *net = static_cast<TCPNET *>(lpnet);
+    TCPNET                 *net = (TCPNET *)lpnet;
     TCPLISTENLIST::Iterator listenIt(net->m_listenList);
     NETSELECTSETS           selectSets(net);
 
@@ -1682,7 +1681,7 @@ namespace OsNet {
     }
 
     IncRef();
-    LPVOID thread = SCreateThread(BaseThread, this, &id, 0, const_cast<char *>("OsTcp_Base"));
+    LPVOID thread = SCreateThread(BaseThread, this, &id, 0, "OsTcp_Base");
     if (!thread) {
       DecRef();
       LogWrite("%s 1", OSNETERR_THREADFAILED);
@@ -1706,15 +1705,15 @@ namespace OsNet {
 
     s_mswsockModule = LoadLibraryA("mswsock.dll");
     if (s_mswsockModule) {
-      s_AcceptEx = reinterpret_cast<LPFN_ACCEPTEX>(GetProcAddress(s_mswsockModule, "AcceptEx"));
-      s_GetAcceptExSockaddrs = reinterpret_cast<LPFN_GETACCEPTEXSOCKADDRS>(GetProcAddress(s_mswsockModule, "GetAcceptExSockaddrs"));
+      s_AcceptEx = (LPFN_ACCEPTEX)GetProcAddress(s_mswsockModule, "AcceptEx");
+      s_GetAcceptExSockaddrs = (LPFN_GETACCEPTEXSOCKADDRS)GetProcAddress(s_mswsockModule, "GetAcceptExSockaddrs");
     }
 
     if (LOBYTE(s_wsaData.wVersion) >= 2) {
       s_ws2Module = LoadLibraryA("ws2_32.dll");
       if (s_ws2Module) {
-        s_WSASend = reinterpret_cast<LPFN_WSASEND>(GetProcAddress(s_ws2Module, "WSASend"));
-        s_WSARecv = reinterpret_cast<LPFN_WSARECV>(GetProcAddress(s_ws2Module, "WSARecv"));
+        s_WSASend = (LPFN_WSASEND)GetProcAddress(s_ws2Module, "WSASend");
+        s_WSARecv = (LPFN_WSARECV)GetProcAddress(s_ws2Module, "WSARecv");
       }
     }
 
@@ -1753,7 +1752,7 @@ namespace OsNet {
 
     if (hints & 2) {
       IncRef();
-      LPVOID thread = SCreateThread(ListenThread, this, &id, 0, const_cast<char *>("OsTcp_Listen"));
+      LPVOID thread = SCreateThread(ListenThread, this, &id, 0, "OsTcp_Listen");
       if (!thread) {
         DecRef();
         LogWrite("%s 2", OSNETERR_THREADFAILED);
@@ -1769,7 +1768,7 @@ namespace OsNet {
     }
 
     IncRef();
-    LPVOID thread = SCreateThread(UdpPumpThread, this, &id, 0, const_cast<char *>("OsTcp_UdpPump"));
+    LPVOID thread = SCreateThread(UdpPumpThread, this, &id, 0, "OsTcp_UdpPump");
     if (!thread) {
       DecRef();
       LogWrite("%s 3", OSNETERR_THREADFAILED);
@@ -2025,7 +2024,7 @@ namespace OsNet {
     LARGE_INTEGER fileSize;
 
     memset(&connAddr, 0, sizeof(connAddr));
-    fileSize.LowPart = GetFileSize(static_cast<HANDLE>(pconnect->m_file), reinterpret_cast<DWORD *>(&fileSize.HighPart));
+    fileSize.LowPart = GetFileSize(pconnect->m_file, (DWORD *)&fileSize.HighPart);
     connAddr.selfAddr.file.pos = fileSize.QuadPart;
     FileMakeConn(pconnect->m_file, pconnect->m_eventProc, pconnect->m_user, &connAddr);
     pconnect->m_file = INVALID_HANDLE_VALUE;
@@ -2058,7 +2057,7 @@ namespace OsNet {
     }
 
     if (!m_listenThread && m_port) {
-      if (!CreateIoCompletionPort(reinterpret_cast<HANDLE>(sock), m_port, 0, 0)) {
+      if (!CreateIoCompletionPort((HANDLE)sock, m_port, 0, 0)) {
         LogWrite("%s 1", OSNETERR_PORTFAILED);
         closesocket(sock);
         return 0;
@@ -2130,12 +2129,12 @@ namespace OsNet {
       sockaddr_in addr;
       int         mode = 1;
 
-      ioctlsocket(pconnect->m_sock, FIONBIO, reinterpret_cast<DWORD *>(&mode));
+      ioctlsocket(pconnect->m_sock, FIONBIO, (DWORD *)&mode);
       memset(&addr, 0, sizeof(addr));
       addr.sin_family = AF_INET;
-      addr.sin_port = htons(static_cast<WORD>(pconnect->m_portAddr));
+      addr.sin_port = htons(pconnect->m_portAddr);
       addr.sin_addr.s_addr = pconnect->m_nodeNumber;
-      if (::connect(pconnect->m_sock, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) == SOCKET_ERROR) {
+      if (::connect(pconnect->m_sock, (const sockaddr *)&addr, sizeof(addr)) == SOCKET_ERROR) {
         if (WSAGetLastError() != WSAEWOULDBLOCK) {
           closesocket(pconnect->m_sock);
           pconnect->m_sock = INVALID_SOCKET;
@@ -2153,7 +2152,7 @@ namespace OsNet {
   void TCPNET::FileConnectInit(FILECONNECT *pconnect) {
     if (!pconnect->m_eventProc) {
       if (pconnect->m_file != INVALID_HANDLE_VALUE) {
-        CloseHandle(static_cast<HANDLE>(pconnect->m_file));
+        CloseHandle(pconnect->m_file);
         pconnect->m_file = INVALID_HANDLE_VALUE;
       }
       DEL(pconnect);
@@ -2165,7 +2164,7 @@ namespace OsNet {
   }
 
   UINT __stdcall TCPNET::BaseThread(LPVOID lpnet) {
-    TCPNET                  *net = static_cast<TCPNET *>(lpnet);
+    TCPNET                  *net = (TCPNET *)lpnet;
     NETCONNECTLIST::Iterator connectIt(net->m_connectList[CONNECTLIST_TCP_CONNECTING]);
     NETSELECTSETS            selectSets(net);
 
@@ -2356,7 +2355,7 @@ namespace OsNet {
   }
 
   UINT __stdcall TCPNET::GetHostAddrsThread(LPVOID lpparam) {
-    TCPHOSTADDRTHREAD *param = static_cast<TCPHOSTADDRTHREAD *>(lpparam);
+    TCPHOSTADDRTHREAD *param = (TCPHOSTADDRTHREAD *)lpparam;
     TCPNET            *pnet = param->m_net;
     DWORD              infoId = param->m_infoId;
     WORD               defaultPort = param->m_defaultPort;
@@ -2420,7 +2419,7 @@ namespace OsNet {
           info = pnet->LockedFindHostAddrInfo(infoId);
           if (info) {
             for (hostAddr = host->h_addr_list; *hostAddr; ++hostAddr) {
-              OsNetAddrMake(*reinterpret_cast<DWORD *>(*hostAddr), defaultPort, &netAddr);
+              OsNetAddrMake(*(DWORD *)*hostAddr, defaultPort, &netAddr);
               *info->m_addrs.New() = netAddr;
               hostAddrInfoFound = 1;
             }
@@ -2508,7 +2507,7 @@ namespace OsNet {
   }
 
   UINT __stdcall TCPNET::UdpPumpThread(LPVOID lpnet) {
-    TCPNET               *net = static_cast<TCPNET *>(lpnet);
+    TCPNET               *net = (TCPNET *)lpnet;
     NETCONNLIST::Iterator connIt(net->m_connList[CONNLIST_UDP_CONNECTED]);
     NETSELECTSETS         selectSets(net);
 
@@ -2571,19 +2570,22 @@ namespace OsNet {
       LogWrite("%s 4", OSNETERR_SOCKETFAILED);
     } else {
       mode = 1;
-      ioctlsocket(sock, FIONBIO, reinterpret_cast<DWORD *>(&mode));
+      ioctlsocket(sock, FIONBIO, (DWORD *)&mode);
       enabled = 1;
-      setsockopt(sock, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<LPCSTR>(&enabled), sizeof(enabled));
+      setsockopt(sock, SOL_SOCKET, SO_BROADCAST, (LPCSTR)&enabled, sizeof(enabled));
 
       NETCONNADDR connAddr;
       memset(&connAddr, 0, sizeof(connAddr));
       for (; portMin <= portMax; ++portMin) {
         memset(&connAddr.selfAddr, 0, sizeof(connAddr.selfAddr));
-        reinterpret_cast<sockaddr_in *>(&connAddr.selfAddr)->sin_family = AF_INET;
-        reinterpret_cast<sockaddr_in *>(&connAddr.selfAddr)->sin_port = htons(portMin);
-        reinterpret_cast<sockaddr_in *>(&connAddr.selfAddr)->sin_addr.s_addr =
-            addr ? reinterpret_cast<const sockaddr_in *>(addr)->sin_addr.s_addr : INADDR_ANY;
-        if (!bind(sock, reinterpret_cast<const sockaddr *>(&connAddr.selfAddr), sizeof(connAddr.selfAddr))) {
+        ((sockaddr_in *)&connAddr.selfAddr)->sin_family = AF_INET;
+        ((sockaddr_in *)&connAddr.selfAddr)->sin_port = htons(portMin);
+        if (addr) {
+          ((sockaddr_in *)&connAddr.selfAddr)->sin_addr.s_addr = ((const sockaddr_in *)addr)->sin_addr.s_addr;
+        } else {
+          ((sockaddr_in *)&connAddr.selfAddr)->sin_addr.s_addr = INADDR_ANY;
+        }
+        if (!bind(sock, (const sockaddr *)&connAddr.selfAddr, sizeof(connAddr.selfAddr))) {
           break;
         }
       }
@@ -2602,9 +2604,12 @@ namespace OsNet {
       DWORD       bytesProcessed;
 
       memset(&connAddr, 0, sizeof(connAddr));
-      reinterpret_cast<sockaddr_in *>(&connAddr.selfAddr)->sin_family = AF_INET;
-      reinterpret_cast<sockaddr_in *>(&connAddr.selfAddr)->sin_addr.s_addr =
-          addr ? reinterpret_cast<const sockaddr_in *>(addr)->sin_addr.s_addr : INADDR_ANY;
+      ((sockaddr_in *)&connAddr.selfAddr)->sin_family = AF_INET;
+      if (addr) {
+        ((sockaddr_in *)&connAddr.selfAddr)->sin_addr.s_addr = ((const sockaddr_in *)addr)->sin_addr.s_addr;
+      } else {
+        ((sockaddr_in *)&connAddr.selfAddr)->sin_addr.s_addr = INADDR_ANY;
+      }
       eventProc(0, &connAddr, NETNOTE_CANTCONNECT, user, 0, 0, &bytesProcessed);
     }
   }
@@ -2640,7 +2645,7 @@ namespace OsNet {
     VALIDATEEND;
 
     TCPHOSTADDRINFO *info = NEW(TCPHOSTADDRINFO);
-    info->m_hostNameList = static_cast<char *>(ALLOC(SStrLen(hostNameList) + 1));
+    info->m_hostNameList = (char *)ALLOC(SStrLen(hostNameList) + 1);
     SStrCopy(info->m_hostNameList, hostNameList, 0x7FFFFFFF);
     info->m_hostNameCurr = info->m_hostNameList;
     info->m_hostAddrProc = hostAddrProc;
@@ -2670,7 +2675,7 @@ namespace OsNet {
     IncRef();
 
     UINT   id;
-    LPVOID thread = SCreateThread(GetHostAddrsThread, &hostAddrThreadParam, &id, 0, const_cast<char *>("OsTcp_DNS"));
+    LPVOID thread = SCreateThread(GetHostAddrsThread, &hostAddrThreadParam, &id, 0, "OsTcp_DNS");
     if (!thread) {
       DecRef();
       DEL(info);
@@ -2704,12 +2709,12 @@ namespace OsNet {
   LOOPCONN::INPUT *TCPNET::LoopAllocInput(DWORD bytes) {
     LOOPCONN::INPUT *pinput = 0;
 
-    if (bytes <= sizeof(reinterpret_cast<LOOPCONN *>(0)->m_data)) {
+    if (bytes <= sizeof(((LOOPCONN *)0)->m_data)) {
       pinput = m_loopInputRecycleList.Head();
       if (pinput) {
         m_loopInputRecycleList.UnlinkNode(pinput);
       } else {
-        bytes = sizeof(reinterpret_cast<LOOPCONN *>(0)->m_data);
+        bytes = sizeof(((LOOPCONN *)0)->m_data);
       }
     }
 
@@ -2722,7 +2727,7 @@ namespace OsNet {
   }
 
   void TCPNET::LoopFreeInput(LOOPCONN::INPUT *pinput) {
-    if (pinput->m_dataBytes == sizeof(reinterpret_cast<LOOPCONN *>(0)->m_data)) {
+    if (pinput->m_dataBytes == sizeof(((LOOPCONN *)0)->m_data)) {
       m_loopInputRecycleList.LinkNode(pinput, LIST_HEAD, 0);
     } else {
       DEL(pinput);
@@ -2819,7 +2824,7 @@ namespace OsNet {
 
     GetEventProcAndUser(eventProc, user);
     if (eventProc) {
-      return eventProc(reinterpret_cast<HNETCONN__ *>(this), &m_connAddr, NETNOTE_CONNECT, user, 0, 0, &bytesProcessed);
+      return eventProc((HNETCONN__ *)this, &m_connAddr, NETNOTE_CONNECT, user, 0, 0, &bytesProcessed);
     }
     return 0;
   }
@@ -2831,7 +2836,7 @@ namespace OsNet {
 
     GetEventProcAndUser(eventProc, user);
     if (eventProc) {
-      return eventProc(reinterpret_cast<HNETCONN__ *>(this), &m_connAddr, NETNOTE_DISCONNECT, user, 0, 0, &bytesProcessed);
+      return eventProc((HNETCONN__ *)this, &m_connAddr, NETNOTE_DISCONNECT, user, 0, 0, &bytesProcessed);
     }
     return 0;
   }
@@ -2845,7 +2850,7 @@ namespace OsNet {
       if (!connAddr) {
         connAddr = &m_connAddr;
       }
-      return eventProc(reinterpret_cast<HNETCONN__ *>(this), connAddr, NETNOTE_DATA, user, data, bytes, bytesProcessed);
+      return eventProc((HNETCONN__ *)this, connAddr, NETNOTE_DATA, user, data, bytes, bytesProcessed);
     }
     return 0;
   }
@@ -2857,13 +2862,13 @@ namespace OsNet {
     LPVOID       user;
 
     memset(&connAddr, 0, sizeof(connAddr));
-    connAddr.selfAddr.file.pos = (static_cast<DWORDLONG>(offsetHigh) << 32) | offset;
+    connAddr.selfAddr.file.pos = ((DWORDLONG)offsetHigh << 32) | offset;
     connAddr.selfAddr.file.operationId = operationId;
     bytesProcessed = 0;
     GetEventProcAndUser(eventProc, user);
 
     if (eventProc) {
-      return eventProc(reinterpret_cast<HNETCONN__ *>(this), &connAddr, note, user, data, bytes, &bytesProcessed);
+      return eventProc((HNETCONN__ *)this, &connAddr, note, user, data, bytes, &bytesProcessed);
     }
     return 0;
   }
@@ -3011,7 +3016,7 @@ namespace OsNet {
 
       memcpy(&pinput->m_data[pinput->m_bytes], data, copyBytes);
       pinput->m_bytes += copyBytes;
-      data = static_cast<const BYTE *>(data) + copyBytes;
+      data = (const BYTE *)data + copyBytes;
       bytes -= copyBytes;
     }
 
@@ -3112,7 +3117,7 @@ namespace OsNet {
     while (addrCount) {
       --addrCount;
       sendto(
-          m_sock, reinterpret_cast<LPCSTR>(data), bytes, 0, reinterpret_cast<const sockaddr *>(&addrArray[addrCount]), sizeof(addrArray[addrCount])
+          m_sock, (LPCSTR)data, bytes, 0, (const sockaddr *)&addrArray[addrCount], sizeof(addrArray[addrCount])
       );
     }
   }
@@ -3143,7 +3148,7 @@ namespace OsNet {
 
     ConnAddr(&connAddr);
     addrSize = sizeof(connAddr.peerAddr);
-    int bytes = recvfrom(m_sock, reinterpret_cast<char *>(data), sizeof(data), 0, reinterpret_cast<sockaddr *>(&connAddr.peerAddr), &addrSize);
+    int bytes = recvfrom(m_sock, (char *)data, sizeof(data), 0, (sockaddr *)&connAddr.peerAddr, &addrSize);
     if (bytes > 0 && bytes != SOCKET_ERROR) {
       bytesProcessed = 0;
       NoteData(data, bytes, &bytesProcessed, &connAddr);
@@ -3157,10 +3162,10 @@ namespace OsNet {
 
     m_bytes = 0;
     flag = 1;
-    setsockopt(m_sock, SOL_SOCKET, SO_KEEPALIVE, reinterpret_cast<LPCSTR>(&flag), sizeof(flag));
+    setsockopt(m_sock, SOL_SOCKET, SO_KEEPALIVE, (LPCSTR)&flag, sizeof(flag));
 
     mode = 1;
-    ioctlsocket(m_sock, FIONBIO, reinterpret_cast<DWORD *>(&mode));
+    ioctlsocket(m_sock, FIONBIO, (DWORD *)&mode);
   }
 
   TCPCONN::~TCPCONN() {
@@ -3236,7 +3241,7 @@ namespace OsNet {
 
       memcpy(&poutput->m_data[poutput->m_bytes], data, copyBytes);
       poutput->m_bytes += copyBytes;
-      data = static_cast<const BYTE *>(data) + copyBytes;
+      data = (const BYTE *)data + copyBytes;
       bytes -= copyBytes;
     }
 
@@ -3246,7 +3251,7 @@ namespace OsNet {
       poutput->m_state = OUTPUTSTATE_WAITING;
       poutput->m_bytes = bytes;
       poutput->m_dataBytes = bytes > sizeof(m_data) ? bytes : sizeof(m_data);
-      poutput->m_data = static_cast<BYTE *>(ALLOC(poutput->m_dataBytes));
+      poutput->m_data = (BYTE *)ALLOC(poutput->m_dataBytes);
       memcpy(poutput->m_data, data, bytes);
       m_outputList.LinkNode(poutput, LIST_TAIL, 0);
     }
@@ -3267,14 +3272,14 @@ namespace OsNet {
 
     int oldOutput = m_outputList.Head() != 0;
     if (!oldOutput) {
-      sent = send(m_sock, static_cast<LPCSTR>(data), bytes, 0);
+      sent = send(m_sock, (LPCSTR)data, bytes, 0);
 
       if (sent != SOCKET_ERROR) {
-        if (sent >= static_cast<int>(bytes)) {
+        if (sent >= (int)bytes) {
           m_lock.Leave();
           return;
         }
-        data = static_cast<const BYTE *>(data) + sent;
+        data = (const BYTE *)data + sent;
         bytes -= sent;
       } else {
         error = WSAGetLastError();
@@ -3334,14 +3339,14 @@ namespace OsNet {
       timeout += startTime - OsGetAsyncTimeMs();
       m_lock.Enter();
       poutput = m_outputList.Tail();
-      if (poutput && static_cast<long>(timeout) <= 0) {
+      if (poutput && (long)timeout <= 0) {
         m_lock.Leave();
         return OS_SEND_TIMEOUT;
       }
     }
 
     for (;;) {
-      int sent = send(m_sock, static_cast<LPCSTR>(data), bytes, 0);
+      int sent = send(m_sock, (LPCSTR)data, bytes, 0);
 
       if (sent != SOCKET_ERROR) {
         *bytesSent += sent;
@@ -3350,7 +3355,7 @@ namespace OsNet {
           return OS_SEND_OK;
         }
 
-        data = static_cast<const BYTE *>(data) + sent;
+        data = (const BYTE *)data + sent;
         bytes -= sent;
         continue;
       }
@@ -3368,15 +3373,15 @@ namespace OsNet {
       FD_ZERO(&write_fds);
       FD_SET(m_sock, &write_fds);
       timeout += startTime - OsGetAsyncTimeMs();
-      tv.tv_sec = static_cast<long>(timeout) / 1000;
-      tv.tv_usec = 1000 * (static_cast<long>(timeout) % 1000);
+      tv.tv_sec = (long)timeout / 1000;
+      tv.tv_usec = 1000 * ((long)timeout % 1000);
 
       m_lock.Leave();
       select(m_sock + 1, 0, &write_fds, 0, &tv);
       m_lock.Enter();
 
       timeout += startTime - OsGetAsyncTimeMs();
-      if (!FD_ISSET(m_sock, &write_fds) && static_cast<long>(timeout) < 0) {
+      if (!FD_ISSET(m_sock, &write_fds) && (long)timeout < 0) {
         m_lock.Leave();
         return OS_SEND_TIMEOUT;
       }
@@ -3396,24 +3401,24 @@ namespace OsNet {
   void TCPCONN::SetNagle(int enable) {
     int nodelay = !enable;
 
-    setsockopt(m_sock, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<LPCSTR>(&nodelay), sizeof(nodelay));
+    setsockopt(m_sock, IPPROTO_TCP, TCP_NODELAY, (LPCSTR)&nodelay, sizeof(nodelay));
   }
 
   BOOL TCPCONN::SetWindow(DWORD size) {
     int isize = size;
 
-    if (setsockopt(m_sock, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<LPCSTR>(&isize), sizeof(isize))) {
+    if (setsockopt(m_sock, SOL_SOCKET, SO_SNDBUF, (LPCSTR)&isize, sizeof(isize))) {
       return 0;
     }
 
     isize = size;
-    return setsockopt(m_sock, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<LPCSTR>(&isize), sizeof(isize)) == 0;
+    return setsockopt(m_sock, SOL_SOCKET, SO_RCVBUF, (LPCSTR)&isize, sizeof(isize)) == 0;
   }
 
   void TCPCONN::SetRecvTimeout(DWORD timeoutMs) {
     int itimeoutMs = timeoutMs;
 
-    setsockopt(m_sock, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<LPCSTR>(&itimeoutMs), sizeof(itimeoutMs));
+    setsockopt(m_sock, SOL_SOCKET, SO_RCVTIMEO, (LPCSTR)&itimeoutMs, sizeof(itimeoutMs));
   }
 
   IOTCPCONN::IOTCPCONN(
@@ -3427,7 +3432,7 @@ namespace OsNet {
       DWORD              bytes
   )
       : TCPCONN(net, sock, eventProc, user, pconnAddr), m_ioCount(1) {
-    if (!CreateIoCompletionPort(reinterpret_cast<HANDLE>(m_sock), static_cast<HANDLE>(port), reinterpret_cast<DWORD>(this), 0)) {
+    if (!CreateIoCompletionPort((HANDLE)m_sock, port, (DWORD)this, 0)) {
       TCPNET::LogWrite("%s 2", OSNETERR_PORTFAILED);
       Disconnect(0);
       return;
@@ -3469,14 +3474,14 @@ namespace OsNet {
       WSABUF wsabuf;
 
       wsabuf.len = poutput->m_bytes;
-      wsabuf.buf = reinterpret_cast<char *>(poutput->m_data);
+      wsabuf.buf = (char *)poutput->m_data;
       if (TCPNET::s_WSASend(m_sock, &wsabuf, 1, &bytes, 0, &poutput->m_overlap.m_overlapped, 0) != SOCKET_ERROR ||
           WSAGetLastError() == ERROR_IO_PENDING)
       {
         return;
       }
     } else if (
-        WriteFile(reinterpret_cast<HANDLE>(m_sock), poutput->m_data, poutput->m_bytes, 0, &poutput->m_overlap.m_overlapped) ||
+        WriteFile((HANDLE)m_sock, poutput->m_data, poutput->m_bytes, 0, &poutput->m_overlap.m_overlapped) ||
         GetLastError() == ERROR_IO_PENDING
     )
     {
@@ -3497,14 +3502,14 @@ namespace OsNet {
       DWORD  flags = 0;
 
       wsabuf.len = sizeof(m_data) - m_bytes;
-      wsabuf.buf = reinterpret_cast<char *>(&m_data[m_bytes]);
+      wsabuf.buf = (char *)&m_data[m_bytes];
       if (TCPNET::s_WSARecv(m_sock, &wsabuf, 1, &bytes, &flags, &m_readOverlap.m_overlapped, 0) != SOCKET_ERROR ||
           WSAGetLastError() == ERROR_IO_PENDING)
       {
         return;
       }
     } else if (
-        ReadFile(reinterpret_cast<HANDLE>(m_sock), &m_data[m_bytes], sizeof(m_data) - m_bytes, 0, &m_readOverlap.m_overlapped) ||
+        ReadFile((HANDLE)m_sock, &m_data[m_bytes], sizeof(m_data) - m_bytes, 0, &m_readOverlap.m_overlapped) ||
         GetLastError() == ERROR_IO_PENDING
     )
     {
@@ -3552,9 +3557,9 @@ namespace OsNet {
 
     while (OUTPUT *poutput = m_outputList.Head()) {
       poutput->m_state = OUTPUTSTATE_WRITING;
-      int sent = send(m_sock, reinterpret_cast<LPCSTR>(poutput->m_data), poutput->m_bytes, 0);
+      int sent = send(m_sock, (LPCSTR)poutput->m_data, poutput->m_bytes, 0);
 
-      if (sent != SOCKET_ERROR && sent >= static_cast<int>(poutput->m_bytes)) {
+      if (sent != SOCKET_ERROR && sent >= (int)poutput->m_bytes) {
         CompleteWrite(&poutput->m_overlap, poutput->m_bytes);
       } else {
         if (sent != INVALID_SOCKET) {
@@ -3583,7 +3588,7 @@ namespace OsNet {
       bytes = sizeof(m_data);
     }
 
-    int read = recv(m_sock, reinterpret_cast<char *>(&m_data[m_bytes]), bytes, 0);
+    int read = recv(m_sock, (char *)&m_data[m_bytes], bytes, 0);
     if (read != SOCKET_ERROR) {
       if (!read) {
         Close();
@@ -3709,13 +3714,13 @@ namespace OsNet {
   OUTPUT *FILECONN::LockedEnqueue(DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId) {
     OUTPUT *poutput = NEW(OUTPUT);
 
-    poutput->m_overlap.m_overlapped.Offset = static_cast<DWORD>(pos);
-    poutput->m_overlap.m_overlapped.OffsetHigh = static_cast<DWORD>(pos >> 32);
+    poutput->m_overlap.m_overlapped.Offset = pos;
+    poutput->m_overlap.m_overlapped.OffsetHigh = pos >> 32;
     poutput->m_file.m_operationId = operationId;
     poutput->m_state = OUTPUTSTATE_WAITING;
     poutput->m_bytes = bytes;
     poutput->m_dataBytes = 0;
-    poutput->m_data = static_cast<BYTE *>(const_cast<LPVOID>(data));
+    poutput->m_data = (BYTE *)data;
     m_outputList.LinkNode(poutput, LIST_TAIL, 0);
     return poutput;
   }
@@ -3735,11 +3740,11 @@ namespace OsNet {
   BOOL FILECONN::Read(DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId) {
     INPUT *pinput = NEW(INPUT);
 
-    pinput->m_overlap.m_overlapped.Offset = static_cast<DWORD>(pos);
-    pinput->m_overlap.m_overlapped.OffsetHigh = static_cast<DWORD>(pos >> 32);
+    pinput->m_overlap.m_overlapped.Offset = pos;
+    pinput->m_overlap.m_overlapped.OffsetHigh = pos >> 32;
     pinput->m_file.m_operationId = operationId;
     pinput->m_bytes = bytes;
-    pinput->m_buffer = static_cast<BYTE *>(buffer);
+    pinput->m_buffer = (BYTE *)buffer;
 
     m_lock.Enter();
     if (m_file == INVALID_HANDLE_VALUE) {
@@ -3757,10 +3762,10 @@ namespace OsNet {
 
   IOFILECONN::IOFILECONN(TCPNET *net, LPVOID port, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
       : FILECONN(net, file, eventProc, user, pconnAddr) {
-    if (!CreateIoCompletionPort(static_cast<HANDLE>(m_file), static_cast<HANDLE>(port), reinterpret_cast<DWORD>(this), 0)) {
+    if (!CreateIoCompletionPort(m_file, port, (DWORD)this, 0)) {
       TCPNET::LogWrite("%s 3", OSNETERR_PORTFAILED);
       NoteCantConnect();
-      CloseHandle(static_cast<HANDLE>(m_file));
+      CloseHandle(m_file);
       m_file = INVALID_HANDLE_VALUE;
       Disconnect(0);
       return;
@@ -3777,34 +3782,34 @@ namespace OsNet {
     poutput->m_state = OUTPUTSTATE_WRITING;
     IncIo();
     m_lock.Leave();
-    if (!WriteFile(static_cast<HANDLE>(m_file), poutput->m_data, poutput->m_bytes, 0, &poutput->m_overlap.m_overlapped) &&
+    if (!WriteFile(m_file, poutput->m_data, poutput->m_bytes, 0, &poutput->m_overlap.m_overlapped) &&
         GetLastError() != ERROR_IO_PENDING)
     {
-      m_net->PostIo(0, reinterpret_cast<DWORD>(this), &poutput->m_overlap.m_overlapped);
+      m_net->PostIo(0, (DWORD)this, &poutput->m_overlap.m_overlapped);
     }
   }
 
   void IOFILECONN::StartRead(INPUT *pinput) {
-    if (!ReadFile(static_cast<HANDLE>(m_file), pinput->m_buffer, pinput->m_bytes, 0, &pinput->m_overlap.m_overlapped) &&
+    if (!ReadFile(m_file, pinput->m_buffer, pinput->m_bytes, 0, &pinput->m_overlap.m_overlapped) &&
         GetLastError() != ERROR_IO_PENDING)
     {
-      m_net->PostIo(0, reinterpret_cast<DWORD>(this), &pinput->m_overlap.m_overlapped);
+      m_net->PostIo(0, (DWORD)this, &pinput->m_overlap.m_overlapped);
     }
   }
 
   void IOFILECONN::CloseAndUnlock() {
     if (m_file != INVALID_HANDLE_VALUE) {
-      CloseHandle(static_cast<HANDLE>(m_file));
+      CloseHandle(m_file);
       m_file = INVALID_HANDLE_VALUE;
       m_lock.Leave();
-      m_net->PostIo(0, reinterpret_cast<DWORD>(this), 0);
+      m_net->PostIo(0, (DWORD)this, 0);
     } else {
       m_lock.Leave();
     }
   }
 
   UINT __stdcall SLFILECONN::Thread(LPVOID lpfileConn) {
-    SLFILECONN *fileConn = static_cast<SLFILECONN *>(lpfileConn);
+    SLFILECONN *fileConn = (SLFILECONN *)lpfileConn;
 
     for (;;) {
       WaitForSingleObject(fileConn->m_event, INFINITE);
@@ -3821,8 +3826,8 @@ namespace OsNet {
         DWORD bytes = 0;
         if (file != INVALID_HANDLE_VALUE) {
           long offsetHigh = poutput->m_overlap.m_overlapped.OffsetHigh;
-          SetFilePointer(static_cast<HANDLE>(file), poutput->m_overlap.m_overlapped.Offset, &offsetHigh, FILE_BEGIN);
-          WriteFile(static_cast<HANDLE>(file), poutput->m_data, poutput->m_bytes, &bytes, 0);
+          SetFilePointer(file, poutput->m_overlap.m_overlapped.Offset, &offsetHigh, FILE_BEGIN);
+          WriteFile(file, poutput->m_data, poutput->m_bytes, &bytes, 0);
         }
         fileConn->CompleteWrite(&poutput->m_overlap, bytes);
         fileConn->DecIo();
@@ -3840,8 +3845,8 @@ namespace OsNet {
         DWORD bytes = 0;
         if (file != INVALID_HANDLE_VALUE) {
           long offsetHigh = pinput->m_overlap.m_overlapped.OffsetHigh;
-          SetFilePointer(static_cast<HANDLE>(file), pinput->m_overlap.m_overlapped.Offset, &offsetHigh, FILE_BEGIN);
-          ReadFile(static_cast<HANDLE>(file), pinput->m_buffer, pinput->m_bytes, &bytes, 0);
+          SetFilePointer(file, pinput->m_overlap.m_overlapped.Offset, &offsetHigh, FILE_BEGIN);
+          ReadFile(file, pinput->m_buffer, pinput->m_bytes, &bytes, 0);
         }
         fileConn->CompleteRead(&pinput->m_overlap, bytes);
         fileConn->DecIo();
@@ -3905,7 +3910,7 @@ namespace OsNet {
 
   void SLFILECONN::CloseAndUnlock() {
     if (m_file != INVALID_HANDLE_VALUE) {
-      CloseHandle(static_cast<HANDLE>(m_file));
+      CloseHandle(m_file);
       m_file = INVALID_HANDLE_VALUE;
       SetEvent(m_event);
     }
@@ -3936,7 +3941,7 @@ HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
   VALIDATE(conn);
   VALIDATEEND;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->IncRef();
+  ((OsNet::NETCONN *)conn)->IncRef();
   return conn;
 }
 
@@ -3945,7 +3950,7 @@ void OsNetConnFreeHandle(HNETCONN__ *conn) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->DecRef();
+  ((OsNet::NETCONN *)conn)->DecRef();
 }
 
 void OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr) {
@@ -3953,7 +3958,7 @@ void OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->ConnAddr(connAddr);
+  ((OsNet::NETCONN *)conn)->ConnAddr(connAddr);
 }
 
 void OsNetConnClose(HNETCONN__ *conn) {
@@ -3961,14 +3966,14 @@ void OsNetConnClose(HNETCONN__ *conn) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->Close();
+  ((OsNet::NETCONN *)conn)->Close();
 }
 
 int OsNetConnIsClosed(HNETCONN__ *conn) {
   if (!conn) {
     return 1;
   }
-  return reinterpret_cast<OsNet::NETCONN *>(conn)->IsClosed();
+  return ((OsNet::NETCONN *)conn)->IsClosed();
 }
 
 void OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc) {
@@ -3976,7 +3981,7 @@ void OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->SetEventProc(eventProc);
+  ((OsNet::NETCONN *)conn)->SetEventProc(eventProc);
 }
 
 void OsNetConnSetUser(HNETCONN__ *conn, LPVOID user) {
@@ -3984,7 +3989,7 @@ void OsNetConnSetUser(HNETCONN__ *conn, LPVOID user) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->SetUser(user);
+  ((OsNet::NETCONN *)conn)->SetUser(user);
 }
 
 void OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, LPVOID user) {
@@ -3992,7 +3997,7 @@ void OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, LPVO
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONN *>(conn)->SetEventProcAndUser(eventProc, user);
+  ((OsNet::NETCONN *)conn)->SetEventProcAndUser(eventProc, user);
 }
 
 void OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes) {
@@ -4007,7 +4012,7 @@ void OsLoopConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::LOOPCONN *>(conn)->Send(data, bytes);
+  ((OsNet::LOOPCONN *)conn)->Send(data, bytes);
 }
 
 int OsTcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user) {
@@ -4037,7 +4042,7 @@ void OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONNFULL *>(conn)->Send(data, bytes);
+  ((OsNet::NETCONNFULL *)conn)->Send(data, bytes);
 }
 
 OS_SEND OsTcpConnSendSync(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) {
@@ -4047,7 +4052,7 @@ OS_SEND OsTcpConnSendSync(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD *by
     return OS_SEND_ERROR;
   }
 
-  return reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SendSync(data, bytes, bytesSent, timeout);
+  return ((OsNet::NETCONNFULL *)conn)->SendSync(data, bytes, bytesSent, timeout);
 }
 
 void OsTcpConnSetNagle(HNETCONN__ *conn, int enable) {
@@ -4055,7 +4060,7 @@ void OsTcpConnSetNagle(HNETCONN__ *conn, int enable) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SetNagle(enable);
+  ((OsNet::NETCONNFULL *)conn)->SetNagle(enable);
 }
 
 int OsTcpConnSetWindow(HNETCONN__ *conn, DWORD size) {
@@ -4063,7 +4068,7 @@ int OsTcpConnSetWindow(HNETCONN__ *conn, DWORD size) {
   VALIDATE(conn);
   VALIDATEEND;
 
-  return reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SetWindow(size);
+  return ((OsNet::NETCONNFULL *)conn)->SetWindow(size);
 }
 
 void OsTcpConnSetRecvTimeout(HNETCONN__ *conn, DWORD timeoutMs) {
@@ -4071,7 +4076,7 @@ void OsTcpConnSetRecvTimeout(HNETCONN__ *conn, DWORD timeoutMs) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONNFULL *>(conn)->SetRecvTimeout(timeoutMs);
+  ((OsNet::NETCONNFULL *)conn)->SetRecvTimeout(timeoutMs);
 }
 
 DWORD OsTcpAddrLoop() {
@@ -4090,11 +4095,11 @@ void OsUdpConnSendTo(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD addrCoun
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::NETCONNLESS *>(conn)->SendTo(data, bytes, addrCount, addrArray);
+  ((OsNet::NETCONNLESS *)conn)->SendTo(data, bytes, addrCount, addrArray);
 }
 
 void OsNetAddrMake(DWORD nodeNumber, WORD port, NETADDR *netAddr) {
-  sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(netAddr);
+  sockaddr_in *addr = (sockaddr_in *)netAddr;
 
   addr->sin_family = AF_INET;
   addr->sin_port = htons(port);
@@ -4103,7 +4108,7 @@ void OsNetAddrMake(DWORD nodeNumber, WORD port, NETADDR *netAddr) {
 }
 
 void OsNetAddrMakeBroadcast(WORD port, NETADDR *netAddr) {
-  sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(netAddr);
+  sockaddr_in *addr = (sockaddr_in *)netAddr;
 
   addr->sin_family = AF_INET;
   addr->sin_port = htons(port);
@@ -4118,25 +4123,25 @@ void OsNetAddrMakeFromStr(LPCSTR addrStr, WORD port, NETADDR *netAddr) {
   if (colon) {
     SStrCopy(tempStr, addrStr, colon - addrStr + 1 > sizeof(tempStr) ? sizeof(tempStr) : colon - addrStr + 1);
     addrStr = tempStr;
-    port = static_cast<WORD>(SStrToInt(colon + 1));
+    port = SStrToInt(colon + 1);
   }
 
-  reinterpret_cast<sockaddr_in *>(netAddr)->sin_family = AF_INET;
-  reinterpret_cast<sockaddr_in *>(netAddr)->sin_port = htons(port);
-  reinterpret_cast<sockaddr_in *>(netAddr)->sin_addr.s_addr = inet_addr(addrStr);
-  memset(reinterpret_cast<sockaddr_in *>(netAddr)->sin_zero, 0, sizeof(reinterpret_cast<sockaddr_in *>(netAddr)->sin_zero));
+  ((sockaddr_in *)netAddr)->sin_family = AF_INET;
+  ((sockaddr_in *)netAddr)->sin_port = htons(port);
+  ((sockaddr_in *)netAddr)->sin_addr.s_addr = inet_addr(addrStr);
+  memset(((sockaddr_in *)netAddr)->sin_zero, 0, sizeof(((sockaddr_in *)netAddr)->sin_zero));
 }
 
 BOOL OsNetAddrLoopback(const NETADDR *netAddr1, const NETADDR *netAddr2) {
-  const sockaddr_in *addr1 = reinterpret_cast<const sockaddr_in *>(netAddr1);
-  const sockaddr_in *addr2 = reinterpret_cast<const sockaddr_in *>(netAddr2);
+  const sockaddr_in *addr1 = (const sockaddr_in *)netAddr1;
+  const sockaddr_in *addr2 = (const sockaddr_in *)netAddr2;
 
   return addr1->sin_addr.s_addr == addr2->sin_addr.s_addr || addr1->sin_addr.s_addr == INADDR_LOOPBACK || addr2->sin_addr.s_addr == INADDR_LOOPBACK;
 }
 
 BOOL OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2, NETADDRDIFF *difflevel) {
-  const WORD *addr1 = reinterpret_cast<const WORD *>(netAddr1);
-  const WORD *addr2 = reinterpret_cast<const WORD *>(netAddr2);
+  const WORD *addr1 = (const WORD *)netAddr1;
+  const WORD *addr2 = (const WORD *)netAddr2;
   NETADDRDIFF diff;
 
   if (addr1[0] != addr2[0]) {
@@ -4158,7 +4163,7 @@ BOOL OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2, NETADDRD
 }
 
 DWORD OsNetAddrGetAddress(const NETADDR *netAddr, WORD *port) {
-  const sockaddr_in *addr = reinterpret_cast<const sockaddr_in *>(netAddr);
+  const sockaddr_in *addr = (const sockaddr_in *)netAddr;
 
   if (port) {
     *port = ntohs(addr->sin_port);
@@ -4168,8 +4173,8 @@ DWORD OsNetAddrGetAddress(const NETADDR *netAddr, WORD *port) {
 
 LPCSTR OsNetAddrToStr(const NETADDR *netAddr, char *string, DWORD length) {
   SStrPrintf(
-      string, length, "%s:%u", inet_ntoa(reinterpret_cast<const sockaddr_in *>(netAddr)->sin_addr),
-      ntohs(reinterpret_cast<const sockaddr_in *>(netAddr)->sin_port)
+      string, length, "%s:%u", inet_ntoa(((const sockaddr_in *)netAddr)->sin_addr),
+      ntohs(((const sockaddr_in *)netAddr)->sin_port)
   );
   return string;
 }
@@ -4192,8 +4197,8 @@ DWORD OsNetGetHostAddr(LPCSTR hostName) {
 
   host = gethostbyname(hostName);
   if (host) {
-    addr = reinterpret_cast<BYTE *>(host->h_addr_list[0]);
-    result = addr[0] | (static_cast<DWORD>(addr[1]) << 8) | (static_cast<DWORD>(addr[2]) << 16) | (static_cast<DWORD>(addr[3]) << 24);
+    addr = (BYTE *)host->h_addr_list[0];
+    result = addr[0] | ((DWORD)addr[1] << 8) | ((DWORD)addr[2] << 16) | ((DWORD)addr[3] << 24);
   }
 
   return result;
@@ -4219,7 +4224,7 @@ BOOL OsFileConnRead(HNETCONN__ *conn, DWORDLONG pos, LPVOID buffer, DWORD bytes,
   VALIDATE(conn);
   VALIDATEEND;
 
-  return reinterpret_cast<OsNet::FILECONN *>(conn)->Read(pos, buffer, bytes, operationId);
+  return ((OsNet::FILECONN *)conn)->Read(pos, buffer, bytes, operationId);
 }
 
 BOOL OsFileConnWrite(HNETCONN__ *conn, DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId) {
@@ -4227,7 +4232,7 @@ BOOL OsFileConnWrite(HNETCONN__ *conn, DWORDLONG pos, LPCVOID data, DWORD bytes,
   VALIDATE(conn);
   VALIDATEEND;
 
-  return reinterpret_cast<OsNet::FILECONN *>(conn)->Write(pos, data, bytes, operationId);
+  return ((OsNet::FILECONN *)conn)->Write(pos, data, bytes, operationId);
 }
 
 void OsFileConnClose(HNETCONN__ *conn) {
@@ -4235,5 +4240,5 @@ void OsFileConnClose(HNETCONN__ *conn) {
   VALIDATE(conn);
   VALIDATEENDVOID;
 
-  reinterpret_cast<OsNet::FILECONN *>(conn)->Close();
+  ((OsNet::FILECONN *)conn)->Close();
 }

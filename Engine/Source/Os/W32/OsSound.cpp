@@ -159,7 +159,7 @@ struct InitParams {
   int   cacheSizeMB;
 };
 
-BYTE (*Sound::m_positionUpdateCallback)(LONGLONG, NTempest::C3Vector &);
+bool (*Sound::m_positionUpdateCallback)(LONGLONG, NTempest::C3Vector &);
 
 static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, int param);
 static LPVOID __stdcall      FSoundAllocCallback(UINT size);
@@ -186,7 +186,7 @@ static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVO
   ASSERT(param);
 
   s_soundSystemLock.Enter();
-  s_soundListStop.LinkNode(reinterpret_cast<Sound *>(param), LIST_TAIL, 0);
+  s_soundListStop.LinkNode((Sound *)param, LIST_TAIL, 0);
   s_soundSystemLock.Leave();
 
   return 0;
@@ -489,14 +489,12 @@ void Sound::ProcessStopList() {
 void Sound::ProcessFadeList() {
   UINT timestamp = OsGetAsyncTimeMs();
 
-  for (Sound *sound = s_soundListFade.Head(), *next;
-       (int)sound > 0 ? ((next = s_soundListFade.RawNext(sound)), 1) : 0;
-       sound = next) {
+  SAFEITERATELIST(Sound, s_soundListFade, sound) {
     if (sound->m_channel != -1) {
       ASSERT(sound->m_stream);
 
       UINT elapsed = timestamp - sound->m_fadeStartTime;
-      int  volume = static_cast<int>(elapsed * sound->m_fadeRate);
+      int  volume = elapsed * sound->m_fadeRate;
 
       if (sound->m_fadeRate < 0.0f) {
         volume += sound->m_fadeVolume;
@@ -627,11 +625,11 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
     return 0;
   }
 
-  FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(sound->m_stream), FSoundStreamEndCallback, reinterpret_cast<int>(sound));
+  FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (int)sound);
   sound->m_category = category;
 
   if (!startPaused) {
-    sound->m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(sound->m_stream), 0, 0);
+    sound->m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)sound->m_stream, 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
       sound = 0;
@@ -687,13 +685,13 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
   }
 
   if (loopCount) {
-    FSOUND_Stream_SetLoopCount(static_cast<FSOUND_STREAM *>(sound->m_stream), loopCount);
-    FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(sound->m_stream), FSoundStreamEndCallback, reinterpret_cast<int>(sound));
+    FSOUND_Stream_SetLoopCount((FSOUND_STREAM *)sound->m_stream, loopCount);
+    FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (int)sound);
   }
 
   sound->m_category = category;
   if (!startPaused) {
-    sound->m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(sound->m_stream), 0, 0);
+    sound->m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)sound->m_stream, 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
       return 0;
@@ -722,7 +720,7 @@ Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags,
     return Play2D(category, filename, flags, startPaused);
   }
 
-  return PlayLooped(category, filename, static_cast<int>(loopCount - 1), 0x2002, startPaused, flags);
+  return PlayLooped(category, filename, loopCount - 1, 0x2002, startPaused, flags);
 }
 
 Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
@@ -736,7 +734,7 @@ Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags,
     return Play3D(category, filename, startPaused, 0);
   }
 
-  sound = PlayLooped(category, filename, static_cast<int>(loopCount - 1), 0x1002, true, flags);
+  sound = PlayLooped(category, filename, loopCount - 1, 0x1002, true, flags);
   if (!sound) {
     return 0;
   }
@@ -761,7 +759,7 @@ void Sound::SetFadeIn(float fadeTime, float volume) {
   ASSERT(volume >= 0.0f && volume <= 1.0f);
 
   if (m_stream && !(fadeTime < 0.1f)) {
-    m_fadeVolume = static_cast<int>(volume * 255.0f);
+    m_fadeVolume = volume * 255.0f;
     m_fadeRate = m_fadeVolume / (fadeTime * 1000.0f);
 
     if (m_channel != -1) {
@@ -775,8 +773,8 @@ void Sound::SetFadeIn(UINT fadeTime, float volume) {
   ASSERT(volume >= 0.0f && volume <= 1.0f);
 
   if (m_stream && fadeTime) {
-    m_fadeVolume = static_cast<int>(volume * 255.0f);
-    m_fadeRate = m_fadeVolume / static_cast<float>(fadeTime);
+    m_fadeVolume = volume * 255.0f;
+    m_fadeRate = m_fadeVolume / (float)fadeTime;
 
     if (!IsSuspended()) {
       ASSERT(m_channel == -1);
@@ -826,7 +824,7 @@ void Sound::Suspend() {
   }
 
   if (m_stream) {
-    FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(m_stream), 0, 0);
+    FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)m_stream, 0, 0);
   }
 
   DecrementCategory(m_category);
@@ -839,7 +837,7 @@ void Sound::Suspend() {
   }
 
   if (m_stream) {
-    FSOUND_Stream_Stop(static_cast<FSOUND_STREAM *>(m_stream));
+    FSOUND_Stream_Stop((FSOUND_STREAM *)m_stream);
   }
 
   m_suspendedFlags = m_flags;
@@ -853,8 +851,8 @@ void Sound::Resume() {
     return;
   }
 
-  FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(m_stream), FSoundStreamEndCallback, reinterpret_cast<int>(this));
-  m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(m_stream), 0, 1);
+  FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)m_stream, FSoundStreamEndCallback, (int)this);
+  m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)m_stream, 0, 1);
   if (m_channel == -1) {
     Stop();
     return;
@@ -879,7 +877,7 @@ void Sound::Resume() {
 
 void Sound::Stop() {
   if (m_stream) {
-    FSOUND_Stream_SetEndCallback(static_cast<FSOUND_STREAM *>(m_stream), 0, 0);
+    FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)m_stream, 0, 0);
   }
 
   DecrementCategory(m_category);
@@ -892,8 +890,8 @@ void Sound::Stop() {
   }
 
   if (m_stream) {
-    FSOUND_Stream_Stop(static_cast<FSOUND_STREAM *>(m_stream));
-    FSOUND_Stream_Close(static_cast<FSOUND_STREAM *>(m_stream));
+    FSOUND_Stream_Stop((FSOUND_STREAM *)m_stream);
+    FSOUND_Stream_Close((FSOUND_STREAM *)m_stream);
     m_stream = 0;
   }
 
@@ -929,7 +927,7 @@ void Sound::Stop(float fadeTime) {
 void Sound::Stop(UINT fadeTime) {
   if (m_channel != -1 && m_stream && fadeTime) {
     m_fadeVolume = GetVolume();
-    m_fadeRate = m_fadeVolume / -static_cast<float>(fadeTime);
+    m_fadeRate = m_fadeVolume / -(float)fadeTime;
     m_fadeStartTime = OsGetAsyncTimeMs();
     AddToFadeList();
   } else {
@@ -951,7 +949,7 @@ bool Sound::SetPaused(bool state) {
     return true;
   }
 
-  m_channel = FSOUND_Stream_PlayEx(-1, static_cast<FSOUND_STREAM *>(m_stream), 0, 1);
+  m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)m_stream, 0, 1);
   if (m_channel == -1) {
     return false;
   }
@@ -969,12 +967,12 @@ bool Sound::SetPaused(bool state) {
 
 int Sound::GetLengthMs() {
   ASSERT(m_stream);
-  return FSOUND_Stream_GetLengthMs(static_cast<FSOUND_STREAM *>(m_stream));
+  return FSOUND_Stream_GetLengthMs((FSOUND_STREAM *)m_stream);
 }
 
 int Sound::SetPositionMs(int milliseconds) {
   ASSERT(m_stream);
-  return FSOUND_Stream_SetTime(static_cast<FSOUND_STREAM *>(m_stream), milliseconds);
+  return FSOUND_Stream_SetTime((FSOUND_STREAM *)m_stream, milliseconds);
 }
 
 void Sound::SetPosition(const NTempest::C3Vector &worldPosition, const NTempest::C3Vector *vel) {
@@ -1067,7 +1065,7 @@ void Sound::SetVolume(float volume) {
   if (!IsSuspended() && m_channel != -1) {
     float categoryVolume = (m_flags & 0x00000002) ? s_musicVolume : s_soundVolume;
 
-    FSOUND_SetVolume(m_channel, static_cast<int>(categoryVolume * volume * 255.0f));
+    FSOUND_SetVolume(m_channel, categoryVolume * volume * 255.0f);
   }
 }
 
@@ -1082,7 +1080,7 @@ void Sound::SetFrequency(int freq) {
 
 void Sound::SetDistances(float min, float max) {
   if (m_stream && (m_flags & 0x08000000)) {
-    FSOUND_SAMPLE *sample = FSOUND_Stream_GetSample(static_cast<FSOUND_STREAM *>(m_stream));
+    FSOUND_SAMPLE *sample = FSOUND_Stream_GetSample((FSOUND_STREAM *)m_stream);
     if (sample) {
       FSOUND_Sample_SetMinMaxDistance(sample, min, max);
     }
@@ -1188,7 +1186,7 @@ void Sound::RemoveFromCutoffList() {
 }
 
 UINT SndGetCPUPerformance() {
-  return static_cast<UINT>(FSOUND_GetCPUUsage());
+  return FSOUND_GetCPUUsage();
 }
 
 int Sound::GetNumOutputSystems() {
@@ -1238,9 +1236,7 @@ void Sound::MuteSFX(bool m) {
 
   if (muted != s_muted) {
     s_muted = muted;
-    for (Sound *sound = s_soundListActive.Head(), *next;
-         (int)sound > 0 ? ((next = s_soundListActive.RawNext(sound)), 1) : 0;
-         sound = next) {
+    SAFEITERATELIST(Sound, s_soundListActive, sound) {
       if (sound->m_channel != -1 && !(sound->m_flags & 0x00000002)) {
         FSOUND_SetMute(sound->m_channel, s_muted);
       }
@@ -1249,9 +1245,7 @@ void Sound::MuteSFX(bool m) {
 }
 
 void Sound::UpdateSoundVolumes(bool music) {
-  for (Sound *sound = s_soundListActive.Head(), *next;
-       (int)sound > 0 ? ((next = s_soundListActive.RawNext(sound)), 1) : 0;
-       sound = next) {
+  SAFEITERATELIST(Sound, s_soundListActive, sound) {
     if (sound->m_channel != -1 && music == ((sound->m_flags & 0x00000002) != 0)) {
       sound->UpdateVolume();
     }
@@ -1270,9 +1264,7 @@ bool Sound::DupeCheckFailed(SOUNDCATEGORIES category, LPCSTR fileName, int flags
   if (flags & 0x1) {
     UINT filenameHash = SStrHash(fileName, 0, 0);
 
-    for (Sound *sound = s_soundListActive.Head(), *next;
-         (int)sound > 0 ? ((next = s_soundListActive.RawNext(sound)), 1) : 0;
-         sound = next) {
+    SAFEITERATELIST(Sound, s_soundListActive, sound) {
       if (filenameHash == sound->m_fileNameHashed && (!(sound->m_flags & 0x80000000) || (sound->m_flags & 0x01000000))) {
         return true;
       }

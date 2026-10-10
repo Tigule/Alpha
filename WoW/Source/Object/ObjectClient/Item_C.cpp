@@ -217,18 +217,18 @@ static BOOL OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   FATALASSERT(item);
   DWORDLONG currOwner = item->GetOwner();
-  if (!*static_cast<const DWORDLONG *>(prevValue) && currOwner) {
+  if (!*(const DWORDLONG *)prevValue && currOwner) {
     ClntObjMgrHideObject(guid);
     item->RemoveWorldObject();
-  } else if (*static_cast<const DWORDLONG *>(prevValue) && !currOwner) {
+  } else if (*(const DWORDLONG *)prevValue && !currOwner) {
     ClntObjMgrShowObject(guid);
     item->AddWorldObject();
   }
-  if (*static_cast<const DWORDLONG *>(prevValue) == ClntObjMgrGetActivePlayer() && currOwner != ClntObjMgrGetActivePlayer()) {
+  if (*(const DWORDLONG *)prevValue == ClntObjMgrGetActivePlayer() && currOwner != ClntObjMgrGetActivePlayer()) {
     CGActionBar::UpdateItem(item->GetEntryID());
     CGTradeInfo::RemovePlayerItem(item->GetGUID());
   }
-  if (*static_cast<const DWORDLONG *>(prevValue) == ClntObjMgrGetActivePlayer() || currOwner == ClntObjMgrGetActivePlayer()) {
+  if (*(const DWORDLONG *)prevValue == ClntObjMgrGetActivePlayer() || currOwner == ClntObjMgrGetActivePlayer()) {
     CGTradeSkillInfo::RefreshList(0);
     CGCraftInfo::RefreshList();
     CGQuestLog::Update(0);
@@ -304,11 +304,11 @@ CGItem_C::CGItem_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
     AddWorldObject();
   }
 
-  m_itemInfo.m_classID = static_cast<BYTE>(GetClassID());
-  m_itemInfo.m_subclassID = static_cast<BYTE>(GetSubtypeID());
-  m_itemInfo.m_material = static_cast<BYTE>(GetMaterial());
-  m_itemInfo.m_inventoryType = static_cast<BYTE>(GetInventoryType());
-  m_itemInfo.m_sheatheType = static_cast<BYTE>(GetSheatheType());
+  m_itemInfo.m_classID = GetClassID();
+  m_itemInfo.m_subclassID = GetSubtypeID();
+  m_itemInfo.m_material = GetMaterial();
+  m_itemInfo.m_inventoryType = GetInventoryType();
+  m_itemInfo.m_sheatheType = GetSheatheType();
 
   memset(m_enchantmentExpiration, 0, sizeof(m_enchantmentExpiration));
 }
@@ -396,11 +396,11 @@ void CGItem_C::PostInitWithStats() {
     }
   }
 
-  m_itemInfo.m_classID = static_cast<BYTE>(GetClassID());
-  m_itemInfo.m_subclassID = static_cast<BYTE>(GetSubtypeID());
-  m_itemInfo.m_material = static_cast<BYTE>(GetMaterial());
-  m_itemInfo.m_inventoryType = static_cast<BYTE>(GetInventoryType());
-  m_itemInfo.m_sheatheType = static_cast<BYTE>(GetSheatheType());
+  m_itemInfo.m_classID = GetClassID();
+  m_itemInfo.m_subclassID = GetSubtypeID();
+  m_itemInfo.m_material = GetMaterial();
+  m_itemInfo.m_inventoryType = GetInventoryType();
+  m_itemInfo.m_sheatheType = GetSheatheType();
 }
 
 void CGItem_C::Disable(int shutdown) {
@@ -579,7 +579,7 @@ BOOL CGItem_C::SetBlock(UINT i, DWORD data) {
 
   i -= CGObject::TotalFields();
   FATALASSERT(i < (CGItem::GetDataSize()/sizeof(DWORD)));
-  reinterpret_cast<DWORD *>(&m_item)[i] = data;
+  ((DWORD *)&m_item)[i] = data;
   return 1;
 }
 
@@ -596,7 +596,7 @@ UINT CGItem_C::OffsetOf(OBJECT_TYPE_ID type) {
       return CGObject::TotalFields() * sizeof(DWORD);
     default:
       FATALASSERT(0);
-      return static_cast<UINT>(-1);
+      return -1;
   }
 }
 
@@ -653,7 +653,7 @@ void CGItem_C::UpdateExpirationTime(int timeLeft) {
 int CGItem_C::GetExpirationTimeLeft() {
   if (m_expirationTime) {
     DWORD now = OsGetAsyncTimeMs();
-    if (static_cast<long>(now - m_expirationTime) < 0) {
+    if ((long)(now - m_expirationTime) < 0) {
       return m_expirationTime - now;
     }
   }
@@ -673,7 +673,7 @@ int CGItem_C::GetEnchantmentTimeLeft(int slot) {
   FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
   if (m_enchantmentExpiration[slot]) {
     DWORD now = OsGetAsyncTimeMs();
-    if (static_cast<long>(now - m_enchantmentExpiration[slot]) < 0) {
+    if ((long)(now - m_enchantmentExpiration[slot]) < 0) {
       return m_enchantmentExpiration[slot] - now;
     }
   }

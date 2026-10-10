@@ -19,5 +19,6 @@ target_include_directories(Model PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Model PRIVATE /Gr /Z7)
+    target_compile_options(Model PRIVATE /Gr /Z7 /YX)
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES vc60.pch)
 endif()

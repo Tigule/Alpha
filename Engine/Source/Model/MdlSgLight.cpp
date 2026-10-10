@@ -58,15 +58,15 @@ void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr) {
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data) - 4;
+  UINT sectionBytes = *(UINT *)data - 4;
   data += 4;
-  UINT numLights = *reinterpret_cast<UINT *>(data);
+  UINT numLights = *(UINT *)data;
   data += 4;
 
   modelptr->m_lights.SetCount(numLights);
 
   for (UINT i = 0; i < numLights; ++i) {
-    UINT bytesThisEmitter = *reinterpret_cast<UINT *>(data);
+    UINT bytesThisEmitter = *(UINT *)data;
     modelptr->m_lights[i] = CreateGxLight(data + 4);
     data += bytesThisEmitter;
 
@@ -88,24 +88,24 @@ static DWORD CreateGxLight(BYTE *lightData) {
     return lightId;
   }
 
-  lightData += *reinterpret_cast<UINT *>(lightData);
-  light->m_isOmni = *reinterpret_cast<UINT *>(lightData) == 0;
+  lightData += *(UINT *)lightData;
+  light->m_isOmni = *(UINT *)lightData == 0;
   lightData += 12;
-  light->m_dirColor.r = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(lightData) * 255.0f);
+  light->m_dirColor.r = NTempest::CMath::ftol_0_256_(*(float *)lightData * 255.0f);
   lightData += 4;
-  light->m_dirColor.g = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(lightData) * 255.0f);
+  light->m_dirColor.g = NTempest::CMath::ftol_0_256_(*(float *)lightData * 255.0f);
   lightData += 4;
-  light->m_dirColor.b = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(lightData) * 255.0f);
+  light->m_dirColor.b = NTempest::CMath::ftol_0_256_(*(float *)lightData * 255.0f);
   lightData += 4;
-  light->m_dirIntensity = *reinterpret_cast<float *>(lightData);
+  light->m_dirIntensity = *(float *)lightData;
   lightData += 4;
-  light->m_ambColor.r = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(lightData) * 255.0f);
+  light->m_ambColor.r = NTempest::CMath::ftol_0_256_(*(float *)lightData * 255.0f);
   lightData += 4;
-  light->m_ambColor.g = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(lightData) * 255.0f);
+  light->m_ambColor.g = NTempest::CMath::ftol_0_256_(*(float *)lightData * 255.0f);
   lightData += 4;
-  light->m_ambColor.b = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(lightData) * 255.0f);
+  light->m_ambColor.b = NTempest::CMath::ftol_0_256_(*(float *)lightData * 255.0f);
   lightData += 4;
-  light->m_ambIntensity = *reinterpret_cast<float *>(lightData);
+  light->m_ambIntensity = *(float *)lightData;
   light->m_enabled = 0;
 
   GxuLightUnlock(lightId);

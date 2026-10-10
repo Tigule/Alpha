@@ -15,9 +15,9 @@ void GuildStats::Pack(CDataStore *msg) {
   } else {
     msg->PutString("");
   }
-  msg->Put(static_cast<UINT>(m_emblemStyle));
-  msg->Put(static_cast<UINT>(m_emblemColor));
-  msg->Put(static_cast<UINT>(m_borderStyle));
-  msg->Put(static_cast<UINT>(m_borderColor));
-  msg->Put(static_cast<UINT>(m_backgroundColor));
+  msg->Put((UINT)m_emblemStyle);
+  msg->Put((UINT)m_emblemColor);
+  msg->Put((UINT)m_borderStyle);
+  msg->Put((UINT)m_borderColor);
+  msg->Put((UINT)m_backgroundColor);
 }

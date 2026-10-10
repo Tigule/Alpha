@@ -105,8 +105,8 @@ void CSimpleMessageScrollFrame::SetMaxLines(int maxLines) {
 
 void CSimpleMessageScrollFrame::SetMessageFrameInsets(float right, float left, float top, float bottom) {
   m_messageFrameInset.l = left;
-  m_messageFrameInset.b = top;
   m_messageFrameInset.r = right;
+  m_messageFrameInset.b = top;
   m_messageFrameInset.t = bottom;
 
   if (IsRectValid()) {
@@ -183,7 +183,7 @@ UINT CSimpleMessageScrollFrame::AddMultiLine(char *text, const CSimpleFontString
 
   attributes.UpdateString(&string, 0);
 
-  UINT *lineOffsets = static_cast<UINT *>(_alloca(m_maxMessages * sizeof(*lineOffsets)));
+  UINT *lineOffsets = (UINT *)_alloca(m_maxMessages * sizeof(*lineOffsets));
   UINT  lines = string.WrapText(text, m_messageFrameArea.r - m_messageFrameArea.l, lineOffsets, m_maxMessages);
 
   for (UINT i = 0; i < lines; ++i) {
@@ -212,10 +212,10 @@ void CSimpleMessageScrollFrame::Clear() {
 void CSimpleMessageScrollFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   CSimpleFrame::OnFrameSizeChanged(rect);
 
-  m_messageFrameArea.l = rect.l + m_messageFrameInset.l * GetLayoutScale();
-  m_messageFrameArea.r = rect.r - m_messageFrameInset.r * GetLayoutScale();
-  m_messageFrameArea.t = rect.t + m_messageFrameInset.t * GetLayoutScale();
-  m_messageFrameArea.b = rect.b - m_messageFrameInset.b * GetLayoutScale();
+  m_messageFrameArea.l = rect.l + m_messageFrameInset.l * m_layoutScale;
+  m_messageFrameArea.r = rect.r - m_messageFrameInset.r * m_layoutScale;
+  m_messageFrameArea.t = rect.t + m_messageFrameInset.t * m_layoutScale;
+  m_messageFrameArea.b = rect.b - m_messageFrameInset.b * m_layoutScale;
 
   UINT  count = m_displayNodes.Count();
   float messageWidth = (m_messageFrameArea.r - m_messageFrameArea.l) / GetLayoutScale();
@@ -258,7 +258,7 @@ void CSimpleMessageScrollFrame::OnLayerUpdate(float elapsedSec) {
           } else {
             line->fadeLeft = fadeLeft;
 
-            BYTE alpha = static_cast<BYTE>(fadeLeft / m_fadeDuration * 255.0f);
+            BYTE alpha = fadeLeft / m_fadeDuration * 255.0f;
 
             line->attrib.SetAlpha(alpha);
             node.attrib.SetAlpha(alpha);
@@ -518,13 +518,16 @@ void CSimpleMessageScrollFrame::RefreshHyperlinks() {
   }
 }
 
-CSimpleMessageScrollFrameDisplayNode::CSimpleMessageScrollFrameDisplayNode() : string(NEW(CSimpleFontStringRecord)(0, 1, 1)), line(0), attrib() {
+CSimpleMessageScrollFrameDisplayNode::CSimpleMessageScrollFrameDisplayNode() {
+  line = 0;
+  string = NEW(CSimpleFontStringRecord)(0, 1, 1);
   string->IncrRef();
   string->SetIgnoreNewlines(1);
 }
 
-CSimpleMessageScrollFrameDisplayNode::CSimpleMessageScrollFrameDisplayNode(const CSimpleMessageScrollFrameDisplayNode &rhs)
-    : TRefCnt(rhs), string(rhs.string), line(rhs.line), attrib() {
+CSimpleMessageScrollFrameDisplayNode::CSimpleMessageScrollFrameDisplayNode(const CSimpleMessageScrollFrameDisplayNode &rhs) {
+  line = rhs.line;
+  string = rhs.string;
   string->IncrRef();
   attrib = rhs.attrib;
   attrib.CopyFlags(rhs.attrib);

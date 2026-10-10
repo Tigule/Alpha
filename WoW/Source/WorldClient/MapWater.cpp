@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -96,7 +96,11 @@ static TSGrowableArray<LODArrays> s_lodArrays;
 static const UINT                 MAX_SUBDIVS = s_lodSubdivs[4];
 static NTempest::CImVector       *pixels;
 static const float                kDeepDarken = 0.75f;
+static const float                MD_AREA_POLY_SIZE = 533.33331f;
 static const float                MD_RIVER_DEPTH_SCALE = 1.0f / 9.0f;
+static const float                MD_LIQUID_POLY_SIZE = 4.1666665f;
+static const float                OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
+static const float                OO_COORD_TO_CHUNK = 1.0f / ((150.0f / 36.0f) * 8);
 static const float                Gx_MinTexAspect = 0.125f;
 static float                      s_oceanDepthCoordTable[256];
 static float                      s_riverDepthCoordTable[256];
@@ -105,15 +109,18 @@ static NTempest::CImVector        s_reflectivity[256];
 const float WaterRadWave::PERTURB = 40.0f;
 
 BOOL WaterRadWave::Update(float deltat) {
+  BOOL alive = 1;
+
   curTime += deltat;
   if (curTime > timeLength) {
-    return 0;
+    alive = 0;
+  } else {
+    rb = curTime * velocity;
+    ra = rb - length;
+    decay = 1.0f - curTime * ooTimeLength;
   }
 
-  rb = curTime * velocity;
-  ra = rb - length;
-  decay = 1.0f - curTime * ooTimeLength;
-  return 1;
+  return alive;
 }
 
 int CMapArea::ccWaterLOD = -1;
@@ -148,30 +155,32 @@ void LODArrays::GenFixes(UINT p_nFixes, UINT vertsPerSide, UINT tilesPerSide) {
     from += 2;
   }
 
-  from = static_cast<WORD>(2 * vertsPerSide - 1);
-  WORD to = 0;
-  WORD to2 = static_cast<WORD>(4 * vertsPerSide);
+  from = 2 * vertsPerSide - 1;
+  WORD to = from - 2 * vertsPerSide + 1;
+  WORD opposite = from + 2 * vertsPerSide;
+  WORD to2 = opposite + 1;
   for (lp = 0; lp < nFixes / 2; ++lp) {
     fixes[index++].Set(from, to);
-    fixes[index++].Set(static_cast<WORD>(from + 2 * vertsPerSide), to2);
-    from = static_cast<WORD>(from + 4 * vertsPerSide);
-    to = static_cast<WORD>(to + 4 * vertsPerSide);
-    to2 = static_cast<WORD>(to2 + 4 * vertsPerSide);
+    fixes[index++].Set(opposite, to2);
+    to = to + 4 * vertsPerSide;
+    from = from + 4 * vertsPerSide;
+    opposite = opposite + 4 * vertsPerSide;
+    to2 = to2 + 4 * vertsPerSide;
   }
 
-  from = static_cast<WORD>(tilesPerSide * vertsPerSide + 1);
-  to = static_cast<WORD>(tilesPerSide * vertsPerSide);
+  to = vertsPerSide * tilesPerSide;
+  from = to + 1;
   for (lp = 0; lp < nFixes; ++lp) {
     fixes[index++].Set(from, to);
     from += 2;
     to += 2;
   }
 
-  from = static_cast<WORD>(tilesPerSide * tilesPerSide - 1);
-  to = static_cast<WORD>(tilesPerSide * tilesPerSide - 2);
+  from = tilesPerSide * tilesPerSide - 1;
+  to = from - 1;
   for (lp = 0; lp < nFixes; ++lp) {
     fixes[index++].Set(from, to);
-    from = static_cast<WORD>(from - 2 * vertsPerSide);
+    from = from - 2 * vertsPerSide;
     to = from - 1;
   }
 }
@@ -186,9 +195,9 @@ void LODArrays::GenVerts(UINT lod) {
   UINT y = 0;
   UINT x;
   while (y < vertsPerSide) {
-    float ty = static_cast<float>(y) / static_cast<float>(lod + 1);
+    float ty = (float)y / (float)(lod + 1);
     for (x = 0; x < vertsPerSide; ++x) {
-      float tx = static_cast<float>(x) / static_cast<float>(lod + 1);
+      float tx = (float)x / (float)(lod + 1);
       geov[vertex].Set(tx * -4.1666665f, ty * -4.1666665f);
       texv[vertex].Set(tx, ty);
       ++vertex;
@@ -199,10 +208,10 @@ void LODArrays::GenVerts(UINT lod) {
       break;
     }
 
-    ty = static_cast<float>(y) / static_cast<float>(lod + 1);
+    ty = (float)y / (float)(lod + 1);
     do {
       --x;
-      float tx = static_cast<float>(x) / static_cast<float>(lod + 1);
+      float tx = (float)x / (float)(lod + 1);
       geov[vertex].Set(tx * -4.1666665f, ty * -4.1666665f);
       texv[vertex].Set(tx, ty);
       ++vertex;
@@ -269,11 +278,11 @@ void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT 
 
   switch (cmd) {
     case GxTex_Lock:
-      pixels = static_cast<NTempest::CImVector *>(GxAllocPixelMem(w * h * sizeof(NTempest::CImVector)));
+      pixels = (NTempest::CImVector *)GxAllocPixelMem(w * h * sizeof(NTempest::CImVector));
       break;
 
     case GxTex_Latch: {
-      UINT                 index = 2 * reinterpret_cast<UINT>(userArg);
+      UINT                 index = 2 * (UINT)userArg;
       DNInfo              *dnInfo = DayNightGetInfo();
       NTempest::CImVector  shallowClr = dnInfo->light.WaterArray[index];
       NTempest::CImVector  deepClr = dnInfo->light.WaterArray[index + 1];
@@ -288,7 +297,7 @@ void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT 
       for (UINT y = 0; y < h; ++y) {
         NTempest::CImVector rowColor;
 
-        rowColor.Set(0xFF, static_cast<BYTE>(red >> 8), static_cast<BYTE>(green >> 8), static_cast<BYTE>(blue >> 8));
+        rowColor.Set(0xFF, (BYTE)(red >> 8), (BYTE)(green >> 8), (BYTE)(blue >> 8));
 
         if (y == h - 1 && !userArg) {
           NTempest::C3Vector rgb = rowColor;
@@ -328,7 +337,7 @@ HTEXTURE CMap::GetLiquidTexture(UINT liquid) {
   ASSERT(liquid < LIQUID_COUNT);
 
   const float secsPerLoop = liquidTexLoopTime[liquid];
-  UINT texture = Fast_ftol(fmodf(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * static_cast<float>(LIQUID_TEXTURE_COUNT));
+  UINT texture = Fast_ftol(fmodf(CWorld::GetCurTimeSec(), secsPerLoop) / secsPerLoop * (float)LIQUID_TEXTURE_COUNT);
 
   if (!liquidTexLoaded[liquid]) {
     allLoaded = true;
@@ -390,54 +399,69 @@ void CMapObj::QueryLiquidSounds(
   }
 
   const NTempest::CAaBox &box = GetGroupInfo(groupIdx)->aaBox;
-  if (pos.x <= box.b.x || pos.y <= box.b.y || pos.z <= box.b.z || pos.x >= box.t.x || pos.y >= box.t.y || pos.z >= box.t.z) {
-    return;
-  }
+  if (pos.x > box.b.x && pos.y > box.b.y && pos.z > box.b.z && pos.x < box.t.x && pos.y < box.t.y && pos.z < box.t.z) {
+    CMapObjGroup *group = GetGroup(groupIdx, 0);
+    if (group) {
+      if ((group->flags & 8) && rlevel < closestExtLevel) {
+        closestExtLevel = rlevel;
+      }
 
-  CMapObjGroup *group = GetGroup(groupIdx, 0);
-  if (!group) {
-    return;
-  }
-  if ((group->flags & 8) && rlevel < closestExtLevel) {
-    closestExtLevel = rlevel;
-  }
-  group->QueryLiquidSounds(pos, lbool, ldelta, ldsquared);
+      group->QueryLiquidSounds(pos, lbool, ldelta, ldsquared);
 
-  for (UINT i = 0; i < group->portalCount; ++i) {
-    UINT nextGroup = portalRefList[group->portalStart + i].groupIndex;
-    if (nextGroup != 0xFFFF && nextGroup != parentIdx) {
-      QueryLiquidSounds(nextGroup, groupIdx, rlevel + 1, closestExtLevel, pos, lbool, ldelta, ldsquared);
+      if (group->portalCount) {
+        SMOPortalRef *portalRef = &portalRefList[group->portalStart];
+        for (UINT i = 0; i < group->portalCount; ++i, ++portalRef) {
+          if (portalRef->groupIndex != 0xFFFF) {
+            if (portalRef->groupIndex != parentIdx) {
+              QueryLiquidSounds(portalRef->groupIndex, groupIdx, rlevel + 1, closestExtLevel, pos, lbool, ldelta, ldsquared);
+            }
+          }
+        }
+      }
     }
   }
 }
 
 void CMapObjGroup::QueryLiquidSounds(const NTempest::C3Vector &pos, int *lbool, NTempest::C3Vector *ldelta, float *ldsquared) {
+  if (!liquidTiles.x) {
+    return;
+  }
+
+  SMOLTile *tile = liquidTileList;
+  SMOLVert *vert = liquidVertexList;
   for (int y = 0; y < liquidTiles.y; ++y) {
     for (int x = 0; x < liquidTiles.x; ++x) {
-      UINT tile = liquidTileList[y * liquidTiles.x + x].GetLiquid();
-      if (tile == LIQUID_NONE) {
-        continue;
+      UINT liquid = tile->GetLiquid();
+      if (liquid != LIQUID_NONE) {
+        float height = 0.0f;
+        switch (liquid & 3) {
+          case 0:
+          case 2:
+          case 3:
+            height = vert->waterVert.height;
+            break;
+
+          default:
+            FATALASSERT(!"CMapObjGroup::QueryLiquidSounds()\n");
+            break;
+        }
+
+        NTempest::C3Vector d;
+        d.x = liquidCorner.x - x * SMOLTILE_SIZE - pos.x;
+        d.y = liquidCorner.y + y * SMOLTILE_SIZE - pos.y;
+        d.z = height - pos.z;
+        lbool[liquid] = 1;
+        float distanceSquared = d.SquaredMag();
+        if (distanceSquared < ldsquared[liquid]) {
+          ldelta[liquid] = d;
+          ldsquared[liquid] = distanceSquared;
+        }
       }
 
-      UINT  liquidType = tile & 3;
-      float height;
-      if (liquidType == 1) {
-        ASSERT(!"CMapObjGroup::QueryLiquidSounds()\n");
-        height = 0.0f;
-      } else {
-        height = liquidVertexList[y * liquidVerts.x + x].waterVert.height;
-      }
-      NTempest::C3Vector d;
-      d.x = liquidCorner.x - static_cast<float>(x) * 4.1666665f - pos.x;
-      d.y = liquidCorner.y + static_cast<float>(y) * 4.1666665f - pos.y;
-      d.z = height - pos.z;
-      lbool[tile] = 1;
-      float distanceSquared = d.SquaredMag();
-      if (distanceSquared < ldsquared[tile]) {
-        ldsquared[tile] = distanceSquared;
-        ldelta[tile] = d;
-      }
+      ++tile;
+      ++vert;
     }
+    ++vert;
   }
 }
 
@@ -447,26 +471,21 @@ void CMap::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radius, i
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
   FATALASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
 
-  int areaX = (Fast_ftol(mx * 0.24f) >> 7) & 0x3F;
-  int areaY = (Fast_ftol(my * 0.24f) >> 7) & 0x3F;
-  int a[4];
-  a[0] = areaX > 0 ? areaX - 1 : 0;
-  a[1] = areaX + 1 < 63 ? areaX + 1 : 63;
-  a[2] = areaY > 0 ? areaY - 1 : 0;
-  a[3] = areaY + 1 < 63 ? areaY + 1 : 63;
+  int mxIndex = Fast_ftol(OO_COORD_TO_SUBCHUNK * mx);
+  int myIndex = Fast_ftol(OO_COORD_TO_SUBCHUNK * my);
 
-  NTempest::CAaSphere querySphere;
-  querySphere.c.x = worldPos.x;
-  querySphere.c.y = worldPos.y;
-  querySphere.c.z = 0.0f;
-  querySphere.r = radius;
-
-  for (int y = a[2]; y <= a[3]; ++y) {
-    for (int x = a[0]; x <= a[1]; ++x) {
-      CMapArea *area = areaTable[y * 64 + x];
+  NTempest::CAaSphere querySphere(NTempest::C3Vector(worldPos.x, worldPos.y, 0.0f), radius);
+  NTempest::C2iVector ac((mxIndex >> 7) & 0x3F, (myIndex >> 7) & 0x3F);
+  NTempest::C2iVector amin(ac.x - 1 > 0 ? ac.x - 1 : 0, ac.y - 1 > 0 ? ac.y - 1 : 0);
+  NTempest::C2iVector amax(ac.x + 1 < 63 ? ac.x + 1 : 63, ac.y + 1 < 63 ? ac.y + 1 : 63);
+  NTempest::C2iVector a;
+  for (a.y = amin.y; a.y <= amax.y; ++a.y) {
+    for (a.x = amin.x; a.x <= amax.x; ++a.x) {
+      CMapArea *area = areaTable[a.y * 64 + a.x];
       if (area) {
         NTempest::CAaBox areaBox(
-            NTempest::C3Vector(area->corner.x - 533.33331f, area->corner.y - 533.33331f, 0.0f), NTempest::C3Vector(area->corner.x, area->corner.y, 0.0f)
+            NTempest::C3Vector(area->corner.x - MD_AREA_POLY_SIZE, area->corner.y - MD_AREA_POLY_SIZE, 0.0f),
+            NTempest::C3Vector(area->corner.x, area->corner.y, 0.0f)
         );
         if (NTempest::Intersect2d(areaBox, querySphere, NTempest::SI_SolidSolid)) {
           area->QueryLiquidSounds(worldPos, radius, lbool, ldelta, ldsquared);
@@ -482,42 +501,40 @@ void CMapArea::QueryLiquidSounds(const NTempest::C3Vector &worldPos, float radiu
   FATALASSERT(mx >= 0.0f && my >= 0.0f);
   FATALASSERT(mx < ((64*16)*((150.0f/36.0f)*8)) && my < ((64*16)*((150.0f/36.0f)*8)));
 
-  int chunkX = Fast_ftol(mx * 0.03f) & 0xF;
-  int chunkY = Fast_ftol(my * 0.03f) & 0xF;
-  FATALASSERT(radius / (150.0f/36.0f) < 256.0f);
-  int chunkRadius = static_cast<int>(ceil(radius / 4.1666665f));
-  int minChunkX = chunkX - chunkRadius > 0 ? chunkX - chunkRadius : 0;
-  int minChunkY = chunkY - chunkRadius > 0 ? chunkY - chunkRadius : 0;
-  int maxChunkX = chunkX + chunkRadius < 15 ? chunkX + chunkRadius : 15;
-  int maxChunkY = chunkY + chunkRadius < 15 ? chunkY + chunkRadius : 15;
+  NTempest::C2iVector sc(Fast_ftol(OO_COORD_TO_CHUNK * mx) & 0xF, Fast_ftol(OO_COORD_TO_CHUNK * my) & 0xF);
+  ASSERT(radius / (150.0f/36.0f) < 256.0f);
+  int r = NTempest::CMath::ftol_0_256_(ceilf(radius / (150.0f/36.0f)));
+  int minY = sc.y - r > 0 ? sc.y - r : 0;
+  int minX = sc.x - r > 0 ? sc.x - r : 0;
+  int maxY = sc.y + r < 15 ? sc.y + r : 15;
+  int maxX = sc.x + r < 15 ? sc.x + r : 15;
 
-  for (int y = minChunkY; y <= maxChunkY; ++y) {
-    for (int x = minChunkX; x <= maxChunkX; ++x) {
+  for (int y = minY; y <= maxY; ++y) {
+    for (int x = minX; x <= maxX; ++x) {
       CMapChunk *chunk = chunkTable[y * 16 + x];
       if (!chunk) {
         continue;
       }
-      for (UINT liquidIndex = 0; liquidIndex < 4; ++liquidIndex) {
-        CChunkLiquid *liquid = chunk->liquids[liquidIndex];
-        if (!liquid) {
+      for (UINT i = 0; i < 4; ++i) {
+        CChunkLiquid *cl = chunk->liquids[i];
+        if (!cl) {
           continue;
         }
-        for (UINT tileY = 0; tileY < 8; ++tileY) {
-          for (UINT tileX = 0; tileX < 8; ++tileX) {
-            UINT tile = liquid->tiles.tiles[tileY][tileX] & 0xF;
-            if (tile == 0xF) {
-              continue;
-            }
-
-            lbool[tile] = 1;
-            NTempest::C3Vector delta;
-            delta.x = chunk->corner.x - static_cast<float>(tileY) * 4.1666665f - worldPos.x;
-            delta.y = chunk->corner.y - static_cast<float>(tileX) * 4.1666665f - worldPos.y;
-            delta.z = chunk->corner.z - worldPos.z;
-            float distanceSquared = delta.SquaredMag();
-            if (distanceSquared < ldsquared[tile]) {
-              ldsquared[tile] = distanceSquared;
-              ldelta[tile] = delta;
+        NTempest::C2iVector tile;
+        for (tile.y = 0; tile.y < MD_LIQUID_NPOLY; ++tile.y) {
+          for (tile.x = 0; tile.x < MD_LIQUID_NPOLY; ++tile.x) {
+            UINT liquid;
+            int  fishable;
+            int  deep;
+            if (cl->tiles.GetLiquid(tile, liquid, fishable, deep)) {
+              lbool[liquid] = 1;
+              NTempest::C3Vector d =
+                  chunk->corner - NTempest::C3Vector(tile.y * MD_LIQUID_POLY_SIZE, tile.x * MD_LIQUID_POLY_SIZE, 0.0f) - worldPos;
+              float dsquared = d.SquaredMag();
+              if (dsquared < ldsquared[liquid]) {
+                ldsquared[liquid] = dsquared;
+                ldelta[liquid] = d;
+              }
             }
           }
         }
@@ -535,26 +552,20 @@ static DWORD              nn[2] = {64, 64};
 static float              phase2;
 
 void CMap::OceanFFT() {
-  memset(oceanfft, 0, sizeof(oceanfft));
-
   phase += CWorld::tickTimeSec * 0.2f;
   phase2 += CWorld::tickTimeSec * 0.92000002f;
+  memset(oceanfft, 0, sizeof(oceanfft));
 
-  float c = cos(phase);
-  float s = sin(phase);
-  float c2 = cos(phase2);
-  float s2 = sin(phase2);
+  oceanfft[770] = NTempest::C2Vector(2.2f * NTempest::CMath::cos_(phase), 2.2f * NTempest::CMath::sin_(phase));
+  oceanfft[896] = NTempest::C2Vector(2.02f * NTempest::CMath::cos_(phase2), 2.1f * NTempest::CMath::sin_(phase2));
+  oceanfft[180] = NTempest::C2Vector(2.1f * NTempest::CMath::cos_(phase2), 2.1f * NTempest::CMath::sin_(phase2));
+  oceanfft[3846] = NTempest::C2Vector(2.0f * NTempest::CMath::cos_(phase), 2.0f * NTempest::CMath::sin_(phase));
+  oceanfft[1403] = NTempest::C2Vector(1.3f * NTempest::CMath::cos_(phase), 1.2f * NTempest::CMath::sin_(phase));
+  oceanfft[3797] = NTempest::C2Vector(1.5f * NTempest::CMath::cos_(phase), 1.4f * NTempest::CMath::sin_(phase));
+  oceanfft[1424] = NTempest::C2Vector(1.4f * NTempest::CMath::cos_(phase2), 1.4f * NTempest::CMath::sin_(phase2));
+  oceanfft[254] = NTempest::C2Vector(1.6f * NTempest::CMath::cos_(phase2), 1.6f * NTempest::CMath::sin_(phase2));
 
-  oceanfft[770] = NTempest::C2Vector(2.2f * c, 2.2f * s);
-  oceanfft[896] = NTempest::C2Vector(2.02f * c2, 2.1f * s2);
-  oceanfft[180] = NTempest::C2Vector(2.1f * c2, 2.1f * s2);
-  oceanfft[3846] = NTempest::C2Vector(2.0f * c, 2.0f * s);
-  oceanfft[1403] = NTempest::C2Vector(1.3f * c, 1.2f * s);
-  oceanfft[3797] = NTempest::C2Vector(1.5f * c, 1.4f * s);
-  oceanfft[1424] = NTempest::C2Vector(1.4f * c2, 1.4f * s2);
-  oceanfft[254] = NTempest::C2Vector(1.6f * c2, 1.6f * s2);
-
-  fft2(reinterpret_cast<float *>(oceanfft) - 1, nn - 1, 2, -1.0f);
+  fft2((float *)oceanfft - 1, nn - 1, 2, -1.0f);
 
   for (UINT i = 0; i < 4096; ++i) {
     oceanfft[i].x *= 0.015625f;
@@ -604,26 +615,26 @@ static void fft2(float data[], DWORD nn[], int ndim, float isign) {
 
     DWORD ifp1 = ip1;
     while (ifp1 < ip2) {
-      DWORD  ifp2 = ifp1 << 1;
-      double theta = isign * 6.28318530717958647692 / (ifp2 / ip1);
-      double wtemp = sin(0.5 * theta);
-      double wpr = -2.0 * wtemp * wtemp;
-      double wpi = sin(theta);
-      double wr = 1.0;
-      double wi = 0.0;
-      DWORD  i3;
+      DWORD ifp2 = ifp1 << 1;
+      float theta = isign * PI * 2.0f / (ifp2 / ip1);
+      float wtemp = sin(0.5f * theta);
+      float wpr = -2.0f * wtemp * wtemp;
+      float wpi = sin(theta);
+      float wr = 1.0f;
+      float wi = 0.0f;
+      DWORD i3;
       for (i3 = 1; i3 <= ifp1; i3 += ip1) {
         DWORD i1;
         for (i1 = i3; i1 <= i3 + ip1 - 2; i1 += 2) {
           DWORD i2a;
           for (i2a = i1; i2a <= ip3; i2a += ifp2) {
-            DWORD  k1 = i2a + ifp1;
-            double tempr = wr * data[k1] - wi * data[k1 + 1];
-            double tempi = wr * data[k1 + 1] + wi * data[k1];
-            data[k1] = static_cast<float>(data[i2a] - tempr);
-            data[k1 + 1] = static_cast<float>(data[i2a + 1] - tempi);
-            data[i2a] = static_cast<float>(data[i2a] + tempr);
-            data[i2a + 1] = static_cast<float>(data[i2a + 1] + tempi);
+            DWORD k1 = i2a + ifp1;
+            float tempr = wr * data[k1] - wi * data[k1 + 1];
+            float tempi = wr * data[k1 + 1] + wi * data[k1];
+            data[k1] = data[i2a] - tempr;
+            data[k1 + 1] = data[i2a + 1] - tempi;
+            data[i2a] += tempr;
+            data[i2a + 1] += tempi;
           }
         }
         wtemp = wr;
@@ -804,7 +815,7 @@ void WaveTrain::Move(float deltat) {
       depth = min(depth, MAX_WAVE_DEPTH);
       depth = DEPTH_RANGE_SCALE * depth;
       depth = max(depth, 0.1f);
-      depth = static_cast<float>(tanh(depth * 0.0025f));
+      depth = tanh(depth * 0.0025f);
       *grid++ += (1.0f / NTempest::CMath::sqrt_(depth) - 1.0f) * deltax * 0.0025f;
     }
   }
@@ -842,8 +853,8 @@ void WaveTrain::Init(const NTempest::C2Vector &pPos, const NTempest::C2Vector &p
   pos = pPos;
   halfSize = 0.5f * pSize;
 
-  phaseSize.x = static_cast<int>(ceil(pSize.x * (1.0f / PHASE_GRID_SIZE))) + 1;
-  phaseSize.y = static_cast<int>(ceil(pSize.y * (1.0f / PHASE_GRID_SIZE))) + 1;
+  phaseSize.x = (int)ceil(pSize.x * (1.0f / PHASE_GRID_SIZE)) + 1;
+  phaseSize.y = (int)ceil(pSize.y * (1.0f / PHASE_GRID_SIZE)) + 1;
   speed = pSpeed;
   localToWorld = NTempest::C22Matrix::Rotation(radAngle);
 
@@ -883,55 +894,55 @@ void CMap::WaterInitialize() {
 
   {
     for (UINT i = 0; i < 256; ++i) {
-      if (MD_OCEAN_DEPTH_SCALE * i <= 26.666666f) {
-        s_oceanDepthCoordTable[i] = MD_OCEAN_DEPTH_SCALE * i * 0.037500001f;
-      } else {
+      if (MD_OCEAN_DEPTH_SCALE * i > 26.666666f) {
         s_oceanDepthCoordTable[i] = 1.0f;
+      } else {
+        s_oceanDepthCoordTable[i] = MD_OCEAN_DEPTH_SCALE * i * 0.037500001f;
       }
 
-      if (MD_RIVER_DEPTH_SCALE * i <= 4.6666665f) {
-        s_riverDepthCoordTable[i] = MD_RIVER_DEPTH_SCALE * i * 0.21428572f;
-      } else {
+      if (MD_RIVER_DEPTH_SCALE * i > 4.6666665f) {
         s_riverDepthCoordTable[i] = 1.0f;
+      } else {
+        s_riverDepthCoordTable[i] = MD_RIVER_DEPTH_SCALE * i * 0.21428572f;
       }
     }
   }
 
   {
     for (UINT i = 0; i < 256; ++i) {
-      float thetai = static_cast<float>(acos(static_cast<float>(i) * 0.0039215689f));
-      float thetat = static_cast<float>(asin(sin(thetai) * 0.74626863f));
+      float thetai = acos((float)i * 0.0039215689f);
+      float thetat = sin(thetai);
+      thetat = asin(thetat * 0.74626863f);
       float fs;
 
       if (thetai == 0.0f) {
         fs = 0.021111846f;
       } else {
-        fs = static_cast<float>(sin(thetat - thetai) / sin(thetat + thetai));
-        float tanRatio = static_cast<float>(tan(thetat - thetai) / tan(thetat + thetai));
-
-        fs = 0.5f * (fs * fs + tanRatio * tanRatio);
+        fs = sin(thetat - thetai) / sin(thetat + thetai);
+        float tanRatio = tan(thetat - thetai) / tan(thetat + thetai);
+        fs = (tanRatio * tanRatio + fs * fs) * 0.5f;
       }
 
       s_reflectivity[i].Set(
-          static_cast<BYTE>(fs * 255.0f), static_cast<BYTE>(fs * 255.0f), static_cast<BYTE>(fs * 255.0f), static_cast<BYTE>(fs * 255.0f)
+          (BYTE)(fs * 255.0f), (BYTE)(fs * 255.0f), (BYTE)(fs * 255.0f), (BYTE)(fs * 255.0f)
       );
     }
   }
 
   if (!skyTexid) {
-    skyTexels.SetCount(static_cast<UINT>(Gx_MinTexAspect * SKYTEX_HEIGHT * SKYTEX_HEIGHT));
+    skyTexels.SetCount(Gx_MinTexAspect * SKYTEX_HEIGHT * SKYTEX_HEIGHT);
     GxTexCreate(
-        static_cast<UINT>(Gx_MinTexAspect * SKYTEX_HEIGHT), SKYTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &skyTexels[0],
+        Gx_MinTexAspect * SKYTEX_HEIGHT, SKYTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &skyTexels[0],
         DayNightSkyTexCallback, skyTexid
     );
   }
 
   GxTexCreate(
-      static_cast<UINT>(Gx_MinTexAspect * WATERTEX_HEIGHT), WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
-      reinterpret_cast<LPVOID>(1), WaterDiffTexCallback, riverDiffTexid
+      Gx_MinTexAspect * WATERTEX_HEIGHT, WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1),
+      (LPVOID)1, WaterDiffTexCallback, riverDiffTexid
   );
   GxTexCreate(
-      static_cast<UINT>(Gx_MinTexAspect * WATERTEX_HEIGHT), WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0,
+      Gx_MinTexAspect * WATERTEX_HEIGHT, WATERTEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0,
       WaterDiffTexCallback, oceanDiffTexid
   );
   GxPixelShaderCreate(psOcean0, "Shaders\\Pixel\\Ocean0.bls");
@@ -968,18 +979,18 @@ static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPNT0 *&vtx, 
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
 
   if (cmd.vertex.op == GxBufOp_Fill) {
-    vtx = static_cast<CGxVertexPNT0 *>(*cmd.vertex.mem[GxVM_Position]);
+    vtx = (CGxVertexPNT0 *)*cmd.vertex.mem[GxVM_Position];
   } else {
-    vtx = static_cast<CGxVertexPNT0 *>(GxAllocVertexMem(gxBuf->VertexCount() * sizeof(*vtx)));
+    vtx = (CGxVertexPNT0 *)GxAllocVertexMem(gxBuf->VertexCount() * sizeof(*vtx));
     *cmd.vertex.mem[GxVM_Position] = &vtx->p;
     *cmd.vertex.mem[GxVM_Normal] = &vtx->n;
     *cmd.vertex.mem[GxVM_Texture0] = &vtx->tc[0];
   }
 
   if (cmd.index.op == GxBufOp_Fill) {
-    idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Position]);
+    idx = (WORD *)*cmd.index.mem[GxVM_Position];
   } else {
-    idx = static_cast<WORD *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
+    idx = (WORD *)GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx));
     *cmd.index.mem[GxVM_Position] = idx;
   }
 }
@@ -989,18 +1000,18 @@ static void SetupBufCmd(CGxBuf *gxBuf, CGxBufCommand &cmd, CGxVertexPCT0 *&vtx, 
   FATALASSERT(cmd.index.op != GxBufOp_Nop);
 
   if (cmd.vertex.op == GxBufOp_Fill) {
-    vtx = static_cast<CGxVertexPCT0 *>(*cmd.vertex.mem[GxVM_Position]);
+    vtx = (CGxVertexPCT0 *)*cmd.vertex.mem[GxVM_Position];
   } else {
-    vtx = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(gxBuf->VertexCount() * sizeof(*vtx)));
+    vtx = (CGxVertexPCT0 *)GxAllocVertexMem(gxBuf->VertexCount() * sizeof(*vtx));
     *cmd.vertex.mem[GxVM_Position] = &vtx->p;
-    *cmd.vertex.mem[GxVM_Color] = &vtx->c;
+    *cmd.vertex.mem[GxVM_Normal] = &vtx->c;
     *cmd.vertex.mem[GxVM_Texture0] = &vtx->tc[0];
   }
 
   if (cmd.index.op == GxBufOp_Fill) {
-    idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Position]);
+    idx = (WORD *)*cmd.index.mem[GxVM_Position];
   } else {
-    idx = static_cast<WORD *>(GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx)));
+    idx = (WORD *)GxAllocIndexMem(gxBuf->IndexCount() * sizeof(*idx));
     *cmd.index.mem[GxVM_Position] = idx;
   }
 }
@@ -1016,7 +1027,7 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
   NTempest::C3Vector vertWorldPos;
   NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   NTempest::C2Vector farCorner(
-      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+      (float)(chunk->cOffset.x + 1) * 33.333332f, (float)(chunk->cOffset.y + 1) * 33.333332f
   );
   float              dx;
   float              temp;
@@ -1029,10 +1040,10 @@ void CChunkLiquid::RenderOcean0V(CGxVertexPNT0 *vtx) {
 
   for (ty = 0; ty < 9; ++ty) {
     vrowx = ty * 9;
-    fx = chunk->corner.x + static_cast<float>(ty) * dy;
+    fx = chunk->corner.x + (float)ty * dy;
     for (tx = 0; tx < 9; ++tx, ++vtx) {
       vertWorldPos.x = fx;
-      vertWorldPos.y = chunk->corner.y + static_cast<float>(tx) * dx;
+      vertWorldPos.y = chunk->corner.y + (float)tx * dx;
       vtx->p = vertWorldPos - chunk->corner;
       vtx->n = dumbNormal;
       vtx->tc[0] = NTempest::C2Vector(0.5f, s_oceanDepthCoordTable[verts[vrowx + tx].oceanVert.depth]);
@@ -1050,7 +1061,7 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
   const float        OO_MAX_RIVER_COLOR_DSQ = 1.0f / 225.0f;
   NTempest::C3Vector dumbNormal(0.0f, 0.0f, 1.0f);
   NTempest::C2Vector farCorner(
-      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+      (float)(chunk->cOffset.x + 1) * 33.333332f, (float)(chunk->cOffset.y + 1) * 33.333332f
   );
   float              dx;
   float              temp;
@@ -1062,11 +1073,11 @@ void CChunkLiquid::RenderRiver0V(CGxVertexPNT0 *vtx) {
   dx = (farCorner.y - chunk->corner.y) / 8.0f;
 
   for (ty = 0; ty < 9; ++ty) {
-    fx = chunk->corner.x + static_cast<float>(ty) * dy;
+    fx = chunk->corner.x + (float)ty * dy;
     for (tx = 0; tx < 9; ++tx, ++vtx) {
       vrow1 = ty * 9 + tx;
       SWVert            &waterVert = verts[vrow1].waterVert;
-      NTempest::C3Vector vertWorldPos(fx, chunk->corner.y + static_cast<float>(tx) * dx, waterVert.height);
+      NTempest::C3Vector vertWorldPos(fx, chunk->corner.y + (float)tx * dx, waterVert.height);
       vtx->p = vertWorldPos - chunk->corner;
       vtx->n = dumbNormal;
       if (!CWorldScene::camLiquid) {
@@ -1093,9 +1104,9 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
   float               temp;
 
   cycles = CWorld::GetCurTimeSec() * MAGMA_SCROLL_RATE;
-  scrollx = cycles - static_cast<float>(Fast_ftol(cycles));
+  scrollx = cycles - (float)Fast_ftol(cycles);
   NTempest::C2Vector farCorner(
-      static_cast<float>(chunk->cOffset.x + 1) * 33.333332f, static_cast<float>(chunk->cOffset.y + 1) * 33.333332f
+      (float)(chunk->cOffset.x + 1) * 33.333332f, (float)(chunk->cOffset.y + 1) * 33.333332f
   );
   temp = -farCorner.x + 17066.666f;
   farCorner.x = -farCorner.y + 17066.666f;
@@ -1105,15 +1116,15 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
 
   NTempest::C2iVector t(0);
   NTempest::C2iVector v(0);
-  for (v.y = 0, t.y = 0; static_cast<UINT>(v.y) < 9; ++v.y) {
-    fx = chunk->corner.x + static_cast<float>(v.y) * dy;
-    for (v.x = 0, t.x = 0; static_cast<UINT>(v.x) < 9; ++v.x, ++vtx) {
+  for (v.y = 0, t.y = 0; (UINT)v.y < 9; ++v.y) {
+    fx = chunk->corner.x + (float)v.y * dy;
+    for (v.x = 0, t.x = 0; (UINT)v.x < 9; ++v.x, ++vtx) {
       vrow1 = v.y * 9 + v.x;
       SMVert            &magmaVert = verts[vrow1].magmaVert;
-      NTempest::C3Vector vertWorldPos(fx, chunk->corner.y + static_cast<float>(v.x) * dx, magmaVert.height);
+      NTempest::C3Vector vertWorldPos(fx, chunk->corner.y + (float)v.x * dx, magmaVert.height);
       vtx->p = vertWorldPos - chunk->corner;
       vtx->c = 0xFFFFFFFF;
-      vtx->tc[0] = NTempest::C2Vector(static_cast<float>(magmaVert.s) * MAGMA_TEX_SCALE + scrollx, static_cast<float>(magmaVert.t) * MAGMA_TEX_SCALE);
+      vtx->tc[0] = NTempest::C2Vector((float)magmaVert.s * MAGMA_TEX_SCALE + scrollx, (float)magmaVert.t * MAGMA_TEX_SCALE);
       t.x += v.x > 0;
     }
     t.y += v.y > 0;
@@ -1125,43 +1136,46 @@ void CChunkLiquid::RenderMagma0V(CGxVertexPCT0 *vtx) {
 WORD CChunkLiquid::Render0I(WORD *idxBase, UINT liquidType) {
   WORD  i2;
   UINT  ty;
-  WORD  lastRenderedVtx = 0;
   BYTE  inStrip = 0;
+  WORD  lastRenderedVtx = 0;
   WORD *idx = idxBase;
 
-  for (ty = 0; ty < 8; ++ty) {
-    WORD i0 = static_cast<WORD>(9 * ty);
-    i2 = static_cast<WORD>(i0 + 10);
-    while (i0 < 9 * ty + 8) {
-      if ((tiles.tiles[ty][i0 - 9 * ty] & 0xF) == liquidType) {
+  for (ty = 0; ty < MD_LIQUID_NPOLY; ++ty) {
+    WORD i0 = ty * 9;
+    WORD i1 = i0 + 9;
+    UINT tx;
+    for (tx = 0, i2 = i1 + 1; tx < MD_LIQUID_NPOLY; ++tx, ++i0, ++i1, ++i2) {
+      UINT liquid;
+      int  fishable;
+      int  deep;
+      tiles.GetLiquid(NTempest::C2iVector(tx, ty), liquid, fishable, deep);
+      if (liquid == liquidType) {
         if (!inStrip) {
-          *idx++ = i0;
-          *idx++ = i0;
-          *idx++ = static_cast<WORD>(i0 + 9);
           inStrip = 1;
+          *idx++ = i0;
+          *idx++ = i0;
+          *idx++ = i1;
         }
-        *idx++ = static_cast<WORD>(i0 + 1);
+        *idx++ = i0 + 1;
         *idx++ = i2;
         lastRenderedVtx = i2;
       } else if (inStrip) {
         *idx++ = lastRenderedVtx;
         inStrip = 0;
       }
-      ++i0;
-      ++i2;
     }
     if (inStrip) {
       *idx++ = lastRenderedVtx;
       inStrip = 0;
     }
   }
-  return static_cast<WORD>(idx - idxBase);
+  return idx - idxBase;
 }
 
 void CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
   WORD          *idx;
   CGxVertexPNT0 *vtx;
-  UserArg       *arg = static_cast<UserArg *>(gxBuf->UserArg());
+  UserArg       *arg = (UserArg *)gxBuf->UserArg();
   SetupBufCmd(gxBuf, cmd, vtx, idx);
   arg->liquid->RenderOcean0V(vtx);
   arg->indexCount = arg->liquid->Render0I(idx, arg->liquidType);
@@ -1171,7 +1185,7 @@ void CChunkLiquid::RenderOcean0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
 void CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
   WORD          *idx;
   CGxVertexPNT0 *vtx;
-  UserArg       *arg = static_cast<UserArg *>(gxBuf->UserArg());
+  UserArg       *arg = (UserArg *)gxBuf->UserArg();
   SetupBufCmd(gxBuf, cmd, vtx, idx);
   arg->liquid->RenderRiver0V(vtx);
   arg->indexCount = arg->liquid->Render0I(idx, arg->liquidType);
@@ -1181,7 +1195,7 @@ void CChunkLiquid::RenderRiver0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
 void CChunkLiquid::RenderMagma0Callback(CGxBufCommand &cmd, CGxBuf *gxBuf) {
   WORD          *idx;
   CGxVertexPCT0 *vtx;
-  UserArg       *arg = static_cast<UserArg *>(gxBuf->UserArg());
+  UserArg       *arg = (UserArg *)gxBuf->UserArg();
   SetupBufCmd(gxBuf, cmd, vtx, idx);
   arg->liquid->RenderMagma0V(vtx);
   arg->indexCount = arg->liquid->Render0I(idx, arg->liquidType);
@@ -1240,7 +1254,7 @@ void CChunkLiquid::Render(UINT type) {
   switch (type) {
     case 0: {
       if (!CMap::riverDiffTexUpdated) {
-        NTempest::CiRect texRect(0, 0, CMap::WATERTEX_HEIGHT, static_cast<int>(Gx_MinTexAspect * CMap::WATERTEX_HEIGHT));
+        NTempest::CiRect texRect(0, 0, CMap::WATERTEX_HEIGHT, Gx_MinTexAspect * CMap::WATERTEX_HEIGHT);
         GxTexUpdate(CMap::riverDiffTexid, texRect, 0);
         CMap::riverDiffTexUpdated = true;
       }
@@ -1249,7 +1263,7 @@ void CChunkLiquid::Render(UINT type) {
     }
     case 1: {
       if (!CMap::oceanDiffTexUpdated) {
-        NTempest::CiRect texRect(0, 0, CMap::WATERTEX_HEIGHT, static_cast<int>(Gx_MinTexAspect * CMap::WATERTEX_HEIGHT));
+        NTempest::CiRect texRect(0, 0, CMap::WATERTEX_HEIGHT, Gx_MinTexAspect * CMap::WATERTEX_HEIGHT);
         GxTexUpdate(CMap::oceanDiffTexid, texRect, 0);
         CMap::oceanDiffTexUpdated = true;
       }
@@ -1288,20 +1302,23 @@ void Particulate::InitMovement() {
 }
 
 NTempest::C3Vector Particulate::ComputeMovement(float elapsedTime) {
-  if (liquid <= 1) {
-    movement.time += elapsedTime;
-    float amp = movement.time * movement.freq;
-    if (amp > 0.5f) {
-      InitMovement();
-      amp = 0.0f;
+  static float FALL_RATE = -0.02f;
+
+  switch (liquid) {
+    case 0:
+    case 1: {
+      movement.time += elapsedTime;
+      float amp = movement.time * movement.freq;
+      if (amp > 0.5f) {
+        InitMovement();
+        amp = 0.0f;
+      }
+
+      amp = NTempest::CMath::sin_(amp * 6.2831855f) * movement.amplitude;
+      return movement.dir * amp;
     }
-
-    amp = NTempest::CMath::sin_(amp * 6.2831855f) * movement.amplitude;
-    return movement.dir * amp;
-  }
-
-  if (liquid == 2) {
-    return NTempest::C3Vector(0.0f, 0.0f, -0.02f * elapsedTime);
+    case 2:
+      return NTempest::C3Vector(0.0f, 0.0f, FALL_RATE * elapsedTime);
   }
 
   return NTempest::C3Vector(0.0f, 0.0f, 0.0f);
@@ -1326,7 +1343,7 @@ Particulate::~Particulate() {
 
 void Particulate::SetPercentage(float percent) {
   ASSERT(percent >= 0.0f && percent <= 1.0f);
-  numParticles = static_cast<UINT>(percent * 4000.0f);
+  numParticles = percent * 4000.0f;
 }
 
 void Particulate::SetScale(float s) {
@@ -1380,60 +1397,48 @@ void Particulate::Update() {
   delta += ComputeMovement(CWorld::GetTickTimeSec());
 
   for (UINT lp = 0; lp < numParticles; ++lp) {
-    particles[lp].pos += delta;
+    NTempest::C3Vector &pos = particles[lp].pos;
+    pos += delta;
 
-    if (particles[lp].pos.x > halfBoxSize) {
-      particles[lp].pos.x -= boxSize;
-    } else if (particles[lp].pos.x < -halfBoxSize) {
-      particles[lp].pos.x += boxSize;
+    if (pos.x > halfBoxSize) {
+      pos.x -= boxSize;
+    } else if (pos.x < -halfBoxSize) {
+      pos.x += boxSize;
     }
 
-    if (particles[lp].pos.y > halfBoxSize) {
-      particles[lp].pos.y -= boxSize;
-    } else if (particles[lp].pos.y < -halfBoxSize) {
-      particles[lp].pos.y += boxSize;
+    if (pos.y > halfBoxSize) {
+      pos.y -= boxSize;
+    } else if (pos.y < -halfBoxSize) {
+      pos.y += boxSize;
     }
 
-    if (particles[lp].pos.z > halfBoxSize) {
-      particles[lp].pos.z -= boxSize;
-    } else if (particles[lp].pos.z < -halfBoxSize) {
-      particles[lp].pos.z += boxSize;
+    if (pos.z > halfBoxSize) {
+      pos.z -= boxSize;
+    } else if (pos.z < -halfBoxSize) {
+      pos.z += boxSize;
     }
   }
 }
 
-const float                       Particulate::PTSIZE = 0.5f;
-NTempest::C3Vector                Particulate::s_vcv[4] = {
-    NTempest::C3Vector(-PTSIZE, PTSIZE, 0.0f), NTempest::C3Vector(-PTSIZE, -PTSIZE, 0.0f), NTempest::C3Vector(PTSIZE, PTSIZE, 0.0f),
-    NTempest::C3Vector(PTSIZE, -PTSIZE, 0.0f)
+const float         Particulate::PTSIZE = 0.19921875f;
+NTempest::C3Vector  Particulate::s_vcv[4] = {
+    NTempest::C3Vector(-0.5f, 0.5f, 0.0f), NTempest::C3Vector(-0.5f, -0.5f, 0.0f), NTempest::C3Vector(0.5f, 0.5f, 0.0f),
+    NTempest::C3Vector(0.5f, -0.5f, 0.0f)
 };
 NTempest::C2Vector Particulate::s_tc[13][4] = {
-    {       NTempest::C2Vector(0.0f,        0.0f),        NTempest::C2Vector(0.0f, 0.19921875f), NTempest::C2Vector(0.19921875f,        0.0f),
-     NTempest::C2Vector(0.19921875f, 0.19921875f)},
-    {NTempest::C2Vector(0.19921875f,        0.0f), NTempest::C2Vector(0.19921875f, 0.19921875f),  NTempest::C2Vector(0.3984375f,        0.0f),
-     NTempest::C2Vector(0.3984375f, 0.19921875f) },
-    { NTempest::C2Vector(0.3984375f,        0.0f),  NTempest::C2Vector(0.3984375f, 0.19921875f), NTempest::C2Vector(0.59765625f,        0.0f),
-     NTempest::C2Vector(0.59765625f, 0.19921875f)},
-    {NTempest::C2Vector(0.59765625f,        0.0f), NTempest::C2Vector(0.59765625f, 0.19921875f),   NTempest::C2Vector(0.796875f,        0.0f),
-     NTempest::C2Vector(0.796875f, 0.19921875f)  },
-    {       NTempest::C2Vector(0.0f, 0.19921875f),        NTempest::C2Vector(0.0f,  0.3984375f), NTempest::C2Vector(0.19921875f, 0.19921875f),
-     NTempest::C2Vector(0.19921875f,  0.3984375f)},
-    {NTempest::C2Vector(0.19921875f, 0.19921875f), NTempest::C2Vector(0.19921875f,  0.3984375f),  NTempest::C2Vector(0.3984375f, 0.19921875f),
-     NTempest::C2Vector(0.3984375f,  0.3984375f) },
-    { NTempest::C2Vector(0.3984375f, 0.19921875f),  NTempest::C2Vector(0.3984375f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.19921875f),
-     NTempest::C2Vector(0.59765625f,  0.3984375f)},
-    {NTempest::C2Vector(0.59765625f, 0.19921875f), NTempest::C2Vector(0.59765625f,  0.3984375f),   NTempest::C2Vector(0.796875f, 0.19921875f),
-     NTempest::C2Vector(0.796875f,  0.3984375f)  },
-    {  NTempest::C2Vector(0.796875f,        0.0f),   NTempest::C2Vector(0.796875f, 0.19921875f), NTempest::C2Vector(0.99609375f,        0.0f),
-     NTempest::C2Vector(0.99609375f, 0.19921875f)},
-    {       NTempest::C2Vector(0.0f,  0.3984375f),        NTempest::C2Vector(0.0f, 0.59765625f), NTempest::C2Vector(0.19921875f,  0.3984375f),
-     NTempest::C2Vector(0.19921875f, 0.59765625f)},
-    {NTempest::C2Vector(0.19921875f,  0.3984375f), NTempest::C2Vector(0.19921875f, 0.59765625f),  NTempest::C2Vector(0.3984375f,  0.3984375f),
-     NTempest::C2Vector(0.3984375f, 0.59765625f) },
-    { NTempest::C2Vector(0.3984375f,  0.3984375f),  NTempest::C2Vector(0.3984375f, 0.59765625f), NTempest::C2Vector(0.59765625f,  0.3984375f),
-     NTempest::C2Vector(0.59765625f, 0.59765625f)},
-    {NTempest::C2Vector(0.59765625f,  0.3984375f), NTempest::C2Vector(0.59765625f, 0.59765625f),   NTempest::C2Vector(0.796875f,  0.3984375f),
-     NTempest::C2Vector(0.796875f, 0.59765625f)  }
+    {NTempest::C2Vector(PTSIZE * 0, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 0, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 1)},
+    {NTempest::C2Vector(PTSIZE * 1, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 1)},
+    {NTempest::C2Vector(PTSIZE * 2, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 1)},
+    {NTempest::C2Vector(PTSIZE * 3, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 1)},
+    {NTempest::C2Vector(PTSIZE * 0, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 0, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 2)},
+    {NTempest::C2Vector(PTSIZE * 1, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 2)},
+    {NTempest::C2Vector(PTSIZE * 2, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 2)},
+    {NTempest::C2Vector(PTSIZE * 3, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 2)},
+    {NTempest::C2Vector(PTSIZE * 4, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 1), NTempest::C2Vector(PTSIZE * 5, PTSIZE * 0), NTempest::C2Vector(PTSIZE * 5, PTSIZE * 1)},
+    {NTempest::C2Vector(PTSIZE * 0, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 0, PTSIZE * 3), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 3)},
+    {NTempest::C2Vector(PTSIZE * 1, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 1, PTSIZE * 3), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 3)},
+    {NTempest::C2Vector(PTSIZE * 2, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 2, PTSIZE * 3), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 3)},
+    {NTempest::C2Vector(PTSIZE * 3, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 3, PTSIZE * 3), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 2), NTempest::C2Vector(PTSIZE * 4, PTSIZE * 3)}
 };
 UINT Particulate::s_tcSub[4][8] = {
     {0,  1,  2,  3, 4,  5,  6,  7},
@@ -1447,32 +1452,27 @@ void Particulate::Render() {
     return;
   }
 
-  CGxVertexPCT0 *vtxBase = static_cast<CGxVertexPCT0 *>(GxAllocVertexMem(2664 * sizeof(*vtxBase)));
-  WORD          *idxBase = static_cast<WORD *>(GxAllocIndexMem(3996 * sizeof(*idxBase)));
+  CGxVertexPCT0 *vtxBase = (CGxVertexPCT0 *)GxAllocVertexMem(2664 * sizeof(*vtxBase));
+  CGxVertexPCT0 *vtx = vtxBase;
+  WORD          *idxBase = (WORD *)GxAllocIndexMem(3996 * sizeof(*idxBase));
+  WORD          *idx = idxBase;
 
   NTempest::C44Matrix view;
   GxXformView(view);
   GxXformSetView(NTempest::C44Matrix());
 
-  UINT  nVerts = 0;
-  WORD *idx = idxBase;
-  UINT  tcSub = 8;
+  UINT nVerts = 0;
+  UINT tcSub = 8;
   for (UINT lp = 0; lp < numParticles; ++lp) {
     const Particle    &particle = particles[lp];
-    NTempest::C3Vector vp(
-        view.a0 * particle.pos.x + view.b0 * particle.pos.y + view.c0 * particle.pos.z,
-        view.a1 * particle.pos.x + view.b1 * particle.pos.y + view.c1 * particle.pos.z,
-        view.a2 * particle.pos.x + view.b2 * particle.pos.y + view.c2 * particle.pos.z
-    );
+    NTempest::C3Vector vp = NTempest::C44Matrix::mul3v33m_(particle.pos, view);
 
     if (vp.z > 0.0f && vp.x < vp.z && vp.x > -vp.z && vp.y < vp.z && vp.y > -vp.z) {
-      CGxVertexPCT0 *vtx = vtxBase + nVerts;
       for (UINT i = 0; i < 4; ++i) {
-        vtx[i].p.x = vp.x + s_vcv[i].x * particle.scale;
-        vtx[i].p.y = vp.y + s_vcv[i].y * particle.scale;
-        vtx[i].p.z = vp.z;
-        vtx[i].c = -1;
-        vtx[i].tc[0] = s_tc[tcSub][i];
+        vtx->p = NTempest::C3Vector(vp.x + s_vcv[i].x * particle.scale, vp.y + s_vcv[i].y * particle.scale, vp.z);
+        vtx->c = -1;
+        vtx->tc[0] = s_tc[tcSub][i];
+        ++vtx;
       }
 
       idx[0] = nVerts;
@@ -1506,5 +1506,5 @@ void Particulate::Render() {
 }
 
 void Particulate::CustomRenderCallback(LPVOID p1, int p2) {
-  static_cast<Particulate *>(p1)->Render();
+  ((Particulate *)p1)->Render();
 }

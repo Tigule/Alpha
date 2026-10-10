@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -18,6 +18,7 @@
 #include <Model/IModel.h>
 #include <Model/CollisionData.h>
 #include <Base/Status.h>
+#include <Base/SFileExtras.h>
 #include <Services/AsyncFileRead.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
@@ -30,14 +31,14 @@ static LPCSTR                 s_animationNames[1] = {"Stand"};
 static NTempest::CImVector    s_uglyGreen(0xFF00FF00);
 
 static BOOL OnPickNextFidget(LPVOID param) {
-  ModelSetRandomSequenceFidget(static_cast<HMODEL>(param), 0, 0);
+  ModelSetRandomSequenceFidget((HMODEL)param, 0, 0);
   return 1;
 }
 
 static void DoodadEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
-  switch (*reinterpret_cast<const UINT *>(eventName)) {
+  switch (*(const UINT *)eventName) {
     case 'LSD$': {
-      CMapDoodadDef *doodadDef = static_cast<CMapDoodadDef *>(param);
+      CMapDoodadDef *doodadDef = (CMapDoodadDef *)param;
       if (!doodadDef->doodadSoundHandle) {
         doodadDef->doodadSoundHandle = SndInterfaceHandleDoodadLoopStart(SStrToUnsigned(eventName + 4), position);
       }
@@ -130,25 +131,29 @@ void CMap::LoadWdl() {
         SFile::Read(wdlFile, heights, sizeof(heights), 0, 0, 0);
 
         min = FLT_MAX;
-        temp = -FLT_MAX;
+        float max = -FLT_MAX;
         for (UINT h = 0; h < 545; ++h) {
-          mapAreaLow->heights[h] = static_cast<float>(heights[h]);
-          if (mapAreaLow->heights[h] < min) {
-            min = mapAreaLow->heights[h];
+          temp = heights[h];
+          mapAreaLow->heights[h] = temp;
+          if (temp < min) {
+            min = temp;
           }
-          if (mapAreaLow->heights[h] > temp) {
-            temp = mapAreaLow->heights[h];
+          if (temp > max) {
+            max = temp;
           }
         }
 
-        mapAreaLow->corner.x = 17066.666f - static_cast<float>(y) * 33.333332f;
-        mapAreaLow->corner.y = 17066.666f - static_cast<float>(x) * 33.333332f;
+        mapAreaLow->corner.y = (float)y * 33.333332f;
+        mapAreaLow->corner.x = (float)x * 33.333332f;
+        temp = (-mapAreaLow->corner.x) + 17066.666f;
+        mapAreaLow->corner.x = (-mapAreaLow->corner.y) + 17066.666f;
+        mapAreaLow->corner.y = temp;
+        mapAreaLow->aaBox.t.y = mapAreaLow->corner.y;
+        mapAreaLow->aaBox.t.x = mapAreaLow->corner.x;
+        mapAreaLow->aaBox.t.z = max;
         mapAreaLow->aaBox.b.x = mapAreaLow->corner.x - 533.33331f;
         mapAreaLow->aaBox.b.y = mapAreaLow->corner.y - 533.33331f;
         mapAreaLow->aaBox.b.z = min;
-        mapAreaLow->aaBox.t.x = mapAreaLow->corner.x;
-        mapAreaLow->aaBox.t.y = mapAreaLow->corner.y;
-        mapAreaLow->aaBox.t.z = temp;
         mapAreaLow->aaSphere.c = (mapAreaLow->aaBox.b + mapAreaLow->aaBox.t) * 0.5f;
         mapAreaLow->aaSphere.r = (mapAreaLow->aaBox.t - mapAreaLow->aaSphere.c).Mag();
       }
@@ -169,7 +174,7 @@ void CMap::LoadWdt() {
 
   SFile::Read(wdtFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
   FATALASSERT(iffChunk.token=='MPHD');
-  SFile::Read(wdtFile, &header, 0x80, 0, 0, 0);
+  SFile::Read(wdtFile, &header, sizeof(header), 0, 0, 0);
 
   SFile::Read(wdtFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
   FATALASSERT(iffChunk.token=='MAIN');
@@ -212,7 +217,7 @@ void CMap::LoadDoodadNames() {
   DWORD     bRead;
   UINT      cnt;
 
-  SFile::Read(wdtFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
+  SFileReadTyped(wdtFile, &iffChunk);
   FATALASSERT(iffChunk.token=='MDNM');
 
   if (iffChunk.size) {
@@ -238,7 +243,7 @@ void CMap::LoadMapObjNames() {
   DWORD     bRead;
   UINT      cnt;
 
-  SFile::Read(wdtFile, &iffChunk, sizeof(iffChunk), 0, 0, 0);
+  SFileReadTyped(wdtFile, &iffChunk);
   FATALASSERT(iffChunk.token=='MONM');
 
   mapObjNames.SetCount(iffChunk.size);
@@ -302,7 +307,7 @@ CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vecto
 
   doodadDef->pos.Set(-smDoodadDef.pos.z, -smDoodadDef.pos.x, smDoodadDef.pos.y);
   doodadDef->pos += pos;
-  doodadDef->scale = static_cast<float>(smDoodadDef.scale) * 0.0009765625f;
+  doodadDef->scale = (float)smDoodadDef.scale * 0.0009765625f;
   doodadDef->aaSphere.c = doodadDef->pos;
   doodadDef->aaBox.b = doodadDef->pos;
   doodadDef->aaBox.t = doodadDef->pos;

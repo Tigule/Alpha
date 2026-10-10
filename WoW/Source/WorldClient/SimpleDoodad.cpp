@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -93,8 +93,7 @@ void CSimpleDoodad::RenderScene() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxXformPush(GxXform_World);
 
-  for (CSimpleDoodad *simpleDoodad = simpleDoodadScene.Head(), *simpleDoodadnext_node;
-       (int)simpleDoodad > 0 ? ((simpleDoodadnext_node = simpleDoodadScene.RawNext(simpleDoodad)), 1) : 0; simpleDoodad = simpleDoodadnext_node) {
+  SAFEITERATELIST(CSimpleDoodad, simpleDoodadScene, simpleDoodad) {
     for (UINT n = 0; n < simpleDoodad->nGeosets; ++n) {
       CSimpleDoodadGeoset *geoset = &simpleDoodad->geosets[n];
       CSimpleDoodadMat    *material = &simpleDoodad->materials[geoset->material];
@@ -226,7 +225,7 @@ void CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {
 
   ASSERT(buf);
 
-  geoset = static_cast<CSimpleDoodadGeoset *>(buf->UserArg());
+  geoset = (CSimpleDoodadGeoset *)buf->UserArg();
   ASSERT(geoset);
 
   CreateVertices(geoset, cmd, buf);
@@ -244,7 +243,7 @@ void CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufComm
       return;
 
     case GxBufOp_Fill:
-      vtxBase = static_cast<CGxVertexPNT0 *>(*cmd.vertex.mem[GxVM_Position]);
+      vtxBase = (CGxVertexPNT0 *)*cmd.vertex.mem[GxVM_Position];
       ASSERT(vtxBase);
 
       for (index = 0; index < geoset->vertexList.Count(); ++index) {
@@ -255,7 +254,7 @@ void CSimpleDoodad::CreateVertices(CSimpleDoodadGeoset *geoset, const CGxBufComm
       break;
 
     case GxBufOp_Assign:
-      vtxBase = static_cast<CGxVertexPNT0 *>(GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPNT0)));
+      vtxBase = (CGxVertexPNT0 *)GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPNT0));
       ASSERT(vtxBase);
 
       *cmd.vertex.mem[GxVM_Position] = &vtxBase->p;
@@ -275,14 +274,14 @@ void CSimpleDoodad::CreateIndices(CSimpleDoodadGeoset *geoset, const CGxBufComma
       return;
 
     case GxBufOp_Fill:
-      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      idx = (WORD *)*cmd.index.mem[GxVM_Indices];
       ASSERT(idx);
 
       memcpy(idx, geoset->indexList.Ptr(), geoset->indexList.Count() * sizeof(WORD));
       break;
 
     case GxBufOp_Assign:
-      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(WORD)));
+      idx = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(WORD));
       ASSERT(idx);
 
       *cmd.index.mem[GxVM_Indices] = idx;

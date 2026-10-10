@@ -151,8 +151,8 @@ int CGClassTrainer::GetSelectionIndex() {
 static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  TrainerSkillLineInfo *info1 = *static_cast<TrainerSkillLineInfo *const *>(a);
-  TrainerSkillLineInfo *info2 = *static_cast<TrainerSkillLineInfo *const *>(b);
+  TrainerSkillLineInfo *info1 = *(TrainerSkillLineInfo *const *)a;
+  TrainerSkillLineInfo *info2 = *(TrainerSkillLineInfo *const *)b;
   if (info1->skillLine == info2->skillLine) {
     return 0;
   }
@@ -173,8 +173,8 @@ static int __cdecl QSortSkillLines(LPCVOID a, LPCVOID b) {
 static int __cdecl QSortTradeSkillTypes(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  int line1 = (*static_cast<TrainerSkillLineInfo *const *>(a))->skillLine;
-  int line2 = (*static_cast<TrainerSkillLineInfo *const *>(b))->skillLine;
+  int line1 = (*(TrainerSkillLineInfo *const *)a)->skillLine;
+  int line2 = (*(TrainerSkillLineInfo *const *)b)->skillLine;
   if (line1 == line2) {
     return 0;
   }
@@ -184,8 +184,8 @@ static int __cdecl QSortTradeSkillTypes(LPCVOID a, LPCVOID b) {
 static int __cdecl QSortServices_General(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
-  TrainerServiceInfo *info2 = *static_cast<TrainerServiceInfo *const *>(b);
+  TrainerServiceInfo *info1 = *(TrainerServiceInfo *const *)a;
+  TrainerServiceInfo *info2 = *(TrainerServiceInfo *const *)b;
   if (!info1->enabled || !info2->enabled) {
     if (!info1->enabled && !info2->enabled) {
       return 0;
@@ -226,8 +226,8 @@ static int __cdecl QSortServices_General(LPCVOID a, LPCVOID b) {
 static int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
-  TrainerServiceInfo *info2 = *static_cast<TrainerServiceInfo *const *>(b);
+  TrainerServiceInfo *info1 = *(TrainerServiceInfo *const *)a;
+  TrainerServiceInfo *info2 = *(TrainerServiceInfo *const *)b;
   if (!info1->enabled || !info2->enabled) {
     if (!info1->enabled && !info2->enabled) {
       return 0;
@@ -254,8 +254,8 @@ static int __cdecl QSortServices_Tradeskill(LPCVOID a, LPCVOID b) {
 static int __cdecl QSortServices_Talent(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  TrainerServiceInfo *info1 = *static_cast<TrainerServiceInfo *const *>(a);
-  TrainerServiceInfo *info2 = *static_cast<TrainerServiceInfo *const *>(b);
+  TrainerServiceInfo *info1 = *(TrainerServiceInfo *const *)a;
+  TrainerServiceInfo *info2 = *(TrainerServiceInfo *const *)b;
   if (!info1->enabled || !info2->enabled) {
     if (!info1->enabled && !info2->enabled) {
       return 0;
@@ -305,16 +305,14 @@ static int GetSkillLineFromService(int serviceSpell) {
       }
     }
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (!unit) {
+      return 0;
+    }
+    if (petSpell) {
+      unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit->GetControlledGUID(), __FILE__, __LINE__));
+    }
     if (unit) {
-      if (petSpell) {
-        unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(unit->GetControlledGUID(), __FILE__, __LINE__));
-      }
-      if (unit) {
-        if (effectIndex >= 0) {
-          return unit->GetSpellSkillLine(spell->m_effectTriggerSpell[effectIndex]);
-        }
-        return unit->GetSpellSkillLine(spell->m_ID);
-      }
+      return effectIndex >= 0 ? unit->GetSpellSkillLine(spell->m_effectTriggerSpell[effectIndex]) : unit->GetSpellSkillLine(spell->m_ID);
     }
   }
   return 0;
@@ -807,7 +805,7 @@ static int Script_CloseTrainer(lua_State *) {
 }
 
 static int Script_GetNumTrainerServices(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGClassTrainer::GetNumServices()));
+  lua_pushnumber(L, CGClassTrainer::GetNumServices());
   return 1;
 }
 
@@ -816,7 +814,7 @@ static int Script_GetTrainerServiceInfo(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceInfo(index)");
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+  UINT index = (UINT)lua_tonumber(L, 1) - 1;
   lua_pushstring(L, CGClassTrainer::GetServiceName(index));
   lua_pushstring(L, CGClassTrainer::GetServiceSubtext(index));
   lua_pushstring(L, CGClassTrainer::GetServiceType(index));
@@ -833,7 +831,7 @@ static int Script_SelectTrainerService(lua_State *L) {
     luaL_error(L, "Usage: SelectTrainerService(index)");
     return 0;
   }
-  UINT index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT index = (int)lua_tonumber(L, 1) - 1;
   CGClassTrainer::SetSelection(index);
   return 0;
 }
@@ -857,7 +855,7 @@ static int Script_IsTalentTrainer(lua_State *L) {
 }
 
 static int Script_GetTrainerSelectionIndex(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGClassTrainer::GetSelectionIndex() + 1));
+  lua_pushnumber(L, CGClassTrainer::GetSelectionIndex() + 1);
   return 1;
 }
 
@@ -871,7 +869,7 @@ static int Script_GetTrainerServiceIcon(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceIcon(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -888,7 +886,7 @@ static int Script_GetTrainerServiceIcon(lua_State *L) {
           const SpellRec *learned = g_spellDB.GetRecord(spell->m_effectTriggerSpell[effectIndex]);
           if (learned && learned->m_effectItemType[0]) {
             const ItemStats_C *stats = g_itemDBCache.GetRecord(
-                learned->m_effectItemType[0], static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TradeSkillItemCallback, 0
+                learned->m_effectItemType[0], (DWORDLONG)learned->m_ID | 0xB000000000000000ui64, TradeSkillItemCallback, 0
             );
             if (!stats) {
               lua_pushnil(L);
@@ -919,7 +917,7 @@ static int Script_GetTrainerServiceSkillLine(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceSkillLine(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     int             effectIndex = -1;
@@ -961,7 +959,7 @@ static int Script_GetTrainerServiceCost(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceCost(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   int                       moneyCost;
   int                       costCP[2];
@@ -976,9 +974,9 @@ static int Script_GetTrainerServiceCost(lua_State *L) {
       costCP[i] = 0;
     }
   }
-  lua_pushnumber(L, static_cast<double>(moneyCost));
-  lua_pushnumber(L, static_cast<double>(costCP[0]));
-  lua_pushnumber(L, static_cast<double>(costCP[1]));
+  lua_pushnumber(L, moneyCost);
+  lua_pushnumber(L, costCP[0]);
+  lua_pushnumber(L, costCP[1]);
   return 3;
 }
 
@@ -987,13 +985,13 @@ static int Script_GetTrainerServiceLevelReq(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceLevelReq(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   int                       level = 0;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     level = info->reqLevel;
   }
-  lua_pushnumber(L, static_cast<double>(level));
+  lua_pushnumber(L, level);
   return 1;
 }
 
@@ -1002,7 +1000,7 @@ static int Script_GetTrainerServiceSkillReq(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceSkillReq(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   int                       met = 1;
   int                       rank = 0;
   CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -1025,7 +1023,7 @@ static int Script_GetTrainerServiceSkillReq(lua_State *L) {
   }
   if (line && line->m_displayName_lang[CURRENT_LANGUAGE] && *line->m_displayName_lang[CURRENT_LANGUAGE]) {
     lua_pushstring(L, line->m_displayName_lang[CURRENT_LANGUAGE]);
-    lua_pushnumber(L, static_cast<double>(rank));
+    lua_pushnumber(L, rank);
   } else {
     lua_pushnil(L);
     lua_pushnumber(L, 0.0);
@@ -1043,7 +1041,7 @@ static int Script_GetTrainerServiceNumAbilityReq(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceAbilityReq(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   UINT                      count = 0;
   if (info) {
@@ -1053,14 +1051,14 @@ static int Script_GetTrainerServiceNumAbilityReq(lua_State *L) {
       }
     }
   }
-  lua_pushnumber(L, static_cast<double>(count));
+  lua_pushnumber(L, count);
   return 1;
 }
 
 static int Script_GetTrainerServiceAbilityReq(lua_State *L) {
   if (lua_isnumber(L, 1) && lua_isnumber(L, 2)) {
-    UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
-    UINT                      abilityIndex = static_cast<int>(lua_tonumber(L, 2)) - 1;
+    UINT                      index = (int)lua_tonumber(L, 1) - 1;
+    UINT                      abilityIndex = (int)lua_tonumber(L, 2) - 1;
     char                      ability[256] = "";
     int                       met = 1;
     CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -1109,7 +1107,7 @@ static int Script_GetTrainerServiceStepReq(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceStepReq(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   int                       met = 1;
   CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
@@ -1158,7 +1156,7 @@ static int Script_GetTrainerServiceDescription(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceDescription(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *service = CGClassTrainer::GetService(index);
   if (service) {
     int             learnEffect = -1;
@@ -1172,7 +1170,7 @@ static int Script_GetTrainerServiceDescription(lua_State *L) {
           skillStep = i;
         }
       }
-      if ((CGClassTrainer::GetTrainerType() != TRAINER_TYPE_TALENTS || service->usable != 2) && spell->m_description_lang[CURRENT_LANGUAGE] &&
+      if ((CGClassTrainer::GetTrainerType() != TRAINER_TYPE_TALENTS || service->usable != TRAINER_SERVICE_USED) && spell->m_description_lang[CURRENT_LANGUAGE] &&
           *spell->m_description_lang[CURRENT_LANGUAGE])
       {
         char buf[1024];
@@ -1191,7 +1189,7 @@ static int Script_GetTrainerServiceDescription(lua_State *L) {
           }
           if ((learned->m_attributes & 0x20) && learned->m_effect[0] == 24) {
             int                itemID = learned->m_effectItemType[0];
-            const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TrainerItemCallback, 0);
+            const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, (DWORDLONG)learned->m_ID | 0xB000000000000000ui64, TrainerItemCallback, 0);
             if (stats && stats->m_description && *stats->m_description) {
               lua_pushstring(L, stats->m_description);
               return 1;
@@ -1216,7 +1214,7 @@ static int Script_IsTrainerServiceSkillStep(lua_State *L) {
     luaL_error(L, "Usage: IsTrainerServiceSkillStep(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1238,7 +1236,7 @@ static int Script_IsTrainerServiceLearnSpell(lua_State *L) {
     luaL_error(L, "Usage: IsTrainerServiceLearnSpell(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1270,7 +1268,7 @@ static int Script_IsTrainerServiceTradeSkill(lua_State *L) {
     luaL_error(L, "Usage: IsTrainerServiceTradeSkill(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1295,7 +1293,7 @@ static int Script_GetTrainerServiceStepIncrease(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceStepIncrease(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1308,7 +1306,7 @@ static int Script_GetTrainerServiceStepIncrease(lua_State *L) {
           break;
         }
       }
-      if (effectIndex >= 0 && info->usable != 2) {
+      if (effectIndex >= 0 && info->usable != TRAINER_SERVICE_USED) {
         int             min;
         int             max;
         int             prev = 0;
@@ -1350,7 +1348,7 @@ static int Script_GetTrainerServiceSpellStats(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceSpellStats(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1392,7 +1390,7 @@ static int Script_GetTrainerServiceSpellStats(lua_State *L) {
           const SpellRangeRec *range = g_spellRangeDB.GetRecord(max(learned->m_rangeIndex, 1));
           LPCSTR               text = FrameScript_GetText("TRAINER_RANGE", -1, GENDER_NOT_APPLICABLE);
           SStrCopy(temp, text, sizeof(temp));
-          SStrPrintf(buf, sizeof(buf), temp, range->m_displayNameShort_lang[CURRENT_LANGUAGE], static_cast<int>(range->m_rangeMax));
+          SStrPrintf(buf, sizeof(buf), temp, range->m_displayNameShort_lang[CURRENT_LANGUAGE], (int)range->m_rangeMax);
           lua_pushstring(L, buf);
 
           const SpellCastTimesRec *castTime = g_spellCastTimesDB.GetRecord(max(learned->m_castingTimeIndex, 1));
@@ -1437,7 +1435,7 @@ static int Script_GetTrainerServiceEffects(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceEffects(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   int                       count = 0;
   if (info) {
@@ -1606,7 +1604,7 @@ static int Script_BuyTrainerService(lua_State *L) {
     luaL_error(L, "Usage: BuyTrainerService(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *service = CGClassTrainer::GetService(index);
   CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (service && player) {
@@ -1620,7 +1618,7 @@ static int Script_GetTrainerServiceItemStats(lua_State *L) {
     luaL_error(L, "Usage: GetTrainerServiceItemStats(index)");
     return 0;
   }
-  UINT                      index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  UINT                      index = (int)lua_tonumber(L, 1) - 1;
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
   if (info) {
     const SpellRec *spell = g_spellDB.GetRecord(info->spellID);
@@ -1635,7 +1633,7 @@ static int Script_GetTrainerServiceItemStats(lua_State *L) {
             char                   temp[128];
             int                    count;
             int                    itemID = learned->m_effectItemType[0];
-            const ItemStats       *stats = g_itemDBCache.GetRecord(itemID, static_cast<DWORDLONG>(learned->m_ID) | 0xB000000000000000ui64, TrainerItemCallback, 0);
+            const ItemStats       *stats = g_itemDBCache.GetRecord(itemID, (DWORDLONG)learned->m_ID | 0xB000000000000000ui64, TrainerItemCallback, 0);
             CGPlayer_C *player;
             char        buf[128];
             if (!stats) {
@@ -2098,11 +2096,11 @@ static int Script_SetTrainerServiceTypeFilter(lua_State *L) {
     return 0;
   }
   int filter = CGClassTrainer::GetServiceTypeFilter();
-  if (!static_cast<int>(lua_tonumber(L, 2))) {
+  if (!(int)lua_tonumber(L, 2)) {
     CGClassTrainer::SetServiceTypeFilter(~(1 << serviceType) & filter);
     return 0;
   }
-  if (lua_isnumber(L, 3) && static_cast<int>(lua_tonumber(L, 3))) {
+  if (lua_isnumber(L, 3) && (int)lua_tonumber(L, 3)) {
     CGClassTrainer::SetServiceTypeFilter(1 << serviceType);
     return 0;
   }
@@ -2115,12 +2113,12 @@ static int Script_SetTrainerSkillLineFilter(lua_State *L) {
     luaL_error(L, "Usage: SetTrainerSkillLineFilter(index [, on\\off, exclusive])");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGClassTrainer::SetSkillLineFilter(-1);
     return 0;
   }
-  if (index >= static_cast<int>(CGClassTrainer::GetNumSkillLines())) {
+  if (index >= (int)CGClassTrainer::GetNumSkillLines()) {
     luaL_error(L, "Bad skill line in SetTrainerSkillLineFilter");
     return 0;
   }
@@ -2133,11 +2131,11 @@ static int Script_SetTrainerSkillLineFilter(lua_State *L) {
     return 0;
   }
   int filter = CGClassTrainer::GetSkillLineFilter();
-  if (!static_cast<int>(lua_tonumber(L, 2))) {
+  if (!(int)lua_tonumber(L, 2)) {
     CGClassTrainer::SetSkillLineFilter(~(1 << index) & filter);
     return 0;
   }
-  if (lua_isnumber(L, 3) && static_cast<int>(lua_tonumber(L, 3))) {
+  if (lua_isnumber(L, 3) && (int)lua_tonumber(L, 3)) {
     CGClassTrainer::SetSkillLineFilter(1 << index);
     return 0;
   }
@@ -2169,7 +2167,7 @@ static int Script_GetTrainerSkillLineFilter(lua_State *L) {
     return 0;
   }
   int filter = CGClassTrainer::GetSkillLineFilter();
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     for (UINT i = 0; i < CGClassTrainer::GetNumSkillLines(); ++i) {
       if (!(filter & (1 << i))) {
@@ -2180,7 +2178,7 @@ static int Script_GetTrainerSkillLineFilter(lua_State *L) {
     lua_pushnumber(L, 1.0);
     return 1;
   }
-  if (index >= static_cast<int>(CGClassTrainer::GetNumSkillLines())) {
+  if (index >= (int)CGClassTrainer::GetNumSkillLines()) {
     luaL_error(L, "Bad skill line in GetTrainerSkillLineFilter");
     return 0;
   }
@@ -2206,7 +2204,7 @@ static int Script_CollapseTrainerSkillLine(lua_State *L) {
     luaL_error(L, "Usage: CollapseTrainerSkillLine(index)");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGClassTrainer::SetCollapseFilter(0);
   } else {
@@ -2225,7 +2223,7 @@ static int Script_ExpandTrainerSkillLine(lua_State *L) {
     luaL_error(L, "Usage: ExpandTrainerSkillLine(index)");
     return 0;
   }
-  int index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int index = (int)lua_tonumber(L, 1) - 1;
   if (index < 0) {
     CGClassTrainer::SetCollapseFilter(-1);
   } else {

@@ -145,7 +145,7 @@ int CBLPFile::Open(LPCSTR filename) {
 }
 
 BYTE *CBLPFile::Image(UINT level) {
-  return m_images && IsValidMip(level) ? reinterpret_cast<BYTE *>(m_images->mip[level]) : 0;
+  return m_images && IsValidMip(level) ? (BYTE *)m_images->mip[level] : 0;
 }
 
 BOOL CBLPFile::SetImage(CBLPFile &source, UINT mipLevel, CStatus *status) {
@@ -174,7 +174,7 @@ BOOL CBLPFile::SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, U
   if (!mipLevel) {
     m_header.width = width;
     m_header.height = height;
-    m_header.alphaSize = static_cast<BYTE>(alphaBits);
+    m_header.alphaSize = alphaBits;
   }
 
   if (!m_images) {
@@ -226,7 +226,7 @@ BOOL CBLPFile::SetAlphaBits(UINT alpha) {
     return 0;
   }
 
-  m_header.alphaSize = static_cast<BYTE>(alpha);
+  m_header.alphaSize = alpha;
   return 1;
 }
 
@@ -250,7 +250,7 @@ int CBLPFile::Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride
     return 0;
   }
 
-  LPCVOID tempBuffer = static_cast<BYTE *>(m_inMemoryImage) + m_header.mipOffsets[mipLevel];
+  LPCVOID tempBuffer = (BYTE *)m_inMemoryImage + m_header.mipOffsets[mipLevel];
   UINT    filesize = m_header.mipSizes[mipLevel];
   ASSERT(filesize);
 
@@ -262,7 +262,7 @@ int CBLPFile::Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride
         return 0;
       }
 
-      data = static_cast<BYTE *>(ALLOC(size));
+      data = (BYTE *)ALLOC(size);
       int result = DecompPal(format, mipLevel, data, tempBuffer);
       m_lockDecompMem = data;
       return result;
@@ -278,9 +278,9 @@ int CBLPFile::Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride
             return 0;
           }
 
-          BlitFormat srcFormat = GetBlitFormat(static_cast<PIXEL_FORMAT>(m_header.preferredFormat));
+          BlitFormat srcFormat = GetBlitFormat((PIXEL_FORMAT)m_header.preferredFormat);
           BlitFormat dstBlitFormat = GetBlitFormat(format);
-          data = static_cast<BYTE *>(ALLOC(size));
+          data = (BYTE *)ALLOC(size);
           m_lockDecompMem = data;
 
           C2iVector mipSize(m_header.width >> mipLevel, m_header.height >> mipLevel);
@@ -291,7 +291,7 @@ int CBLPFile::Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride
         case PIXEL_DXT1:
         case PIXEL_DXT3:
         case PIXEL_DXT5:
-          data = static_cast<BYTE *>(const_cast<LPVOID>(tempBuffer));
+          data = (BYTE *)tempBuffer;
           return 1;
 
         default:
@@ -336,11 +336,11 @@ BOOL CBLPFile::GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UIN
 }
 
 MIPS_TYPE CBLPFile::HasMips() const {
-  return static_cast<MIPS_TYPE>(m_header.hasMips);
+  return (MIPS_TYPE)m_header.hasMips;
 }
 
 void CBLPFile::SetHasMips(MIPS_TYPE hasMips) {
-  m_header.hasMips = static_cast<BYTE>(hasMips);
+  m_header.hasMips = hasMips;
 }
 
 BOOL CBLPFile::LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel) {
@@ -403,7 +403,7 @@ BOOL CBLPFile::LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLe
 
   for (UINT i = mipLevel; i < m_numLevels; ++i) {
     UINT dummy;
-    if (!Lock2(pixelFormat, i, reinterpret_cast<BYTE *>(images[i - mipLevel].mip[0]), dummy)) {
+    if (!Lock2(pixelFormat, i, (BYTE *)images[i - mipLevel].mip[0], dummy)) {
       SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "1", FALSE);
     }
 
@@ -416,11 +416,11 @@ BOOL CBLPFile::LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLe
 
 void CBLPFile::DecompPalFastPath(BYTE *data, LPCVOID tempbuffer, UINT colorSize) {
   BYTE       *pPix = data;
-  const BYTE *colorData = static_cast<const BYTE *>(tempbuffer);
+  const BYTE *colorData = (const BYTE *)tempbuffer;
   UINT        i;
 
   for (i = colorSize; i; --i) {
-    *reinterpret_cast<UINT *>(pPix) = *reinterpret_cast<const UINT *>(&m_header.extended.palette[*colorData]);
+    *(UINT *)pPix = *(const UINT *)&m_header.extended.palette[*colorData];
     pPix[3] = colorData[colorSize];
     ++colorData;
     pPix += 4;
@@ -429,11 +429,11 @@ void CBLPFile::DecompPalFastPath(BYTE *data, LPCVOID tempbuffer, UINT colorSize)
 
 void CBLPFile::DecompPalARGB8888(BYTE *data, LPCVOID tempBuffer, UINT colorSize) {
   BYTE       *pPix = data;
-  const BYTE *pComp = static_cast<const BYTE *>(tempBuffer);
+  const BYTE *pComp = (const BYTE *)tempBuffer;
   UINT        i;
 
   for (i = 0; i < colorSize; ++i) {
-    *reinterpret_cast<UINT *>(pPix) = *reinterpret_cast<const UINT *>(&m_header.extended.palette[*pComp]);
+    *(UINT *)pPix = *(const UINT *)&m_header.extended.palette[*pComp];
     pPix[3] = 0xFF;
     ++pComp;
     pPix += 4;
@@ -489,12 +489,12 @@ void CBLPFile::DecompPalARGB8888(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
 
 void CBLPFile::DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize) {
   WORD        pal[256];
-  WORD       *pPix = reinterpret_cast<WORD *>(data);
-  const BYTE *pComp = static_cast<const BYTE *>(tempBuffer);
+  WORD       *pPix = (WORD *)data;
+  const BYTE *pComp = (const BYTE *)tempBuffer;
   UINT        i;
 
   for (i = 0; i < 256; ++i) {
-    pal[i] = static_cast<WORD>(((m_header.extended.palette[i].r & 0xF0) << 4) + (m_header.extended.palette[i].g & 0xF0) + (m_header.extended.palette[i].b >> 4));
+    pal[i] = ((m_header.extended.palette[i].r & 0xF0) << 4) + (m_header.extended.palette[i].g & 0xF0) + (m_header.extended.palette[i].b >> 4);
   }
 
   for (i = 0; i < colorSize; ++i) {
@@ -503,7 +503,7 @@ void CBLPFile::DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
     ++pPix;
   }
 
-  pPix = reinterpret_cast<WORD *>(data);
+  pPix = (WORD *)data;
 
   switch (m_header.alphaSize) {
     case 1: {
@@ -522,10 +522,10 @@ void CBLPFile::DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
     case 4:
       for (i = 0; i < colorSize; ++i) {
         if (i & 1) {
-          *pPix |= static_cast<WORD>((*pComp & 0xF0) << 8);
+          *pPix |= (*pComp & 0xF0) << 8;
           ++pComp;
         } else {
-          *pPix |= static_cast<WORD>(*pComp << 12);
+          *pPix |= *pComp << 12;
         }
         ++pPix;
       }
@@ -533,7 +533,7 @@ void CBLPFile::DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
 
     case 8:
       for (i = 0; i < colorSize; ++i) {
-        *pPix++ |= static_cast<WORD>((*pComp++ & 0xF0) << 8);
+        *pPix++ |= (*pComp++ & 0xF0) << 8;
       }
       break;
   }
@@ -541,13 +541,13 @@ void CBLPFile::DecompPalARGB4444(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
 
 void CBLPFile::DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize) {
   WORD        pal[256];
-  WORD       *pPix = reinterpret_cast<WORD *>(data);
-  const BYTE *pComp = static_cast<const BYTE *>(tempBuffer);
+  WORD       *pPix = (WORD *)data;
+  const BYTE *pComp = (const BYTE *)tempBuffer;
   UINT        alphaBit = 0;
   UINT        i;
 
   for (i = 0; i < 256; ++i) {
-    pal[i] = static_cast<WORD>(((m_header.extended.palette[i].r & 0xF8) << 7) + ((m_header.extended.palette[i].g & 0xF8) << 2) + (m_header.extended.palette[i].b >> 3));
+    pal[i] = ((m_header.extended.palette[i].r & 0xF8) << 7) + ((m_header.extended.palette[i].g & 0xF8) << 2) + (m_header.extended.palette[i].b >> 3);
   }
 
   for (i = 0; i < colorSize; ++i) {
@@ -556,12 +556,12 @@ void CBLPFile::DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
     ++pPix;
   }
 
-  pPix = reinterpret_cast<WORD *>(data);
+  pPix = (WORD *)data;
 
   switch (m_header.alphaSize) {
     case 1:
       for (i = 0; i < colorSize; ++i) {
-        *pPix++ |= static_cast<WORD>((*pComp & (1U << alphaBit)) << (15 - alphaBit));
+        *pPix++ |= (*pComp & (1U << alphaBit)) << (15 - alphaBit);
         if (++alphaBit >= 8) {
           alphaBit = 0;
           ++pComp;
@@ -572,10 +572,10 @@ void CBLPFile::DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
     case 4:
       for (i = 0; i < colorSize; ++i) {
         if (!alphaBit) {
-          *pPix |= static_cast<WORD>((*pComp & ~7) << 12);
+          *pPix |= (*pComp & ~7) << 12;
           alphaBit = m_header.alphaSize;
         } else {
-          *pPix |= static_cast<WORD>((*pComp & 0x80) << 8);
+          *pPix |= (*pComp & 0x80) << 8;
           alphaBit = 0;
           ++pComp;
         }
@@ -585,7 +585,7 @@ void CBLPFile::DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
 
     case 8:
       for (i = 0; i < colorSize; ++i) {
-        *pPix++ |= static_cast<WORD>((*pComp++ & 0x80) << 8);
+        *pPix++ |= (*pComp++ & 0x80) << 8;
       }
       break;
   }
@@ -593,13 +593,13 @@ void CBLPFile::DecompPalARGB1555(BYTE *data, LPCVOID tempBuffer, UINT colorSize)
 
 void CBLPFile::DecompPalARGB565(BYTE *data, LPCVOID tempBuffer, UINT colorSize) {
   WORD        pal[256];
-  WORD       *pixels = reinterpret_cast<WORD *>(data);
-  const BYTE *colorData = static_cast<const BYTE *>(tempBuffer);
+  WORD       *pixels = (WORD *)data;
+  const BYTE *colorData = (const BYTE *)tempBuffer;
   UINT        i;
 
   for (i = 0; i < 256; ++i) {
     const BlpPalPixel &color = m_header.extended.palette[i];
-    pal[i] = static_cast<WORD>(((color.r & 0xF8) << 8) + ((color.g & 0xFC) << 3) + (color.b >> 3));
+    pal[i] = ((color.r & 0xF8) << 8) + ((color.g & 0xFC) << 3) + (color.b >> 3);
   }
 
   for (i = 0; i < colorSize; ++i) {
@@ -647,7 +647,7 @@ int CBLPFile::Lock2(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, UINT &stride
     return 0;
   }
 
-  const BYTE *tempBuffer = static_cast<const BYTE *>(m_inMemoryImage) + m_header.mipOffsets[mipLevel];
+  const BYTE *tempBuffer = (const BYTE *)m_inMemoryImage + m_header.mipOffsets[mipLevel];
   UINT        filesize = m_header.mipSizes[mipLevel];
   ASSERT(filesize);
 

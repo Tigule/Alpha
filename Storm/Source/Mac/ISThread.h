@@ -51,11 +51,11 @@ inline BOOL CInitCritSect::Enter() {
     if (!m_critsect) {
       pthread_mutexattr_t attributes;
 
-      m_critsect = reinterpret_cast<CCritSect *>(m_critsectData);
+      m_critsect = (CCritSect *)m_critsectData;
 
       pthread_mutexattr_init(&attributes);
       pthread_mutexattr_settype(&attributes, PTHREAD_MUTEX_RECURSIVE);
-      pthread_mutex_init(reinterpret_cast<pthread_mutex_t *>(m_critsectData), &attributes);
+      pthread_mutex_init((pthread_mutex_t *)m_critsectData, &attributes);
 
       initialized = 1;
     }
@@ -63,12 +63,12 @@ inline BOOL CInitCritSect::Enter() {
     m_spinLock = 0;
   }
 
-  pthread_mutex_lock(reinterpret_cast<pthread_mutex_t *>(m_critsect));
+  pthread_mutex_lock((pthread_mutex_t *)m_critsect);
   return initialized;
 }
 
 inline void CInitCritSect::Leave() {
-  pthread_mutex_unlock(reinterpret_cast<pthread_mutex_t *>(m_critsect));
+  pthread_mutex_unlock((pthread_mutex_t *)m_critsect);
 }
 
 #endif

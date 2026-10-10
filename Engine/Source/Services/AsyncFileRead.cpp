@@ -34,7 +34,7 @@ void AsyncFileReadInitialize() {
   s_asyncWaitObject = 0;
   s_propContext = PropGetSelectedContext();
   s_shutdownEvent.Reset();
-  SThread::Create(AsyncFileReadThread, 0, s_asyncReadThread, const_cast<char *>("AsyncFileLoader"));
+  SThread::Create(AsyncFileReadThread, 0, s_asyncReadThread, "AsyncFileLoader");
 }
 
 static UINT APIENTRY AsyncFileReadThread(LPVOID param) {

@@ -223,7 +223,7 @@ static BOOL CanBreakToDebugger() {
   present = FALSE;
   kernel = LoadLibraryA("KERNEL32.DLL");
   if (kernel) {
-    proc = (T_IsDebuggerPresent)GetProcAddress(kernel, "IsDebuggerPresent");
+    proc = GetProcAddress(kernel, "IsDebuggerPresent");
     if (proc) {
       present = proc();
     }
@@ -268,7 +268,7 @@ static void __cdecl WriteLine(LPVOID param, LPCSTR format, ...) {
   va_end(args);
   buffer[sizeof(buffer) - 3] = 0;
   SStrPack(buffer, "\r\n", sizeof(buffer));
-  WriteFile((HANDLE)param, buffer, strlen(buffer), &byteswritten, NULL);
+  WriteFile(param, buffer, strlen(buffer), &byteswritten, NULL);
 }
 
 static void WriteMessageToLog(HANDLE logfile, LPCSTR message) {
@@ -789,7 +789,7 @@ extern "C" BOOL APIENTRY SErrGetErrorStr(DWORD errorcode, char *buffer, DWORD bu
   }
 
   MSGSRC   *source = s_msgsrchead;
-  WORD      facility = (WORD)((errorcode >> 16) & 0x0FFF);
+  WORD      facility = (errorcode >> 16) & 0x0FFF;
   HINSTANCE module = NULL;
   while (source && source->facility != facility)
     source = source->next;
@@ -869,7 +869,7 @@ extern "C" void APIENTRY SErrReportNamedResourceLeak(LPCSTR handlename, LPCSTR r
   }
 
   if (!g_opt.serrleaksilentwarning) {
-    SErrDisplayError(STORM_ERROR_HANDLE_NEVER_RELEASED, errormessage, -3, NULL, TRUE, 1);
+    SErrDisplayError(STORM_ERROR_HANDLE_NEVER_RELEASED, errormessage, SERR_LINECODE_HANDLE, NULL, TRUE, 1);
     return;
   }
 

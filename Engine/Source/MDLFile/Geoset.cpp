@@ -22,24 +22,24 @@ namespace MDL {
 }  // namespace MDL
 
 static void IGeosetAddErrors(TSet &errors) {
-  errors.Add(0x1D8, 1, 0);
-  errors.Add(0x17B, 0, 0);
-  errors.Add(0x148, 1, 0);
-  errors.Add(0x156, 1, 0);
-  errors.Add(0x16D, 0, 0);
-  errors.Add(0x170, 0, 0);
-  errors.Add(0x16F, 0, 0);
-  errors.Add(0x134, 0, 0);
-  errors.Add(0x1B1, 0, 0);
-  errors.Add(0x1D2, 0, 0);
-  errors.Add(0x131, 0, 0);
-  errors.Add(0x132, 0, 0);
+  errors.Add(MDLTOK_VERTICES, 1, 0);
+  errors.Add(MDLTOK_NORMALS, 0, 0);
+  errors.Add(MDLTOK_FACES, 1, 0);
+  errors.Add(MDLTOK_GROUPS, 1, 0);
+  errors.Add(MDLTOK_MATERIAL_ID, 0, 0);
+  errors.Add(MDLTOK_MINIMUMEXTENT, 0, 0);
+  errors.Add(MDLTOK_MAXIMUMEXTENT, 0, 0);
+  errors.Add(MDLTOK_BOUNDS_RADIUS, 0, 0);
+  errors.Add(MDLTOK_SELECTION_GROUP, 0, 0);
+  errors.Add(MDLTOK_UNSELECTABLE, 0, 0);
+  errors.Add(MDLTOK_BONE_INDICES, 0, 0);
+  errors.Add(MDLTOK_BONE_WEIGHTS, 0, 0);
 }
 
 static void IGeosetAnimAddErrors(TSet &errors) {
-  errors.Add(0x11C, 0, 0);
-  errors.Add(0x136, 0, 0);
-  errors.Add(0x150, 0, 0);
+  errors.Add(MDLTOK_ALPHA, 0, 0);
+  errors.Add(MDLTOK_COLOR, 0, 0);
+  errors.Add(MDLTOK_GEOSETID, 0, 0);
 }
 
 void ReadVertices(Parser &parse, LPCSTR title, TSGrowableArray<NTempest::C3Vector> *vertices) {
@@ -104,7 +104,7 @@ static void ISkipDuplicates(Parser &parse) {
   parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   parse.Expect('{', savedtoken, tokentext);
   savedtoken = parse.Token(&tokentext, &savedvalue);
-  while (savedtoken == 0x100) {
+  while (savedtoken == MDLTOK_LONG) {
     parse.Expect(',');
     savedtoken = parse.Token(&tokentext, &savedvalue);
   }
@@ -113,12 +113,12 @@ static void ISkipDuplicates(Parser &parse) {
 
 static UINT IVertexList(Parser &parse, TSGrowableArray<WORD> *vertlist) {
   FATALASSERT(vertlist);
-  vertlist->New()[0] = static_cast<WORD>(parse.ExpectInt());
+  vertlist->New()[0] = parse.ExpectInt();
   UINT   entries = 1;
   LPCSTR tokentext;
   UINT   token = parse.Token(&tokentext, 0);
   while (token == ',') {
-    vertlist->New()[0] = static_cast<WORD>(parse.ExpectInt());
+    vertlist->New()[0] = parse.ExpectInt();
     ++entries;
     token = parse.Token(&tokentext, 0);
   }
@@ -158,17 +158,19 @@ BOOL ReadBinC3VectorSection(
     UINT                                *localBytesRead,
     CMDLStatus                          *status
 ) {
-  if (buf.GetDword() != title) {
+  DWORD found = buf.GetDword();
+  if (found != title) {
     status->Add(STATUS_ERROR, "Invalid %s section in Geoset.\n", name);
     return 0;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 8;
-  if (count) {
-    section->SetCount(count);
-    *localBytesRead += 12 * count;
-    buf.GetFloatArray(&section->Ptr()->x, 3 * count);
+  if (!count) {
+    return 1;
   }
+  section->SetCount(count);
+  *localBytesRead += count * sizeof(NTempest::C3Vector);
+  buf.GetFloatArray(&section->Ptr()->x, 3 * count);
   return 1;
 }
 
@@ -181,11 +183,12 @@ inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGro
   }
   UINT count = buf.GetUint();
   *localBytesRead += 4;
-  if (count) {
-    section->SetCount(count);
-    buf.GetUintArray(section->Ptr(), count);
-    *localBytesRead += 4 * count;
+  if (!count) {
+    return 1;
   }
+  section->SetCount(count);
+  buf.GetUintArray(section->Ptr(), count);
+  *localBytesRead += 4 * count;
   return 1;
 }
 
@@ -297,34 +300,34 @@ static void IReadPrimitives(Parser &parse, MDLPRIMITIVES *primitives) {
   savedtoken = parse.Token(&tokentext, 0);
   while (savedtoken != '}' && savedtoken) {
     switch (savedtoken) {
-      case 0x1A3:
+      case MDLTOK_POINTS:
         actualPrimitives += IMultiPoints(parse, primitives, &actualVerts, 0);
         break;
-      case 0x168:
+      case MDLTOK_LINES:
         actualPrimitives += ILines(parse, primitives, &actualVerts);
         break;
-      case 0x16A:
+      case MDLTOK_LINE_LOOP:
         actualPrimitives += ILineStripLoop(parse, primitives, &actualVerts, 2);
         break;
-      case 0x16B:
+      case MDLTOK_LINE_STRIP:
         actualPrimitives += ILineStripLoop(parse, primitives, &actualVerts, 3);
         break;
-      case 0x1C9:
+      case MDLTOK_TRIANGLES:
         actualPrimitives += ITriangles(parse, primitives, &actualVerts);
         break;
-      case 0x1CB:
+      case MDLTOK_TRIANGLE_STRIP:
         actualPrimitives += ITriangleFanStrip(parse, primitives, &actualVerts, 5);
         break;
-      case 0x1CA:
+      case MDLTOK_TRIANGLE_FAN:
         actualPrimitives += ITriangleFanStrip(parse, primitives, &actualVerts, 6);
         break;
-      case 0x1A8:
+      case MDLTOK_QUADS:
         actualPrimitives += IQuads(parse, primitives, &actualVerts);
         break;
-      case 0x1A9:
+      case MDLTOK_QUAD_STRIP:
         actualPrimitives += IQuadStrip(parse, primitives, &actualVerts);
         break;
-      case 0x1A4:
+      case MDLTOK_POLYGON:
         actualPrimitives += IMultiPoints(parse, primitives, &actualVerts, 9);
         break;
       default:
@@ -361,26 +364,28 @@ static void IReadMatrices(Parser &parse, UINT *mtxCount, TSGrowableArray<UINT> *
 
 static void IReadGroup(Parser &parse, MDLGEOSETSECTION *geoset, long *numMatrices, TSGrowableArray<UINT> *groupVertexCounts, CMDLStatus *status) {
   TSet errors;
-  errors.Add(0x1D6, 1, 0);
-  errors.Add(0x16E, 1, 0);
+  errors.Add(MDLTOK_VERTEXCOUNT, 1, 0);
+  errors.Add(MDLTOK_MATRICES, 1, 0);
   UINT *vertexCount = groupVertexCounts->New();
-  *vertexCount = 0;
   UINT *matrixCount = geoset->groupMatrixCounts.New();
-  *matrixCount = 0;
   parse.Expect('{');
   LPCSTR tokentext;
   UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
     }
-    if (token == 0x16E) {
-      IReadMatrices(parse, matrixCount, &geoset->matrices);
-      *numMatrices += *matrixCount;
-    } else if (token == 0x1D6) {
-      *vertexCount = parse.ExpectInt();
-    } else {
-      parse.FatalUnexpected(tokentext);
+    switch (token) {
+      case MDLTOK_VERTEXCOUNT:
+        *vertexCount = parse.ExpectInt();
+        break;
+      case MDLTOK_MATRICES:
+        IReadMatrices(parse, matrixCount, &geoset->matrices);
+        *numMatrices += *matrixCount;
+        break;
+      default:
+        parse.FatalUnexpected(tokentext);
+        break;
     }
     parse.Expect(',');
     token = parse.Token(&tokentext, 0);
@@ -391,10 +396,13 @@ static void IReadGroup(Parser &parse, MDLGEOSETSECTION *geoset, long *numMatrice
 
 static void IReadGroups(Parser &parse, MDLGEOSETSECTION *geoset, CMDLStatus *status) {
   UINT       savedtoken;
+  long       actualGroups = 0;
+  long       estGroups;
   LPCSTR     tokentext;
   UTokenData savedvalue;
-  long       estGroups = parse.GetOptionalInt(&savedtoken, &tokentext, &savedvalue);
   long       estMatrices = -1;
+  long       actualMatrices = 0;
+  estGroups = parse.GetOptionalInt(&savedtoken, &tokentext, &savedvalue);
   if (estGroups > 0) {
     estMatrices = parse.GetOptionalInt(savedtoken, &savedvalue, &savedtoken, &tokentext);
     geoset->groupMatrixCounts.ReserveSpace(estGroups);
@@ -403,32 +411,35 @@ static void IReadGroups(Parser &parse, MDLGEOSETSECTION *geoset, CMDLStatus *sta
     }
   }
   parse.Expect('{', savedtoken, tokentext);
-  long                  actualGroups = 0;
-  long                  actualMatrices = 0;
-  TSGrowableArray<UINT> groupVertexCounts;
   savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken && savedtoken != '}') {
-    if (savedtoken == 0x155) {
-      IReadGroup(parse, geoset, &actualMatrices, &groupVertexCounts, status);
-    } else if (savedtoken == 0x16E) {
-      UINT *count = geoset->groupMatrixCounts.New();
-      IReadMatrices(parse, count, &geoset->matrices);
-      actualMatrices += *count;
-    } else {
-      parse.FatalUnexpected(tokentext);
+  switch (savedtoken) {
+    case MDLTOK_GROUP: {
+      TSGrowableArray<UINT> groupVertexCounts;
+      if (estGroups > 0) {
+        groupVertexCounts.ReserveSpace(estGroups);
+      }
+      do {
+        IReadGroup(parse, geoset, &actualMatrices, &groupVertexCounts, status);
+        ++actualGroups;
+      } while ((savedtoken = parse.Token(&tokentext, 0)) == MDLTOK_GROUP);
+      SetVertexGroupIndices(groupVertexCounts, geoset);
+      break;
     }
-    ++actualGroups;
-    parse.Expect(',');
-    savedtoken = parse.Token(&tokentext, 0);
+    case MDLTOK_MATRICES:
+      do {
+        UINT *count = geoset->groupMatrixCounts.New();
+        IReadMatrices(parse, count, &geoset->matrices);
+        parse.Expect(',');
+        actualMatrices += *count;
+        ++actualGroups;
+      } while ((savedtoken = parse.Token(&tokentext, 0)) == MDLTOK_MATRICES);
+      break;
   }
   parse.Expect('}', savedtoken, tokentext);
-  if (groupVertexCounts.Count()) {
-    SetVertexGroupIndices(groupVertexCounts, geoset);
-  }
-  if (estGroups >= 0 && estGroups != actualGroups) {
+  if (estGroups >= 0 && actualGroups != estGroups) {
     parse.WarningCount("groups", estGroups, actualGroups);
   }
-  if (estMatrices >= 0 && estMatrices != actualMatrices) {
+  if (estMatrices >= 0 && actualMatrices != estMatrices) {
     parse.WarningCount("matrices", estMatrices, actualMatrices);
   }
 }
@@ -461,12 +472,8 @@ static void IReadVertexGroupIds(Parser &parse, MDLGEOSETSECTION *geoset) {
   LPCSTR     tokentext;
   UTokenData savedvalue;
   UINT       token = parse.Token(&tokentext, &savedvalue);
-  while (token && token != '}') {
-    if (token == 0x100) {
-      *geoset->vertGroupIndices.New() = static_cast<BYTE>(savedvalue.cVal);
-    } else {
-      parse.FatalUnexpected(tokentext);
-    }
+  while (token == MDLTOK_LONG) {
+    *geoset->vertGroupIndices.New() = savedvalue.cVal;
     parse.Expect(',');
     token = parse.Token(&tokentext, &savedvalue);
   }
@@ -484,9 +491,9 @@ static void IReadVertex(Parser &parse, NTempest::C3Vector *vertex) {
 }
 
 static void IAnimBoundsAddErrors(TSet &errors) {
-  errors.Add(0x170, 0, 0);
-  errors.Add(0x16F, 0, 0);
-  errors.Add(0x134, 0, 0);
+  errors.Add(MDLTOK_MINIMUMEXTENT, 0, 0);
+  errors.Add(MDLTOK_MAXIMUMEXTENT, 0, 0);
+  errors.Add(MDLTOK_BOUNDS_RADIUS, 0, 0);
 }
 
 static void IReadAnimBounds(Parser &parse, CMdlBounds *bounds, CMDLStatus *status) {
@@ -500,13 +507,13 @@ static void IReadAnimBounds(Parser &parse, CMdlBounds *bounds, CMDLStatus *statu
       parse.FatalDuplicate(tokentext);
     }
     switch (token) {
-      case 0x170:
+      case MDLTOK_MINIMUMEXTENT:
         IReadVertex(parse, &bounds->extent.b);
         break;
-      case 0x16F:
+      case MDLTOK_MAXIMUMEXTENT:
         IReadVertex(parse, &bounds->extent.t);
         break;
-      case 0x134:
+      case MDLTOK_BOUNDS_RADIUS:
         bounds->radius = parse.ExpectFloat();
         break;
       default:
@@ -537,28 +544,28 @@ static BOOL ValidateVertexCounts(const MDLGEOSETSECTION &geoset, Parser &parse, 
 }
 
 static BOOL IReadAlpha(Parser &parse, int expectanimation, MDLGEOSETANIMSECTION *geoset) {
-  if (expectanimation) {
-    ReadObjectFloatKeyframes(parse, &geoset->alphaKeys);
-    return 1;
+  if (!expectanimation) {
+    geoset->staticAlpha = parse.ExpectFloat();
+    return 0;
   }
-  geoset->staticAlpha = parse.ExpectFloat();
-  return 0;
+  ReadObjectFloatKeyframes(parse, &geoset->alphaKeys);
+  return 1;
 }
 
 static BOOL IReadColor(Parser &parse, int expectanimation, MDLGEOSETANIMSECTION *geoset) {
-  if (expectanimation) {
-    ReadObjectFloatKeyframes(parse, &geoset->colorKeys);
-    return 1;
+  if (!expectanimation) {
+    ReadFloatKeyData(parse, &geoset->staticColor.b, 3);
+    return 0;
   }
-  ReadFloatKeyData(parse, &geoset->staticColor.b, 3);
-  return 0;
+  ReadObjectFloatKeyframes(parse, &geoset->colorKeys);
+  return 1;
 }
 
 static BOOL IllegalStaticToken(UINT token) {
   switch (token) {
-    case 0x11C:
-    case 0x136:
-    case 0x189:
+    case MDLTOK_ALPHA:
+    case MDLTOK_COLOR:
+    case MDLTOK_OPACITY:
       return 0;
     default:
       return 1;
@@ -580,13 +587,13 @@ static BOOL IReadGeosetAnim(Parser &parse, UINT savedtoken, LPCSTR tokentext, TS
     return 0;
   }
   switch (savedtoken) {
-    case 0x11C:
-    case 0x189:
+    case MDLTOK_ALPHA:
+    case MDLTOK_OPACITY:
       if (IReadAlpha(parse, expectanimation, geoAnim)) {
         return 1;
       }
       break;
-    case 0x136:
+    case MDLTOK_COLOR:
       geoAnim->flags |= 1;
       if (IReadColor(parse, expectanimation, geoAnim)) {
         return 1;
@@ -603,7 +610,7 @@ static void IWriteGeosetTexCoords(const TSGrowableArray<NTempest::C2Vector> &tex
   if (!texcoords.Count()) {
     return;
   }
-  MDL::WriteLine(buffer, "\t%s %d {\n", MDL::TokenText(0x1CE), texcoords.Count());
+  MDL::WriteLine(buffer, "\t%s %d {\n", MDL::TokenText(MDLTOK_TVERTICES), texcoords.Count());
   const NTempest::C2Vector *coord = texcoords.Ptr();
   for (UINT i = texcoords.Count(); i; --i, ++coord) {
     MDL::WriteLine(buffer, "\t\t{ %g, %g },\n", coord->x, coord->y);
@@ -612,7 +619,7 @@ static void IWriteGeosetTexCoords(const TSGrowableArray<NTempest::C2Vector> &tex
 }
 
 static void IWriteVertexGroupIndices(const TSGrowableArray<BYTE> &vertGroupIndices, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x1D7));
+  MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_VERTEX_GROUP));
   const BYTE *index = vertGroupIndices.Ptr();
   for (UINT i = vertGroupIndices.Count(); i; --i, ++index) {
     MDL::WriteLine(buffer, "\t\t%u,\n", *index);
@@ -623,32 +630,32 @@ static void IWriteVertexGroupIndices(const TSGrowableArray<BYTE> &vertGroupIndic
 static LPCSTR IGetPrimitiveText(BYTE type) {
   switch (type) {
     case 0:
-      return MDL::TokenText(0x1A3);
+      return MDL::TokenText(MDLTOK_POINTS);
     case 1:
-      return MDL::TokenText(0x168);
+      return MDL::TokenText(MDLTOK_LINES);
     case 2:
-      return MDL::TokenText(0x16A);
+      return MDL::TokenText(MDLTOK_LINE_LOOP);
     case 3:
-      return MDL::TokenText(0x16B);
+      return MDL::TokenText(MDLTOK_LINE_STRIP);
     case 4:
-      return MDL::TokenText(0x1C9);
+      return MDL::TokenText(MDLTOK_TRIANGLES);
     case 5:
-      return MDL::TokenText(0x1CB);
+      return MDL::TokenText(MDLTOK_TRIANGLE_STRIP);
     case 6:
-      return MDL::TokenText(0x1CA);
+      return MDL::TokenText(MDLTOK_TRIANGLE_FAN);
     case 7:
-      return MDL::TokenText(0x1A8);
+      return MDL::TokenText(MDLTOK_QUADS);
     case 8:
-      return MDL::TokenText(0x1A9);
+      return MDL::TokenText(MDLTOK_QUAD_STRIP);
     case 9:
-      return MDL::TokenText(0x1A4);
+      return MDL::TokenText(MDLTOK_POLYGON);
     default:
-      return MDL::TokenText(0x1DF);
+      return MDL::TokenText(MDLTOK_UNKNOWN);
   }
 }
 
 static void IWriteGeosetPrimitives(const MDLPRIMITIVES &faces, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "\t%s %d %d {\n", MDL::TokenText(0x148), faces.types.Count(), faces.vertices.Count());
+  MDL::WriteLine(buffer, "\t%s %d %d {\n", MDL::TokenText(MDLTOK_FACES), faces.types.Count(), faces.vertices.Count());
   for (int primtype = 0; primtype < 10; ++primtype) {
     int          foundType = 0;
     const BYTE  *primType = faces.types.Ptr();
@@ -679,11 +686,11 @@ static void IWriteGeosetGroups(const MDLGEOSETSECTION &section, TSGrowableArray<
   UINT        numGroups = section.groupMatrixCounts.Count();
   const UINT *numMatrices;
   const UINT *matrix;
-  MDL::WriteLine(buffer, "\t%s %u %u {\n", MDL::TokenText(0x156), numGroups, section.matrices.Count());
+  MDL::WriteLine(buffer, "\t%s %u %u {\n", MDL::TokenText(MDLTOK_GROUPS), numGroups, section.matrices.Count());
   numMatrices = section.groupMatrixCounts.Ptr();
   matrix = section.matrices.Ptr();
   for (; numGroups; --numGroups, ++numMatrices) {
-    MDL::WriteLine(buffer, "\t\t%s { ", MDL::TokenText(0x16E));
+    MDL::WriteLine(buffer, "\t\t%s { ", MDL::TokenText(MDLTOK_MATRICES));
     for (UINT count = *numMatrices; count--; ++matrix) {
       MDL::WriteLine(buffer, "%u", *matrix);
       if (count > 0) {
@@ -697,12 +704,12 @@ static void IWriteGeosetGroups(const MDLGEOSETSECTION &section, TSGrowableArray<
 
 static void IWriteBoneWeights(const MDLGEOSETSECTION &section, TSGrowableArray<char> &buffer) {
   UINT count = section.boneIndices.Count();
-  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x131), count);
+  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(MDLTOK_BONE_INDICES), count);
   for (UINT i = 0; i < count; ++i) {
     MDL::WriteLine(buffer, "\t\t0x%08X,\n", section.boneIndices[i]);
   }
   MDL::WriteLine(buffer, "\t}\n");
-  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(0x132), count);
+  MDL::WriteLine(buffer, "\t%s %u {\n", MDL::TokenText(MDLTOK_BONE_WEIGHTS), count);
   for (UINT j = 0; j < count; ++j) {
     MDL::WriteLine(buffer, "\t\t0x%08X,\n", section.boneWeights[j]);
   }
@@ -712,16 +719,16 @@ static void IWriteBoneWeights(const MDLGEOSETSECTION &section, TSGrowableArray<c
 static void IWriteAnimBounds(const TSGrowableArray<CMdlBounds> &geoBounds, TSGrowableArray<char> &buffer) {
   const CMdlBounds *bounds = geoBounds.Ptr();
   for (UINT i = geoBounds.Count(); i; --i, ++bounds) {
-    MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(0x122));
+    MDL::WriteLine(buffer, "\t%s {\n", MDL::TokenText(MDLTOK_ANIM));
     WriteBounds(*bounds, "\t\t", buffer);
     MDL::WriteLine(buffer, "\t}\n");
   }
 }
 
 static void IWriteGeosetSection(const MDLGEOSETSECTION &section, int writeMaterialId, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(0x10A));
-  WriteVertices(section.vertices, 0x1D8, buffer);
-  WriteVertices(section.normals, 0x17B, buffer);
+  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(MDLTOK_GEOSET));
+  WriteVertices(section.vertices, MDLTOK_VERTICES, buffer);
+  WriteVertices(section.normals, MDLTOK_NORMALS, buffer);
   for (UINT i = 0; i < section.texCoords.Count(); ++i) {
     IWriteGeosetTexCoords(section.texCoords[i], buffer);
   }
@@ -732,95 +739,88 @@ static void IWriteGeosetSection(const MDLGEOSETSECTION &section, int writeMateri
   WriteBounds(section.bounds, "\t", buffer);
   IWriteAnimBounds(section.seqBounds, buffer);
   if (writeMaterialId) {
-    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x16D), section.materialId);
+    MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_MATERIAL_ID), section.materialId);
   }
-  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x1B1), section.selectionGroup);
+  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_SELECTION_GROUP), section.selectionGroup);
   if (section.flags & 1) {
-    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(0x1D2));
+    MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_UNSELECTABLE));
   }
   MDL::WriteLine(buffer, "}\n");
 }
 
 
 BOOL MDL::ReadGeoset(Parser &parse, MDLDATA &data, CMDLStatus *status) {
+  LPCSTR                tokentext;
   MDLGEOSETSECTION     *geoset = data.geosets.New();
+  TSet                  errors;
   MDLGEOSETANIMSECTION *geoAnim = 0;
-  TSet                  geosetAnimErrors;
   if (data.version < 600) {
     geoAnim = data.geosetAnims.New();
+    IGeosetAnimAddErrors(errors);
     geoAnim->geosetId = data.geosets.Count() - 1;
-    IGeosetAnimAddErrors(geosetAnimErrors);
   }
   geoset->seqBounds.ReserveSpace(data.sequences.Count());
-
-  TSet errors;
   IGeosetAddErrors(errors);
   parse.Expect('{');
-  LPCSTR tokentext;
-  UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
-    if (IReadGeosetAnim(parse, token, tokentext, &geosetAnimErrors, geoAnim)) {
-      token = parse.Token(&tokentext, 0);
+  UINT token;
+  for (token = parse.Token(&tokentext, 0); token != '}' && token; token = parse.Token(&tokentext, 0)) {
+    if (IReadGeosetAnim(parse, token, tokentext, &errors, geoAnim)) {
       continue;
     }
-    if (!errors.Check(token)) {
-      parse.FatalDuplicate(tokentext);
-    }
     switch (token) {
-      case 0x122:
-        IReadAnimBounds(parse, geoset->seqBounds.New(), status);
-        break;
-      case 0x131:
-        IReadBoneIndices(parse, geoset);
-        break;
-      case 0x132:
-        IReadBoneWeights(parse, geoset);
-        break;
-      case 0x134:
-        geoset->bounds.radius = parse.ExpectFloat();
-        break;
-      case 0x142:
+      case MDLTOK_DUPLICATES:
         ISkipDuplicates(parse);
-        break;
-      case 0x148:
+        continue;
+      case MDLTOK_FACES:
         IReadPrimitives(parse, &geoset->primitives);
-        break;
-      case 0x156:
+        continue;
+      case MDLTOK_GROUPS:
         IReadGroups(parse, geoset, status);
-        break;
-      case 0x16D:
+        continue;
+      case MDLTOK_MATERIAL_ID:
         geoset->materialId = parse.ExpectInt();
         break;
-      case 0x16F:
-        IReadVertex(parse, &geoset->bounds.extent.t);
-        break;
-      case 0x170:
-        IReadVertex(parse, &geoset->bounds.extent.b);
-        break;
-      case 0x17B:
-        ReadVertices(parse, "normals", &geoset->normals);
-        break;
-      case 0x1B1:
-        geoset->selectionGroup = parse.ExpectInt();
-        break;
-      case 0x1CE:
-        IReadTVertices(parse, geoset->texCoords.New());
-        break;
-      case 0x1D2:
-        geoset->flags |= 1;
-        break;
-      case 0x1D7:
-        IReadVertexGroupIds(parse, geoset);
-        break;
-      case 0x1D8:
+      case MDLTOK_VERTICES:
         ReadVertices(parse, "vertices", &geoset->vertices);
-        break;
+        continue;
+      case MDLTOK_NORMALS:
+        ReadVertices(parse, "normals", &geoset->normals);
+        continue;
+      case MDLTOK_TVERTICES:
+        IReadTVertices(parse, geoset->texCoords.New());
+        continue;
       default:
         parse.FatalUnexpected(tokentext);
         break;
+      case MDLTOK_VERTEX_GROUP:
+        IReadVertexGroupIds(parse, geoset);
+        continue;
+      case MDLTOK_SELECTION_GROUP:
+        geoset->selectionGroup = parse.ExpectInt();
+        break;
+      case MDLTOK_MINIMUMEXTENT:
+        IReadVertex(parse, &geoset->bounds.extent.b);
+        break;
+      case MDLTOK_MAXIMUMEXTENT:
+        IReadVertex(parse, &geoset->bounds.extent.t);
+        break;
+      case MDLTOK_BOUNDS_RADIUS:
+        geoset->bounds.radius = parse.ExpectFloat();
+        break;
+      case MDLTOK_ANIM:
+        IReadAnimBounds(parse, geoset->seqBounds.New(), status);
+        continue;
+      case MDLTOK_BONE_WEIGHTS:
+        IReadBoneWeights(parse, geoset);
+        continue;
+      case MDLTOK_BONE_INDICES:
+        IReadBoneIndices(parse, geoset);
+        continue;
+      case MDLTOK_UNSELECTABLE:
+        geoset->flags |= 1;
+        break;
     }
     parse.Expect(',');
-    token = parse.Token(&tokentext, 0);
   }
   parse.Expect('}', token, tokentext);
   errors.Complete(status);
@@ -844,12 +844,15 @@ BOOL MDL::ReadGeosetAnim(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   parse.Expect('{');
   LPCSTR tokentext;
   UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
+  while (token != '}' && token) {
     if (!IReadGeosetAnim(parse, token, tokentext, &errors, section)) {
-      if (token == 0x150) {
-        section->geosetId = parse.ExpectInt();
-      } else {
-        parse.FatalUnexpected(tokentext);
+      switch (token) {
+        case MDLTOK_GEOSETID:
+          section->geosetId = parse.ExpectInt();
+          break;
+        default:
+          parse.FatalUnexpected(tokentext);
+          break;
       }
       parse.Expect(',');
     }
@@ -861,57 +864,57 @@ BOOL MDL::ReadGeosetAnim(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 static void IWriteGeosetAnimSection(const MDLGEOSETANIMSECTION &section, TSGrowableArray<char> &buffer) {
-  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(0x10B));
+  MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(MDLTOK_GEOSETANIM));
   LPCSTR indent = "\t";
   if (section.alphaKeys.keys.Count()) {
     const MDLKEYTRACK<float> &track = section.alphaKeys;
-    MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(0x11C), track.keys.Count());
+    MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(MDLTOK_ALPHA), track.keys.Count());
     WriteTrackHeader(indent, track, buffer);
     for (UINT i = 0; i < track.keys.Count(); ++i) {
       const MDLKEYFRAME<float> &key = track.keys.Ptr()[i];
       MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
       WriteKeyData(buffer, &key.value, 1);
       if (track.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
+        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_INTAN));
         WriteKeyData(buffer, &key.inTan, 1);
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
+        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_OUTTAN));
         WriteKeyData(buffer, &key.outTan, 1);
       }
     }
     MDL::WriteLine(buffer, "%s}\n", indent);
   } else if (section.staticAlpha < 1.0f) {
-    MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(0x1BB), MDL::TokenText(0x11C));
+    MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ALPHA));
     WriteKeyData(buffer, &section.staticAlpha, 1);
   }
 
   if (section.flags & 1) {
     if (section.colorKeys.keys.Count()) {
       const MDLKEYTRACK<C3Color> &track = section.colorKeys;
-      MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(0x136), track.keys.Count());
+      MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(MDLTOK_COLOR), track.keys.Count());
       WriteTrackHeader(indent, track, buffer);
       for (UINT i = 0; i < track.keys.Count(); ++i) {
         const MDLKEYFRAME<C3Color> &key = track.keys.Ptr()[i];
         MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
         WriteKeyData(buffer, &key.value.b, 3);
         if (track.type > TRACK_LINEAR) {
-          MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x15E));
+          MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_INTAN));
           WriteKeyData(buffer, &key.inTan.b, 3);
-          MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(0x18A));
+          MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_OUTTAN));
           WriteKeyData(buffer, &key.outTan.b, 3);
         }
       }
       MDL::WriteLine(buffer, "%s}\n", indent);
     } else {
-      MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(0x1BB), MDL::TokenText(0x136));
+      MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_COLOR));
       WriteKeyData(buffer, &section.staticColor.b, 3);
     }
   }
-  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(0x150), section.geosetId);
+  MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_GEOSETID), section.geosetId);
   MDL::WriteLine(buffer, "}\n");
 }
 
 BOOL MDL::WriteGeosetAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (static_cast<LPCSTR>(data.model.animationFile)[0]) {
+  if (((LPCSTR)data.model.animationFile)[0]) {
     return 1;
   }
   for (UINT i = 0; i < data.geosetAnims.Count(); ++i) {
@@ -1034,7 +1037,7 @@ static void IWriteBinGeosetAnimSection(const MDLGEOSETANIMSECTION &section, CMsg
 
 BOOL MDL::WriteBinGeosetAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numGeosetAnims = data.geosetAnims.Count();
-  if (static_cast<LPCSTR>(data.model.animationFile)[0] || !numGeosetAnims) {
+  if (((LPCSTR)data.model.animationFile)[0] || !numGeosetAnims) {
     return 1;
   }
   buf.AddDword('AOEG');
@@ -1051,31 +1054,33 @@ BOOL MDL::WriteBinGeosetAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *
   return 1;
 }
 
-static BOOL IReadBinPrimitiveTypes(DWORD magic, CMsgBuffer &buffer, TSGrowableArray<BYTE> *section, UINT *localBytesRead, CMDLStatus *status) {
+static BOOL IReadBinPrimitiveTypes(DWORD magic, CMsgBuffer &buf, TSGrowableArray<BYTE> *section, UINT *localBytesRead, CMDLStatus *status) {
   if (magic != 'PYTP') {
     status->Add(STATUS_ERROR, "Invalid primitives type section in Geoset.\n");
     return 0;
   }
-  UINT count = buffer.GetUint();
+  UINT count = buf.GetUint();
   *localBytesRead += 4;
-  if (count) {
-    section->SetCount(count);
-    buffer.GetData(section->Ptr(), count);
-    *localBytesRead += count;
+  if (!count) {
+    return 1;
   }
+  section->SetCount(count);
+  buf.GetData(section->Ptr(), count);
+  *localBytesRead += section->Count();
   return 1;
 }
 
-static void IReadBinAnimBounds(CMsgBuffer &buffer, MDLGEOSETSECTION *section, UINT *bytesRead) {
-  UINT count = buffer.GetUint();
+static void IReadBinAnimBounds(CMsgBuffer &buf, MDLGEOSETSECTION *section, UINT *bytesRead) {
+  UINT count = buf.GetUint();
   *bytesRead += 4;
   section->seqBounds.SetCount(count);
-  for (UINT i = 0; i < count; ++i) {
-    CMdlBounds &bounds = section->seqBounds[i];
-    bounds.radius = buffer.GetFloat();
-    buffer.GetFloatArray(&bounds.extent.b.x, 3);
-    buffer.GetFloatArray(&bounds.extent.t.x, 3);
-    *bytesRead += 28;
+  CMdlBounds *bounds = section->seqBounds.Ptr();
+  for (UINT i = count; i; --i, ++bounds) {
+    bounds->radius = buf.GetFloat();
+    *bytesRead += 4;
+    buf.GetFloatArray(&bounds->extent.b.x, 3);
+    buf.GetFloatArray(&bounds->extent.t.x, 3);
+    *bytesRead += 24;
   }
 }
 
@@ -1198,11 +1203,8 @@ BOOL MDL::ReadBinGeosets(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus
 
 static UINT GetBinGeosetSize(const MDLGEOSETSECTION &section) {
   UINT size = 4;
-  size += 8 + 12 * section.vertices.Count();
-  size += 8 + 12 * section.normals.Count();
-  if (section.texCoords.Count()) {
-    size += 8 + 8 * section.texCoords.Count() * section.vertices.Count();
-  }
+  size += 8 + sizeof(NTempest::C3Vector) * section.vertices.Count();
+  size += 8 + sizeof(NTempest::C3Vector) * section.normals.Count();
   size += 8 + section.primitives.types.Count();
   size += 8 + 4 * section.primitives.counts.Count();
   size += 8 + 2 * section.primitives.vertices.Count();
@@ -1212,7 +1214,10 @@ static UINT GetBinGeosetSize(const MDLGEOSETSECTION &section) {
   size += 8 + 4 * section.boneIndices.Count();
   size += 8 + 4 * section.boneWeights.Count();
   size += 40;
-  size += 4 + 28 * section.seqBounds.Count();
+  size += 4 + sizeof(CMdlBounds) * section.seqBounds.Count();
+  if (section.texCoords.Count() > 0) {
+    size += 8 + 8 * section.texCoords.Count() * section.vertices.Count();
+  }
   return size;
 }
 
@@ -1226,49 +1231,58 @@ static void IWriteBinAnimBounds(const MDLGEOSETSECTION &section, CMsgBuffer &buf
   }
 }
 
-static void WriteBinGeoset(CMsgBuffer &buffer, const MDLGEOSETSECTION &section) {
-  buffer.AddUint(GetBinGeosetSize(section));
-  WriteBinC3VectorSection(buffer, 'XTRV', section.vertices);
-  WriteBinC3VectorSection(buffer, 'SMRN', section.normals);
-  if (section.texCoords.Count()) {
-    buffer.AddDword('SAVU');
-    buffer.AddUint(section.texCoords.Count());
-    UINT floats = 2 * section.vertices.Count();
-    for (UINT i = 0; i < section.texCoords.Count(); ++i) {
-      buffer.AddFloatArray(&section.texCoords[i].Ptr()->x, floats);
+static void WriteBinGeoset(CMsgBuffer &buf, const MDLGEOSETSECTION &section) {
+  buf.AddUint(GetBinGeosetSize(section));
+  WriteBinC3VectorSection(buf, 'XTRV', section.vertices);
+  WriteBinC3VectorSection(buf, 'SMRN', section.normals);
+  UINT count = section.texCoords.Count();
+  if (count > 0) {
+    buf.AddDword('SAVU');
+    buf.AddUint(count);
+    UINT channelFloats = 2 * section.vertices.Count();
+    for (UINT i = 0; i < count; ++i) {
+      buf.AddFloatArray(&section.texCoords[i].Ptr()->x, channelFloats);
     }
   }
-  buffer.AddDword('PYTP');
-  buffer.AddUint(section.primitives.types.Count());
-  buffer.AddData(section.primitives.types.Ptr(), section.primitives.types.Count());
-  buffer.AddDword('TNCP');
-  buffer.AddUint(section.primitives.counts.Count());
-  buffer.AddUintArray(section.primitives.counts.Ptr(), section.primitives.counts.Count());
-  buffer.AddDword('XTVP');
-  buffer.AddUint(section.primitives.vertices.Count());
-  buffer.AddWordArray(section.primitives.vertices.Ptr(), section.primitives.vertices.Count());
-  buffer.AddDword('XDNG');
-  buffer.AddUint(section.vertGroupIndices.Count());
-  buffer.AddData(section.vertGroupIndices.Ptr(), section.vertGroupIndices.Count());
-  buffer.AddDword('CGTM');
-  buffer.AddUint(section.groupMatrixCounts.Count());
-  buffer.AddUintArray(section.groupMatrixCounts.Ptr(), section.groupMatrixCounts.Count());
-  buffer.AddDword('STAM');
-  buffer.AddUint(section.matrices.Count());
-  buffer.AddUintArray(section.matrices.Ptr(), section.matrices.Count());
-  buffer.AddDword('XDIB');
-  buffer.AddUint(section.boneIndices.Count());
-  buffer.AddUintArray(section.boneIndices.Ptr(), section.boneIndices.Count());
-  buffer.AddDword('TGWB');
-  buffer.AddUint(section.boneWeights.Count());
-  buffer.AddUintArray(section.boneWeights.Ptr(), section.boneWeights.Count());
-  buffer.AddUint(section.materialId);
-  buffer.AddUint(section.selectionGroup);
-  buffer.AddUint(section.flags);
-  buffer.AddFloat(section.bounds.radius);
-  buffer.AddFloatArray(&section.bounds.extent.b.x, 3);
-  buffer.AddFloatArray(&section.bounds.extent.t.x, 3);
-  IWriteBinAnimBounds(section, buffer);
+  buf.AddDword('PYTP');
+  count = section.primitives.types.Count();
+  buf.AddUint(count);
+  buf.AddData(section.primitives.types.Ptr(), count);
+  count = section.primitives.counts.Count();
+  buf.AddDword('TNCP');
+  buf.AddUint(count);
+  buf.AddUintArray(section.primitives.counts.Ptr(), count);
+  count = section.primitives.vertices.Count();
+  buf.AddDword('XTVP');
+  buf.AddUint(count);
+  buf.AddWordArray(section.primitives.vertices.Ptr(), count);
+  count = section.vertGroupIndices.Count();
+  buf.AddDword('XDNG');
+  buf.AddUint(count);
+  buf.AddData(section.vertGroupIndices.Ptr(), count);
+  count = section.groupMatrixCounts.Count();
+  buf.AddDword('CGTM');
+  buf.AddUint(count);
+  buf.AddUintArray(section.groupMatrixCounts.Ptr(), count);
+  count = section.matrices.Count();
+  buf.AddDword('STAM');
+  buf.AddUint(count);
+  buf.AddUintArray(section.matrices.Ptr(), count);
+  count = section.boneIndices.Count();
+  buf.AddDword('XDIB');
+  buf.AddUint(count);
+  buf.AddUintArray(section.boneIndices.Ptr(), count);
+  count = section.boneWeights.Count();
+  buf.AddDword('TGWB');
+  buf.AddUint(count);
+  buf.AddUintArray(section.boneWeights.Ptr(), count);
+  buf.AddUint(section.materialId);
+  buf.AddUint(section.selectionGroup);
+  buf.AddUint(section.flags);
+  buf.AddFloat(section.bounds.radius);
+  buf.AddFloatArray(&section.bounds.extent.b.x, 3);
+  buf.AddFloatArray(&section.bounds.extent.t.x, 3);
+  IWriteBinAnimBounds(section, buf);
 }
 
 BOOL MDL::WriteBinGeosets(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {

@@ -200,7 +200,7 @@ BOOL ConsoleCommand_RunExec(LPCSTR cmd, LPCSTR arguments) {
     return 0;
   }
 
-  char *buffer = static_cast<char *>(ALLOC(bytes + 1));
+  char *buffer = (char *)ALLOC(bytes + 1);
   memcpy(buffer, readData, bytes);
   SFile::Unload(readData);
   if (!buffer) {
@@ -357,7 +357,7 @@ static BOOL ConsoleCommand_TypeExec(LPCSTR cmd, LPCSTR arguments) {
     return 0;
   }
 
-  char *buffer = static_cast<char *>(ALLOC(bytes + 1));
+  char *buffer = (char *)ALLOC(bytes + 1);
   memcpy(buffer, readData, bytes);
   SFile::Unload(readData);
   if (!buffer) {
@@ -393,7 +393,7 @@ static BOOL ConsoleCommand_DirWtf(LPCSTR cmd, LPCSTR arguments) {
   }
 
   ConsoleWrite("The wtf files are :", ECHO_COLOR);
-  char *buffer = static_cast<char *>(readData);
+  char *buffer = (char *)readData;
   buffer[bytes - 1] = 0;
   readBuffer = buffer;
   do {

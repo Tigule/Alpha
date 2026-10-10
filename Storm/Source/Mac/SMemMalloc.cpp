@@ -11,7 +11,7 @@ extern "C" LPVOID APIENTRY SMemAlloc(DWORD bytes, LPCSTR filename, int linenumbe
   SMEMPREFIX *block;
   LPVOID      ptr;
 
-  block = static_cast<SMEMPREFIX *>(malloc(bytes + sizeof(SMEMPREFIX)));
+  block = (SMEMPREFIX *)malloc(bytes + sizeof(SMEMPREFIX));
 
   ASSERT(block || !"Out of memory");
 
@@ -35,7 +35,7 @@ extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename,
     return SMemAlloc(bytes, filename, linenumber, flags);
   }
 
-  oldBytes = static_cast<DWORD>(static_cast<SMEMPREFIX *>(ptr)[-1]);
+  oldBytes = (DWORD)(((SMEMPREFIX *)ptr)[-1]);
 
   if (flags & SMEM_REALLOC_NOCOPY) {
     return 0;
@@ -53,7 +53,7 @@ extern "C" BOOL APIENTRY SMemFree(LPVOID ptr, LPCSTR filename, int linenumber, D
 
   ASSERT(ptr);
 
-  block = static_cast<SMEMPREFIX *>(ptr) - 1;
+  block = (SMEMPREFIX *)ptr - 1;
   memset(ptr, 0xDD, *block);
   free(block);
 

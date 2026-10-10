@@ -17,22 +17,22 @@ namespace MDL {
 
 static void IAddBoneErrors(TSet &errors) {
   AddObjectErrors(errors);
-  errors.Add(0x150, 1, 0);
-  errors.Add(0x151, 0, 0);
+  errors.Add(MDLTOK_GEOSETID, 1, 0);
+  errors.Add(MDLTOK_GEOSETANIMID, 0, 0);
 }
 
 static void IReadGeoAnimId(Parser &parse, UINT *geosetId) {
   LPCSTR     tokentext;
   UTokenData savedvalue;
   UINT       token = parse.Token(&tokentext, &savedvalue);
-  *geosetId = token == 0x179 ? static_cast<UINT>(-1) : parse.ExpectInt(token, tokentext, &savedvalue);
+  *geosetId = token == MDLTOK_CAPNONE ? (UINT)-1 : parse.ExpectInt(token, tokentext, &savedvalue);
 }
 
 static void IReadGeosetId(Parser &parse, UINT *geosetId) {
   LPCSTR     tokentext;
   UTokenData savedvalue;
   UINT       token = parse.Token(&tokentext, &savedvalue);
-  *geosetId = token == 0x175 ? static_cast<UINT>(-1) : parse.ExpectInt(token, tokentext, &savedvalue);
+  *geosetId = token == MDLTOK_MULTIPLE ? (UINT)-1 : parse.ExpectInt(token, tokentext, &savedvalue);
 }
 
 BOOL MDL::ReadBone(Parser &parse, MDLDATA &data, CMDLStatus *status) {
@@ -45,26 +45,32 @@ BOOL MDL::ReadBone(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   ReadObjectName(parse, bone->name);
   parse.Expect('{');
   LPCSTR tokentext;
-  UINT   token = parse.Token(&tokentext, 0);
-  while (token && token != '}') {
+  UINT   token;
+  for (token = parse.Token(&tokentext, 0); token != '}'; token = parse.Token(&tokentext, 0)) {
+    if (!token) {
+      break;
+    }
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
     }
     if (!ReadObjectBody(parse, token, pivot, bone, status)) {
-      if (token == 0x150) {
-        IReadGeosetId(parse, &bone->geosetId);
-      } else if (token == 0x151) {
-        IReadGeoAnimId(parse, &bone->geosetAnimId);
-      } else {
-        parse.FatalUnexpected(tokentext);
+      switch (token) {
+        case MDLTOK_GEOSETID:
+          IReadGeosetId(parse, &bone->geosetId);
+          break;
+        default:
+          parse.FatalUnexpected(tokentext);
+          break;
+        case MDLTOK_GEOSETANIMID:
+          IReadGeoAnimId(parse, &bone->geosetAnimId);
+          break;
       }
       parse.Expect(',');
     }
-    token = parse.Token(&tokentext, 0);
   }
   parse.Expect('}', token, tokentext);
   ReadObjectEnd(errors, data, bone, data.bones.Count() - 1, 0x30000000);
-  if (errors.NotFound(0x151)) {
+  if (errors.NotFound(MDLTOK_GEOSETANIMID)) {
     bone->geosetAnimId = bone->geosetId;
   }
   errors.Complete(status);
@@ -72,16 +78,16 @@ BOOL MDL::ReadBone(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 static void IWriteBoneSection(const MDLDATA &data, const MDLBONESECTION &section, int needObjectIds, TSGrowableArray<char> &buffer) {
-  WriteObjectHeader(data, section, 0x10C, needObjectIds, buffer);
-  MDL::WriteLine(buffer, "\t%s ", MDL::TokenText(0x150));
-  if (section.geosetId == static_cast<UINT>(-1)) {
-    MDL::WriteLine(buffer, "%s,\n", MDL::TokenText(0x175));
+  WriteObjectHeader(data, section, MDLTOK_BONE, needObjectIds, buffer);
+  MDL::WriteLine(buffer, "\t%s ", MDL::TokenText(MDLTOK_GEOSETID));
+  if (section.geosetId == (UINT)-1) {
+    MDL::WriteLine(buffer, "%s,\n", MDL::TokenText(MDLTOK_MULTIPLE));
   } else {
     MDL::WriteLine(buffer, "%d,\n", section.geosetId);
   }
-  MDL::WriteLine(buffer, "\t%s ", MDL::TokenText(0x151));
-  if (section.geosetAnimId == static_cast<UINT>(-1)) {
-    MDL::WriteLine(buffer, "%s,\n", MDL::TokenText(0x179));
+  MDL::WriteLine(buffer, "\t%s ", MDL::TokenText(MDLTOK_GEOSETANIMID));
+  if (section.geosetAnimId == (UINT)-1) {
+    MDL::WriteLine(buffer, "%s,\n", MDL::TokenText(MDLTOK_CAPNONE));
   } else {
     MDL::WriteLine(buffer, "%d,\n", section.geosetAnimId);
   }
@@ -89,11 +95,12 @@ static void IWriteBoneSection(const MDLDATA &data, const MDLBONESECTION &section
 }
 
 BOOL MDL::WriteBones(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0]) {
-    int needObjIds = data.bones.Count() != data.objects.Count();
-    for (UINT i = 0; i < data.bones.Count(); ++i) {
-      IWriteBoneSection(data, data.bones[i], needObjIds, buffer);
-    }
+  if (((LPCSTR)data.model.animationFile)[0]) {
+    return 1;
+  }
+  int needObjIds = data.bones.Count() != data.objects.Count();
+  for (UINT i = 0; i < data.bones.Count(); ++i) {
+    IWriteBoneSection(data, data.bones[i], needObjIds, buffer);
   }
   return 1;
 }
@@ -109,19 +116,23 @@ static void IWriteBinBoneSection(const MDLBONESECTION &section, CMsgBuffer &buf,
 }
 
 BOOL MDL::WriteBinBones(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
-  if (!static_cast<LPCSTR>(data.model.animationFile)[0] && data.bones.Count()) {
-    buf.AddDword('ENOB');
-    UINT numBones = data.bones.Count();
-    UINT totalSize = 4;
-    UINT i;
-    for (i = 0; i < numBones; ++i) {
-      totalSize += GetBinBonesSize(data.bones[i]);
-    }
-    buf.AddUint(totalSize);
-    buf.AddUint(numBones);
-    for (i = 0; i < numBones; ++i) {
-      IWriteBinBoneSection(data.bones[i], buf, status);
-    }
+  if (((LPCSTR)data.model.animationFile)[0]) {
+    return 1;
+  }
+  if (!data.bones.Count()) {
+    return 1;
+  }
+  buf.AddDword('ENOB');
+  UINT totalSize = 4;
+  UINT numBones = data.bones.Count();
+  UINT i;
+  for (i = 0; i < numBones; ++i) {
+    totalSize += GetBinBonesSize(data.bones[i]);
+  }
+  buf.AddUint(totalSize);
+  buf.AddUint(numBones);
+  for (i = 0; i < numBones; ++i) {
+    IWriteBinBoneSection(data.bones[i], buf, status);
   }
   return 1;
 }

@@ -15,7 +15,7 @@
 #include "Tempest/c44matrix.h"
 
 static BOOL AnimFinishedCallback(LPVOID param) {
-  CSimpleModel *model = static_cast<CSimpleModel *>(param);
+  CSimpleModel *model = (CSimpleModel *)param;
 
   model->RunOnAnimFinishedScript();
   return 1;
@@ -37,12 +37,12 @@ CSimpleModel::CSimpleModel(CSimpleFrame *parent)
   m_light.m_enabled = 0;
   m_light.m_isOmni = 1;
   m_light.m_ambColor.Set(
-      static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(255),
-      static_cast<BYTE>(255)
+      NTempest::CMath::fuint_n(255.0f), NTempest::CMath::fuint_n(255.0f), 255,
+      (BYTE)255
   );
   m_light.m_dirColor.Set(
-      static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(NTempest::CMath::fuint_n(255.0f)), static_cast<BYTE>(255),
-      static_cast<BYTE>(255)
+      NTempest::CMath::fuint_n(255.0f), NTempest::CMath::fuint_n(255.0f), 255,
+      (BYTE)255
   );
   m_light.m_ambIntensity = 1.0f;
   m_light.m_dirIntensity = 1.0f;
@@ -137,7 +137,7 @@ void CSimpleModel::SetModel(HMODEL model) {
     HandleClose(m_model);
   }
 
-  m_model = static_cast<HMODEL>(HandleDuplicate(model));
+  m_model = (HMODEL)HandleDuplicate(model);
   if (!m_model) {
     return;
   }
@@ -173,7 +173,7 @@ void CSimpleModel::FinishLoadingModel() {
 }
 
 void CSimpleModel::SetCamera(HCAMERA camera) {
-  SetCameraInternal(static_cast<HCAMERA>(HandleDuplicate(camera)));
+  SetCameraInternal((HCAMERA)HandleDuplicate(camera));
 }
 
 void CSimpleModel::SetCameraByIndex(UINT index) {
@@ -279,8 +279,8 @@ void CSimpleModel::UpdateModel() {
   }
 
   if (!(m_flags & 0x4) && m_camera) {
-    DataMgrGetCoord(reinterpret_cast<HDATAMGR>(m_camera), 7, &cameraPos);
-    DataMgrGetCoord(reinterpret_cast<HDATAMGR>(m_camera), 8, &cameraTarg);
+    DataMgrGetCoord(m_camera, 7, &cameraPos);
+    DataMgrGetCoord(m_camera, 8, &cameraTarg);
   }
 
   if (m_onUpdateModel) {
@@ -295,7 +295,7 @@ void CSimpleModel::UpdateModel() {
 }
 
 void CSimpleModel::RenderModel(LPVOID param) {
-  CSimpleModel *simpleModel = static_cast<CSimpleModel *>(param);
+  CSimpleModel *simpleModel = (CSimpleModel *)param;
   if (!simpleModel->m_model) {
     return;
   }
@@ -330,8 +330,8 @@ void CSimpleModel::RenderModel(LPVOID param) {
   NTempest::C3Vector cameraPos(0.0f);
 
   if (camera) {
-    DataMgrGetCoord(reinterpret_cast<HDATAMGR>(camera), 7, &cameraPos);
-    DataMgrGetCoord(reinterpret_cast<HDATAMGR>(camera), 8, &cameraTarg);
+    DataMgrGetCoord(camera, 7, &cameraPos);
+    DataMgrGetCoord(camera, 8, &cameraTarg);
     CameraSetupWorldProjection(camera, viewRect, 0);
   } else {
     CameraSetupScreenProjection(viewRect, NTempest::C2Vector(viewRect.l, viewRect.t), 0.0f);

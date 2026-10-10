@@ -12,7 +12,7 @@ void PropDestroy() {
 }
 
 HPROPCONTEXT PropCreateContext() {
-  return static_cast<HPROPCONTEXT>(ALLOCZERO(PROPERTIES * sizeof(LPVOID)));
+  return (HPROPCONTEXT)ALLOCZERO(PROPERTIES * sizeof(LPVOID));
 }
 
 void PropSelectContext(HPROPCONTEXT context) {
@@ -20,7 +20,7 @@ void PropSelectContext(HPROPCONTEXT context) {
 }
 
 HPROPCONTEXT PropGetSelectedContext() {
-  return static_cast<HPROPCONTEXT>(OsTlsGetValue(s_tlsIndex));
+  return (HPROPCONTEXT)OsTlsGetValue(s_tlsIndex);
 }
 
 void PropDeleteContext(HPROPCONTEXT context) {
@@ -30,12 +30,12 @@ void PropDeleteContext(HPROPCONTEXT context) {
 }
 
 LPVOID PropGet(PROPERTY id) {
-  LPVOID *context = static_cast<LPVOID *>(OsTlsGetValue(s_tlsIndex));
+  LPVOID *context = (LPVOID *)OsTlsGetValue(s_tlsIndex);
   return context ? context[id] : 0;
 }
 
 void PropSet(PROPERTY id, LPVOID value) {
-  LPVOID *context = static_cast<LPVOID *>(OsTlsGetValue(s_tlsIndex));
+  LPVOID *context = (LPVOID *)OsTlsGetValue(s_tlsIndex);
   if (context) {
     context[id] = value;
   }

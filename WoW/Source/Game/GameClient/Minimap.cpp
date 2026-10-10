@@ -206,11 +206,11 @@ static NTempest::C2iVector CoordinateToArea(const NTempest::C3Vector &position) 
   if (y < 0.0f) {
     y -= 1.0f;
   }
-  return NTempest::C2iVector(static_cast<int>(x), static_cast<int>(y));
+  return NTempest::C2iVector(x, y);
 }
 
 static NTempest::C3Vector AreaToCoordinate(const NTempest::C2iVector &coords) {
-  return NTempest::C3Vector(HALF_WORLD_SIZE_Y - coords.y * AREA_WORLD_SIZE_X, 17066.666f - coords.x * AREA_WORLD_SIZE_Y, 0.0f);
+  return NTempest::C3Vector(17066.666f - coords.y * 533.33331f, HALF_WORLD_SIZE_Y - coords.x * 533.33331f, 0.0f);
 }
 
 static void BuildPathName(const NTempest::C2iVector &location, char *buffer, UINT size) {
@@ -360,7 +360,7 @@ static void LoadMD5Names() {
     return;
   }
 
-  readCursor = static_cast<LPCSTR>(buffer);
+  readCursor = (LPCSTR)buffer;
   char line[MAX_PATH] = "";
   do {
     SStrTokenize(&readCursor, line, sizeof(line), "\r\n", 0);
@@ -453,7 +453,7 @@ BOOL MinimapUpdate(
     QUADDATA                 *quads,
     MinimapTexParams         &mmtp
 ) {
-  BYTE needsWork = static_cast<BYTE>(s_flags & 1);
+  BYTE needsWork = s_flags & 1;
   mmtp.updateTexture = mmtp.asyncTexWait | needsWork;
 
   if (pos.x != s_currentPosition.x || pos.y != s_currentPosition.y || continent != s_currentContinent) {
@@ -516,7 +516,7 @@ BOOL MinimapUpdate(
   }
 
   mmtp.size = s_minimapZoomSize[s_currentInsideZoom];
-  NTempest::C2iVector ibox(static_cast<int>(floor(pos.x / mmtp.size)), static_cast<int>(floor(pos.y / mmtp.size)));
+  NTempest::C2iVector ibox((int)floor(pos.x / mmtp.size), (int)floor(pos.y / mmtp.size));
   s_queryCenterBox.b = NTempest::C3Vector(ibox.x * mmtp.size, ibox.y * mmtp.size, pos.z - mmtp.size * 0.5f);
   s_queryCenterBox.t = NTempest::C3Vector(mmtp.size, mmtp.size, mmtp.size * 0.5f) + s_queryCenterBox.b;
   s_queryCenter = s_queryCenterBox.Center();
@@ -709,8 +709,8 @@ void MinimapGetPartyMembers(PARTYMEMBERINFO array[]) {
       dist.y -= unit->GetPosition().y;
       unit->GetPosition(pos);
     } else {
-      if (i < 4 && CGPartyInfo::GetMember(i)) {
-        CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStats(CGPartyInfo::GetMember(i));
+      if (i < 4) {
+        CGPartyInfo::RemoteStats *stats = CGPartyInfo::GetRemoteStatsByIndex(i);
         if (stats && stats->mapID == CGPlayer_C::GetNewContinentID()) {
           dist.x -= stats->pos.x;
           dist.y -= stats->pos.y;

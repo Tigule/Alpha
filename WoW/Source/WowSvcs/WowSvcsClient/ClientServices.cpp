@@ -130,7 +130,7 @@ static BOOL ConsoleCommand_Logout(LPCSTR command, LPCSTR arguments) {
 static BOOL ClientServices_MessageHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
   ASSERT(param);
 
-  ClientConnection *connection = static_cast<ClientConnection *>(param);
+  ClientConnection *connection = (ClientConnection *)param;
   switch (msgId) {
     case SMSG_AUTH_CHALLENGE:
       return connection->HandleAuthChallenge(msgId, time, msg);
@@ -313,7 +313,7 @@ UINT ClientServices_GetWaitCount() {
 }
 
 BOOL ClientServices_ValidDisconnect(LPCVOID message) {
-  const ClientConnection *client = static_cast<const ClientConnection *>(message);
+  const ClientConnection *client = (const ClientConnection *)message;
 
   ASSERT(client);
   return client == s_currentConnection;
@@ -435,11 +435,11 @@ BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *
   loginServerID = m_loginData.m_loginServerID;
 
   SHA1_Init(&ctx);
-  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(m_loginData.m_account), SStrLen(m_loginData.m_account));
-  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&addr), sizeof(addr));
-  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&localChallenge), sizeof(localChallenge));
-  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&loginServerID), sizeof(loginServerID));
-  SHA1_Update(&ctx, reinterpret_cast<const BYTE *>(&challenge), sizeof(challenge));
+  SHA1_Update(&ctx, (const BYTE *)m_loginData.m_account, SStrLen(m_loginData.m_account));
+  SHA1_Update(&ctx, (const BYTE *)&addr, sizeof(addr));
+  SHA1_Update(&ctx, (const BYTE *)&localChallenge, sizeof(localChallenge));
+  SHA1_Update(&ctx, (const BYTE *)&loginServerID, sizeof(loginServerID));
+  SHA1_Update(&ctx, (const BYTE *)&challenge, sizeof(challenge));
   SHA1_Update(&ctx, m_loginData.m_sessionKey, sizeof(m_loginData.m_sessionKey));
   SHA1_Final(localDigest, &ctx);
 
@@ -960,7 +960,7 @@ void ClientConnection::RealmEnumCallback(CDataStore *data) {
 }
 
 static void RealmEnum_InternalCallback(CDataStore *data, LPVOID param) {
-  ClientConnection *client = static_cast<ClientConnection *>(param);
+  ClientConnection *client = (ClientConnection *)param;
 
   ASSERT(client);
   client->RealmEnumCallback(data);
@@ -1051,7 +1051,7 @@ LPCSTR ClientServices_GetSelectedRealmAddress() {
 }
 
 CHAR_NAME_RESULT ClientServices_CharacterValidateName(LPCSTR name) {
-  return static_cast<CHAR_NAME_RESULT>(ValidateCharacterName(CURRENT_LANGUAGE, name) + CHAR_NAME_RESULT_START);
+  return (CHAR_NAME_RESULT)(ValidateCharacterName(CURRENT_LANGUAGE, name) + CHAR_NAME_RESULT_START);
 }
 
 BOOL ClientServices_AccountValidateName(LPCSTR name) {
@@ -1112,7 +1112,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
 
   int vendor;
   OsGetProcessorFeaturesEx(vendor);
-  if (static_cast<UINT>(vendor) > 4) {
+  if ((UINT)vendor > 4) {
     vendor = 0;
   }
   SStrPrintf(line, sizeof(line), "Processor vendor:\t%s\n", s_vendors[vendor]);
@@ -1122,10 +1122,10 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
   float     scaledClocks;
   char      clockUnit;
   if (clocksPerSecond < mhzCutoff) {
-    scaledClocks = static_cast<float>(clocksPerSecond / 1000);
+    scaledClocks = clocksPerSecond / 1000;
     clockUnit = 'M';
   } else {
-    scaledClocks = static_cast<float>(clocksPerSecond / 1000000);
+    scaledClocks = clocksPerSecond / 1000000;
     clockUnit = 'G';
   }
   SStrPrintf(line, sizeof(line), "Processor speed:\t%6.2f%cHz\n", scaledClocks * 0.001f, clockUnit);
@@ -1192,7 +1192,7 @@ bool ClientServices_Report(UINT reportType, LPCSTR text, LPCSTR category) {
         const DWORDLONG &lockedTarget = CGGameUI::GetLockedTarget();
         if (lockedTarget) {
           CGObject_C *targetObject = ClntObjMgrObjectPtr(lockedTarget, __FILE__, __LINE__);
-          CGUnit_C   *target = static_cast<CGUnit_C *>(targetObject);
+          CGUnit_C   *target = (CGUnit_C *)targetObject;
           if (target) {
             SStrPrintf(line, sizeof(line), "Target:\t%s\n", target->GetUnitName());
             SStrPack(message, line, sizeof(message));

@@ -57,7 +57,7 @@ class CGCorpse {
   static UINT GetUpdateMaskBlocks();
 
   void  SetStorage(DWORD *storage) {
-    m_corpse = reinterpret_cast<CGCorpseData *>(storage);
+    m_corpse = (CGCorpseData *)storage;
   }
 
  protected:

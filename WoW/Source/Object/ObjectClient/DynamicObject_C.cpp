@@ -26,6 +26,7 @@
 #include <Services/SysMessage.h>
 #include <Tempest/caasphere.h>
 
+void            ClntObjMgrShowObject(DWORDLONG guid);
 void            SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard);
 BlizzardObject *SpellVisualsBlizzardCreate(const NTempest::C3Vector &pos, float radius, int spellID, const SpellVisualKitRec *kitRec);
 void            SpellVisualsPlayCameraShakeID(UINT shakeID, const NTempest::C3Vector &position);
@@ -34,14 +35,29 @@ void            SpellSoundEffectCallback(LPCSTR eventName, const NTempest::C3Vec
 
 static const char NONAME[7] = "NoName";
 
+inline DYNAMIC_OBJECT_TYPE CGDynamicObject::GetDynamicType() {
+  return (DYNAMIC_OBJECT_TYPE)m_dynamicObj->m_type;
+}
+
+inline int CGDynamicObject::GetSpellID() const {
+  return m_dynamicObj->m_spellID;
+}
+
+inline float CGDynamicObject::GetRadius() const {
+  return m_dynamicObj->m_radius;
+}
+
+inline DWORDLONG CGDynamicObject::GetCaster() const {
+  return m_dynamicObj->m_caster;
+}
+
 void CGDynamicObject_C::SetStorage(DWORD *storage) {
   CGObject_C::SetStorage(storage);
   CGDynamicObject::SetStorage(storage + CGObject::TotalFields());
 }
 
 CGDynamicObject_C::CGDynamicObject_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + CGObject::TotalFields()), m_blizzardObject(0), m_sound(0) {
-  m_dynamicScale = 1.0f;
+    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + CGObject::TotalFields()), m_dynamicScale(1.0f), m_blizzardObject(0), m_sound(0) {
   m_dynamicObj->m_position = init->move.status.worldPosition;
   m_dynamicObj->m_facing = init->move.status.worldFacing;
   m_haveStandSequence = 0;
@@ -69,7 +85,7 @@ BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
   m_haveStandSequence = ModelHasSequenceId(GetObjectModel(), 0) != 0;
   m_haveHoldSequence = ModelHasSequenceId(GetObjectModel(), 1) != 0;
 
-  if (m_dynamicObj->m_type != 2 && m_dynamicObj->m_type != 1) {
+  if (GetDynamicType() != DYNAMIC_OBJECT_FARSIGHT_FOCUS && GetDynamicType() != DYNAMIC_OBJECT_AREA_SPELL) {
     NTempest::CAaSphere bounds;
     bounds.r = 0.0f;
     ModelGetBounds(GetObjectModel(), &bounds);
@@ -90,38 +106,36 @@ BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
 }
 
 static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
-  static_cast<CGDynamicObject_C *>(param)->HandleAnimEvent(eventName, position);
+  ((CGDynamicObject_C *)param)->HandleAnimEvent(eventName, position);
 }
 
 static BOOL AnimFinishedCallback(LPVOID param) {
   if (param) {
-    static_cast<CGDynamicObject_C *>(param)->AnimFinished();
+    ((CGDynamicObject_C *)param)->AnimFinished();
   }
   return 1;
 }
 
 void CGDynamicObject_C::PostInit(const CClientObjCreate &init) {
   CGObject_C::PostInit(init);
-  ClntObjMgrHideObject(GetGUID());
-  HMODEL model = GetObjectModel();
-  if (model) {
+  ClntObjMgrShowObject(GetGUID());
+  if (GetObjectModel()) {
     AddWorldObject();
-    ModelSetEventCallback(model, AnimEventCallback, this, 0);
-    ModelSetSeqFinishedHandler(model, AnimFinishedCallback, this);
+    ModelSetEventCallback(GetObjectModel(), AnimEventCallback, this, 0);
+    ModelSetSeqFinishedHandler(GetObjectModel(), AnimFinishedCallback, this);
   }
   ObjectVisKitProc();
 
-  DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
-  if (m_dynamicObj->m_type == 2 && m_dynamicObj->m_caster == activePlayer) {
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
-    if (player && player->GetFarsightFocus() == GetGUID()) {
+  if (GetDynamicType() == DYNAMIC_OBJECT_FARSIGHT_FOCUS && GetCaster() == ClntObjMgrGetActivePlayer()) {
+    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+    if (player && GetGUID() == player->GetFarsightFocus()) {
       player->SetFarSightFocus(this);
     }
   }
 }
 
 void CGDynamicObject_C::ObjectVisKitProc() {
-  const SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(GetSpellID());
   if (!spellRec) {
     return;
   }
@@ -137,7 +151,7 @@ void CGDynamicObject_C::ObjectVisKitProc() {
   }
 
   if (kitRec->m_characterProcedure == 9) {
-    m_blizzardObject = SpellVisualsBlizzardCreate(GetPosition(), m_dynamicObj->m_radius, m_dynamicObj->m_spellID, kitRec);
+    m_blizzardObject = SpellVisualsBlizzardCreate(GetPosition(), GetRadius(), GetSpellID(), kitRec);
   }
 
   if (kitRec->m_soundID) {
@@ -186,20 +200,20 @@ UINT CGDynamicObject_C::OffsetOf(OBJECT_TYPE_ID type) {
       return CGObject::TotalFields() * sizeof(DWORD);
     default:
       FATALASSERT(0);
-      return static_cast<UINT>(-1);
+      return -1;
   }
 }
 
 const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() const {
-  const SpellRec *spellRec = g_spellDB.GetRecord(m_dynamicObj->m_spellID);
+  const SpellRec *spellRec = g_spellDB.GetRecord(GetSpellID());
   if (!spellRec) {
-    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", m_dynamicObj->m_spellID);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", GetSpellID());
     return 0;
   }
 
   const SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (!visualRec) {
-    SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d|%d", spellRec->m_spellVisualID, m_dynamicObj->m_spellID);
+    SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d|%d", spellRec->m_spellVisualID, GetSpellID());
     return 0;
   }
 
@@ -211,6 +225,7 @@ const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() cons
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(visualRec->m_areaModel);
   if (!effectRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", visualRec->m_areaModel);
+    return 0;
   }
   return effectRec;
 }
@@ -226,7 +241,7 @@ LPCSTR CGDynamicObject_C::GetModelFileName() const {
 }
 
 void CGDynamicObject_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position) {
-  switch (*reinterpret_cast<const UINT *>(eventName)) {
+  switch (*(const UINT *)eventName) {
     case 'DNS$':
       SpellSoundEffectCallback(eventName + 4, position);
       break;

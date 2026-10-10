@@ -33,9 +33,9 @@ WowConnection::WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse 
   Init(response, 0);
 
   len = sizeof(sockaddr_in);
-  getpeername(sock, reinterpret_cast<sockaddr *>(&m_peer), &len);
+  getpeername(sock, (sockaddr *)&m_peer, &len);
   len = sizeof(sockaddr_in);
-  getsockname(sock, reinterpret_cast<sockaddr *>(&m_peer.selfAddr), &len);
+  getsockname(sock, (sockaddr *)&m_peer.selfAddr, &len);
   m_sock = sock;
   m_connState = WOWC_CONNECTED;
 
@@ -68,11 +68,11 @@ WowConnection::~WowConnection() {
 }
 
 int WowConnection::AddRef() {
-  return SInterlockedIncrement(reinterpret_cast<long *>(&m_refCount));
+  return SInterlockedIncrement((long *)&m_refCount);
 }
 
 int WowConnection::Release() {
-  int ref = SInterlockedDecrement(reinterpret_cast<long *>(&m_refCount));
+  int ref = SInterlockedDecrement((long *)&m_refCount);
 
   if (ref <= 0) {
     if (s_network) {
@@ -159,10 +159,10 @@ void WowConnection::DoDisconnect() {
 }
 
 WowConnection::SENDNODE *WowConnection::NewSendNode(LPVOID data, int size, bool raw) {
-  SENDNODE *sn = static_cast<SENDNODE *>(WDataStore::AllocBuffer(size + sizeof(SENDNODE) + 3));
+  SENDNODE *sn = (SENDNODE *)WDataStore::AllocBuffer(size + sizeof(SENDNODE) + 3);
 
   if (sn) {
-    new (sn) SENDNODE(reinterpret_cast<BYTE *>(sn + 1), size, data, raw);
+    new (sn) SENDNODE((BYTE *)(sn + 1), size, data, raw);
   }
 
   return sn;
@@ -184,7 +184,7 @@ WC_SEND_RESULT WowConnection::Send(CDataStore *msg) {
   if (m_connState == WOWC_CONNECTED) {
     ASSERT(m_sock >= 0);
     if (m_sendList.IsEmpty()) {
-      int sent = send(m_sock, reinterpret_cast<LPCSTR>(sn->data), sn->size, 0);
+      int sent = send(m_sock, (LPCSTR)sn->data, sn->size, 0);
       if (sent != sn->size) {
         if (sent > 0) {
           sn->offset += sent;
@@ -231,7 +231,7 @@ WC_SEND_RESULT WowConnection::SendRaw(BYTE *data, int len) {
   if (m_connState == WOWC_CONNECTED) {
     ASSERT(m_sock >= 0);
     if (m_sendList.IsEmpty()) {
-      int sent = send(m_sock, reinterpret_cast<LPCSTR>(data), len, 0);
+      int sent = send(m_sock, (LPCSTR)data, len, 0);
       if (sent != len) {
         if (sent < 0 && WSAGetLastError() == WSAEWOULDBLOCK) {
           sent = 0;
@@ -269,7 +269,7 @@ void WowConnection::CheckConnect() {
   int sockerr;
   int sockerrlen = sizeof(sockerr);
 
-  if (getsockopt(m_sock, SOL_SOCKET, SO_ERROR, reinterpret_cast<char *>(&sockerr), &sockerrlen) == 0) {
+  if (getsockopt(m_sock, SOL_SOCKET, SO_ERROR, (char *)&sockerr, &sockerrlen) == 0) {
     if (sockerr) {
       CloseSocket(m_sock);
       m_sock = -1;
@@ -290,9 +290,9 @@ void WowConnection::CheckConnect() {
       m_lock.Leave();
 
       int len = sizeof(sockaddr_in);
-      getpeername(m_sock, reinterpret_cast<sockaddr *>(&m_peer), &len);
+      getpeername(m_sock, (sockaddr *)&m_peer, &len);
       len = sizeof(sockaddr_in);
-      getsockname(m_sock, reinterpret_cast<sockaddr *>(&m_peer.selfAddr), &len);
+      getsockname(m_sock, (sockaddr *)&m_peer.selfAddr, &len);
       response->WCConnected(this, 0, OsGetAsyncTimeMs(), &m_peer);
     }
 
@@ -310,7 +310,7 @@ void WowConnection::CheckAccept() {
 
   for (i = 0; i < 1000; ++i) {
     len = sizeof(addr);
-    int sock = accept(m_sock, reinterpret_cast<sockaddr *>(&addr), &len);
+    int sock = accept(m_sock, (sockaddr *)&addr, &len);
 
     if (sock < 0) {
       break;
@@ -364,7 +364,7 @@ void WowConnection::DoWrites() {
 
     int writeLen = min(sn->size - sn->offset, 1024);
     ASSERT(writeLen > 0);
-    int w = send(m_sock, reinterpret_cast<LPCSTR>(sn->data + sn->offset), writeLen, 0);
+    int w = send(m_sock, (LPCSTR)(sn->data + sn->offset), writeLen, 0);
     if (w != writeLen) {
       ASSERT(w < writeLen);
       if (w > 0) {
@@ -437,7 +437,7 @@ void WowConnection::DoMessageReads() {
   int bytesRead;
 
   if (!m_readBuffer) {
-    m_readBuffer = static_cast<BYTE *>(ALLOC(1024));
+    m_readBuffer = (BYTE *)ALLOC(1024);
     m_readBufferSize = 1024;
     m_readBytes = 0;
   }
@@ -461,7 +461,7 @@ void WowConnection::DoMessageReads() {
     }
 
     if (m_readBytes >= m_readBufferSize) {
-      m_readBuffer = static_cast<BYTE *>(SMemReAlloc(m_readBuffer, m_readBufferSize + 1024, __FILE__, __LINE__, 0));
+      m_readBuffer = (BYTE *)SMemReAlloc(m_readBuffer, m_readBufferSize + 1024, __FILE__, __LINE__, 0);
       m_readBufferSize += 1024;
     }
 
@@ -478,7 +478,7 @@ void WowConnection::DoMessageReads() {
     ASSERT(sizeToRead >= 0);
     if (sizeToRead > 0) {
       do {
-        bytesRead = recv(m_sock, reinterpret_cast<char *>(m_readBuffer + m_readBytes), sizeToRead, 0);
+        bytesRead = recv(m_sock, (char *)(m_readBuffer + m_readBytes), sizeToRead, 0);
       } while (bytesRead < 0 && WSAGetLastError() == WSAEINTR);
     } else {
       bytesRead = 0;
@@ -530,7 +530,7 @@ void WowConnection::DoStreamReads() {
 
   while (1) {
     do {
-      bytesRead = recv(m_sock, reinterpret_cast<char *>(buf), sizeof(buf), 0);
+      bytesRead = recv(m_sock, (char *)buf, sizeof(buf), 0);
     } while (bytesRead < 0 && WSAGetLastError() == WSAEINTR);
 
     if (bytesRead <= 0) {
@@ -625,7 +625,7 @@ void WowConnection::StartConnect() {
     addr.sin_port = htons(m_connectPort);
     addr.sin_addr.s_addr = m_connectAddress;
 
-    if (connect(m_sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
+    if (connect(m_sock, (sockaddr *)&addr, sizeof(addr)) < 0) {
       if (WSAGetLastError() != WSAEWOULDBLOCK) {
         CloseSocket(m_sock);
         m_sock = -1;
@@ -675,9 +675,9 @@ bool WowConnection::Connect(LPCSTR address, WORD port, int retryms) {
   hostent *host = gethostbyname(address);
 
   if (host) {
-    BYTE *addressBytes = reinterpret_cast<BYTE *>(host->h_addr_list[0]);
-    m_connectAddress = static_cast<DWORD>(addressBytes[0]) | (static_cast<DWORD>(addressBytes[1]) << 8) |
-                       (static_cast<DWORD>(addressBytes[2]) << 16) | (static_cast<DWORD>(addressBytes[3]) << 24);
+    BYTE *addressBytes = (BYTE *)host->h_addr_list[0];
+    m_connectAddress = (DWORD)addressBytes[0] | ((DWORD)addressBytes[1] << 8) |
+                       ((DWORD)addressBytes[2] << 16) | ((DWORD)addressBytes[3] << 24);
   } else {
     m_connectAddress = 0;
   }
@@ -710,7 +710,7 @@ bool WowConnection::Listen(WORD port) {
   m_listenPort = port;
   addr.sin_addr.s_addr = INADDR_ANY;
   addr.sin_port = htons(port);
-  if (bind(m_sock, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
+  if (bind(m_sock, (sockaddr *)&addr, sizeof(addr)) < 0) {
     CloseSocket(m_sock);
     m_sock = -1;
     return false;
@@ -735,9 +735,9 @@ void WowConnection::StopListening() {
 }
 
 char *WowConnection::GetStringAddress(char *buf, int size) {
-  DWORD addr = reinterpret_cast<sockaddr_in *>(&m_peer)->sin_addr.s_addr;
+  DWORD addr = ((sockaddr_in *)&m_peer)->sin_addr.s_addr;
 
-  SStrPrintf(buf, size, "%d.%d.%d.%d:%u", addr & 0xff, (addr >> 8) & 0xff, (addr >> 16) & 0xff, addr >> 24, ntohs(reinterpret_cast<sockaddr_in *>(&m_peer)->sin_port));
+  SStrPrintf(buf, size, "%d.%d.%d.%d:%u", addr & 0xff, (addr >> 8) & 0xff, (addr >> 16) & 0xff, addr >> 24, ntohs(((sockaddr_in *)&m_peer)->sin_port));
   return buf;
 }
 
@@ -822,17 +822,17 @@ void WowConnection::RequestWriteNotification() {
 bool WowConnection::GetLocal(NETADDR &addr) {
   int size = sizeof(addr);
 
-  return getsockname(m_sock, reinterpret_cast<sockaddr *>(&addr), &size) == 0;
+  return getsockname(m_sock, (sockaddr *)&addr, &size) == 0;
 }
 
 DWORD WowConnection::GetAddr(NETADDR &addr) {
-  return reinterpret_cast<sockaddr_in *>(&addr)->sin_addr.s_addr;
+  return ((sockaddr_in *)&addr)->sin_addr.s_addr;
 }
 
 WORD WowConnection::GetPort(NETADDR &addr) {
-  return reinterpret_cast<sockaddr_in *>(&addr)->sin_port;
+  return ((sockaddr_in *)&addr)->sin_port;
 }
 
 void WowConnection::SetPort(NETADDR &addr, WORD port) {
-  reinterpret_cast<sockaddr_in *>(&addr)->sin_port = htons(port);
+  ((sockaddr_in *)&addr)->sin_port = htons(port);
 }

@@ -313,13 +313,13 @@ void CGChat::AddTextEmoteMessage(const DWORDLONG &senderGUID, int textEmoteID, L
   const EmotesTextDataRec *data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[(nc->m_sex == 1 ? 8 : 0) | index]);
   if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
     data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[index]);
-    if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
-      index |= 4;
-      data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[(nc->m_sex == 1 ? 8 : 0) | index]);
-      if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
-        data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[index]);
-      }
-    }
+  }
+  if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
+    index |= 4;
+    data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[(nc->m_sex == 1 ? 8 : 0) | index]);
+  }
+  if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
+    data = g_emotesTextDataDB.GetRecord(rec->m_emoteText[index]);
   }
   if (!data || !*data->m_text_lang[CURRENT_LANGUAGE]) {
     return;
@@ -400,12 +400,12 @@ void CGChat::TranslateMessage(UINT language, UINT skill, LPCSTR text, char *buff
       break;
     }
 
-    char *space = const_cast<char *>(text);
+    char *space = (char *)text;
     while (*space && isalpha(*space)) {
       ++space;
     }
 
-    UINT len = min(static_cast<UINT>(space - text), 256);
+    UINT len = min((UINT)(space - text), 256);
     SStrCopy(token, text, len + 1);
     UINT hash = SStrHash(token, 0, 0);
     if (hash % 300 >= skill) {
@@ -469,7 +469,7 @@ int CGChat::GetChannelID(LPCSTR name) {
 }
 
 LPCSTR CGChat::GetChannelName(int localID) {
-  if (localID >= 1 && localID <= static_cast<int>(s_channels.Count()) && s_channels[localID - 1].localID == localID) {
+  if (localID >= 1 && localID <= (int)s_channels.Count() && s_channels[localID - 1].localID == localID) {
     return s_channels[localID - 1].name;
   }
   return 0;
@@ -503,147 +503,146 @@ void CGChat::ChannelNotify(CDataStore *msg) {
   name[0] = 0;
   name[1] = 0;
   buffer[0] = 0;
-  eventType = static_cast<SLASH_COMMAND_ID>(9);
+  eventType = SLASH_CMD_SYSTEM;
 
   switch (type) {
     case 0:
-      eventType = static_cast<SLASH_COMMAND_ID>(14);
+      eventType = SLASH_CMD_JOIN_CHANNEL;
       msg->Get(guid);
       if (!GetChannelID(channel))
         return;
       break;
     case 1:
-      eventType = static_cast<SLASH_COMMAND_ID>(15);
+      eventType = SLASH_CMD_LEAVE_CHANNEL;
       msg->Get(guid);
       if (!GetChannelID(channel))
         return;
       break;
     case 2:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
-      if (msg->IsRead())
-        namebuffer[0] = 0;
-      else
+      if (!msg->IsRead())
         msg->GetString(namebuffer, 0x7FFFFFFF);
+      else
+        namebuffer[0] = 0;
       AddChannel(channel);
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
       SStrCopy(buffer, "YOU_JOINED", sizeof(buffer));
       break;
     case 3:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
       SStrCopy(buffer, "YOU_LEFT", sizeof(buffer));
       break;
     case 4:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
       SStrCopy(buffer, "WRONG_PASSWORD", sizeof(buffer));
       break;
     case 5:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
       SStrCopy(buffer, "NOT_MEMBER", sizeof(buffer));
       break;
     case 6:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
       SStrCopy(buffer, "NOT_MODERATOR", sizeof(buffer));
       break;
     case 7:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "PASSWORD_CHANGED", sizeof(buffer));
       break;
     case 8:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "OWNER_CHANGED", sizeof(buffer));
       break;
     case 9:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->GetString(namebuffer, sizeof(namebuffer));
       name[0] = namebuffer;
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "PLAYER_NOT_FOUND", sizeof(buffer));
       break;
-    case 10:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
-      SStrCopy(buffer, "NOT_OWNER", sizeof(buffer));
-      break;
-    case 11:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
+    case 22:
       msg->GetString(namebuffer, sizeof(namebuffer));
       name[0] = namebuffer;
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
+      SStrCopy(buffer, "PLAYER_NOT_BANNED", sizeof(buffer));
+      break;
+    case 11:
+      msg->GetString(namebuffer, sizeof(namebuffer));
+      name[0] = namebuffer;
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "CHANNEL_OWNER", sizeof(buffer));
       break;
-    case 12: {
+    case 10:
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
+      SStrCopy(buffer, "NOT_OWNER", sizeof(buffer));
+      break;
+    case 12:
       msg->Get(guid);
       msg->Get(oldFlags);
       msg->Get(newFlags);
       HandleFlagsChanged(guid, oldFlags, newFlags, channel);
       return;
-    }
     case 13:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "ANNOUNCEMENTS_ON", sizeof(buffer));
       break;
     case 14:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "ANNOUNCEMENTS_OFF", sizeof(buffer));
       break;
     case 15:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "MODERATION_ON", sizeof(buffer));
       break;
     case 16:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "MODERATION_OFF", sizeof(buffer));
       break;
     case 17:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
       SStrCopy(buffer, "MUTED", sizeof(buffer));
       break;
     case 18:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
       msg->Get(guid2);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "PLAYER_KICKED", sizeof(buffer));
       break;
-    case 19:
-      eventType = static_cast<SLASH_COMMAND_ID>(17);
-      SStrCopy(buffer, "BANNED", sizeof(buffer));
-      break;
     case 20:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
       msg->Get(guid2);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "PLAYER_BANNED", sizeof(buffer));
       break;
+    case 19:
+      eventType = SLASH_CMD_CHANNEL_NOTICE;
+      SStrCopy(buffer, "BANNED", sizeof(buffer));
+      break;
     case 21:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
       msg->Get(guid2);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "PLAYER_UNBANNED", sizeof(buffer));
       break;
-    case 22:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
-      msg->GetString(namebuffer, sizeof(namebuffer));
-      name[0] = namebuffer;
-      SStrCopy(buffer, "PLAYER_NOT_BANNED", sizeof(buffer));
-      break;
     case 23:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "PLAYER_ALREADY_MEMBER", sizeof(buffer));
       break;
     case 24:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
       msg->Get(guid);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "INVITE", sizeof(buffer));
       break;
     case 25:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "INVITE_WRONG_FACTION", sizeof(buffer));
       break;
     case 26:
-      eventType = static_cast<SLASH_COMMAND_ID>(18);
+      eventType = SLASH_CMD_CHANNEL_NOTICE_USER;
       SStrCopy(buffer, "WRONG_FACTION", sizeof(buffer));
       break;
     default:
@@ -651,13 +650,19 @@ void CGChat::ChannelNotify(CDataStore *msg) {
   }
 
   if (guid) {
-    name[0] = reinterpret_cast<LPCSTR>(g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0));
+    const NameCache *nc[2];
+    nc[1] = 0;
+    nc[0] = g_nameDBCache.GetRecord(guid, guid, NameQueryCallback, 0);
     if (guid2) {
-      name[1] = reinterpret_cast<LPCSTR>(g_nameDBCache.GetRecord(guid2, guid2, NameQueryCallback, 0));
+      nc[1] = g_nameDBCache.GetRecord(guid2, guid2, NameQueryCallback, 0);
     }
-    if (!name[0] || (guid2 && !name[1])) {
+    if (!nc[0] || (guid2 && !nc[1])) {
       QueueChatText(eventType, guid, buffer, 0, 0, 1, channel, guid2, "");
       return;
+    }
+    name[0] = nc[0]->m_name;
+    if (nc[1]) {
+      name[1] = nc[1]->m_name;
     }
   }
 
@@ -778,8 +783,7 @@ void CGChat::QueueTextEmote(const DWORDLONG &sender, int textEmoteID, LPCSTR tar
 extern bool QuestParserParseText(LPCSTR text, char *buf, UINT size, const DWORDLONG &target, int restoreToken);
 
 void CGChat::NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
-  for (PENDINGCHAT *node = s_pendingChat.Head(), *nodenext_node; (int)node > 0 ? ((nodenext_node = s_pendingChat.RawNext(node)), 1) : 0;
-       node = nodenext_node)
+  SAFEITERATELIST(PENDINGCHAT, s_pendingChat, node)
   {
     if (node->waitingForUI) {
       continue;
@@ -835,7 +839,7 @@ void CGChat::NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool g
       char buffer[512];
       if (QuestParserParseText(node->text, buffer, sizeof(buffer), node->guid, 0)) {
         AddChatMessage(
-            buffer, static_cast<SLASH_COMMAND_ID>(node->slashCmd), nc[0]->m_name, node->language, node->channel, nc[1]->m_name, node->specialFlag
+            buffer, (SLASH_COMMAND_ID)node->slashCmd, nc[0]->m_name, node->language, node->channel, nc[1]->m_name, node->specialFlag
         );
       }
     } else if (!(node->guid == guid && !nc[0]) && !(node->guid2 == guid && !nc[1])) {
@@ -852,8 +856,7 @@ void CGChat::NameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool g
 }
 
 void CGChat::TextEmoteNameQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
-  for (PENDINGTEXTEMOTE *node = s_pendingTextEmote.Head(), *nodenext_node;
-       (int)node > 0 ? ((nodenext_node = s_pendingTextEmote.RawNext(node)), 1) : 0; node = nodenext_node)
+  SAFEITERATELIST(PENDINGTEXTEMOTE, s_pendingTextEmote, node)
   {
     if (node->waitingForUI) {
       continue;
@@ -877,8 +880,7 @@ void CGChat::GetPendingChatMessages() {
     return;
   }
 
-  for (PENDINGCHAT *node = s_pendingChat.Head(), *nodenext_node; (int)node > 0 ? ((nodenext_node = s_pendingChat.RawNext(node)), 1) : 0;
-       node = nodenext_node)
+  SAFEITERATELIST(PENDINGCHAT, s_pendingChat, node)
   {
     if (!node->waitingForUI) {
       continue;
@@ -926,7 +928,7 @@ void CGChat::GetPendingChatMessages() {
       }
     }
 
-    AddChatMessage(node->text, static_cast<SLASH_COMMAND_ID>(node->slashCmd), nc->m_name, node->language, node->channel, 0, node->specialFlag);
+    AddChatMessage(node->text, (SLASH_COMMAND_ID)node->slashCmd, nc->m_name, node->language, node->channel, 0, node->specialFlag);
     s_pendingChat.DeleteNode(node);
   }
 }
@@ -946,7 +948,7 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
 
   msg->Get(slashCmd);
   msg->Get(language);
-  if (slashCmd == 10 || slashCmd == 11 || slashCmd == 12) {
+  if (slashCmd == SLASH_CMD_MONSTER_SAY || slashCmd == SLASH_CMD_MONSTER_YELL || slashCmd == SLASH_CMD_MONSTER_EMOTE) {
     msg->GetString(name, sizeof(name));
     msg->Get(guid);
     msg->GetString(message, sizeof(message));
@@ -959,7 +961,7 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
       return 1;
     }
   } else {
-    if (slashCmd == 13)
+    if (slashCmd == SLASH_CMD_SEND_CHANNEL)
       msg->GetString(channel, sizeof(channel));
     msg->Get(guid);
     msg->GetString(buffer, sizeof(buffer));
@@ -982,7 +984,7 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
     }
 
     CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
-    if (unit && !(unit->GetUnitFlags() & 0x04000000) && (slashCmd == 0 || slashCmd == 4 || slashCmd == 1)) {
+    if (unit && !(unit->GetUnitFlags() & 0x04000000) && (slashCmd == SLASH_CMD_SAY || slashCmd == SLASH_CMD_YELL || slashCmd == SLASH_CMD_PARTY)) {
       char laughToken[32];
       for (int index = 1;;) {
         SStrPrintf(laughToken, sizeof(laughToken), "LAUGH_WORD%d", index++);
@@ -994,10 +996,10 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
           unit->RequestTalkEmote(TALKANIM_LAUGH);
           break;
         }
-        if (slashCmd == 0 || slashCmd == 4) {
+        if (slashCmd == SLASH_CMD_SAY || slashCmd == SLASH_CMD_YELL) {
           TALKANIMATION talkAnim = TALKANIM_TALK;
           UINT          len = SStrLen(buffer);
-          if (slashCmd == 4) {
+          if (slashCmd == SLASH_CMD_YELL) {
             talkAnim = TALKANIM_SHOUT;
           } else if (len > 0) {
             if (buffer[len - 1] == '?') {
@@ -1022,7 +1024,7 @@ BOOL CGChat::ChatHandler(CDataStore *msg) {
     QueueChatText(slashCmd, guid, buffer, language, 1, 0, channel, 0, specialFlag);
     return 1;
   }
-  AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(slashCmd), player, language, channel, 0, specialFlag);
+  AddChatMessage(buffer, (SLASH_COMMAND_ID)slashCmd, player, language, channel, 0, specialFlag);
   return 1;
 }
 
@@ -1079,16 +1081,16 @@ static BOOL StringToChatType(LPCSTR string, SLASH_COMMAND_ID &slashCmd) {
     SLASH_COMMAND_ID id;
     LPCSTR           string;
   } array[10] = {
-      { static_cast<SLASH_COMMAND_ID>(0),     "SAY"},
-      { static_cast<SLASH_COMMAND_ID>(1),   "PARTY"},
-      { static_cast<SLASH_COMMAND_ID>(2),   "GUILD"},
-      { static_cast<SLASH_COMMAND_ID>(3), "OFFICER"},
-      { static_cast<SLASH_COMMAND_ID>(4),    "YELL"},
-      { static_cast<SLASH_COMMAND_ID>(5), "WHISPER"},
-      { static_cast<SLASH_COMMAND_ID>(7),   "EMOTE"},
-      {static_cast<SLASH_COMMAND_ID>(13), "CHANNEL"},
-      {static_cast<SLASH_COMMAND_ID>(19),     "AFK"},
-      {static_cast<SLASH_COMMAND_ID>(20),     "DND"}
+      { SLASH_CMD_SAY,     "SAY"},
+      { SLASH_CMD_PARTY,   "PARTY"},
+      { SLASH_CMD_GUILD,   "GUILD"},
+      { SLASH_CMD_OFFICER, "OFFICER"},
+      { SLASH_CMD_YELL,    "YELL"},
+      { SLASH_CMD_WHISPER, "WHISPER"},
+      { SLASH_CMD_EMOTE,   "EMOTE"},
+      {SLASH_CMD_SEND_CHANNEL, "CHANNEL"},
+      {SLASH_CMD_SEND_AFK,     "AFK"},
+      {SLASH_CMD_SEND_DND,     "DND"}
   };
   for (UINT i = 0; i < 10; ++i) {
     if (!SStrCmpI(array[i].string, string, 0x7FFFFFFF)) {
@@ -1116,67 +1118,86 @@ static int Script_SendChatMessage(lua_State *L) {
   if (!player) {
     return 0;
   }
-  if (!lua_isstring(L, 1)) {
+
+  if (lua_isstring(L, 1)) {
+    LPCSTR           text = lua_tostring(L, 1);
+    SLASH_COMMAND_ID type = SLASH_CMD_SAY;
+    if (lua_isstring(L, 2)) {
+      if (!StringToChatType(lua_tostring(L, 2), type)) {
+        luaL_error(L, "Unknown chat type");
+      }
+    }
+    if ((!text || !*text) && type != SLASH_CMD_SEND_DND && type != SLASH_CMD_SEND_AFK) {
+      return 0;
+    }
+
+    UINT   language = player->GetDefaultLanguage();
+    LPCSTR target = 0;
+    if (lua_isstring(L, 3)) {
+      if (!StringToLanguage(lua_tostring(L, 3), language)) {
+        luaL_error(L, "Unknown language");
+      }
+    }
+    if (lua_isstring(L, 4)) {
+      target = lua_tostring(L, 4);
+    }
+
+    if (type == SLASH_CMD_WHISPER) {
+      if (!target || !*target) {
+        luaL_error(L, "Whisper message missing target player!");
+        return 0;
+      }
+    } else if (type == SLASH_CMD_SEND_CHANNEL) {
+      if (!target || !*target) {
+        luaL_error(L, "Channel send missing channel number");
+        return 0;
+      }
+      target = CGChat::GetChannelName(SStrToInt(target));
+      if (!target) {
+        luaL_error(L, "Channel not found");
+        return 0;
+      }
+    }
+
+    if (type == SLASH_CMD_SEND_AFK) {
+      if (!(player->GetPlayerFlags() & 4) && !*text) {
+        text = FrameScript_GetText("DEFAULT_AFK_MESSAGE", -1, GENDER_NOT_APPLICABLE);
+      }
+      if (*text) {
+        CGChat::AddChatMessage(FrameScript_GetText("MARKED_AFK", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
+      } else {
+        CGChat::AddChatMessage(FrameScript_GetText("CLEARED_AFK", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
+      }
+    }
+    if (type == SLASH_CMD_SEND_DND) {
+      if (!(player->GetPlayerFlags() & 8) && !*text) {
+        text = FrameScript_GetText("DEFAULT_DND_MESSAGE", -1, GENDER_NOT_APPLICABLE);
+      }
+      if (*text) {
+        CGChat::AddChatMessage(FrameScript_GetText("MARKED_DND", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
+      } else {
+        CGChat::AddChatMessage(FrameScript_GetText("CLEARED_DND", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
+      }
+    }
+
+    if (player->GetHealth() <= 0 && type != SLASH_CMD_WHISPER && type != SLASH_CMD_PARTY && type != SLASH_CMD_GUILD && type != SLASH_CMD_OFFICER && type != SLASH_CMD_SEND_CHANNEL) {
+      CGGameUI::DisplayError(GERR_CHAT_WHILE_DEAD);
+      return 0;
+    }
+
+    CDataStore message;
+    message.Put(CMSG_MESSAGECHAT);
+    message.Put(type);
+    message.Put(language);
+    if (type == SLASH_CMD_WHISPER || type == SLASH_CMD_SEND_CHANNEL) {
+      message.PutString(target);
+    }
+    message.PutString(text);
+    message.Finalize();
+    ClientServices_Send(&message);
+  } else {
     luaL_error(L, "Usage: SendChatMessage(text [,type] [,language] [,targetPlayer])");
-    return 0;
   }
-  LPCSTR           text = lua_tostring(L, 1);
-  SLASH_COMMAND_ID type = SLASH_CMD_SAY;
-  if (lua_isstring(L, 2) && !StringToChatType(lua_tostring(L, 2), type)) {
-    luaL_error(L, "Unknown chat type");
-  }
-  if ((!text || !*text) && type != SLASH_CMD_SEND_DND && type != SLASH_CMD_SEND_AFK) {
-    return 0;
-  }
-
-  UINT language = player->GetDefaultLanguage();
-  if (lua_isstring(L, 3) && !StringToLanguage(lua_tostring(L, 3), language)) {
-    luaL_error(L, "Unknown language");
-  }
-
-  LPCSTR target = lua_isstring(L, 4) ? lua_tostring(L, 4) : 0;
-  if (type == SLASH_CMD_WHISPER && (!target || !*target)) {
-    luaL_error(L, "Whisper message missing target player!");
-    return 0;
-  }
-  if (type == SLASH_CMD_SEND_CHANNEL) {
-    if (!target || !*target) {
-      luaL_error(L, "Channel send missing channel number");
-      return 0;
-    }
-    target = CGChat::GetChannelName(SStrToInt(target));
-    if (!target) {
-      luaL_error(L, "Channel not found");
-      return 0;
-    }
-  }
-  if (type == SLASH_CMD_SEND_AFK) {
-    if (!(player->GetPlayerFlags() & 4) && !*text) {
-      text = FrameScript_GetText("DEFAULT_AFK_MESSAGE", -1, GENDER_NOT_APPLICABLE);
-    }
-    CGChat::AddChatMessage(FrameScript_GetText(*text ? "MARKED_AFK" : "CLEARED_AFK", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
-  }
-  if (type == SLASH_CMD_SEND_DND) {
-    if (!(player->GetPlayerFlags() & 8) && !*text) {
-      text = FrameScript_GetText("DEFAULT_DND_MESSAGE", -1, GENDER_NOT_APPLICABLE);
-    }
-    CGChat::AddChatMessage(FrameScript_GetText(*text ? "MARKED_DND" : "CLEARED_DND", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
-  }
-  if (player->GetHealth() <= 0 && type != SLASH_CMD_WHISPER && type != SLASH_CMD_PARTY && type != SLASH_CMD_GUILD && type != SLASH_CMD_OFFICER && type != SLASH_CMD_SEND_CHANNEL) {
-    CGGameUI::DisplayError(GERR_CHAT_WHILE_DEAD);
-    return 0;
-  }
-
-  CDataStore message;
-  message.Put(CMSG_MESSAGECHAT);
-  message.Put(type);
-  message.Put(language);
-  if (type == SLASH_CMD_WHISPER || type == SLASH_CMD_SEND_CHANNEL) {
-    message.PutString(target);
-  }
-  message.PutString(text);
-  message.Finalize();
-  ClientServices_Send(&message);
   return 0;
 }
 
@@ -1208,7 +1229,7 @@ static int Script_GetLanguageByIndex(lua_State *L) {
   if (!player) {
     return 0;
   }
-  UINT index = static_cast<UINT>(lua_tonumber(L, 1));
+  UINT index = lua_tonumber(L, 1);
   UINT count = 0;
   int  numEntries = g_languagesDB.GetNumRecords();
   for (int i = 0; i < numEntries; ++i) {
@@ -1265,7 +1286,7 @@ static int Script_DoEmote(lua_State *L) {
 
 static int Script_ChatFrameLog(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    s_loggingEnabled = static_cast<int>(lua_tonumber(L, 1));
+    s_loggingEnabled = lua_tonumber(L, 1);
     if (s_logHandle) {
       SLogClose(s_logHandle);
       s_logHandle = 0;
@@ -1356,12 +1377,12 @@ static int Script_ListChannels(lua_State *L) {
     }
     SStrPrintf(buffer, sizeof(buffer), "[%d. %s] ", s_channels[i].localID, s_channels[i].name);
     if (SStrLen(line + SStrLen(buffer)) >= sizeof(line)) {
-      CGChat::AddChatMessage(line, static_cast<SLASH_COMMAND_ID>(16), 0, 0, 0, 0, 0);
+      CGChat::AddChatMessage(line, SLASH_CMD_LIST_CHANNEL, 0, 0, 0, 0, 0);
       line[0] = 0;
     }
     SStrPack(line, buffer, sizeof(line));
   }
-  CGChat::AddChatMessage(line, static_cast<SLASH_COMMAND_ID>(16), 0, 0, 0, 0, 0);
+  CGChat::AddChatMessage(line, SLASH_CMD_LIST_CHANNEL, 0, 0, 0, 0, 0);
   return 0;
 }
 
@@ -1397,7 +1418,7 @@ static int Script_GetChannelName(lua_State *L) {
   int    channel;
   LPCSTR name;
   if (lua_isnumber(L, 1)) {
-    channel = static_cast<int>(lua_tonumber(L, 1));
+    channel = lua_tonumber(L, 1);
     name = CGChat::GetChannelName(channel);
     if (!name) {
       channel = 0;

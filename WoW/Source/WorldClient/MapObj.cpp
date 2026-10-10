@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -86,8 +86,6 @@ CMapObj::~CMapObj() {
 }
 
 void CMapObj::Init() {
-  aaBox.b.Set(0.0f, 0.0f, 0.0f);
-  aaBox.t.Set(0.0f, 0.0f, 0.0f);
   file = 0;
   refCount = 0;
   data = 0;
@@ -98,6 +96,8 @@ void CMapObj::Init() {
   nGroupsRead = 0;
   materialList = 0;
   materialCount = 0;
+  aaBox.b = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
+  aaBox.t = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
   groupPtrList.SetCount(0);
   InitPtrs();
 }
@@ -191,7 +191,7 @@ bool CMapObj::VectorIntersect(
   bool               hit = false;
 
   ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
-    CMapObjDefGroup *mapObjDefGroup = static_cast<CMapObjDefGroup *>(groupLink->owner);
+    CMapObjDefGroup *mapObjDefGroup = (CMapObjDefGroup *)groupLink->owner;
     if (!CWorldMath::VectorIntersectAABox2(groupInfoList[mapObjDefGroup->groupNum].aaBox, *v0, *v1)) {
       continue;
     }
@@ -657,7 +657,7 @@ UINT CMapObj::GetDoodadSet(UINT doodadIndex) {
 }
 
 static int NearestPow2(float value) {
-  return static_cast<int>(ceil(log10f(value) / log10f(2.0f)));
+  return ceil(log10f(value) / log10f(2.0f));
 }
 
 void CMapObj::QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {
@@ -687,12 +687,12 @@ void CMapObj::QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempes
     UINT                      clipFlags = 0xFFFFFFFF;
     const NTempest::C3Vector *point = &portalVertexList[portal->startVertex];
     for (UINT vertex = 0; vertex < portal->count; ++vertex, ++point) {
-      UINT pointFlags = static_cast<UINT>(NTempest::CMath::realasint32_(point->x - localBox.b.x)) >> 31;
-      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(point->y - localBox.b.y)) >> 31 << 1;
-      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(point->z - localBox.b.z)) >> 31 << 2;
-      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(localBox.t.x - point->x)) >> 31 << 3;
-      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(localBox.t.y - point->y)) >> 31 << 4;
-      pointFlags |= static_cast<UINT>(NTempest::CMath::realasint32_(localBox.t.z - point->z)) >> 31 << 5;
+      UINT pointFlags = (UINT)NTempest::CMath::realasint32_(point->x - localBox.b.x) >> 31;
+      pointFlags |= (UINT)NTempest::CMath::realasint32_(point->y - localBox.b.y) >> 31 << 1;
+      pointFlags |= (UINT)NTempest::CMath::realasint32_(point->z - localBox.b.z) >> 31 << 2;
+      pointFlags |= (UINT)NTempest::CMath::realasint32_(localBox.t.x - point->x) >> 31 << 3;
+      pointFlags |= (UINT)NTempest::CMath::realasint32_(localBox.t.y - point->y) >> 31 << 4;
+      pointFlags |= (UINT)NTempest::CMath::realasint32_(localBox.t.z - point->z) >> 31 << 5;
       clipFlags &= pointFlags;
     }
 

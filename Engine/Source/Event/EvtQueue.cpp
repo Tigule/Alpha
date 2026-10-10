@@ -68,12 +68,12 @@ static void UpdateSyncState(EvtContext *context, EVENTID &id, LPCVOID data) {
 
     case EVENT_ID_KEYDOWN:
     case EVENT_ID_KEYUP:
-      UpdateSyncKeyState(context, static_cast<const EVENT_DATA_KEY *>(data)->key, id);
+      UpdateSyncKeyState(context, ((const EVENT_DATA_KEY *)data)->key, id);
       break;
 
     case EVENT_ID_MOUSEDOWN:
     case EVENT_ID_MOUSEUP:
-      UpdateSyncMouseState(context, static_cast<const EVENT_DATA_MOUSE *>(data)->button, id == EVENT_ID_MOUSEDOWN);
+      UpdateSyncMouseState(context, ((const EVENT_DATA_MOUSE *)data)->button, id == EVENT_ID_MOUSEDOWN);
       break;
   }
 }
@@ -312,7 +312,7 @@ void IEvtQueueUnregister(EvtContext *context, EVENTID id, EVENTHANDLER handler, 
       continue;
     }
 
-    LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList(static_cast<EVENTID>(checkId));
+    LISTEX(EvtHandler, link) &handlerList = context->QueueLockHandlerList((EVENTID)checkId);
     ITERATELIST(EvtHandler, handlerList, registered) {
       if ((registered->func == handler || !(flags & 2)) && (registered->param == param || !(flags & 4)) && !registered->marker) {
         ITERATE_DELETE;

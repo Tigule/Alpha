@@ -24,7 +24,7 @@ static float EvaluateCubicPolynomial(float t, const float *coefficients) {
 }
 
 void CKeyFrameTrackBase::SetNumKeys(UINT numKeys, UINT keySize) {
-  m_keyFrames = static_cast<CKeyFrame *>(SMemAlloc(numKeys * keySize, __FILE__, __LINE__, 0));
+  m_keyFrames = (CKeyFrame *)SMemAlloc(numKeys * keySize, __FILE__, __LINE__, 0);
   m_keyFrameSize = keySize;
 }
 
@@ -96,7 +96,7 @@ UINT CKeyFrameTrackBase::SetAnimTime(const CBaseStatus &sequence, CKeyTrackStatu
   }
 
   if (interpData.shared->seq.Count()) {
-    ISetAnimTime(seqId, sequence.flags & 0x10, interpData.unique->seq[seqId].elapsed, interpData.shared->seq[seqId].time.h, keyStat);
+    ISetAnimTime(seqId, sequence.flags & 0x10, interpData.unique->seq[seqId].elapsed, interpData.shared->seq[seqId].time.High(), keyStat);
   }
 
   return numKeys;
@@ -114,7 +114,7 @@ BOOL CKeyFrameTrackBase::JustPastKeyForward(
   if (seqIsNew) {
     return seqElapsed >= key->time;
   }
-  if (elapsedTime >= seqShared.time.h - seqShared.time.l) {
+  if (elapsedTime >= seqShared.time.Magnitude()) {
     return 1;
   }
   if (curr.currKey != prev.currKey) {
@@ -125,7 +125,7 @@ BOOL CKeyFrameTrackBase::JustPastKeyForward(
   if (prev.timepastkey < 0) {
     return timePastKey >= 0;
   }
-  return timePastKey + seqShared.time.l - seqShared.time.h >= 0;
+  return timePastKey - seqShared.time.Magnitude() >= 0;
 }
 
 BOOL CKeyFrameTrackBase::JustPastKeyBackward(
@@ -140,7 +140,7 @@ BOOL CKeyFrameTrackBase::JustPastKeyBackward(
   if (seqIsNew) {
     return seqElapsed <= key->time;
   }
-  if (-elapsedTime >= seqShared.time.h - seqShared.time.l) {
+  if (-elapsedTime >= seqShared.time.Magnitude()) {
     return 1;
   }
   if (curr.currKey != prev.currKey) {
@@ -151,7 +151,7 @@ BOOL CKeyFrameTrackBase::JustPastKeyBackward(
   if (prev.timepastkey > 0) {
     return timePastKey <= 0;
   }
-  return timePastKey + seqShared.time.h - seqShared.time.l <= 0;
+  return timePastKey + seqShared.time.Magnitude() <= 0;
 }
 
 int CKeyFrameTrackBase::JustPastKey(
@@ -174,19 +174,19 @@ int CKeyFrameTrackBase::JustPastKey(
 }
 
 const CKeyFrame *CKeyFrameTrackBase::NextKey(const CKeyFrame *key) const {
-  return reinterpret_cast<const CKeyFrame *>(reinterpret_cast<const BYTE *>(key) + m_keyFrameSize);
+  return (const CKeyFrame *)((const BYTE *)key + m_keyFrameSize);
 }
 
 CKeyFrame *CKeyFrameTrackBase::NextKey(CKeyFrame *key) {
-  return reinterpret_cast<CKeyFrame *>(reinterpret_cast<BYTE *>(key) + m_keyFrameSize);
+  return (CKeyFrame *)((BYTE *)key + m_keyFrameSize);
 }
 
 const CKeyFrame *CKeyFrameTrackBase::GetKeyFrame(UINT keyId) const {
-  return reinterpret_cast<const CKeyFrame *>(reinterpret_cast<const BYTE *>(m_keyFrames) + m_keyFrameSize * keyId);
+  return (const CKeyFrame *)((const BYTE *)m_keyFrames + m_keyFrameSize * keyId);
 }
 
 CKeyFrame *CKeyFrameTrackBase::GetKeyFrame(UINT keyId) {
-  return reinterpret_cast<CKeyFrame *>(reinterpret_cast<BYTE *>(m_keyFrames) + m_keyFrameSize * keyId);
+  return (CKeyFrame *)((BYTE *)m_keyFrames + m_keyFrameSize * keyId);
 }
 
 UINT CKeyFrameTrackBase::TimeDiff(const CKeyFrame &curr, const CKeyFrame &next, UINT seqTime) {
@@ -223,7 +223,7 @@ void CKeyFrameTrackBase::ISetAnimTime(BYTE sequenceId, int seqIsNew, int millise
 
   if (seqIsNew) {
     keyStat->currKey = FirstKeyId(sequenceId);
-    keyStat->nextKey = keyStat->currKey == LastKeyId(sequenceId) ? FirstKeyId(sequenceId) : keyStat->currKey + 1;
+    keyStat->nextKey = NextKeyId(keyStat->currKey, sequenceId);
   }
 
   keyStat->currKey = FindKeyForTime(sequenceId, keyStat->currKey, milliseconds);
@@ -242,7 +242,7 @@ void CKeyFrameTrackBase::ISetAnimTime(BYTE sequenceId, int seqIsNew, int millise
   }
 
   keyStat->timepastkey = milliseconds - key->time;
-  keyStat->nextKey = keyStat->currKey == LastKeyId(sequenceId) ? FirstKeyId(sequenceId) : keyStat->currKey + 1;
+  keyStat->nextKey = NextKeyId(keyStat->currKey, sequenceId);
 }
 
 UINT CKeyFrameTrackBase::FindKeyForTime(UINT currSeq, UINT currKeyId, int targettime) {
@@ -263,12 +263,15 @@ UINT CKeyFrameTrackBase::FindKeyForTime(UINT currSeq, UINT currKeyId, int target
     }
   }
 
-  const CKeyFrame *nextKey = GetKeyFrame(currKeyId + 1);
+  UINT             keyId = currKeyId + 1;
+  const CKeyFrame *nextKey = GetKeyFrame(keyId);
   while (targettime >= nextKey->time) {
-    ++currKeyId;
-    if (currKeyId == LastKeyId(currSeq)) {
+    currKeyId = keyId;
+    UINT lastKeyId = LastKeyId(currSeq);
+    if (keyId == lastKeyId) {
       break;
     }
+    ++keyId;
     nextKey = NextKey(nextKey);
   }
 
@@ -282,27 +285,29 @@ UINT CKeyFrameTrackBase::FindKeyForTimeConstSeq(UINT currKeyId, int targettime) 
     return 0;
   }
 
-  UINT             keyId = currKeyId;
   const CKeyFrame *key = GetKeyFrame(currKeyId);
   if (targettime < key->time) {
-    keyId = 0;
-  } else if (currKeyId >= TotalKeys() - 1) {
-    return TotalKeys() - 1;
-  }
-
-  key = GetKeyFrame(keyId + 1);
-  if (targettime >= key->time) {
+    currKeyId = 0;
+  } else {
     UINT lastKeyId = TotalKeys() - 1;
-    do {
-      ++keyId;
-      if (keyId == lastKeyId) {
-        break;
-      }
-      key = NextKey(key);
-    } while (targettime >= key->time);
+    if (currKeyId >= lastKeyId) {
+      return lastKeyId;
+    }
   }
 
-  return keyId;
+  UINT             keyId = currKeyId + 1;
+  const CKeyFrame *nextKey = GetKeyFrame(keyId);
+  while (targettime >= nextKey->time) {
+    currKeyId = keyId;
+    UINT lastKeyId = TotalKeys() - 1;
+    if (keyId == lastKeyId) {
+      break;
+    }
+    ++keyId;
+    nextKey = NextKey(nextKey);
+  }
+
+  return currKeyId;
 }
 
 template <>
@@ -481,12 +486,12 @@ void CKeyFrameTrack<UINT, UINT>::InterpolateLinear(const CLinearKeyFrame<UINT> &
 
 void Blend(const NTempest::C3Vector &previous, NTempest::C3Vector *current, int timeLeft, UINT blendTime) {
   ASSERT(current);
-  float ratio = static_cast<float>(blendTime - timeLeft) / static_cast<float>(blendTime);
+  float ratio = (float)(blendTime - timeLeft) / (float)blendTime;
   *current = previous * (1.0f - ratio) + *current * ratio;
 }
 
 void Blend(const NTempest::C4Quaternion &previous, NTempest::C4Quaternion *current, int timeLeft, UINT blendTime) {
   ASSERT(current);
-  float ratio = static_cast<float>(blendTime - timeLeft) / static_cast<float>(blendTime);
+  float ratio = (float)(blendTime - timeLeft) / (float)blendTime;
   *current = NTempest::C4Quaternion::Slerp(ratio, previous, *current);
 }

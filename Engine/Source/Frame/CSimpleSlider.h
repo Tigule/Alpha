@@ -80,9 +80,9 @@ class CSimpleSlider : public CSimpleFrame {
       float delta = value - m_baseValue;
 
       if (delta > 0.0f) {
-        value = static_cast<float>(static_cast<int>((delta + m_valueStep * 0.5f) / m_valueStep));
+        value = (float)((int)((delta + m_valueStep * 0.5f) / m_valueStep));
       } else {
-        value = static_cast<float>(static_cast<int>((delta - m_valueStep * 0.5f) / m_valueStep));
+        value = (float)((int)((delta - m_valueStep * 0.5f) / m_valueStep));
       }
 
       value = value * m_valueStep + m_baseValue;

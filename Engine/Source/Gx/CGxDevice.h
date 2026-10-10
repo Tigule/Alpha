@@ -189,8 +189,8 @@ class CGxDevice {
   TSGrowableArray<CGxPushedRenderState> mPushedStates;
   TSGrowableArray<DWORD>                mStackOffsets;
   TSGrowableArray<enum EGxRenderState>  mDirtyStates;
-  UINT                                  m_perfCountersLatched[13];
-  UINT                                  m_perfCountersAcc[13];
+  UINT                                  m_perfCountersLatched[GxPerfCounters_Last];
+  UINT                                  m_perfCountersAcc[GxPerfCounters_Last];
   EGxPrim                               m_primType;
   UINT                                  m_primIndexCount;
   BOOL                                  m_indexLocked;
@@ -250,7 +250,7 @@ class CGxDevice {
   NTempest::C44Matrix                                m_projection;
   const NTempest::C34Matrix                         *m_bones;
   UINT                                               m_boneCount;
-  CGxMatrixStack                                     m_xforms[7];
+  CGxMatrixStack                                     m_xforms[GxXforms_Last];
   CGxMatrixStack                                     m_texGen[4];
   EGxVertexShader                                    m_vertexShader;
   EGxVertexBufferFormat                              m_vertexBufferFormat;
@@ -265,8 +265,8 @@ class CGxDevice {
 
   LISTDECLEX(CGxBuf, linkGx, m_bufList);
   CGxBuf                              *m_bufLocked;
-  UINT                                 m_VBReserve[4][9];
-  UINT                                 m_IBReserve[4][9];
+  UINT                                 m_VBReserve[GxBufWriteFreqs_Last][9];
+  UINT                                 m_IBReserve[GxBufWriteFreqs_Last][9];
   CGxBuf                              *m_dynBuf[9];
   TSFixedArray<CGxAppRenderState>      mAppRenderStates;
   TSFixedArray<CGxStateBom>            mHwRenderStates;
@@ -282,7 +282,7 @@ class CGxDevice {
   };
 
  protected:
-  TextureTarget                        m_textureTarget[2];
+  TextureTarget                        m_textureTarget[GxBuffers_Last];
   int                                  m_scrShotClick;
   UINT                                 m_scrShotWidth;
   UINT                                 m_scrShotHeight;

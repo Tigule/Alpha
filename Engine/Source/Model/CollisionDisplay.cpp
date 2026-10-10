@@ -20,15 +20,12 @@ static HMODEL CreateSimpleModel(
     const WORD               *primVertIndices,
     UINT                      numIndices
 ) {
-  NTempest::CImVector textureColor;
-  textureColor.Set(0x7FFFFFFF);
-  HTEXTURE                         texture = TextureCreateSolid(textureColor, 0);
+  HTEXTURE                         texture = TextureCreateSolid(NTempest::CImVector(0x7FFFFFFF), 0);
   TSStackArray<NTempest::C2Vector> texCoords(_alloca(numVertices * sizeof(NTempest::C2Vector)), numVertices, numVertices);
 
-  NTempest::CImVector color(255, 255, 255, 255);
-  HMODEL              model = ModelCreateSimpleMesh(
+  HMODEL model = ModelCreateSimpleMesh(
       "Collision Debug", numVertices, positions, normals, texCoords.Ptr(), GxPrim_Triangles, primVertIndices, numIndices, texture, GxBlend_Alpha, 0,
-      color, 0
+      NTempest::CImVector(255, 255, 255, 255), 0
   );
   HandleClose(texture);
   return model;
@@ -43,45 +40,26 @@ static int CreateCollisionDisplayNormals(const CCollisionData &collide, HMODEL m
   normal.Zero();
   texCoord.Zero();
 
-  NTempest::C3Vector dimensions(
-      collide.extents.t.x - collide.extents.b.x, collide.extents.t.y - collide.extents.b.y, collide.extents.t.z - collide.extents.b.z
-  );
-  float normalScale = dimensions.x;
-  if (dimensions.y < normalScale) {
-    normalScale = dimensions.y;
-  }
-  if (dimensions.z < normalScale) {
-    normalScale = dimensions.z;
-  }
-  if (normalScale <= 1.0f) {
-    normalScale = 1.0f;
-  }
+  NTempest::C3Vector dimensions = collide.extents.t - collide.extents.b;
+  float              normalScale = max(min(dimensions.x, min(dimensions.y, dimensions.z)), 1.0f);
 
   UINT i;
   for (i = 0; i < numFacets; ++i) {
     NTempest::C3Vector average = collide.vertices[collide.indices[i * 3]];
     average += collide.vertices[collide.indices[i * 3 + 1]];
     average += collide.vertices[collide.indices[i * 3 + 2]];
-    average.x *= 0.33333334f;
-    average.y *= 0.33333334f;
-    average.z *= 0.33333334f;
+    average *= 1.0f / 3.0f;
 
     position[i * 2] = average;
-    position[i * 2 + 1] = NTempest::C3Vector(
-        average.x + collide.surfaceNormals[i].x * normalScale, average.y + collide.surfaceNormals[i].y * normalScale,
-        average.z + collide.surfaceNormals[i].z * normalScale
-    );
-    indices[i * 2] = static_cast<WORD>(i * 2);
-    indices[i * 2 + 1] = static_cast<WORD>(i * 2 + 1);
+    position[i * 2 + 1] = average + collide.surfaceNormals[i] * normalScale;
+    indices[i * 2] = i * 2;
+    indices[i * 2 + 1] = i * 2 + 1;
   }
 
-  NTempest::CImVector textureColor;
-  textureColor.Set(static_cast<BYTE>(255), static_cast<BYTE>(255), static_cast<BYTE>(0), static_cast<BYTE>(0));
-  HTEXTURE            texture = TextureCreateSolid(textureColor, 0);
-  NTempest::CImVector color(255, 255, 255, 255);
-  int                 result = ModelGeosetAdd(
+  HTEXTURE texture = TextureCreateSolid(NTempest::CImVector(255, 255, 0, 0), 0);
+  int      result = ModelGeosetAdd(
       model, position.Count(), position.Ptr(), normal.Ptr(), texCoord.Ptr(), GxPrim_Lines, indices.Ptr(), indices.Count(), texture, GxBlend_Opaque, 1,
-      color, 0
+      NTempest::CImVector(255, 255, 255, 255), 0
   );
   HandleClose(texture);
   return result;
@@ -95,7 +73,7 @@ static HMODEL CreateCollisionDisplayMesh(const CCollisionData &collide) {
 
   UINT i;
   for (i = 0; i < numTriangles; ++i) {
-    primVertIndices[i] = static_cast<WORD>(i);
+    primVertIndices[i] = i;
     positions[i] = collide.vertices[collide.indices[i]];
   }
 
@@ -115,23 +93,23 @@ static void BuildDisplayBox(
     NTempest::C3Vector      *debugNormals,
     const WORD             **debugIndices
 ) {
-  UINT index;
-  for (index = 0; index < 8; ++index) {
-    debugVerts[index * 3] = boxVerts[index];
-    debugVerts[index * 3 + 1] = boxVerts[index];
-    debugVerts[index * 3 + 2] = boxVerts[index];
+  for (UINT i = 0; i < 8; ++i) {
+    debugVerts[i * 3] = debugVerts[i * 3 + 1] = debugVerts[i * 3 + 2] = boxVerts[i];
   }
 
-  NTempest::C3Vector normX[2] = {boxNormals[1], boxNormals[0]};
-  NTempest::C3Vector normY[2] = {boxNormals[2], boxNormals[3]};
-  NTempest::C3Vector normZ[2] = {boxNormals[5], boxNormals[4]};
-  index = 0;
+  NTempest::C3Vector normX[2], normY[2], normZ[2];
+  normX[0] = boxNormals[1];
+  normX[1] = boxNormals[0];
+  normY[0] = boxNormals[2];
+  normY[1] = boxNormals[3];
+  normZ[0] = boxNormals[5];
+  normZ[1] = boxNormals[4];
   for (UINT z = 0; z < 2; ++z) {
     for (UINT y = 0; y < 2; ++y) {
-      for (UINT x = 0; x < 2; ++x) {
-        debugNormals[index++] = normX[x];
-        debugNormals[index++] = normY[y];
-        debugNormals[index++] = normZ[z];
+      for (UINT x = 0; x < 2; ++x, debugNormals += 3) {
+        debugNormals[0] = normX[x];
+        debugNormals[1] = normY[y];
+        debugNormals[2] = normZ[z];
       }
     }
   }
@@ -139,7 +117,7 @@ static void BuildDisplayBox(
 }
 
 HMODEL CollisionDataCreateModel(HCOLLISIONDATA handle) {
-  CCollisionData *collide = reinterpret_cast<CCollisionData *>(handle);
+  CCollisionData *collide = (CCollisionData *)handle;
   VALIDATEBEGIN;
   VALIDATE(collide);
   VALIDATEEND;
@@ -151,46 +129,45 @@ HMODEL CollisionDataCreateModel(HCOLLISIONDATA handle) {
 
 void CollisionDataAABoxRenderCallback(HMODEL model, const NTempest::C34Matrix &basis, LPVOID param) {
   CModelShared *shared;
-  IModelDerefHandle(reinterpret_cast<CModel *>(model), &shared);
+  IModelDerefHandle((CModel *)model, &shared);
   ASSERT(shared);
-  CCollisionData *collide = reinterpret_cast<CCollisionData *>(shared->collision);
+  CCollisionData *collide = (CCollisionData *)shared->collision;
   ASSERT(collide);
   CollisionDataRenderAABox(collide->extents, basis);
 }
 
 void CollisionDataRenderAABox(const NTempest::CAaBox &box, const NTempest::C34Matrix &cameraSpace) {
-  NTempest::C3Vector        renderVerts[24];
-  NTempest::C3Vector        renderNorms[24];
-  NTempest::C3Vector        boxVerts[8];
-  NTempest::C3Vector        boxNormals[6] = {NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
-                                             NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f),
-                                             NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f)};
-  const WORD               *renderIndices;
+  NTempest::C3Vector boxVerts[8];
+
   const NTempest::C3Vector *verts[2] = {&box.b, &box.t};
-  UINT                      y;
-  UINT                      z;
-  for (z = 0; z < 2; ++z) {
-    for (y = 0; y < 2; ++y) {
-      boxVerts[z * 4 + y * 2] = NTempest::C3Vector(verts[0]->x, verts[y]->y, verts[z]->z);
-      boxVerts[z * 4 + y * 2 + 1] = NTempest::C3Vector(verts[1]->x, verts[y]->y, verts[z]->z);
+  NTempest::C3Vector       *dst = boxVerts;
+  for (UINT z = 0; z < 2; ++z) {
+    for (UINT y = 0; y < 2; ++y) {
+      for (UINT x = 0; x < 2; ++x, ++dst) {
+        dst->Set(verts[x]->x, verts[y]->y, verts[z]->z);
+      }
     }
   }
+  NTempest::C3Vector boxNormals[6];
+  boxNormals[0].Set(1.0f, 0.0f, 0.0f);
+  boxNormals[1].Set(-1.0f, 0.0f, 0.0f);
+  boxNormals[2].Set(0.0f, 1.0f, 0.0f);
+  boxNormals[3].Set(0.0f, -1.0f, 0.0f);
+  boxNormals[4].Set(0.0f, 0.0f, 1.0f);
+  boxNormals[5].Set(0.0f, 0.0f, -1.0f);
+
+  NTempest::C3Vector renderVerts[24];
+  NTempest::C3Vector renderNorms[24];
+  const WORD        *renderIndices;
 
   BuildDisplayBox(boxVerts, boxNormals, renderVerts, renderNorms, &renderIndices);
 
   GxRsPush();
-  GxRsSet(GxRs_Blend, 2);
+  GxRsSet(GxRs_Blend, GxBlend_Alpha);
   GxRsSet(GxRs_DepthWrite, 0);
-  NTempest::CImVector diffuse;
-  diffuse.Set(0x8000FFFF);
-  GxRsSet(GxRs_MatDiffuse, diffuse);
+  GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0x8000FFFF));
   GxRsSet(GxRs_Fog, 0);
-
-  NTempest::C44Matrix world(
-      cameraSpace.a0, cameraSpace.a1, cameraSpace.a2, 0.0f, cameraSpace.b0, cameraSpace.b1, cameraSpace.b2, 0.0f, cameraSpace.c0, cameraSpace.c1,
-      cameraSpace.c2, 0.0f, cameraSpace.d0, cameraSpace.d1, cameraSpace.d2, 1.0f
-  );
-  GxXformPush(GxXform_World, world);
+  GxXformPush(GxXform_World, NTempest::C44Matrix(cameraSpace));
   GxVertexShaderSelect(GxVS_PassThru);
   GxPrimLockVertexPtrs(24, renderVerts, sizeof(NTempest::C3Vector), renderNorms, sizeof(NTempest::C3Vector), 0, 0, 0, 0, 0, 0, 0, 0);
   GxPrimDrawElements(GxPrim_Triangles, 36, renderIndices);

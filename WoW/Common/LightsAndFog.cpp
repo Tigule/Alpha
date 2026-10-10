@@ -57,7 +57,7 @@ bool LoadLightsAndFog(LPCSTR filename, LightGroup *lightgroup) {
   SFile *lightdata = 0;
 
   if (SFile::Open(filename, &lightdata) && SFile::Read(lightdata, &versionNumber, sizeof(versionNumber), 0, 0, 0) &&
-      versionNumber == static_cast<int>(0x80000004) && SFile::Read(lightdata, &lightCount, sizeof(lightCount), 0, 0, 0))
+      versionNumber == (int)0x80000004 && SFile::Read(lightdata, &lightCount, sizeof(lightCount), 0, 0, 0))
   {
     lightgroup->m_lightData.SetCount(lightCount);
 
@@ -102,7 +102,7 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
   }
 
   TSFixedArray<LightMarker> &markers = lightdata->m_highlightMarker[band];
-  for (int n = 0; n < static_cast<int>(markers.Count()); ++n) {
+  for (int n = 0; n < (int)markers.Count(); ++n) {
     int x1 = markers[n].time;
     int next = (n + 1) % markers.Count();
     int t2 = markers[next].time;
@@ -125,11 +125,11 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
     int i = time - x1;
     if (oband < 18) {
       int col1 = markers[n].color.r;
-      color->r = static_cast<BYTE>(col1 + i * (markers[next].color.r - col1) / w);
+      color->r = col1 + i * (markers[next].color.r - col1) / w;
       col1 = markers[n].color.g;
-      color->g = static_cast<BYTE>(col1 + i * (markers[next].color.g - col1) / w);
+      color->g = col1 + i * (markers[next].color.g - col1) / w;
       col1 = markers[n].color.b;
-      color->b = static_cast<BYTE>(col1 + i * (markers[next].color.b - col1) / w);
+      color->b = col1 + i * (markers[next].color.b - col1) / w;
       color->a = 255;
     } else if (distance) {
       float d1;
@@ -240,5 +240,5 @@ void CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, 
     current->CloudData[1] = currentStorm.CloudData[1] * stormpercent * 0.01f + current->CloudData[1] * nonstormpercent * 0.01f;
   }
 
-  current->Darkness = static_cast<float>(lightdata->m_highlightSky);
+  current->Darkness = lightdata->m_highlightSky;
 }

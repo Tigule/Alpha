@@ -12,7 +12,7 @@ static void DuplicateTextureArray(const TSGrowableArray<HTEXTURE> &src, TSGrowab
   dst->SetCount(numTextures);
 
   for (UINT i = 0; i < numTextures; ++i) {
-    (*dst)[i] = static_cast<HTEXTURE>(HandleDuplicate(reinterpret_cast<HOBJECT>(src[i])));
+    (*dst)[i] = (HTEXTURE)HandleDuplicate(src[i]);
   }
 }
 
@@ -194,7 +194,7 @@ void CRibbonEmitter::Initialize(
     edgeLifeSpanInSec = MIN_EDGE_LIFE_SPAN;
   }
 
-  numEdges = static_cast<UINT>(ceilf(edgesPerSec * edgeLifeSpanInSec) + 2.0f);
+  numEdges = ceilf(edgesPerSec * edgeLifeSpanInSec) + 2.0f;
   m_edges.SetCount(numEdges);
   m_readPos = 0;
   m_writePos = 0;
@@ -207,7 +207,7 @@ void CRibbonEmitter::Initialize(
   count = m_gxIndices.Count();
   for (UINT index = 0; index != count; ++index) {
     t = index % (2 * numEdges);
-    m_gxIndices[index] = static_cast<WORD>(t);
+    m_gxIndices[index] = t;
   }
 
   m_ooLifeSpan = 1.0f / edgeLifeSpanInSec;
@@ -280,7 +280,7 @@ UINT CRibbonEmitter::ReplaceTexture(UINT replaceableId, HTEXTURE texture) {
       if (m_textures[index]) {
         HandleClose(m_textures[index]);
       }
-      m_textures[index] = static_cast<HTEXTURE>(HandleDuplicate(texture));
+      m_textures[index] = (HTEXTURE)HandleDuplicate(texture);
       ++numReplaced;
     }
   }
@@ -361,7 +361,7 @@ void CRibbonEmitter::Update(float elapsedSec, int suppressNewEdges) {
     float newEdgeTime = 1.0f;
     if (endTime >= 1.0f) {
       const float ooDenom = 1.0f / (endTime - m_startTime);
-      int         count = static_cast<int>(floor(endTime - 1.0f)) + 1;
+      int         count = (int)floor(endTime - 1.0f) + 1;
 
       InitInterpDeltas();
       while (count) {

@@ -220,8 +220,8 @@ void CGQuestInfo::AddReward(
       SStrCopy(m_questTitle, " ", sizeof(m_questTitle));
     }
   }
-  m_rewardMoney = money;
   m_autoLaunched = autoLaunched;
+  m_rewardMoney = money;
   if (m_state == QUEST_OFFER) {
     FrameScript_SignalEvent(278);
   } else {
@@ -405,7 +405,7 @@ int CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nam
   } else {
     return 0;
   }
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, m_npc, reinterpret_cast<DBCACHECALLBACKPROC>(QuestItemStatsCallback), 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, m_npc, QuestItemStatsCallback, 0);
   if (stats) {
     SStrCopy(name, stats->m_displayName[0], nameSize);
     quality = stats->m_inventoryType ? stats->m_overallQualityID : -1;
@@ -484,18 +484,18 @@ static int Script_GetRewardText(lua_State *L) {
 }
 
 static int Script_GetNumAvailableQuests(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuests()));
+  lua_pushnumber(L, CGQuestInfo::GetNumQuests());
   return 1;
 }
 
 static int Script_GetNumActiveQuests(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumInProgress()));
+  lua_pushnumber(L, CGQuestInfo::GetNumInProgress());
   return 1;
 }
 
 static int Script_GetAvailableTitle(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    lua_pushstring(L, CGQuestInfo::GetQuestName(static_cast<int>(lua_tonumber(L, 1)) - 1));
+    lua_pushstring(L, CGQuestInfo::GetQuestName((int)lua_tonumber(L, 1) - 1));
     return 1;
   }
   luaL_error(L, "Usage: GetAvailableTitle(index)");
@@ -504,7 +504,7 @@ static int Script_GetAvailableTitle(lua_State *L) {
 
 static int Script_GetActiveTitle(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    lua_pushstring(L, CGQuestInfo::GetInProgressName(static_cast<int>(lua_tonumber(L, 1)) - 1));
+    lua_pushstring(L, CGQuestInfo::GetInProgressName((int)lua_tonumber(L, 1) - 1));
     return 1;
   }
   luaL_error(L, "Usage: GetActiveTitle(index)");
@@ -513,7 +513,7 @@ static int Script_GetActiveTitle(lua_State *L) {
 
 static int Script_GetAvailableLevel(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetQuestLevel(static_cast<int>(lua_tonumber(L, 1)) - 1)));
+    lua_pushnumber(L, CGQuestInfo::GetQuestLevel((int)lua_tonumber(L, 1) - 1));
     return 1;
   }
   luaL_error(L, "Usage: GetGetAvailableLevel(index)");
@@ -522,7 +522,7 @@ static int Script_GetAvailableLevel(lua_State *L) {
 
 static int Script_GetActiveLevel(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetInProgressLevel(static_cast<int>(lua_tonumber(L, 1)) - 1)));
+    lua_pushnumber(L, CGQuestInfo::GetInProgressLevel((int)lua_tonumber(L, 1) - 1));
     return 1;
   }
   luaL_error(L, "Usage: GetGetActiveLevel(index)");
@@ -531,7 +531,7 @@ static int Script_GetActiveLevel(lua_State *L) {
 
 static int Script_SelectAvailableQuest(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    CGQuestInfo::QueryQuest(static_cast<int>(lua_tonumber(L, 1)) - 1);
+    CGQuestInfo::QueryQuest((int)lua_tonumber(L, 1) - 1);
     return 0;
   }
   luaL_error(L, "Usage: SelectAvailableQuest(index)");
@@ -540,7 +540,7 @@ static int Script_SelectAvailableQuest(lua_State *L) {
 
 static int Script_SelectActiveQuest(lua_State *L) {
   if (lua_isnumber(L, 1)) {
-    CGQuestInfo::CompleteQuest(static_cast<int>(lua_tonumber(L, 1)) - 1);
+    CGQuestInfo::CompleteQuest((int)lua_tonumber(L, 1) - 1);
     return 0;
   }
   luaL_error(L, "Usage: SelectActiveQuest(index)");
@@ -574,7 +574,7 @@ static int Script_CompleteQuest(lua_State *) {
 static int Script_GetQuestReward(lua_State *L) {
   int choice = -1;
   if (lua_isnumber(L, 1)) {
-    choice = static_cast<int>(lua_tonumber(L, 1)) - 1;
+    choice = (int)lua_tonumber(L, 1) - 1;
   }
   if (!CGQuestInfo::GetReward(choice)) {
     luaL_error(L, "Invalid reward choice in GetQuestReward([choice])");
@@ -583,22 +583,22 @@ static int Script_GetQuestReward(lua_State *L) {
 }
 
 static int Script_GetRewardMoney(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetRewardMoney()));
+  lua_pushnumber(L, CGQuestInfo::GetRewardMoney());
   return 1;
 }
 
 static int Script_GetNumQuestRewards(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuestRewards()));
+  lua_pushnumber(L, CGQuestInfo::GetNumQuestRewards());
   return 1;
 }
 
 static int Script_GetNumQuestChoices(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuestChoices()));
+  lua_pushnumber(L, CGQuestInfo::GetNumQuestChoices());
   return 1;
 }
 
 static int Script_GetNumQuestItems(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGQuestInfo::GetNumQuestItems()));
+  lua_pushnumber(L, CGQuestInfo::GetNumQuestItems());
   return 1;
 }
 
@@ -610,13 +610,13 @@ static int Script_GetQuestItemInfo(lua_State *L) {
     UINT amount;
     int  quality;
     if (CGQuestInfo::GetQuestItemInfo(
-            lua_tostring(L, 1), static_cast<int>(lua_tonumber(L, 2)) - 1, name, sizeof(name), texture, sizeof(texture), amount, quality, usable
+            lua_tostring(L, 1), (int)lua_tonumber(L, 2) - 1, name, sizeof(name), texture, sizeof(texture), amount, quality, usable
         ))
     {
       lua_pushstring(L, name);
       lua_pushstring(L, texture);
-      lua_pushnumber(L, static_cast<double>(amount));
-      lua_pushnumber(L, static_cast<double>(quality));
+      lua_pushnumber(L, amount);
+      lua_pushnumber(L, quality);
       if (usable) {
         lua_pushnumber(L, 1.0);
       } else {
@@ -653,7 +653,7 @@ static int Script_GetQuestBackgroundMaterial(lua_State *L) {
         material = stats->m_pageMaterial;
       }
     } else if (object->IsA(ID_GAMEOBJECT)) {
-      material = static_cast<CGGameObject_C *>(object)->GetPageTextMaterial();
+      material = ((CGGameObject_C *)object)->GetPageTextMaterial();
     }
     if (material > 0) {
       const PageTextMaterialRec *rec = g_pageTextMaterialDB.GetRecord(material);

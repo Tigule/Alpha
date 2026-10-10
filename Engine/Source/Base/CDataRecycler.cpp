@@ -49,7 +49,7 @@ void CDataRecycler::PutData(LPVOID data, DWORD bytes, LPCSTR fileName, int lineN
   }
 
   while ((node = Unlink(&m_nodeEmptyList)) == 0) {
-    NodeBlock *nodeBlock = static_cast<NodeBlock *>(ALLOC(sizeof(NodeBlock *) + m_nodesPerBlock * sizeof(Node)));
+    NodeBlock *nodeBlock = (NodeBlock *)ALLOC(sizeof(NodeBlock *) + m_nodesPerBlock * sizeof(Node));
 
     Link(&m_nodeBlockList, nodeBlock);
     Link(&m_nodeEmptyList, nodeBlock);
@@ -85,7 +85,7 @@ void CDataRecycler::Link(LPVOID *list, LPVOID item, int nextOffset) {
 
   do {
     head = *list;
-    *reinterpret_cast<LPVOID *>(static_cast<char *>(item) + nextOffset) = head;
+    *(LPVOID *)((char *)item + nextOffset) = head;
   } while (SInterlockedCompareExchangePointer(list, item, head) != head);
 }
 
@@ -93,7 +93,7 @@ LPVOID CDataRecycler::Unlink(LPVOID *list, int nextOffset) {
   LPVOID head;
 
   while ((head = *list) != 0) {
-    if (SInterlockedCompareExchangePointer(list, *reinterpret_cast<LPVOID *>(static_cast<char *>(head) + nextOffset), head) == head) {
+    if (SInterlockedCompareExchangePointer(list, *(LPVOID *)((char *)head + nextOffset), head) == head) {
       break;
     }
   }
@@ -108,5 +108,5 @@ void CDataRecycler::Link(Node **list, NodeBlock *nodeBlock) {
     nodeBlock->m_nodes[index].m_next = &nodeBlock->m_nodes[index + 1];
   }
 
-  Link(reinterpret_cast<LPVOID *>(list), nodeBlock->m_nodes, (m_nodesPerBlock - 1) * sizeof(Node));
+  Link((LPVOID *)list, nodeBlock->m_nodes, (m_nodesPerBlock - 1) * sizeof(Node));
 }

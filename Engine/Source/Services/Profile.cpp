@@ -95,7 +95,7 @@ namespace ProfileInternal {
       ITERATELIST(STRINGBLOCK, stringBlockList, stringBlock) {
         if (stringBlock->Contains(string)) {
           ++stringBlock->m_refCount;
-          return const_cast<char *>(string);
+          return (char *)string;
         }
       }
     }
@@ -146,7 +146,7 @@ int ProfileReadFile(HPROFILE handle, LPCSTR path) {
   VALIDATE(path);
   VALIDATEEND;
 
-  return ProfileInternal::IReadFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
+  return ProfileInternal::IReadFile((ProfileInternal::PROFILE *)handle, path);
 }
 
 namespace ProfileInternal {
@@ -339,7 +339,7 @@ int ProfileWriteFile(HPROFILE handle, LPCSTR path) {
   VALIDATE(path);
   VALIDATEEND;
 
-  return ProfileInternal::IWriteFile(static_cast<ProfileInternal::PROFILE *>(handle), path);
+  return ProfileInternal::IWriteFile((ProfileInternal::PROFILE *)handle, path);
 }
 
 namespace ProfileInternal {
@@ -425,7 +425,7 @@ namespace ProfileInternal {
 }
 
 int ProfileReadBuffer(HPROFILE handle, LPCVOID buffer, DWORD bufferBytes) {
-  return ProfileInternal::IReadBuffer(static_cast<ProfileInternal::PROFILE *>(handle), buffer, bufferBytes);
+  return ProfileInternal::IReadBuffer((ProfileInternal::PROFILE *)handle, buffer, bufferBytes);
 }
 
 BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
@@ -434,7 +434,7 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
   VALIDATE(key);
   VALIDATEEND;
 
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR, 0, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR, 0, 0);
   return 1;
 }
 
@@ -446,7 +446,7 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%d", value);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 0, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 0, 0);
   return 1;
 }
 
@@ -458,7 +458,7 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%I64d", value);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 0, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 0, 0);
   return 1;
 }
 
@@ -470,7 +470,7 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%f", value);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 0, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 0, 0);
   return 1;
 }
 
@@ -482,7 +482,7 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &
 
   char strValue[256];
   unreal::asString(value, strValue, 1, -1);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 0, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 0, 0);
   return 1;
 }
 
@@ -493,7 +493,7 @@ BOOL ProfileAddValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) 
   VALIDATE(value);
   VALIDATEEND;
 
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, value, 0, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, value, 0, 0);
   return 1;
 }
 
@@ -503,7 +503,7 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool value) {
   VALIDATE(key);
   VALIDATEEND;
 
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR, 1, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, value ? ProfileInternal::TRUESTR : ProfileInternal::FALSESTR, 1, 0);
   return 1;
 }
 
@@ -515,7 +515,7 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int value) {
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%d", value);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 1, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 1, 0);
   return 1;
 }
 
@@ -527,7 +527,7 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG value
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%I64d", value);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 1, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 1, 0);
   return 1;
 }
 
@@ -539,7 +539,7 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float value) {
 
   char strValue[256];
   SStrPrintf(strValue, sizeof(strValue), "%f", value);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 1, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 1, 0);
   return 1;
 }
 
@@ -551,7 +551,7 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, const unreal &
 
   char strValue[256];
   unreal::asString(value, strValue, 1, -1);
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, strValue, 1, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, strValue, 1, 0);
   return 1;
 }
 
@@ -562,7 +562,7 @@ BOOL ProfileSetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR value) 
   VALIDATE(value);
   VALIDATEEND;
 
-  ProfileInternal::ISetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, value, 1, 0);
+  ProfileInternal::ISetValue((ProfileInternal::PROFILE *)handle, section, key, value, 1, 0);
   return 1;
 }
 
@@ -575,7 +575,7 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, bool *value, U
   VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  string = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   if (!string) {
     return 0;
   }
@@ -617,7 +617,7 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, int *value, UI
   VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  string = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   if (!string) {
     return 0;
   }
@@ -635,7 +635,7 @@ namespace ProfileInternal {
     if (*str == '\'') {
       ++str;
       for (index = 4; index-- && *str && *str != '\''; ++str) {
-        value = (value << 8) | static_cast<BYTE>(*str);
+        value = (value << 8) | (BYTE)*str;
       }
     } else {
       value = SStrToInt(str);
@@ -655,7 +655,7 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, LONGLONG *valu
   VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  string = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   if (!string) {
     return 0;
   }
@@ -673,7 +673,7 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, float *value, 
   VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  string = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   if (!string) {
     return 0;
   }
@@ -692,7 +692,7 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, unreal *value,
   *value = u_0;
   VALIDATEEND;
 
-  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  string = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   if (!string) {
     return 0;
   }
@@ -710,7 +710,7 @@ BOOL ProfileGetValue(HPROFILE handle, LPCSTR section, LPCSTR key, char *value, U
   VALIDATEANDBLANK(value);
   VALIDATEEND;
 
-  string = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  string = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   if (!string) {
     return 0;
   }
@@ -725,7 +725,7 @@ LPCSTR ProfileGetValueNoCopy(HPROFILE handle, LPCSTR section, LPCSTR key, UINT i
   VALIDATE(key);
   VALIDATEEND;
 
-  return ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  return ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
 }
 
 UINT ProfileGetNumValues(HPROFILE handle, LPCSTR section, LPCSTR key) {
@@ -734,7 +734,7 @@ UINT ProfileGetNumValues(HPROFILE handle, LPCSTR section, LPCSTR key) {
   VALIDATE(key);
   VALIDATEEND;
 
-  return ProfileInternal::IGetNumValues(static_cast<ProfileInternal::PROFILE *>(handle), section, key);
+  return ProfileInternal::IGetNumValues((ProfileInternal::PROFILE *)handle, section, key);
 }
 
 namespace ProfileInternal {
@@ -757,12 +757,12 @@ int ProfileGetValueIndex(HPROFILE handle, LPCSTR section, LPCSTR key, LPCSTR val
   VALIDATEEND;
 
   index = 0;
-  candidate = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, index);
+  candidate = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, index);
   while (candidate) {
     if (!SStrCmpI(candidate, value, 0x7FFFFFFF)) {
       return index;
     }
-    candidate = ProfileInternal::IGetValue(static_cast<ProfileInternal::PROFILE *>(handle), section, key, ++index);
+    candidate = ProfileInternal::IGetValue((ProfileInternal::PROFILE *)handle, section, key, ++index);
   }
   return -1;
 }
@@ -771,7 +771,7 @@ void ProfileEnumKeys(HPROFILE handle, LPCSTR sectionName, PROFILEENUMKEYCALLBACK
   ProfileInternal::PROFILE  *profile;
   ProfileInternal::SECTION  *pSection;
 
-  profile = static_cast<ProfileInternal::PROFILE *>(handle);
+  profile = (ProfileInternal::PROFILE *)handle;
   pSection = profile->sectionTable.Ptr(sectionName);
   VALIDATEBEGIN;
   VALIDATE(pSection);
@@ -783,7 +783,7 @@ void ProfileEnumKeys(HPROFILE handle, LPCSTR sectionName, PROFILEENUMKEYCALLBACK
 }
 
 void ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK callback, LPVOID opaqueData) {
-  ProfileInternal::PROFILE *profile = static_cast<ProfileInternal::PROFILE *>(handle);
+  ProfileInternal::PROFILE *profile = (ProfileInternal::PROFILE *)handle;
 
   ITERATELIST(ProfileInternal::SECTION, profile->sectionTable, section) {
     callback(section->GetString(), opaqueData);
@@ -793,7 +793,7 @@ void ProfileEnumSections(HPROFILE handle, PROFILEENUMSECTIONCALLBACK callback, L
 BOOL ProfileSectionExists(HPROFILE profile, LPCSTR section) {
   ProfileInternal::PROFILE *profilePtr;
 
-  profilePtr = static_cast<ProfileInternal::PROFILE *>(profile);
+  profilePtr = (ProfileInternal::PROFILE *)profile;
   VALIDATEBEGIN;
   VALIDATE(profilePtr);
   VALIDATEEND;
@@ -803,6 +803,6 @@ BOOL ProfileSectionExists(HPROFILE profile, LPCSTR section) {
 
 void ProfileClose(HPROFILE handle) {
   if (handle) {
-    DEL(static_cast<ProfileInternal::PROFILE *>(handle));
+    DEL((ProfileInternal::PROFILE *)handle);
   }
 }

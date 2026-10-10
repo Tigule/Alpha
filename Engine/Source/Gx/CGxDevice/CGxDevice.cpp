@@ -30,10 +30,10 @@ void CGxDevice::ClampRectToWindow(NTempest::CiRect &rect) {
   const NTempest::CRect &window = DeviceCurWindow();
   NTempest::CiRect       clip;
 
-  clip.t = static_cast<long>(window.t);
-  clip.l = static_cast<long>(window.l);
-  clip.b = static_cast<long>(window.b);
-  clip.r = static_cast<long>(window.r);
+  clip.t = window.t;
+  clip.l = window.l;
+  clip.b = window.b;
+  clip.r = window.r;
   rect = NTempest::CiRect(max(rect.t, clip.t), max(rect.l, clip.l), min(rect.b, clip.b), min(rect.r, clip.r));
 }
 
@@ -246,7 +246,7 @@ CGxMemBuffer::~CGxMemBuffer() {
 
 void CGxGammaRamp::Set(float gamma) {
   for (UINT i = 0; i < ENTRIES; ++i) {
-    WORD value = static_cast<WORD>(powf(static_cast<float>(i) / 255.0f, gamma) * 65535.0f);
+    WORD value = powf((float)i / 255.0f, gamma) * 65535.0f;
     red[i] = value;
     green[i] = value;
     blue[i] = value;
@@ -329,7 +329,7 @@ void CGxDevice::DestroyDynamicBufs() {
 
 void CGxDevice::CreateDynamicBufs() {
   for (UINT format = 0; format != GxVertexBufferFormats_Last; ++format) {
-    m_dynBuf[format] = BufCreate(GxBWF_Dynamic, static_cast<EGxVertexBufferFormat>(format), 1, 1, 0, 0);
+    m_dynBuf[format] = BufCreate(GxBWF_Dynamic, (EGxVertexBufferFormat)format, 1, 1, 0, 0);
   }
 }
 
@@ -407,11 +407,9 @@ void CGxDevice::DeviceTakeScreenShot() {
 
 void CGxDevice::DeviceScreenShot() {
   const NTempest::CRect &window = DeviceCurWindow();
-  m_scrShotWidth = static_cast<UINT>(window.r);
-  UINT height = static_cast<UINT>(window.b);
-  m_scrShotHeight = height;
-
-  NTempest::CiRect pixRect(0, 0, height, m_scrShotWidth);
+  m_scrShotWidth = window.r;
+  m_scrShotHeight = window.b;
+  NTempest::CiRect pixRect(0, 0, m_scrShotHeight, m_scrShotWidth);
   DeviceReadPixels(pixRect, m_scrShotPixels);
 }
 
@@ -442,7 +440,7 @@ void CGxDevice::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT pl
   if (!m_textureTarget[GxBuffers_Color].m_texture && !m_textureTarget[GxBuffers_Depth].m_texture) {
     DeviceSetCurWindow(DeviceDefWindow());
   } else {
-    DeviceSetCurWindow(NTempest::CRect(0.0f, 0.0f, static_cast<float>(texture->m_height), static_cast<float>(texture->m_width)));
+    DeviceSetCurWindow(NTempest::CRect(0.0f, 0.0f, texture->m_height, texture->m_width));
   }
 }
 
@@ -498,7 +496,7 @@ static UINT UpdateFrameRate() {
   }
 
   if (total > 1024) {
-    frameRate = static_cast<UINT>(CGxDevice::CpuFrequency() * 8.0f / static_cast<double>(total));
+    frameRate = CGxDevice::CpuFrequency() * 8.0f / (double)total;
   } else {
     frameRate = 99;
   }
@@ -618,7 +616,7 @@ EGxVertexBufferFormat CGxDevice::IGiveVbColor(EGxVertexBufferFormat format) {
     case GxVBF_PN:
     case GxVBF_PNT0:
     case GxVBF_PNT0T1:
-      return static_cast<EGxVertexBufferFormat>(format + 1);
+      return (EGxVertexBufferFormat)(format + 1);
 
     case GxVBF_PCT0:
     case GxVBF_PC:
@@ -739,7 +737,7 @@ void CGxDevice::PrimVertex(const NTempest::C3Vector &v) {
   m_primVertex = v;
   m_primMask |= 1;
 
-  *m_primIndexArray.New() = static_cast<WORD>(m_primVertexArray.Count());
+  *m_primIndexArray.New() = m_primVertexArray.Count();
   *m_primVertexArray.New() = m_primVertex;
 
   for (UINT i = 0; i < 4; ++i) {
@@ -912,7 +910,7 @@ void CGxDevice::RsSet(EGxRenderState which, int value) {
     IRsSet(which, tmp_);
 
     if (which == GxRs_Blend) {
-      RsSet(GxRs_AlphaRef, static_cast<int>(IMatAlphaRef(static_cast<EGxBlend>(value))));
+      RsSet(GxRs_AlphaRef, (int)IMatAlphaRef((EGxBlend)value));
     }
   }
 }
@@ -938,12 +936,12 @@ void CGxDevice::RsSet(EGxRenderState which, NTempest::CImVector value) {
 }
 
 void CGxDevice::RsSet(EGxRenderState which, const NTempest::C3Vector &value) {
-  CGxStateBom tmp_;
-
   if (mAppRenderStates[which].mValue.GetAsC3Vector() != value) {
-    tmp_.mData[0] = *reinterpret_cast<const int *>(&value.x);
-    tmp_.mData[1] = *reinterpret_cast<const int *>(&value.y);
-    tmp_.mData[2] = *reinterpret_cast<const int *>(&value.z);
+    CGxStateBom tmp_;
+
+    tmp_.mData[0] = *(const int *)&value.x;
+    tmp_.mData[1] = *(const int *)&value.y;
+    tmp_.mData[2] = *(const int *)&value.z;
     IRsSet(which, tmp_);
   }
 }
@@ -951,16 +949,16 @@ void CGxDevice::RsSet(EGxRenderState which, const NTempest::C3Vector &value) {
 void CGxDevice::RsSet(EGxRenderState which, LPVOID value) {
   CGxStateBom tmp_;
 
-  if (mAppRenderStates[which].mValue.mData[0] != reinterpret_cast<int>(value)) {
+  if (mAppRenderStates[which].mValue.mData[0] != (int)value) {
     tmp_ = 0;
-    tmp_.mData[0] = reinterpret_cast<int>(value);
+    tmp_.mData[0] = (int)value;
     IRsSet(which, tmp_);
   }
 
-  if (value && which >= GxRs_Texture0 && which <= GxRs_Texture3 && static_cast<CGxTex *>(value)->m_flags.m_renderTarget &&
-      static_cast<CGxTex *>(value)->m_needsUpdate)
+  if (value && which >= GxRs_Texture0 && which <= GxRs_Texture3 && ((CGxTex *)value)->m_flags.m_renderTarget &&
+      ((CGxTex *)value)->m_needsUpdate)
   {
-    ITexMarkAsUpdated(static_cast<CGxTex *>(value));
+    ITexMarkAsUpdated((CGxTex *)value);
   }
 }
 
@@ -977,11 +975,11 @@ void CGxDevice::RsGet(EGxRenderState which, NTempest::CImVector &value) {
 }
 
 void CGxDevice::RsGet(EGxRenderState which, NTempest::C3Vector &value) {
-  value = *reinterpret_cast<NTempest::C3Vector *>(&mAppRenderStates[which].mValue.mData[0]);
+  value = *(NTempest::C3Vector *)&mAppRenderStates[which].mValue.mData[0];
 }
 
 void CGxDevice::RsGet(EGxRenderState which, LPVOID &value) {
-  value = reinterpret_cast<LPVOID>(mAppRenderStates[which].mValue.mData[0]);
+  value = (LPVOID)mAppRenderStates[which].mValue.mData[0];
 }
 
 void CGxDevice::RsPush() {
@@ -1096,15 +1094,15 @@ void CGxDevice::RsInit() {
   RsSet(GxRs_Culling, 1);
 
   for (UINT tmu = 0; tmu < 4; ++tmu) {
-    RsSet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), static_cast<LPVOID>(0));
-    RsSet(static_cast<EGxRenderState>(GxRs_TexBlend0 + tmu), 1);
-    RsSet(static_cast<EGxRenderState>(GxRs_TexLodBias0 + tmu), 0.0f);
-    RsSet(static_cast<EGxRenderState>(GxRs_TexGen0 + tmu), 0);
-    RsSet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), 0);
+    RsSet((EGxRenderState)(GxRs_Texture0 + tmu), (LPVOID)0);
+    RsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), 1);
+    RsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), 0.0f);
+    RsSet((EGxRenderState)(GxRs_TexGen0 + tmu), 0);
+    RsSet((EGxRenderState)(GxRs_TextureShader0 + tmu), 0);
   }
 
-  RsSet(GxRs_PixelShader, static_cast<LPVOID>(0));
-  RsSet(GxRs_VertexShader, static_cast<LPVOID>(0));
+  RsSet(GxRs_PixelShader, (LPVOID)0);
+  RsSet(GxRs_VertexShader, (LPVOID)0);
 }
 
 void CGxDevice::IRsSet(EGxRenderState which, const CGxStateBom &value) {
@@ -1138,7 +1136,7 @@ void CGxDevice::IRsForceUpdate(EGxRenderState ndx_) {
 
 void CGxDevice::IRsForceUpdate() {
   for (UINT which = 0; which != GxRenderStates_Last; ++which) {
-    IRsForceUpdate(static_cast<EGxRenderState>(which));
+    IRsForceUpdate((EGxRenderState)which);
   }
 }
 
@@ -1165,7 +1163,7 @@ void CGxDevice::IRsSync(int force) {
 
   mDirtyStates.SetCount(0);
 
-  CGxShader *sh = reinterpret_cast<CGxShader *>(mAppRenderStates[GxRs_PixelShader].mValue.mData[0]);
+  CGxShader *sh = (CGxShader *)mAppRenderStates[GxRs_PixelShader].mValue.mData[0];
   if (sh && (force || sh->paramsDirty)) {
     ISetShaderParameters(sh, 0);
   }
@@ -1324,7 +1322,7 @@ void CGxDevice::TexSetUserData(CGxTex *texId, void (*userFunc)(EGxTexCommand, UI
 }
 
 void CGxDevice::TexSetFlags(CGxTex *texId, CGxTexFlags flags) {
-  if (*reinterpret_cast<UINT *>(&texId->m_flags) != *reinterpret_cast<UINT *>(&flags)) {
+  if (*(UINT *)&texId->m_flags != *(UINT *)&flags) {
     texId->m_flags = flags;
     texId->m_needsFlagUpdate = 1;
   }
@@ -1420,7 +1418,7 @@ void CGxDevice::VertexShaderCreate(CGxVertexShader *&vs, LPCSTR filename) {
   if (!vs) {
     vs = m_vertexShaderList.New(filename, 0, 0);
 
-    if (m_caps.m_vertexShaderTarget != -1) {
+    if (m_caps.m_vertexShaderTarget != CGxVertexShader::Target_gx) {
       SFile *file = 0;
       SFile::Open(filename, &file);
       if (file) {
@@ -1461,7 +1459,7 @@ void CGxDevice::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
   if (!ps) {
     ps = m_pixelShaderList.New(filename, 0, 0);
 
-    if (m_caps.m_pixelShaderTarget != -1) {
+    if (m_caps.m_pixelShaderTarget != CGxPixelShader::Target_gx) {
       SFile *file = 0;
       SFile::Open(filename, &file);
       if (file) {
@@ -1534,7 +1532,7 @@ float CGxDevice::CpuFrequency() {
   }
 
   Sleep(250);
-  frequency = static_cast<float>(4 * (CpuTicks() - start));
+  frequency = 4 * (CpuTicks() - start);
   return frequency;
 }
 

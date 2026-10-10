@@ -18,37 +18,37 @@ namespace MDL {
 
 static void IAddRibbonEmitterErrors(TSet &errors) {
   AddObjectErrors(errors);
-  errors.Add(0x144, 1, 0);
-  errors.Add(0x1AE, 1, 0);
-  errors.Add(0x137, 1, 0);
-  errors.Add(0x1D9, 0, 0);
-  errors.Add(0x11C, 1, 0);
-  errors.Add(0x136, 1, 0);
-  errors.Add(0x159, 1, 0);
-  errors.Add(0x15A, 1, 0);
-  errors.Add(0x165, 1, 0);
-  errors.Add(0x1C4, 1, 0);
-  errors.Add(0x16D, 1, 0);
+  errors.Add(MDLTOK_EMISSION_RATE, 1, 0);
+  errors.Add(MDLTOK_ROWS, 1, 0);
+  errors.Add(MDLTOK_COLS, 1, 0);
+  errors.Add(MDLTOK_VISIBILITY, 0, 0);
+  errors.Add(MDLTOK_ALPHA, 1, 0);
+  errors.Add(MDLTOK_COLOR, 1, 0);
+  errors.Add(MDLTOK_HEIGHT_ABOVE, 1, 0);
+  errors.Add(MDLTOK_HEIGHT_BELOW, 1, 0);
+  errors.Add(MDLTOK_LIFESPAN, 1, 0);
+  errors.Add(MDLTOK_TEXTURE_SLOT, 1, 0);
+  errors.Add(MDLTOK_MATERIAL_ID, 1, 0);
 }
 
 static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR tokentext, MDLRIBBONEMITTER *emitter) {
   switch (savedtoken) {
-    case 0x159:
+    case MDLTOK_HEIGHT_ABOVE:
       ReadObjectFloatKeyframes(parse, &emitter->heightAbove);
       return;
-    case 0x15A:
+    case MDLTOK_HEIGHT_BELOW:
       ReadObjectFloatKeyframes(parse, &emitter->heightBelow);
       return;
-    case 0x11C:
+    case MDLTOK_ALPHA:
       ReadObjectFloatKeyframes(parse, &emitter->alphaKeys);
       return;
-    case 0x136:
+    case MDLTOK_COLOR:
       ReadObjectFloatKeyframes(parse, &emitter->colorKeys);
       return;
-    case 0x1D9:
+    case MDLTOK_VISIBILITY:
       ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
       return;
-    case 0x1C4: {
+    case MDLTOK_TEXTURE_SLOT: {
       UINT       token;
       LPCSTR     text;
       UTokenData tokenData;
@@ -59,7 +59,7 @@ static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR t
       }
       parse.Expect('{', token, text);
       token = ReadIntTrackHeader(parse, &emitter->textureSlot, &text, &tokenData);
-      while (token == 0x100) {
+      while (token == MDLTOK_LONG) {
         MDLINTKEY *key = emitter->textureSlot.keys.New();
         key->time = tokenData.lVal;
         parse.Expect(':');
@@ -74,22 +74,22 @@ static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR t
       }
       return;
     }
-    case 0x144:
+    case MDLTOK_EMISSION_RATE:
       emitter->edgesPerSecond = parse.ExpectInt();
       break;
-    case 0x165:
+    case MDLTOK_LIFESPAN:
       emitter->edgeLifetime = parse.ExpectFloat();
       break;
-    case 0x153:
+    case MDLTOK_GRAVITY:
       emitter->gravity = parse.ExpectFloat();
       break;
-    case 0x1AE:
+    case MDLTOK_ROWS:
       emitter->textureRows = parse.ExpectInt();
       break;
-    case 0x137:
+    case MDLTOK_COLS:
       emitter->textureCols = parse.ExpectInt();
       break;
-    case 0x16D:
+    case MDLTOK_MATERIAL_ID:
       emitter->materialId = parse.ExpectInt();
       break;
     default:
@@ -101,19 +101,19 @@ static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR t
 
 static void IReadRibbonEmitterStaticData(Parser &parse, UINT savedToken, LPCSTR tokenText, MDLRIBBONEMITTER *emitter) {
   switch (savedToken) {
-    case 0x159:
+    case MDLTOK_HEIGHT_ABOVE:
       ReadFloatKeyData(parse, &emitter->staticHeightAbove, 1);
       break;
-    case 0x15A:
+    case MDLTOK_HEIGHT_BELOW:
       ReadFloatKeyData(parse, &emitter->staticHeightBelow, 1);
       break;
-    case 0x11C:
+    case MDLTOK_ALPHA:
       ReadFloatKeyData(parse, &emitter->staticAlpha, 1);
       break;
-    case 0x136:
+    case MDLTOK_COLOR:
       ReadFloatKeyData(parse, &emitter->staticColor.b, 3);
       break;
-    case 0x1C4:
+    case MDLTOK_TEXTURE_SLOT:
       emitter->staticTextureSlot = parse.ExpectInt();
       break;
     default:
@@ -156,57 +156,58 @@ BOOL MDL::ReadRibbonEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 }
 
 static void IWriteRibbonEmitter(const MDLDATA &data, const MDLRIBBONEMITTER &emitter, int needObjIds, TSGrowableArray<char> &buffer) {
-  WriteObjectHeader(data, emitter, 0x118, needObjIds, buffer);
+  WriteObjectHeader(data, emitter, MDLTOK_RIBBONEMITTER, needObjIds, buffer);
   if (emitter.heightAbove.keys.Count()) {
-    WriteFloatKeyFrames(0x159, "\t", emitter.heightAbove, buffer);
+    WriteFloatKeyFrames(MDLTOK_HEIGHT_ABOVE, "\t", emitter.heightAbove, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x159));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_HEIGHT_ABOVE));
     WriteKeyData(buffer, &emitter.staticHeightAbove, 1);
   }
   if (emitter.heightBelow.keys.Count()) {
-    WriteFloatKeyFrames(0x15A, "\t", emitter.heightBelow, buffer);
+    WriteFloatKeyFrames(MDLTOK_HEIGHT_BELOW, "\t", emitter.heightBelow, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x15A));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_HEIGHT_BELOW));
     WriteKeyData(buffer, &emitter.staticHeightBelow, 1);
   }
   if (emitter.alphaKeys.keys.Count()) {
-    WriteFloatKeyFrames(0x11C, "\t", emitter.alphaKeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_ALPHA, "\t", emitter.alphaKeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x11C));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ALPHA));
     WriteKeyData(buffer, &emitter.staticAlpha, 1);
   }
   if (emitter.colorKeys.keys.Count()) {
-    WriteFloatKeyFrames(0x136, "\t", emitter.colorKeys, buffer);
+    WriteFloatKeyFrames(MDLTOK_COLOR, "\t", emitter.colorKeys, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x136));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_COLOR));
     WriteKeyData(buffer, &emitter.staticColor.b, 3);
   }
   if (emitter.textureSlot.keys.Count()) {
-    WriteIntKeyFrames(0x1C4, "\t", emitter.textureSlot, buffer);
+    WriteIntKeyFrames(MDLTOK_TEXTURE_SLOT, "\t", emitter.textureSlot, buffer);
   } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(0x1BB), MDL::TokenText(0x1C4));
+    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_TEXTURE_SLOT));
     WriteUintKeyData(buffer, &emitter.staticTextureSlot, 1);
   }
-  WriteFloatKeyFrames(0x1D9, "\t", emitter.visibilityKeys, buffer);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x144), emitter.edgesPerSecond);
-  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x165), emitter.edgeLifetime);
+  WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", emitter.visibilityKeys, buffer);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_EMISSION_RATE), emitter.edgesPerSecond);
+  MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_LIFESPAN), emitter.edgeLifetime);
   if (fabs(emitter.gravity) >= 2.3841858e-7f) {
-    MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(0x153), emitter.gravity);
+    MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_GRAVITY), emitter.gravity);
   }
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x1AE), emitter.textureRows);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x137), emitter.textureCols);
-  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(0x16D), emitter.materialId);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_ROWS), emitter.textureRows);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_COLS), emitter.textureCols);
+  MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_MATERIAL_ID), emitter.materialId);
   WriteObjectTrailer(emitter, buffer);
 }
 
 BOOL MDL::WriteRibbonEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
-  if (!data.model.animationFile[0]) {
-    UINT numEmitters = data.ribbonEmitters.Count();
-    int needObjIds = numEmitters != data.objects.Count();
-    const MDLRIBBONEMITTER *ribbon = data.ribbonEmitters.Ptr();
-    for (UINT i = numEmitters; i; --i, ++ribbon) {
-      IWriteRibbonEmitter(data, *ribbon, needObjIds, buffer);
-    }
+  if (data.model.animationFile[0]) {
+    return 1;
+  }
+  UINT numEmitters = data.ribbonEmitters.Count();
+  int needObjIds = numEmitters != data.objects.Count();
+  const MDLRIBBONEMITTER *ribbon = data.ribbonEmitters.Ptr();
+  for (UINT i = numEmitters; i; --i, ++ribbon) {
+    IWriteRibbonEmitter(data, *ribbon, needObjIds, buffer);
   }
   return 1;
 }
@@ -270,18 +271,19 @@ static void IWriteBinRibbonEmitter(const MDLRIBBONEMITTER &section, CMsgBuffer &
 
 BOOL MDL::WriteBinRibbonEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   UINT numEmitters = data.ribbonEmitters.Count();
-  if (!data.model.animationFile[0] && numEmitters) {
-    buf.AddDword('BBIR');
-    UINT totalSize = 4;
-    UINT i;
-    for (i = 0; i < numEmitters; ++i) {
-      totalSize += GetBinRibbonEmitterSize(data.ribbonEmitters[i]);
-    }
-    buf.AddUint(totalSize);
-    buf.AddUint(numEmitters);
-    for (i = 0; i < numEmitters; ++i) {
-      IWriteBinRibbonEmitter(data.ribbonEmitters[i], buf, status);
-    }
+  if (data.model.animationFile[0] || !numEmitters) {
+    return 1;
+  }
+  buf.AddDword('BBIR');
+  UINT totalSize = 4;
+  UINT i;
+  for (i = 0; i < numEmitters; ++i) {
+    totalSize += GetBinRibbonEmitterSize(data.ribbonEmitters[i]);
+  }
+  buf.AddUint(totalSize);
+  buf.AddUint(numEmitters);
+  for (i = 0; i < numEmitters; ++i) {
+    IWriteBinRibbonEmitter(data.ribbonEmitters[i], buf, status);
   }
   return 1;
 }

@@ -91,15 +91,14 @@
 #include <UIUtil/InputControl.h>
 #include <storm.h>
 #include "WorldClient/World.h"
+#include <ctype.h>
+#include <float.h>
+#include <stdlib.h>
 
 namespace {
   extern FrameScript_Method s_ScriptFunctions[126];
 }
 extern char **Script_GetNamesFromGUID(const DWORDLONG &guid, int &numnames);
-#include <ctype.h>
-#include <float.h>
-#include <stdlib.h>
-
 void      PortraitInitialize();
 void      PortraitShutdown();
 void      UpdatePortraitTexture(const DWORDLONG &guid);
@@ -558,2344 +557,2344 @@ struct GAMEERRORDESC {
 static const GAMEERRORDESC s_gameErrors[GERR_NUM_TYPES] = {
     GAMEERRORDESC(
         "ERR_INV_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(0),
+        VUI_INVENTORYFULL,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_EQUIP_LEVEL_I",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(2),
+        VUI_NOEQUIP_LEVEL,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_EQUIP_SKILL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(2),
+        VUI_NOEQUIP_LEVEL,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_EQUIP_EVER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(3),
+        VUI_NOEQUIP_EVER,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PROFICIENCY_NEEDED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(48),
+        VUI_PROFICIENCYNEEDED,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_WRONG_SLOT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(27),
+        VUI_WRONGSLOT,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BAG_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(29),
+        VUI_BAGFULL,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DESTROY_NONEMPTY_BAG",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BAG_IN_BAG",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(26),
+        VUI_CANTPUTBAG,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_AMMO_ONLY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(28),
+        VUI_AMMOONLYINBAG,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NO_SLOT_AVAILABLE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_WRONG_BAG_TYPE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ITEM_MAX_COUNT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(30),
+        VUI_ITEMMAXCOUNT,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_EQUIPPABLE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(44),
+        VUI_NOTEQUIPPABLE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_STACK",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_SWAP",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SLOT_EMPTY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ITEM_NOT_FOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TOO_FEW_TO_SPLIT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPLIT_FAILED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_ENOUGH_GOLD",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_A_BAG",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(25),
+        VUI_NOTABAG,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_OWNER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(60),
+        VUI_NOTOWNER,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ONLY_ONE_QUIVER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NO_BANK_SLOT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NO_BANK_HERE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ITEM_LOCKED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(61),
+        VUI_ITEMLOCKED,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_2HANDED_EQUIPPED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(42),
+        VUI_CANTEQUIP_2HEQUIPPED,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_VENDOR_NOT_INTERESTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_VENDOR_HATES_YOU",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_VENDOR_SOLD_OUT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_VENDOR_TOO_FAR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_ENOUGH_MONEY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(40),
+        VUI_NOTENOUGHMONEY,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_RECEIVE_ITEM_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "ITEMGENERICSOUND",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DROP_BOUND_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(4),
+        VUI_BOUND_NODROP,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_BOUND_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(59),
+        VUI_CANTTRADE_SOULBOUND,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_QUEST_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(59),
+        VUI_CANTTRADE_SOULBOUND,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_GROUND_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
-    GAMEERRORDESC("ERR_TRADE_BAG", static_cast<ERROR_TEXT_PLACEMENT>(2), "NONE", static_cast<VOCALUISOUNDS>(59), 1, static_cast<SLASH_COMMAND_ID>(9)),
+    GAMEERRORDESC("ERR_TRADE_BAG", ERRORTEXT_UIERROR, "NONE", VUI_CANTTRADE_SOULBOUND, 1, SLASH_CMD_SYSTEM),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ITEM_COOLDOWN",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(5),
+        VUI_ITEMCOOLING,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_POTION_COOLDOWN",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(6),
+        VUI_CANTDRINKMORE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FOOD_COOLDOWN",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(7),
+        VUI_CANTEATMORE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_COOLDOWN",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(12),
+        VUI_SPELLCOOLING,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ABILITY_COOLDOWN",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(50),
+        VUI_ABILITYCOOLING,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_ALREADY_KNOWN_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(13),
+        VUI_CANTLEARN_LEVEL,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SKILL_GAINED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(23)
+        SLASH_CMD_SKILL
     ),
     GAMEERRORDESC(
         "ERR_SKILL_UP_SI",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(23)
+        SLASH_CMD_SKILL
     ),
     GAMEERRORDESC(
         "ERR_LEARN_SPELL_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LEARN_ABILITY_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LEARN_RECIPE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVITE_PLAYER_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVITED_TO_GROUP_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ALREADY_IN_GROUP_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(8),
+        VUI_CANTINVITE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PLAYER_BUSY_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NEW_LEADER_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NEW_LEADER_YOU",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LEFT_GROUP_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LEFT_GROUP_YOU",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GROUP_DISBANDED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DECLINE_GROUP_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igPlayerInviteDecline",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_JOINED_GROUP_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igPlayerInviteAccept",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_UNINVITE_YOU",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BAD_PLAYER_NAME_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_IN_GROUP",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TARGET_NOT_IN_GROUP_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GROUP_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOT_LEADER",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PLAYER_DIED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_CREATE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "LEVELUP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_INVITE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVITED_TO_GUILD_SS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "LEVELUP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ALREADY_IN_GUILD_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ALREADY_INVITED_TO_GUILD_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVITED_TO_GUILD",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ALREADY_IN_GUILD",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_ACCEPT",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_DECLINE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_PERMISSIONS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(62),
+        VUI_GUILDPERMISSIONS,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_JOIN_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_FOUNDER_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_PROMOTE_SS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_DEMOTE_SS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_QUIT_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_LEAVE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_REMOVE_SS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_REMOVE_SELF",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_DISBAND_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_DISBAND_SELF",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_LEADER_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_LEADER_SELF",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_MOTD_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_PLAYER_NOT_FOUND_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_PLAYER_NOT_IN_GUILD_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_PLAYER_NOT_IN_GUILD",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_CANT_PROMOTE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_CANT_DEMOTE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NOT_IN_A_GUILD",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_INTERNAL",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_LEADER_IS_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_LEADER_CHANGED_SS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_DISBANDED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NOT_ALLIED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_LEADER_LEAVE",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NAME_INVALID",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NAME_EXISTS_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_ENTER_NAME",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NAME_TOO_SHORT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NAME_MIXED_LANGUAGES",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NAME_PROFANE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILD_NAME_RESERVED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NO_GUILD_CHARTER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_OUT_OF_RANGE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(10),
+        VUI_TARGETTOOFAR,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PLAYER_DEAD",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CLIENT_LOCKED_OUT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_KILLED_BY_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_LOCKED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(33),
+        VUI_CANTLOOT_LOCKED,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_TOO_FAR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(35),
+        VUI_CANTLOOT_TOOFAR,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_DIDNT_KILL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(31),
+        VUI_CANTLOOT_DIDNTKILL,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_BAD_FACING",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(32),
+        VUI_CANTLOOT_WRONGFACING,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_NOTSTANDING",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(34),
+        VUI_CANTLOOT_NOTSTANDING,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_STUNNED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_LOOT_NO_UI",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_ACCEPTED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "QUESTADDED",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_COMPLETE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igQuestListComplete",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_FAILED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_FAILED_BAG_FULL_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_FAILED_MAX_COUNT_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_FAILED_LOW_LEVEL",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_FAILED_MISSING_ITEMS",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_REWARD_EXP_I",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_REWARD_ITEM_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_REWARD_MONEY_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_MUST_CHOOSE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_LOG_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "igQuestFailed",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_COMBAT_DAMAGE_SSI",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
-    GAMEERRORDESC("ERR_INSPECT_S", static_cast<ERROR_TEXT_PLACEMENT>(0), "NONE", static_cast<VOCALUISOUNDS>(66), 1, static_cast<SLASH_COMMAND_ID>(9)),
+    GAMEERRORDESC("ERR_INSPECT_S", ERRORTEXT_CHAT, "NONE", VUI_NONE, 1, SLASH_CMD_SYSTEM),
     GAMEERRORDESC(
         "ERR_CANT_USE_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(51),
+        VUI_CANTUSEITEM,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MUST_EQUIP_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(49),
+        VUI_MUSTEQUIPPITEM,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PASSIVE_ABILITY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_2HSKILLNOTFOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(41),
+        VUI_CANTEQUIP2H_SKILL,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NO_ATTACK_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERROROUTOFRANGE",
-        static_cast<VOCALUISOUNDS>(38),
+        VUI_CANTATTACK_NOTARGET,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVALID_ATTACK_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(11),
+        VUI_INVALIDTARGET,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ATTACK_PACIFIED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ATTACK_DEAD",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_HUNGER_VERY_LOW",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_HUNGER_LOW",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_HUNGER_MED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_HUNGER_HIGH",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_HUNGER_SATIATED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_THIRST_VERY_LOW",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_THIRST_LOW",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_THIRST_MED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_THIRST_HIGH",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_THIRST_SATIATED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXISAMENODE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXINOSUCHPATH",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXIUNSPECIFIEDSERVERERROR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXINOTENOUGHMONEY",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(54),
+        VUI_CANTTAXI_NOMONEY,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXITOOFARAWAY",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXINOVENDORNEARBY",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXINOTVISITED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXIPLAYERBUSY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXIPLAYERALREADYMOUNTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXIPLAYERSHAPESHIFTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXIPLAYERMOVING",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAXINOPATHS",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NO_REPLY_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GENERIC_NO_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(45),
+        VUI_GENERICNOTARGET,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INITIATE_TRADE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_REQUEST_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "LEVELUP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_TOO_FAR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_CANCELLED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_COMPLETE",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_BAG_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_TARGET_BAG_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_MAX_COUNT_EXCEEDED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TRADE_TARGET_MAX_COUNT_EXCEEDED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_INVALIDMOUNTEE",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_TOOFARAWAY",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_ALREADYMOUNTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_NOTMOUNTABLE",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_NOTYOURPET",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_OTHER",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_LOOTING",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_RACECANTMOUNT",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_MOUNT_SHAPESHIFTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DISMOUNT_NOPET",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DISMOUNT_NOTMOUNTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DISMOUNT_NOTYOURPET",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_TOTEMS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_REAGENTS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_EQUIPPED_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_EQUIPPED_ITEM_CLASS_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_SHAPESHIFT_FORM_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BADATTACKFACING",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BADATTACKPOS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CHEST_IN_USE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(52),
+        VUI_CHESTINUSE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_CANT_OPEN",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_LOCKED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(61),
+        VUI_ITEMLOCKED,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_LOCKED_WITH_ITEM_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_LOCKED_WITH_SPELL_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_LOCKED_WITH_SPELL_KNOWN_SI",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_TOO_FAR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(57),
+        VUI_CANTUSETOOFAR,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_BAD_ANGLE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_OBJECT_MOVING",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_SPELL_FOCUS",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_USE_DESTROYED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANTATTACK_NOTSTANDING",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(37),
+        VUI_CANTATTACK_NOTSTANDING,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SET_LOOT_FREEFORALL",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SET_LOOT_ROUNDROBIN",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SET_LOOT_MASTER",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NEW_LOOT_MASTER_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPECIFY_MASTER_LOOTER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_TAME_FAILED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CHAT_WHILE_DEAD",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NEWTAXIPATH",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "TaxiNodeDiscovered",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
-    GAMEERRORDESC("ERR_NO_PET", static_cast<ERROR_TEXT_PLACEMENT>(2), "NONE", static_cast<VOCALUISOUNDS>(66), 0, static_cast<SLASH_COMMAND_ID>(9)),
+    GAMEERRORDESC("ERR_NO_PET", ERRORTEXT_UIERROR, "NONE", VUI_NONE, 0, SLASH_CMD_SYSTEM),
     GAMEERRORDESC(
         "ERR_NOTYOURPET",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PET_NOT_RENAMEABLE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NULL_PETNAME",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVALID_PETNAME",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_OBJECTIVE_COMPLETE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_UNKNOWN_COMPLETE",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_ADD_KILL_SII",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_ADD_FOUND_SII",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_QUEST_ADD_ITEM_SII",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANNOTCREATEDIRECTORY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANNOTCREATEFILE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PLAYER_WRONG_FACTION",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BANKSLOT_FAILED_TOO_MANY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BANKSLOT_INSUFFICIENT_FUNDS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(22),
+        VUI_CANTAFFORDBANKSLOT,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_BANKSLOT_NOTBANKER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_DB_ERROR",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_LIST_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_ADDED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_ONLINE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "FRIENDJOINGAME",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_OFFLINE_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_NOT_FOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_WRONG_FACTION",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_REMOVED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_ERROR",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_ALREADY_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FRIEND_SELF",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORE_FULL",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORE_SELF",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORE_NOT_FOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORE_ALREADY_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORE_ADDED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORE_REMOVED_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ONLY_ONE_BOLT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ONLY_ONE_AMMO",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORUNABLETOEQUIP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_EQUIPPED_SPECIFIC_ITEM",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_WRONG_BAG_TYPE_SUBCLASS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_WRAP_STACKABLE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_WRAP_EQUIPPED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_WRAP_WRAPPED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_WRAP_BOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_WRAP_UNIQUE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_CANT_WRAP_BAGS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_OUT_OF_MANA",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(15),
+        VUI_NOMANA,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_OUT_OF_RAGE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_OUT_OF_FOCUS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_OUT_OF_ENERGY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_OUT_OF_HEALTH",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
-    GAMEERRORDESC("ERR_LOOT_GONE", static_cast<ERROR_TEXT_PLACEMENT>(2), "NONE", static_cast<VOCALUISOUNDS>(66), 1, static_cast<SLASH_COMMAND_ID>(9)),
+    GAMEERRORDESC("ERR_LOOT_GONE", ERRORTEXT_UIERROR, "NONE", VUI_NONE, 1, SLASH_CMD_SYSTEM),
     GAMEERRORDESC(
         "ERR_MOUNT_FORCEDDISMOUNT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_AUTOFOLLOW_TOO_FAR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_UNIT_NOT_FOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVALID_FOLLOW_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_SUCCESS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_INVALID_TABARD_COLORS",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_NOGUILD",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_COLORSPRESENT",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_NOTGUILDMASTER",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_NOTENOUGHMONEY",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_GUILDEMBLEM_INVALIDVENDOR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_OUT_OF_RANGE",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERROROUTOFRANGE",
-        static_cast<VOCALUISOUNDS>(46),
+        VUI_CANTCAST_OUTOFRANGE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_COMMAND_NEEDS_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
-    GAMEERRORDESC("ERR_NOAMMO_S", static_cast<ERROR_TEXT_PLACEMENT>(2), "NONE", static_cast<VOCALUISOUNDS>(1), 1, static_cast<SLASH_COMMAND_ID>(9)),
+    GAMEERRORDESC("ERR_NOAMMO_S", ERRORTEXT_UIERROR, "NONE", VUI_OUTOFAMMO, 1, SLASH_CMD_SYSTEM),
     GAMEERRORDESC(
         "ERR_TOOBUSYTOFOLLOW",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         1,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DUEL_REQUESTED",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "LEVELUP",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DUEL_CANCELLED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_DEATHBINDALREADYBOUND",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_NOEMOTEWHILERUNNING",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ZONE_EXPLORED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "TaxiNodeDiscovered",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_ZONE_EXPLORED_XP",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_INVALID_ITEM_TARGET",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_IGNORING_YOU_S",
-        static_cast<ERROR_TEXT_PLACEMENT>(0),
+        ERRORTEXT_CHAT,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FISH_NOT_HOOKED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_FISH_ESCAPED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "GAMEERRORINVALIDTARGET",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_SPELL_FAILED_NOTUNSHEATHED",
-        static_cast<ERROR_TEXT_PLACEMENT>(1),
+        ERRORTEXT_UIINFO,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PETITION_SIGNED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PETITION_ALREADY_SIGNED",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PETITION_IN_GUILD",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PETITION_CREATOR",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     ),
     GAMEERRORDESC(
         "ERR_PETITION_NOT_ENOUGH_SIGNATURES",
-        static_cast<ERROR_TEXT_PLACEMENT>(2),
+        ERRORTEXT_UIERROR,
         "NONE",
-        static_cast<VOCALUISOUNDS>(66),
+        VUI_NONE,
         0,
-        static_cast<SLASH_COMMAND_ID>(9)
+        SLASH_CMD_SYSTEM
     )
 };
 
@@ -2998,7 +2997,7 @@ static BOOL CCommand_ScaleUI(LPCSTR, LPCSTR arguments) {
 static int Script_FrameXML_Debug(lua_State *L) {
   int level = FrameXML_GetDebugLevel();
   if (lua_isnumber(L, 1)) {
-    level = static_cast<int>(lua_tonumber(L, 1));
+    level = lua_tonumber(L, 1);
     FrameXML_SetDebugLevel(level);
   }
   return 1;
@@ -3012,7 +3011,7 @@ static int Script_ReloadUI(lua_State *L) {
 static int Script_SetLayoutMode(lua_State *L) {
   int mode = 1;
   if (lua_isnumber(L, 1)) {
-    mode = static_cast<int>(lua_tonumber(L, 1));
+    mode = lua_tonumber(L, 1);
   }
   CSimpleTop::GetInstance()->SetLayoutMode(mode);
   return 0;
@@ -3057,17 +3056,17 @@ static int Script_GetDebugStats(lua_State *L) {
   if (player) {
     SStrPack(buffer, "\nPlayer position: ", sizeof(buffer));
     NTempest::C3Vector pos = player->GetPosition();
-    SStrPrintf(tempBuffer, sizeof(tempBuffer), "%d, %d, %d\n", static_cast<int>(pos.x), static_cast<int>(pos.y), static_cast<int>(pos.z));
+    SStrPrintf(tempBuffer, sizeof(tempBuffer), "%d, %d, %d\n", (int)pos.x, (int)pos.y, (int)pos.z);
     SStrPack(buffer, tempBuffer, sizeof(buffer));
     SStrPack(buffer, "Player facing: ", sizeof(buffer));
 
-    float facing = static_cast<float>(fmod(360.0f - player->GetFacing() * 57.29578f + 22.5f, 360.0));
+    float facing = fmod(360.0f - player->GetFacing() * 57.29578f + 22.5f, 360.0);
     if (facing < 0.0f) {
       facing += 360.0f;
     }
-    int direction = static_cast<int>(facing * 0.022222223f);
-    if (static_cast<UINT>(direction) > 7) {
-      direction = direction < 0 ? 0 : 7;
+    int direction = facing * 0.022222223f;
+    if ((UINT)direction > 7) {
+      direction = ~(direction >> 31) & 7;
     }
     SStrPrintf(tempBuffer, sizeof(tempBuffer), "%-2s\n", compasDirStr[direction]);
     SStrPack(buffer, tempBuffer, sizeof(buffer));
@@ -3174,7 +3173,7 @@ static int Script_SetWorldDetail(lua_State *L) {
     return 0;
   }
 
-  int terrainDetail = static_cast<int>(lua_tonumber(L, 1));
+  int terrainDetail = lua_tonumber(L, 1);
   if (terrainDetail >= 0 && terrainDetail < 3) {
     SStrPrintf(buf, sizeof(buf), "%f", s_distCullValues[terrainDetail]);
     CVar *cvar = CVar::Lookup("DistCull");
@@ -3231,7 +3230,7 @@ static int Script_SetTerrainMip(lua_State *L) {
     return 0;
   }
 
-  int value = 1 - static_cast<int>(lua_tonumber(L, 1));
+  int value = 1 - (int)lua_tonumber(L, 1);
   SStrPrintf(buf, sizeof(buf), "%d", value);
   CVar *cvar = CVar::Lookup("alphaLevel");
   cvar->Set(buf, 1, 0, 0);
@@ -3447,9 +3446,9 @@ static int Script_EquipCursorItem(lua_State *L) {
   }
   CGGameUI::GetCursorItem(cursorItem, cursorItemPack, cursorItemSlot);
   if (cursorItem) {
-    int slot = static_cast<int>(lua_tonumber(L, 1));
+    int slot = lua_tonumber(L, 1);
     if (slot != 0xFF && slot != -1) {
-      player->SwapItems(cursorItem, cursorItemPack, static_cast<int>(cursorItemSlot), player->GetGUID(), slot, 1);
+      player->SwapItems(cursorItem, cursorItemPack, cursorItemSlot, player->GetGUID(), slot, 1);
     } else {
       player->AutoEquipCursorItem(1);
     }
@@ -3471,7 +3470,7 @@ static int Script_DeleteCursorItem(lua_State *) {
       CDataStore msg;
       msg.Put(CMSG_DESTROYITEM);
       msg.Put(cursorItemPackIndex);
-      msg.Put(static_cast<BYTE>(cursorItemSlot));
+      msg.Put((BYTE)cursorItemSlot);
       msg.Put(CGGameUI::m_stackSplit);
       msg.Finalize();
       ClientServices_Send(&msg);
@@ -3489,7 +3488,7 @@ static int Script_EquipPendingItem(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ClearPendingEquip(static_cast<UINT>(lua_tonumber(L, 1)), 1);
+    player->ClearPendingEquip(lua_tonumber(L, 1), 1);
   }
   return 0;
 }
@@ -3501,7 +3500,7 @@ static int Script_CancelPendingEquip(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    player->ClearPendingEquip(static_cast<UINT>(lua_tonumber(L, 1)), 0);
+    player->ClearPendingEquip(lua_tonumber(L, 1), 0);
   }
   return 0;
 }
@@ -3536,7 +3535,7 @@ static int Script_TargetUnitsPet(lua_State *L) {
 static int Script_TargetNearestEnemy(lua_State *L) {
   int reverse = 0;
   if (lua_isnumber(L, 1)) {
-    reverse = static_cast<int>(lua_tonumber(L, 1));
+    reverse = lua_tonumber(L, 1);
   } else if (lua_isstring(L, 1)) {
     reverse = StringToBOOL(lua_tostring(L, 1));
   }
@@ -3566,7 +3565,7 @@ static int Script_AssistUnit(lua_State *L) {
     if (unit) {
       DWORDLONG newTarget = 0;
       if (unit->IsA(ID_PLAYER)) {
-        newTarget = static_cast<CGPlayer_C *>(unit)->GetSelection();
+        newTarget = ((CGPlayer_C *)unit)->GetSelection();
       } else {
         newTarget = unit->GetTarget();
       }
@@ -3580,7 +3579,7 @@ static int Script_AssistUnit(lua_State *L) {
         }
       }
     } else {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+      CGGameUI::DisplayError(GERR_GENERIC_NO_TARGET);
     }
   } else {
     luaL_error(L, "Usage: AssistUnit(\"unit\")");
@@ -3605,10 +3604,10 @@ static int Script_FollowUnit(lua_State *L) {
       if (target->IsA(ID_PLAYER) && target->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
         player->SaveTrackingTarget(target->GetGUID(), TRACKTYPE_FOLLOW, 0);
       } else {
-        CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(269));
+        CGGameUI::DisplayError(GERR_INVALID_FOLLOW_TARGET);
       }
     } else {
-      CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+      CGGameUI::DisplayError(GERR_GENERIC_NO_TARGET);
     }
   } else {
     luaL_error(L, "Usage: FollowUnit(\"unit\")");
@@ -3653,10 +3652,10 @@ static int Script_ToggleSheath(lua_State *) {
 }
 
 static int Script_ToggleRun(lua_State *L) {
-  DWORD     eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD     eventTime = lua_isnumber(L, 1) ? (DWORD)lua_tonumber(L, 1) : OsGetAsyncTimeMs();
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    if ((mover->GetMoveFlags() & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
+    if ((mover->GetMoveFlags() & 0x200) && (int)(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
@@ -3667,20 +3666,32 @@ static int Script_ToggleRun(lua_State *L) {
   return 0;
 }
 
+inline float CGUnit::LinearDistanceSquared(const NTempest::C3Vector &position) const {
+  return (GetPosition() - position).SquaredMag();
+}
+
+inline BYTE CGUnit::IsSitting() const {
+  UNITSTANDSTATE standState = (UNITSTANDSTATE)GetStandState();
+  return standState == UNIT_SITTING || (standState >= UNIT_FIRSTCHAIRSIT && standState <= UNIT_LASTCHAIRSIT);
+}
+
+inline BYTE CGUnit::IsSleeping() const {
+  return GetStandState() == UNIT_SLEEPING;
+}
+
 static int Script_Jump(lua_State *L) {
-  DWORD     eventTime = lua_isnumber(L, 1) ? static_cast<DWORD>(lua_tonumber(L, 1)) : OsGetAsyncTimeMs();
+  DWORD     eventTime = lua_isnumber(L, 1) ? (DWORD)lua_tonumber(L, 1) : OsGetAsyncTimeMs();
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    if ((mover->GetMoveFlags() & 0x200) && static_cast<int>(eventTime - mover->GetMoveStartTime()) < 0) {
+    if ((mover->GetMoveFlags() & 0x200) && (int)(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
     if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400)) {
-      UINT standState = mover->GetStandState();
-      if (standState != 1 && standState != 3 && (standState < 4 || standState > 6)) {
-        mover->OnJumpLocal(eventTime);
+      if (mover->IsSitting() || mover->IsSleeping()) {
+        mover->ChangeStandState(UNIT_STANDING);
       } else {
-        mover->ChangeStandState(0);
+        mover->OnJumpLocal(eventTime);
       }
     }
   }
@@ -3895,19 +3906,19 @@ static int Script_ForceQuit(lua_State *) {
 
 static int Script_ReportBug(lua_State *L) {
   bool success = ClientServices_Report(0, lua_tostring(L, 1), lua_tostring(L, 2));
-  CGChat::AddChatMessage(success ? "Bug submitted" : "Bug submission failed", static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
+  CGChat::AddChatMessage(success ? "Bug submitted" : "Bug submission failed", SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   return 0;
 }
 
 static int Script_ReportSuggestion(lua_State *L) {
   bool success = ClientServices_Report(1, lua_tostring(L, 1), lua_tostring(L, 2));
-  CGChat::AddChatMessage(success ? "Suggestion submitted" : "Suggestion submission failed", static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
+  CGChat::AddChatMessage(success ? "Suggestion submitted" : "Suggestion submission failed", SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   return 0;
 }
 
 static int Script_ReportNote(lua_State *L) {
   bool success = ClientServices_Report(2, lua_tostring(L, 1), lua_tostring(L, 2));
-  CGChat::AddChatMessage(success ? "Note submitted" : "Note submission failed", static_cast<SLASH_COMMAND_ID>(9), 0, 0, 0, 0, 0);
+  CGChat::AddChatMessage(success ? "Note submitted" : "Note submission failed", SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   return 0;
 }
 
@@ -3932,7 +3943,7 @@ static int Script_PickupPlayerMoney(lua_State *L) {
   if (!player) {
     return 0;
   }
-  UINT amount = static_cast<UINT>(lua_tonumber(L, 1));
+  UINT amount = lua_tonumber(L, 1);
   if (amount > 0 && amount <= player->GetMoney()) {
     CGGameUI::SetCursorMoney(amount);
   }
@@ -3993,7 +4004,7 @@ static int Script_LeaveChannelByName(lua_State *L) {
 static int Script_GuildInviteByName(lua_State *L) {
   LPCSTR name = lua_isstring(L, 1) ? lua_tostring(L, 1) : 0;
   if (!name || !*name) {
-    CGGameUI::DisplayError(static_cast<GAME_ERROR_TYPE>(278));
+    CGGameUI::DisplayError(GERR_COMMAND_NEEDS_TARGET);
     return 0;
   }
   CDataStore msg;
@@ -4185,7 +4196,7 @@ static int Script_SplitMoney(lua_State *L) {
     if (money > 0) {
       CDataStore msg;
       msg.Put(MSG_SPLIT_MONEY);
-      msg.Put(static_cast<int>(money));
+      msg.Put((int)money);
       msg.Finalize();
       ClientServices_Send(&msg);
       return 0;
@@ -4273,7 +4284,7 @@ static int Script_CheckInteractDistance(lua_State *L) {
 
     const CGUnit_C *unit = Script_GetUnitFromName(lua_tostring(L, 1));
     CGPlayer_C     *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    UINT            index = static_cast<int>(lua_tonumber(L, 2)) - 1;
+    UINT            index = (int)lua_tonumber(L, 2) - 1;
     if (player && unit && index < 3 && (player->GetPosition() - unit->GetPosition()).SquaredMag() < s_interactDistances[index]) {
       lua_pushnumber(L, 1.0);
       return 1;
@@ -4310,7 +4321,7 @@ static int Script_GetCurrentResolution(lua_State *L) {
 static int Script_SetScreenResolution(lua_State *L) {
   int index = 0;
   if (lua_isnumber(L, 1)) {
-    index = static_cast<UINT>(lua_tonumber(L, 1)) - 1 > 4 ? 4 : static_cast<UINT>(lua_tonumber(L, 1)) - 1;
+    index = (UINT)lua_tonumber(L, 1) - 1 > 4 ? 4 : (UINT)lua_tonumber(L, 1) - 1;
   }
   CVar *cvar = CVar::Lookup("gxResolution");
   if (cvar && SStrCmpI(cvar->GetString(), s_screenResolutions[index], INT_MAX)) {
@@ -4467,22 +4478,22 @@ static BOOL PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
   }
 
   SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
-  OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+  OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
   SStrPrintf(line, sizeof(line), "FrameLevel: %d\n", frame->GetFrameLevel());
-  OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+  OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
 
   if (frame->IsMovable()) {
-    SStrPrintf(line, sizeof(line), "X: %d\n", static_cast<int>(((-(toprect.l - rect.l)) * 1024.0f) * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-    SStrPrintf(line, sizeof(line), "Y: %d\n", static_cast<int>(((-(toprect.b - rect.b)) * 1024.0f) * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+    SStrPrintf(line, sizeof(line), "X: %d\n", (int)(((-(toprect.l - rect.l)) * 1024.0f) * 1.25f));
+    OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
+    SStrPrintf(line, sizeof(line), "Y: %d\n", (int)(((-(toprect.b - rect.b)) * 1024.0f) * 1.25f));
+    OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
   }
 
   if (frame->IsResizable()) {
-    SStrPrintf(line, sizeof(line), "W: %d\n", static_cast<int>(((rect.r - rect.l) * 1024.0f) * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
-    SStrPrintf(line, sizeof(line), "H: %d\n", static_cast<int>(((rect.b - rect.t) * 1024.0f) * 1.25f));
-    OsWriteFile(static_cast<HOSFILE>(param), line, SStrLen(line), &count);
+    SStrPrintf(line, sizeof(line), "W: %d\n", (int)(((rect.r - rect.l) * 1024.0f) * 1.25f));
+    OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
+    SStrPrintf(line, sizeof(line), "H: %d\n", (int)(((rect.b - rect.t) * 1024.0f) * 1.25f));
+    OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
   }
 
   return 1;
@@ -4538,7 +4549,7 @@ static void LoadPlacedFrames() {
     return;
   }
 
-  readCursor = static_cast<LPCSTR>(buffer);
+  readCursor = (LPCSTR)buffer;
   CSimpleFrame *frame = 0;
   int           framelevel = -1;
   int           x = 0;
@@ -4750,17 +4761,18 @@ static bool GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vec
   }
 
   NTempest::C34Matrix m_modelMatrix;
+  m_modelMatrix.Identity();
   m_modelMatrix.Translate(origin);
   m_modelMatrix.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
 
   AsyncFileReadWaitAll();
-  FATALASSERT(ModelIsLoaded(m_model, 1));
+  FATALASSERT(ModelIsLoaded(m_model));
 
   HCAMERA camera = ModelGetCamera(m_model, 0);
   ModelAnimateCameras(m_model, m_modelMatrix);
-  DataMgrGetCoord(reinterpret_cast<HDATAMGR>(camera), 7, &position);
-  HandleClose(reinterpret_cast<HOBJECT>(camera));
-  HandleClose(reinterpret_cast<HOBJECT>(m_model));
+  DataMgrGetCoord(camera, 7, &position);
+  HandleClose(camera);
+  HandleClose(m_model);
   return 1;
 }
 
@@ -5001,14 +5013,13 @@ void CGGameUI::Initialize() {
 
   m_UISimpleParent = SimpleFrameRegistryGetEntry("UIParent", 0);
   FATALASSERT(m_UISimpleParent);
-  m_gameTooltip = static_cast<CGTooltip *>(SimpleFrameRegistryGetEntry("GameTooltip", 0));
+  m_gameTooltip = (CGTooltip *)SimpleFrameRegistryGetEntry("GameTooltip", 0);
   FATALASSERT(m_gameTooltip);
 
   m_screenWidth = 0;
   CSizeEvent evt;
-  evt.SetId(8);
-  evt.w = static_cast<int>(screenRect.r - screenRect.l);
-  evt.h = static_cast<int>(screenRect.b - screenRect.t);
+  evt.w = screenRect.r - screenRect.l;
+  evt.h = screenRect.b - screenRect.t;
   HandleDisplaySizeChanged(evt);
 
   ConsoleCommandRegister("script", CCommand_Script, DEFAULT, 0);
@@ -5022,9 +5033,13 @@ void CGGameUI::Initialize() {
   }
 }
 
+inline void CGInputControl::Reset() {
+  UnsetControlBit((INPUT_CONTROL)-1, 0);
+}
+
 void CGGameUI::EnterWorld() {
   ResetCamera();
-  CGInputControl::GetActive()->UnsetControlBit(static_cast<INPUT_CONTROL>(-1), 0);
+  CGInputControl::GetActive()->Reset();
   FrameScript_MemoryCleanup(1);
   FrameScript_SignalEvent(253);
   CGMinimapFrame::Initialize(CGPlayer_C::GetNewContinentID());
@@ -5212,7 +5227,7 @@ void CGGameUI::UnitPortraitUpdate(const DWORDLONG &guid) {
 
 static void ItemPushItemStatsCallback(int id, const DWORDLONG &, LPVOID arg, bool granted) {
   if (granted) {
-    ItemPushInfo *info = static_cast<ItemPushInfo *>(arg);
+    ItemPushInfo *info = (ItemPushInfo *)arg;
     FATALASSERT(info);
     CGGameUI::OnItemPush(info->player, info->slot, id, info->pushed, info->display);
     SMemFree(info, "delete", -1, 0);
@@ -5246,16 +5261,16 @@ void CGGameUI::OnItemPush(DWORDLONG player, int slot, int itemID, int pushed, in
     if (display) {
       LPCSTR format = FrameScript_GetText(pushed ? "LOOT_ITEM_PUSHED_SELF" : "LOOT_ITEM_SELF", -1, GENDER_NOT_APPLICABLE);
       SStrPrintf(buffer, sizeof(buffer), format, colorString, itemID, stats->m_displayName[0], colorEnd);
-      CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
+      CGChat::AddChatMessage(buffer, SLASH_CMD_LOOT, 0, 0, 0, 0, 0);
     }
   } else if (!pushed && display) {
     CGObject_C *object = ClntObjMgrObjectPtr(player, __FILE__, __LINE__);
     if (object) {
       LPCSTR format = FrameScript_GetText("LOOT_ITEM", -1, GENDER_NOT_APPLICABLE);
       SStrPrintf(
-          buffer, sizeof(buffer), format, static_cast<CGUnit_C *>(object)->GetUnitName(), colorString, itemID, stats->m_displayName[0], colorEnd
+          buffer, sizeof(buffer), format, ((CGUnit_C *)object)->GetUnitName(), colorString, itemID, stats->m_displayName[0], colorEnd
       );
-      CGChat::AddChatMessage(buffer, static_cast<SLASH_COMMAND_ID>(24), 0, 0, 0, 0, 0);
+      CGChat::AddChatMessage(buffer, SLASH_CMD_LOOT, 0, 0, 0, 0, 0);
     }
   }
 }
@@ -5326,9 +5341,10 @@ void CGGameUI::OnTargetContextAction() {
   CGWorldFrame *worldFramePtr = CGWorldFrame::GetActive();
   FATALASSERT(worldFramePtr);
 
-  NTempest::C2Vector position = worldFramePtr->GetScreenCoordinates(
-      object->GetPosition() + NTempest::C3Vector(0.0f, 0.0f, object->GetScale() * object->GetObjectHeight() * 0.5f)
-  );
+  float scale = object->GetScale();
+
+  NTempest::C2Vector position =
+      worldFramePtr->GetScreenCoordinates(object->GetPosition() + NTempest::C3Vector(0.0f, 0.0f, scale * object->GetObjectHeight() * 0.5f));
   OnSpriteRightClick(m_lockedTarget, position.x, position.y);
 }
 
@@ -5363,11 +5379,11 @@ void CGGameUI::HandleObjectTrackChange(DWORDLONG object, DWORDLONG oldGUID, floa
     case HIER_TYPE_PLAYER: {
       player->SetLocalTarget(object);
       FrameScript_SignalEvent(314);
-      if (static_cast<CGUnit_C *>(trackedObject)->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
+      if (((CGUnit_C *)trackedObject)->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
         SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTHOSTILEUNIT");
         return;
       }
-      if (static_cast<CGUnit_C *>(trackedObject)->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
+      if (((CGUnit_C *)trackedObject)->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
         SndInterfacePlayInterfaceSound("GAMEHIGHLIGHTFRIENDLYUNIT");
         return;
       }
@@ -5512,10 +5528,10 @@ void CGGameUI::SetInteractTarget(const DWORDLONG &target, float maxDist) {
       CGObject_C *object = ClntObjMgrObjectPtr(m_interactTarget, __FILE__, __LINE__);
       if (object) {
         if (object->IsA(ID_UNIT)) {
-          static_cast<CGUnit_C *>(object)->OnNPCHello();
+          ((CGUnit_C *)object)->OnNPCHello();
         }
         if (object->IsA(ID_GAMEOBJECT)) {
-          static_cast<CGGameObject_C *>(object)->StartInteraction();
+          ((CGGameObject_C *)object)->StartInteraction();
         }
       }
     }
@@ -5538,7 +5554,7 @@ void CGGameUI::UpdateInteractTarget() {
   if (!target || target->IsDisabled() || !player) {
     CloseInteraction();
   } else if (!target->IsA(ID_ITEM)) {
-    if ((player->CGUnit::GetPosition() - target->GetPosition()).SquaredMag() > m_interactMaxDist) {
+    if (player->LinearDistanceSquared(target->GetPosition()) > m_interactMaxDist) {
       CloseInteraction();
     }
   }
@@ -5580,10 +5596,10 @@ void CGGameUI::CloseInteraction() {
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
     if (object) {
       if (object->IsA(ID_UNIT)) {
-        static_cast<CGUnit_C *>(object)->OnNPCGoodbye();
+        ((CGUnit_C *)object)->OnNPCGoodbye();
       }
       if (object->IsA(ID_GAMEOBJECT)) {
-        static_cast<CGGameObject_C *>(object)->CloseInteraction();
+        ((CGGameObject_C *)object)->CloseInteraction();
       }
     }
   }
@@ -5603,7 +5619,7 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
 
   bool enterCombatMode = false;
   if (player && player->IsInCombatMode() && oldTarget->IsA(ID_UNIT) && player->GetHealth() > 0 && !player->IsMounted() &&
-      static_cast<CGUnit_C *>(oldTarget)->GetHealth() > 0 && player->CanAttack(static_cast<CGUnit_C *>(oldTarget)))
+      ((CGUnit_C *)oldTarget)->GetHealth() > 0 && player->CanAttack((CGUnit_C *)oldTarget))
   {
     enterCombatMode = true;
   }
@@ -5624,7 +5640,7 @@ void CGGameUI::Target(const DWORDLONG &target, int usingNearest) {
       object->UpdatePlayerName();
 
       if (object->IsA(ID_UNIT)) {
-        CGUnit_C *unit = static_cast<CGUnit_C *>(object);
+        CGUnit_C *unit = (CGUnit_C *)object;
         unit->RegisterScript();
 
         if (player && player->GetHealth() > 0 && !player->IsMounted() && unit->GetHealth() > 0 && player->CanAttack(unit)) {
@@ -5675,7 +5691,7 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
     object->HideHighlightType(HT_OBJSELECTION);
     object->UpdatePlayerName();
     if (object->IsA(ID_UNIT)) {
-      CGUnit_C *unit = static_cast<CGUnit_C *>(object);
+      CGUnit_C *unit = (CGUnit_C *)object;
       unit->UnregisterScript();
       if (unit->IsNPC()) {
         SndInterfacePlayInterfaceSound("igCharacterNPCDeselect");
@@ -5706,24 +5722,26 @@ void CGGameUI::ClearTarget(DWORDLONG guid, int sendTarget) {
 }
 
 static BOOL ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
-  ClosestObjectMatchData *data = static_cast<ClosestObjectMatchData *>(param);
+  ClosestObjectMatchData *data = (ClosestObjectMatchData *)param;
   CGObject_C             *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
-  if (object && (data->type & object->GetType())) {
-    LPCSTR name = object->GetObjectName();
-    if (name) {
-      LPCSTR match = data->match;
-      while (*match && *name && toupper(*match) == toupper(*name)) {
-        ++match;
-        ++name;
-      }
-      int match_len = match - data->match;
-      if (match_len >= data->best_match) {
-        float distance = (data->source->CGUnit::GetPosition() - object->GetPosition()).SquaredMag();
-        if (match_len > data->best_match || distance < data->best_distance) {
-          data->best_distance = distance;
-          data->object = object;
-          data->best_match = match_len;
-        }
+  if (!object || !(data->type & object->GetType())) {
+    return 1;
+  }
+
+  LPCSTR name = object->GetObjectName();
+  if (name) {
+    LPCSTR match = data->match;
+    while (*match && *name && toupper(*match) == toupper(*name)) {
+      ++match;
+      ++name;
+    }
+    int match_len = match - data->match;
+    if (match_len >= data->best_match) {
+      float distance = data->source->LinearDistanceSquared(object->GetPosition());
+      if (match_len > data->best_match || distance < data->best_distance) {
+        data->best_distance = distance;
+        data->object = object;
+        data->best_match = match_len;
       }
     }
   }
@@ -5753,7 +5771,7 @@ void CGGameUI::AssistByName(LPCSTR name) {
   if (unit) {
     DWORDLONG newTarget;
     if (unit->IsA(ID_PLAYER)) {
-      newTarget = static_cast<CGPlayer_C *>(unit)->GetSelection();
+      newTarget = ((CGPlayer_C *)unit)->GetSelection();
     } else {
       newTarget = unit->GetTarget();
     }
@@ -5767,9 +5785,9 @@ void CGGameUI::AssistByName(LPCSTR name) {
       }
     }
   } else if (name && *name) {
-    DisplayError(static_cast<GAME_ERROR_TYPE>(268));
+    DisplayError(GERR_UNIT_NOT_FOUND);
   } else {
-    DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+    DisplayError(GERR_GENERIC_NO_TARGET);
   }
 }
 
@@ -5782,15 +5800,15 @@ void CGGameUI::FollowByName(LPCSTR name) {
       if (unit->IsA(ID_PLAYER) && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
         player->SaveTrackingTarget(unit->GetGUID(), TRACKTYPE_FOLLOW, false);
       } else {
-        DisplayError(static_cast<GAME_ERROR_TYPE>(269));
+        DisplayError(GERR_INVALID_FOLLOW_TARGET);
       }
     } else {
-      DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+      DisplayError(GERR_GENERIC_NO_TARGET);
     }
   } else if (name && *name) {
-    DisplayError(static_cast<GAME_ERROR_TYPE>(268));
+    DisplayError(GERR_UNIT_NOT_FOUND);
   } else {
-    DisplayError(static_cast<GAME_ERROR_TYPE>(168));
+    DisplayError(GERR_GENERIC_NO_TARGET);
   }
 }
 
@@ -5816,8 +5834,8 @@ static BOOL TargetUpdateProc(DWORDLONG guid, LPVOID) {
 static int __cdecl QSortCompareNearestEnemy(LPCVOID a, LPCVOID b) {
   FATALASSERT(a);
   FATALASSERT(b);
-  const NearestEnemyData *left = static_cast<const NearestEnemyData *>(a);
-  const NearestEnemyData *right = static_cast<const NearestEnemyData *>(b);
+  const NearestEnemyData *left = (const NearestEnemyData *)a;
+  const NearestEnemyData *right = (const NearestEnemyData *)b;
   if (left->distSq == right->distSq) {
     return 0;
   }
@@ -6017,7 +6035,7 @@ void CGGameUI::ShowAutoFollowChange(DWORDLONG newTarget, DWORDLONG oldTarget, in
     }
 
     CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-    FrameScript_SignalEvent(event, "%s", (object && object->IsA(ID_UNIT)) ? static_cast<CGUnit_C *>(object)->GetUnitName() : "");
+    FrameScript_SignalEvent(event, "%s", (object && object->IsA(ID_UNIT)) ? ((CGUnit_C *)object)->GetUnitName() : "");
   }
 }
 
@@ -6236,7 +6254,7 @@ void CGGameUI::SetCursorVirtualItem(UINT itemID, UINT displayID, UINT slot, UICU
         m_cursorHasAction = 1;
       }
       CursorSetHeldVirtualItem(displayID);
-      SndInterfacePlayItemSound(ITEMSOUND_PICKUP, static_cast<int>(displayID));
+      SndInterfacePlayItemSound(ITEMSOUND_PICKUP, displayID);
     }
   }
 }
@@ -6295,7 +6313,7 @@ void CGGameUI::ClearCursor(int unlock) {
     case UICURSOR_MERCHANT:
     case UICURSOR_LOOT:
     case UICURSOR_ACTIONBAR:
-      SndInterfacePlayItemSound(ITEMSOUND_DROP, static_cast<int>(m_cursorVirtualDisplay));
+      SndInterfacePlayItemSound(ITEMSOUND_DROP, m_cursorVirtualDisplay);
       CursorSetHeldItem(0);
       m_cursorVirtualID = 0;
       m_cursorVirtualDisplay = 0;
@@ -6364,7 +6382,7 @@ void CGGameUI::UnlockAllItems() {
       continue;
     }
 
-    static_cast<CGItem_C *>(item)->Unlock();
+    ((CGItem_C *)item)->Unlock();
     if (item->IsA(TYPE_CONTAINER)) {
       if (item->GetBag()) {
         for (UINT bagSlot = 0; bagSlot < item->GetBag()->NumSlots(); ++bagSlot) {
@@ -6430,7 +6448,7 @@ void CGGameUI::RegisterFrameFactories() {
 void __cdecl CGGameUI::DisplayError(GAME_ERROR_TYPE errorType, ...) {
   FATALASSERT(errorType < GERR_NUM_TYPES);
 
-  if (s_gameErrors[errorType].voiceID != static_cast<VOCALUISOUNDS>(66)) {
+  if (s_gameErrors[errorType].voiceID != VUI_NONE) {
     if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
       SndInterfacePlayVocalUISound(s_gameErrors[errorType].voiceID);
     }

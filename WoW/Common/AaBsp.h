@@ -156,22 +156,22 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
     float d0 = seg.start[axis] - node->planeDist;
     float d1 = seg.end[axis] - node->planeDist;
     if (d0 == 0.0f || d1 == 0.0f) {
-      if (node->posChild != 0xFFFF) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
         GetFaceIndices(node->posChild, seg, posBox);
       }
-      if (node->negChild != 0xFFFF) {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
         GetFaceIndices(node->negChild, seg, negBox);
       }
       return;
     }
     if (d0 > 0.0f && d1 > 0.0f) {
-      if (node->posChild != 0xFFFF) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
         GetFaceIndices(node->posChild, seg, posBox);
       }
       return;
     }
     if (d0 < 0.0f && d1 < 0.0f) {
-      if (node->negChild != 0xFFFF) {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
         GetFaceIndices(node->negChild, seg, negBox);
       }
       return;
@@ -179,26 +179,26 @@ class CAaBsp_Query_Segment : public CAaBsp_Query<QUERY> {
 
     NTempest::C3Vector mid = seg.start + seg.Direction() * (d0 / (d0 - d1));
     if (d0 > 0.0f) {
-      if (node->posChild != 0xFFFF) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
         NTempest::C3Segment nSeg;
         nSeg.start = seg.start;
         nSeg.end = mid;
         GetFaceIndices(node->posChild, nSeg, posBox);
       }
-      if (node->negChild != 0xFFFF) {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
         NTempest::C3Segment nSeg;
         nSeg.start = mid;
         nSeg.end = seg.end;
         GetFaceIndices(node->negChild, nSeg, negBox);
       }
     } else {
-      if (node->negChild != 0xFFFF) {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
         NTempest::C3Segment nSeg;
         nSeg.start = seg.start;
         nSeg.end = mid;
         GetFaceIndices(node->negChild, nSeg, negBox);
       }
-      if (node->posChild != 0xFFFF) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
         NTempest::C3Segment nSeg;
         nSeg.start = mid;
         nSeg.end = seg.end;
@@ -235,24 +235,24 @@ class CAaBsp_Query_AaBox : public CAaBsp_Query<QUERY> {
     negBox.t[axis] = node->planeDist;
 
     if (nodeBox.b[axis] > node->planeDist) {
-      if (node->posChild != 0xFFFF) {
+      if (node->posChild != CAaBspNode::Flag_NoChild) {
         GetFaceIndices(node->posChild, nodeBox, posBox);
       }
       return;
     }
     if (nodeBox.t[axis] < node->planeDist) {
-      if (node->negChild != 0xFFFF) {
+      if (node->negChild != CAaBspNode::Flag_NoChild) {
         GetFaceIndices(node->negChild, nodeBox, negBox);
       }
       return;
     }
 
-    if (node->posChild != 0xFFFF) {
+    if (node->posChild != CAaBspNode::Flag_NoChild) {
       NTempest::CAaBox nAaBox(nodeBox);
       nAaBox.b[axis] = node->planeDist;
       GetFaceIndices(node->posChild, nAaBox, posBox);
     }
-    if (node->negChild != 0xFFFF) {
+    if (node->negChild != CAaBspNode::Flag_NoChild) {
       NTempest::CAaBox nAaBox(nodeBox);
       nAaBox.t[axis] = node->planeDist;
       GetFaceIndices(node->negChild, nAaBox, negBox);

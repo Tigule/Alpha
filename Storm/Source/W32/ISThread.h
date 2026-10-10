@@ -47,7 +47,7 @@ inline BOOL CInitCritSect::Enter() {
     } while (InterlockedExchange(&m_spinLock, 1));
 
     if (!m_critsect) {
-      m_critsect = reinterpret_cast<CCritSect *>(m_critsectData);
+      m_critsect = (CCritSect *)m_critsectData;
       new (m_critsect) CCritSect;
       initialized = 1;
     }

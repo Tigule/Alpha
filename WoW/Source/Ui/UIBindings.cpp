@@ -43,7 +43,7 @@ void CGUIBindingsStatus::Add(int, LPCSTR format, ...) {
   va_list arguments;
 
   va_start(arguments, format);
-  SStrVPrintf(buffer, sizeof(buffer), format, reinterpret_cast<char *>(arguments));
+  SStrVPrintf(buffer, sizeof(buffer), format, arguments);
   va_end(arguments);
   OsOutputDebugString(buffer);
 }
@@ -366,7 +366,7 @@ LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int ma
       break;
   }
 
-  if (!*keyString || static_cast<int>(SStrLen(keyString)) >= maxLen) {
+  if (!*keyString || (int)SStrLen(keyString) >= maxLen) {
     return 0;
   }
   SStrCopy(string, keyString, 0x7FFFFFFF);
@@ -455,7 +455,7 @@ BOOL CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
     return 0;
   }
 
-  tree = XMLTree_Load(static_cast<LPCSTR>(buffer), bytesRead);
+  tree = XMLTree_Load((LPCSTR)buffer, bytesRead);
   FREE(buffer);
   if (!tree) {
     status->Add(STATUS_ERROR, "Couldn't parse XML in %s", commandsFile);
@@ -552,15 +552,19 @@ BOOL CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
 }
 
 int CGUIBindings::ExecKey(LPCSTR keystring, DWORD timestamp, int down) const {
-  if (keystring && *keystring) {
-    const KEYBINDING *binding = m_bindings.Ptr(keystring);
-    if (binding) {
-      char command[80];
-      SStrCopy(command, binding->command, sizeof(command));
-      return ExecCommand(command, timestamp, down);
-    }
+  if (!keystring || !*keystring) {
+    return 0;
   }
-  return 0;
+
+  const KEYBINDING *binding = m_bindings.Ptr(keystring);
+  if (!binding) {
+    return 0;
+  }
+
+  char command[80];
+  SStrCopy(command, binding->command, sizeof(command));
+
+  return ExecCommand(command, timestamp, down);
 }
 
 BOOL CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const {
@@ -587,7 +591,7 @@ BOOL CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const 
 
 void CGUIBindings::GetCommand(int index, LPCSTR &command) const {
   FATALASSERT(index >= 0 && index < GetNumCommands());
-  for (const KEYCOMMAND *entry = m_commands.Head(); (int)entry > 0; entry = m_commands.RawNext(entry)) {
+  CONSTITERATELIST(KEYCOMMAND, m_commands, entry) {
     if (entry->index == index) {
       command = entry->GetString();
       return;
@@ -598,7 +602,7 @@ void CGUIBindings::GetCommand(int index, LPCSTR &command) const {
 void CGUIBindings::GetHiddenCommand(int index, LPCSTR &command) const {
   FATALASSERT(index >= 0 && index < GetNumHiddenCommands());
   index = -1 - index;
-  for (const KEYCOMMAND *entry = m_commands.Head(); (int)entry > 0; entry = m_commands.RawNext(entry)) {
+  CONSTITERATELIST(KEYCOMMAND, m_commands, entry) {
     if (entry->index == index) {
       command = entry->GetString();
       return;
@@ -608,7 +612,7 @@ void CGUIBindings::GetHiddenCommand(int index, LPCSTR &command) const {
 
 LPCSTR CGUIBindings::GetCommandKey(LPCSTR command, int keyindex) const {
   LPCSTR key = 0;
-  for (const KEYBINDING *binding = m_bindings.Head(); (int)binding > 0; binding = m_bindings.RawNext(binding)) {
+  CONSTITERATELIST(KEYBINDING, m_bindings, binding) {
     if (binding->command && !SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index == keyindex) {
       key = binding->GetString();
       break;
@@ -619,7 +623,7 @@ LPCSTR CGUIBindings::GetCommandKey(LPCSTR command, int keyindex) const {
 
 UINT CGUIBindings::GetNumCommandKeys(LPCSTR command) const {
   UINT count = 0;
-  for (const KEYBINDING *binding = m_bindings.Head(); (int)binding > 0; binding = m_bindings.RawNext(binding)) {
+  CONSTITERATELIST(KEYBINDING, m_bindings, binding) {
     if (binding->command && !SStrCmpI(binding->command, command, 0x7FFFFFFF)) {
       ++count;
     }
@@ -636,13 +640,16 @@ void CGUIBindings::AdjustCommandKeyIndices(LPCSTR command, int index) const {
 }
 
 LPCSTR CGUIBindings::GetCommandAction(LPCSTR keystring) const {
-  if (keystring && *keystring) {
-    const KEYBINDING *binding = m_bindings.Ptr(keystring);
-    if (binding) {
-      return binding->command;
-    }
+  if (!keystring || !*keystring) {
+    return 0;
   }
-  return 0;
+
+  const KEYBINDING *binding = m_bindings.Ptr(keystring);
+  if (!binding) {
+    return 0;
+  }
+
+  return binding->command;
 }
 
 static int Script_GetNumBindings(lua_State *L) {
@@ -656,9 +663,10 @@ static int Script_GetBinding(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     CGUIBindings *bindings = CGUIBindings::GetActive();
     ASSERT(bindings);
-    int    count = 0;
+    int    index = lua_tonumber(L, 1);
     LPCSTR command = "";
-    bindings->GetCommand(static_cast<int>(lua_tonumber(L, 1)) - 1, command);
+    int    count = 0;
+    bindings->GetCommand(index - 1, command);
     lua_pushstring(L, command);
     for (LPCSTR key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
       ++count;

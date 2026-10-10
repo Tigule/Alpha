@@ -205,7 +205,7 @@ BOOL CObjectHeap::Allocate(UINT objSize, UINT heapObjects) {
   ASSERT(m_obj == 0);
 
   m_obj = ALLOC(heapObjects * (objSize + sizeof(UINT)));
-  m_indexStack = reinterpret_cast<UINT *>(static_cast<char *>(m_obj) + heapObjects * objSize);
+  m_indexStack = (UINT *)((char *)m_obj + heapObjects * objSize);
   m_bytes = heapObjects * objSize;
 
   for (index = 0; index < heapObjects; ++index) {
@@ -262,7 +262,7 @@ LPVOID CObjectHeap::Ptr(UINT index, UINT objSize, UINT heapObjects) {
     FATALERROR(("CObjectHeap::Ptr(): index(%u), objSize(%u), m_bytes(%u)", index, objSize, m_bytes));
   }
 
-  return static_cast<char *>(m_obj) + objSize * index;
+  return (char *)m_obj + objSize * index;
 }
 
 void ObjectAllocInitialize() {

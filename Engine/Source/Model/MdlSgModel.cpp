@@ -25,7 +25,7 @@ static void ProcessTextures(const MDLTEXTURESECTION *texdata, UINT numTextures, 
   for (UINT textureIndex = 0; textureIndex < numTextures; ++textureIndex) {
     textures[textureIndex].replaceableId = texdata[textureIndex].replaceableId;
 
-    if (((flags & 0x800) && texdata[textureIndex].replaceableId) || !static_cast<LPCSTR>(texdata[textureIndex].image)[0]) {
+    if (((flags & 0x800) && texdata[textureIndex].replaceableId) || !((LPCSTR)texdata[textureIndex].image)[0]) {
       textures[textureIndex].handle = TextureCreateSolid(s_uglyPink, 0);
       continue;
     }
@@ -57,7 +57,7 @@ static UINT GetTmuPassFlags(UINT createFlags, UINT layerFlags) {
 }
 
 static EGxTextureShader GetTextureShader(UINT transformId, UINT createFlags) {
-  return transformId != static_cast<UINT>(-1) && !(createFlags & 0x100) ? GxTS_Affine : GxTS_PassThru;
+  return transformId != (UINT)-1 && !(createFlags & 0x100) ? GxTS_Affine : GxTS_PassThru;
 }
 
 static void ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *unique, CMaterialShared *shared, UINT createFlags, UINT *layerId) {
@@ -100,7 +100,7 @@ static void ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *u
     uniqueLayer.tmuPass[0].textureId = source.textureId;
     uniqueLayer.tmuPass[0].combiner = GxTexBlend_Mod;
     uniqueLayer.blendMode = sharedLayer.blendMode;
-    uniqueLayer.vertexFormat = source.coordId == static_cast<UINT>(-1) ? GxVBF_PN : GxVBF_PNT0;
+    uniqueLayer.vertexFormat = source.coordId == (UINT)-1 ? GxVBF_PN : GxVBF_PNT0;
 
     if (source.blendMode >= TEXOP_BLEND && source.blendMode <= TEXOP_MODULATE2X) {
       uniqueLayer.disables |= 0x8;
@@ -146,7 +146,7 @@ static void ProcessLayerAlpha(const TSGrowableArray<MDLMATERIALSECTION> &section
   UINT numMaterials = sectionData.Count();
 
   for (UINT j = 0; j < numMaterials; ++j) {
-    CMaterial *unique = reinterpret_cast<CMaterial *>(materials[j]);
+    CMaterial *unique = (CMaterial *)materials[j];
     UINT       numLayers = unique->layers.Count();
     for (UINT i = 0; i < numLayers; ++i) {
       unique->layers[i].layerAlpha = NTempest::CMath::ftol_0_256_(sectionData[j].texLayers[i].staticAlpha * 255.0f);
@@ -200,22 +200,22 @@ static void LoadGeosetPrimitiveTypes(const BYTE *primTypes, const UINT *primVert
 static BYTE *LoadGeosetPrimitiveData(BYTE *geosetData, CGeosetShared *geoShared) {
   ASSERT(*((ULONG *) (geosetData)) == 'PYTP');
   geosetData += 4;
-  UINT numPrimTypes = *reinterpret_cast<UINT *>(geosetData);
+  UINT numPrimTypes = *(UINT *)geosetData;
   geosetData += 4;
   BYTE *primTypes = geosetData;
   geosetData += numPrimTypes;
 
   ASSERT(*((ULONG *) (geosetData)) == 'TNCP');
   geosetData += 4;
-  UINT numPrimCounts = *reinterpret_cast<UINT *>(geosetData);
+  UINT numPrimCounts = *(UINT *)geosetData;
   geosetData += 4;
   ASSERT(numPrimCounts == numPrimTypes);
-  UINT *primVertCounts = reinterpret_cast<UINT *>(geosetData);
+  UINT *primVertCounts = (UINT *)geosetData;
   geosetData += numPrimCounts * sizeof(UINT);
 
   ASSERT(*((ULONG *) (geosetData)) == 'XTVP');
   geosetData += 4;
-  UINT numPrimVertices = *reinterpret_cast<UINT *>(geosetData);
+  UINT numPrimVertices = *(UINT *)geosetData;
   geosetData += 4;
   geoShared->primitiveVertices.SetCount(numPrimVertices);
   memcpy(geoShared->primitiveVertices.Ptr(), geosetData, numPrimVertices * sizeof(WORD));
@@ -244,45 +244,45 @@ static BYTE *LoadGeosetTransformGroups(BYTE *geosetData, UINT loadFlags, CGeoset
     }
 
     geosetData += 4;
-    geosetData += *reinterpret_cast<UINT *>(geosetData) + 4;
+    geosetData += *(UINT *)geosetData + 4;
     for (UINT section = 0; section < 4; ++section) {
       geosetData += 4;
-      geosetData += *reinterpret_cast<UINT *>(geosetData) * sizeof(UINT) + 4;
+      geosetData += *(UINT *)geosetData * sizeof(UINT) + 4;
     }
     return geosetData;
   }
 
   ASSERT(*((ULONG *) (geosetData)) == 'XDNG');
   geosetData += 4;
-  UINT numBoneWeights = *reinterpret_cast<UINT *>(geosetData);
+  UINT numBoneWeights = *(UINT *)geosetData;
   geosetData += 4;
   geoShared->boneWeights.Set(numBoneWeights, geosetData);
   geosetData += numBoneWeights;
 
   ASSERT(*((ULONG *) (geosetData)) == 'CGTM');
   geosetData += 4;
-  geoShared->groupMatrixCounts.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geoShared->groupMatrixCounts.SetCount(*(UINT *)geosetData);
   geosetData += 4;
   memcpy(geoShared->groupMatrixCounts.Ptr(), geosetData, geoShared->groupMatrixCounts.Count() * sizeof(UINT));
   geosetData += geoShared->groupMatrixCounts.Count() * sizeof(UINT);
 
   ASSERT(*((ULONG *) (geosetData)) == 'STAM');
   geosetData += 4;
-  geoShared->matrices.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geoShared->matrices.SetCount(*(UINT *)geosetData);
   geosetData += 4;
   memcpy(geoShared->matrices.Ptr(), geosetData, geoShared->matrices.Count() * sizeof(UINT));
   geosetData += geoShared->matrices.Count() * sizeof(UINT);
 
   ASSERT(*((ULONG *) (geosetData)) == 'XDIB');
   geosetData += 4;
-  geoShared->hwBoneIndices.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geoShared->hwBoneIndices.SetCount(*(UINT *)geosetData);
   geosetData += 4;
   memcpy(geoShared->hwBoneIndices.Ptr(), geosetData, geoShared->hwBoneIndices.Count() * sizeof(UINT));
   geosetData += geoShared->hwBoneIndices.Count() * sizeof(UINT);
 
   ASSERT(*((ULONG *) (geosetData)) == 'TGWB');
   geosetData += 4;
-  geoShared->hwBoneWeights.SetCount(*reinterpret_cast<UINT *>(geosetData));
+  geoShared->hwBoneWeights.SetCount(*(UINT *)geosetData);
   geosetData += 4;
   memcpy(geoShared->hwBoneWeights.Ptr(), geosetData, geoShared->hwBoneWeights.Count() * sizeof(UINT));
   geosetData += geoShared->hwBoneWeights.Count() * sizeof(UINT);
@@ -293,7 +293,7 @@ static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UIN
   BYTE *sectionDone = geosetData + bytesLeft;
   ASSERT(*((ULONG *) (geosetData)) == 'XTRV');
   geosetData += 4;
-  UINT numVertices = *reinterpret_cast<UINT *>(geosetData);
+  UINT numVertices = *(UINT *)geosetData;
   ASSERT(numVertices <= 0xffff);
   geosetData += 4;
   geoShared->position.SetCount(numVertices);
@@ -302,7 +302,7 @@ static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UIN
 
   ASSERT(*((ULONG *) (geosetData)) == 'SMRN');
   geosetData += 4;
-  UINT numNormals = *reinterpret_cast<UINT *>(geosetData);
+  UINT numNormals = *(UINT *)geosetData;
   geosetData += 4;
   ASSERT(numVertices == numNormals);
   geoShared->normal.SetCount(numNormals);
@@ -311,7 +311,7 @@ static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UIN
 
   if (*((ULONG *) (geosetData)) == 'SAVU') {
     geosetData += 4;
-    UINT numMappingChannels = *reinterpret_cast<UINT *>(geosetData);
+    UINT numMappingChannels = *(UINT *)geosetData;
     geosetData += 4;
     geoShared->texCoord.SetCount(numMappingChannels);
     for (UINT i = 0; i < numMappingChannels; ++i) {
@@ -324,22 +324,22 @@ static void LoadGeosetData(BYTE *geosetData, UINT bytesLeft, UINT loadFlags, UIN
   geosetData = LoadGeosetPrimitiveData(geosetData, geoShared);
   geosetData = LoadGeosetTransformGroups(geosetData, loadFlags, geoShared);
 
-  geoShared->materialId = *reinterpret_cast<UINT *>(geosetData);
+  geoShared->materialId = *(UINT *)geosetData;
   geosetData += 4;
-  geoShared->selectionGroup = *reinterpret_cast<UINT *>(geosetData);
+  geoShared->selectionGroup = *(UINT *)geosetData;
   geosetData += 4;
-  geoShared->flags = *reinterpret_cast<UINT *>(geosetData);
+  geoShared->flags = *(UINT *)geosetData;
   geosetData += 4;
-  geoShared->radius = *reinterpret_cast<float *>(geosetData);
+  geoShared->radius = *(float *)geosetData;
   geosetData += 4;
 
-  const NTempest::C3Vector &minimum = *reinterpret_cast<const NTempest::C3Vector *>(geosetData);
-  const NTempest::C3Vector &maximum = *reinterpret_cast<const NTempest::C3Vector *>(geosetData + 12);
+  const NTempest::C3Vector &minimum = *(const NTempest::C3Vector *)geosetData;
+  const NTempest::C3Vector &maximum = *(const NTempest::C3Vector *)(geosetData + 12);
   geosetData += 24;
   geoShared->centroid = (minimum + maximum) * 0.5f;
   geoShared->geosetId = geosetId;
 
-  UINT numSequenceBounds = *reinterpret_cast<UINT *>(geosetData);
+  UINT numSequenceBounds = *(UINT *)geosetData;
   geosetData += 4;
   geosetData += numSequenceBounds * 7 * sizeof(UINT);
   ASSERT(geosetData == sectionDone);
@@ -424,8 +424,8 @@ static void CreateGeosetWithNormals(const MDLGEOSETSECTION &geoset, UINT geosetI
   *normalLines.primitives.counts.Top() = numNormals * 2;
 
   for (i = 0; i < numNormals; ++i) {
-    normalLines.primitives.vertices[numPrimVertices + i * 2] = static_cast<WORD>(i);
-    normalLines.primitives.vertices[numPrimVertices + i * 2 + 1] = static_cast<WORD>(numNormals + i);
+    normalLines.primitives.vertices[numPrimVertices + i * 2] = i;
+    normalLines.primitives.vertices[numPrimVertices + i * 2 + 1] = numNormals + i;
   }
 
   NTempest::C3Vector *normVert = &normalLines.vertices[numNormals];
@@ -497,7 +497,7 @@ static void ProcessAttachments(
     }
 
     if (!subStatus.IsEmpty()) {
-      status->Add(subStatus.GetHighestSeverity(), "%s:\n", static_cast<LPCSTR>(attachments.Ptr()[i].path));
+      status->Add(subStatus.GetHighestSeverity(), "%s:\n", (LPCSTR)attachments.Ptr()[i].path);
       status->Add(subStatus);
       subStatus.Clear();
     }
@@ -506,7 +506,7 @@ static void ProcessAttachments(
 
 static void LoadLayerData(BYTE *materialData, CTexLayer *unique, CTexLayerShared *shared, UINT createFlags) {
   EGxBlend blendMode;
-  switch (*reinterpret_cast<UINT *>(materialData)) {
+  switch (*(UINT *)materialData) {
     case TEXOP_TRANSPARENT:
       blendMode = GxBlend_AlphaKey;
       break;
@@ -534,23 +534,23 @@ static void LoadLayerData(BYTE *materialData, CTexLayer *unique, CTexLayerShared
   materialData += 4;
   unique->blendMode = blendMode;
 
-  UINT layerFlags = *reinterpret_cast<UINT *>(materialData);
+  UINT layerFlags = *(UINT *)materialData;
   shared->tmuPass[0].flags = GetTmuPassFlags(createFlags, layerFlags);
   materialData += 4;
-  unique->tmuPass[0].textureId = *reinterpret_cast<UINT *>(materialData);
+  unique->tmuPass[0].textureId = *(UINT *)materialData;
   materialData += 4;
-  shared->tmuPass[0].transformId = *reinterpret_cast<UINT *>(materialData);
+  shared->tmuPass[0].transformId = *(UINT *)materialData;
   materialData += 4;
-  shared->tmuPass[0].coordId = *reinterpret_cast<UINT *>(materialData);
+  shared->tmuPass[0].coordId = *(UINT *)materialData;
   materialData += 4;
 
-  unique->layerAlpha = NTempest::CMath::ftol_0_256_(*reinterpret_cast<float *>(materialData) * 255.0f);
+  unique->layerAlpha = NTempest::CMath::ftol_0_256_(*(float *)materialData * 255.0f);
   shared->tmuPass[0].textureShader = GetTextureShader(shared->tmuPass[0].transformId, createFlags);
 
   unique->tmuPass[0].combiner = GxTexBlend_Mod;
-  unique->vertexFormat = shared->tmuPass[0].coordId == static_cast<UINT>(-1) ? GxVBF_PN : GxVBF_PNT0;
+  unique->vertexFormat = shared->tmuPass[0].coordId == (UINT)-1 ? GxVBF_PN : GxVBF_PNT0;
 
-  if (static_cast<UINT>(unique->blendMode) >= GxBlend_Alpha && static_cast<UINT>(unique->blendMode) <= GxBlend_ModAdd) {
+  if ((UINT)unique->blendMode >= GxBlend_Alpha && (UINT)unique->blendMode <= GxBlend_ModAdd) {
     unique->disables |= 0x8;
   }
   if (layerFlags & 0x1) {
@@ -574,16 +574,16 @@ static HMATERIAL LoadMaterialData(BYTE *materialData, UINT createFlags, BYTE *to
   CMaterial       *unique = NEWHANDLE(HMATERIAL, CMaterial);
   CMaterialShared *shared = NEWHANDLE(HMATERIALSHARED, CMaterialShared);
 
-  shared->priorityPlane = *reinterpret_cast<UINT *>(materialData);
+  shared->priorityPlane = *(UINT *)materialData;
   materialData += 4;
-  UINT numLayers = *reinterpret_cast<UINT *>(materialData);
+  UINT numLayers = *(UINT *)materialData;
   materialData += 4;
-  *totalLayers += static_cast<BYTE>(numLayers);
+  *totalLayers += numLayers;
 
   unique->layers.SetCount(numLayers);
   shared->layers.SetCount(numLayers);
   for (UINT i = 0; i < numLayers; ++i) {
-    UINT bytesThisLayer = *reinterpret_cast<UINT *>(materialData);
+    UINT bytesThisLayer = *(UINT *)materialData;
     LoadLayerData(materialData + 4, &unique->layers[i], &shared->layers[i], createFlags);
     materialData += bytesThisLayer;
   }
@@ -593,10 +593,10 @@ static HMATERIAL LoadMaterialData(BYTE *materialData, UINT createFlags, BYTE *to
 }
 
 static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attachment, CStatus *status) {
-  UINT  dataOffset = *reinterpret_cast<UINT *>(data);
-  BYTE *attachmentData = data + dataOffset;
-  UINT  attachmentId = *reinterpret_cast<UINT *>(attachmentData);
-  if (!SStrLen(reinterpret_cast<LPCSTR>(attachmentData + 5))) {
+  data += *(UINT *)data;
+  UINT attachmentId = *(UINT *)data;
+  data += 5;
+  if (!SStrLen((LPCSTR)data)) {
     return attachmentId;
   }
 
@@ -604,14 +604,14 @@ static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attac
   createData.flags = loadFlags;
 
   CStatus subStatus;
-  HMODEL  child = ModelCreate(reinterpret_cast<LPCSTR>(attachmentData + 5), &createData, &subStatus);
+  HMODEL  child = ModelCreate((LPCSTR)data, &createData, &subStatus);
   if (child) {
     LINKUNIQUE *link = attachment->NewNode(LIST_TAIL, 0, 8);
     link->child = child;
   }
 
   if (!subStatus.IsEmpty()) {
-    status->Add(subStatus.GetHighestSeverity(), "%s:\n", reinterpret_cast<LPCSTR>(attachmentData + 5));
+    status->Add(subStatus.GetHighestSeverity(), "%s:\n", data);
     status->Add(subStatus);
   }
 
@@ -620,7 +620,7 @@ static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attac
 
 void MdlReadLoadGlobalProperties(const MDLDATA &data, CModelShared *shared, UINT *loadFlags) {
   ASSERT(shared);
-  shared->groundTrack = static_cast<GROUND_TRACK>(data.model.flags & GROUND_TRACK_MASK);
+  shared->groundTrack = (GROUND_TRACK)(data.model.flags & GROUND_TRACK_MASK);
   if (data.model.flags & 0x4) {
     *loadFlags &= ~0x100;
   }
@@ -648,8 +648,8 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared
 
   ASSERT(numGeosets <= 0xff);
   ASSERT(numLayers <= 0xff);
-  shared->numGeosets = static_cast<BYTE>(numGeosets);
-  shared->numLayers = static_cast<BYTE>(numLayers);
+  shared->numGeosets = numGeosets;
+  shared->numLayers = numLayers;
   return 1;
 }
 
@@ -674,8 +674,8 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared 
 
   ASSERT(numGeosets <= 0xff);
   ASSERT(numLayers <= 0xff);
-  shared->numGeosets = static_cast<BYTE>(numGeosets);
-  shared->numLayers = static_cast<BYTE>(numLayers);
+  shared->numGeosets = numGeosets;
+  shared->numLayers = numLayers;
   return 1;
 }
 
@@ -686,7 +686,7 @@ void MdxLoadGlobalProperties(BYTE *data, UINT fileBytes, UINT *loadFlags, CModel
   ASSERT(data != 0);
 
   data += 0x174;
-  modelShared->groundTrack = static_cast<GROUND_TRACK>(*data & GROUND_TRACK_MASK);
+  modelShared->groundTrack = (GROUND_TRACK)(*data & GROUND_TRACK_MASK);
   if (*data & 0x4) {
     *loadFlags &= ~0x100;
   }
@@ -700,12 +700,12 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *mode
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  UINT sectionBytes = *(UINT *)data;
   data += 4;
   UINT numTextures = sectionBytes / sizeof(MDLTEXTURESECTION);
   ASSERT(sectionBytes == (numTextures * sizeof(MDLTEXTURESECTION)));
   modelptr->m_textures.SetCount(numTextures);
-  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(data), numTextures, flags, status, modelptr->m_textures.Ptr());
+  ProcessTextures((MDLTEXTURESECTION *)data, numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
 void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CStatus *status) {
@@ -716,12 +716,12 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *model
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+  UINT sectionBytes = *(UINT *)section;
   section += 4;
   UINT numTextures = sectionBytes / sizeof(MDLTEXTURESECTION);
   ASSERT(sectionBytes == (numTextures * sizeof(MDLTEXTURESECTION)));
   modelptr->m_textures.SetCount(numTextures);
-  ProcessTextures(reinterpret_cast<MDLTEXTURESECTION *>(section), numTextures, flags, status, modelptr->m_textures.Ptr());
+  ProcessTextures((MDLTEXTURESECTION *)section, numTextures, flags, status, modelptr->m_textures.Ptr());
 }
 
 void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
@@ -730,16 +730,16 @@ void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *mod
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  UINT sectionBytes = *(UINT *)data;
   data += 4;
   BYTE *dataDone = data + sectionBytes;
-  UINT  numMaterials = *reinterpret_cast<UINT *>(data);
+  UINT  numMaterials = *(UINT *)data;
   data += 4;
   data += 4;
   shared->numLayers = 0;
   modelptr->m_materials.SetCount(numMaterials);
   for (UINT i = 0; i < numMaterials; ++i) {
-    UINT bytesThisMaterial = *reinterpret_cast<UINT *>(data);
+    UINT bytesThisMaterial = *(UINT *)data;
     modelptr->m_materials[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
     data += bytesThisMaterial;
     ASSERT(data <= dataDone);
@@ -753,16 +753,16 @@ void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *mode
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data);
+  UINT sectionBytes = *(UINT *)data;
   data += 4;
   BYTE *dataDone = data + sectionBytes;
-  UINT  numMaterials = *reinterpret_cast<UINT *>(data);
+  UINT  numMaterials = *(UINT *)data;
   data += 4;
   data += 4;
   shared->numLayers = 0;
   modelptr->m_materials.SetCount(numMaterials);
   for (UINT i = 0; i < numMaterials; ++i) {
-    UINT bytesThisMaterial = *reinterpret_cast<UINT *>(data);
+    UINT bytesThisMaterial = *(UINT *)data;
     modelptr->m_materials[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
     data += bytesThisMaterial;
     ASSERT(data <= dataDone);
@@ -772,26 +772,27 @@ void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *mode
 
 void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
-  ASSERT(shared);
+  CModelShared *modelShared = shared;
+  ASSERT(modelShared);
   BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SOEG');
   if (!section) {
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+  UINT sectionBytes = *(UINT *)section;
   section += 4;
   BYTE *dataDone = section + sectionBytes;
-  UINT  numGeosets = *reinterpret_cast<UINT *>(section);
+  UINT  numGeosets = *(UINT *)section;
   section += 4;
   ASSERT(numGeosets <= 0xff);
-  shared->numGeosets = static_cast<BYTE>(numGeosets);
+  shared->numGeosets = numGeosets;
   modelptr->m_geosets.SetCount(numGeosets);
   shared->geosets.SetCount(numGeosets);
   modelptr->m_geosetColor.SetCount(numGeosets);
 
   UINT i;
   for (i = 0; i < numGeosets; ++i) {
-    UINT bytesThisGeo = *reinterpret_cast<UINT *>(section);
+    UINT bytesThisGeo = *(UINT *)section;
     ASSERT(dataDone >= (section + bytesThisGeo));
     LoadGeosetData(section + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
     section += bytesThisGeo;
@@ -803,23 +804,23 @@ void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *model
     return;
   }
 
-  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
+  sectionBytes = *(UINT *)section - 4;
   section += 4;
-  UINT numGeosetAnims = *reinterpret_cast<UINT *>(section);
+  UINT numGeosetAnims = *(UINT *)section;
   section += 4;
   for (i = 0; i < numGeosetAnims; ++i) {
     BYTE *animData = section;
-    UINT  bytesThisAnim = *reinterpret_cast<UINT *>(animData);
+    UINT  bytesThisAnim = *(UINT *)animData;
     animData += 4;
-    UINT geosetId = *reinterpret_cast<UINT *>(animData);
+    UINT geosetId = *(UINT *)animData;
     animData += 4;
     CGeosetColor &color = modelptr->m_geosetColor[geosetId];
-    color.animatedAlpha = *reinterpret_cast<float *>(animData);
+    color.animatedAlpha = *(float *)animData;
     animData += 4;
     color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
-    color.animatedColor.r = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[0] * 255.0f);
-    color.animatedColor.g = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[1] * 255.0f);
-    color.animatedColor.b = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[2] * 255.0f);
+    color.animatedColor.r = NTempest::CMath::ftol_0_256_(((float *)animData)[0] * 255.0f);
+    color.animatedColor.g = NTempest::CMath::ftol_0_256_(((float *)animData)[1] * 255.0f);
+    color.animatedColor.b = NTempest::CMath::ftol_0_256_(((float *)animData)[2] * 255.0f);
     section += bytesThisAnim;
     ASSERT(sectionBytes >= bytesThisAnim);
     sectionBytes -= bytesThisAnim;
@@ -829,26 +830,27 @@ void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *model
 
 void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
-  ASSERT(shared);
+  CModelShared *modelShared = shared;
+  ASSERT(modelShared);
   BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SOEG');
   if (!section) {
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(section);
+  UINT sectionBytes = *(UINT *)section;
   section += 4;
   BYTE *dataDone = section + sectionBytes;
-  UINT  numGeosets = *reinterpret_cast<UINT *>(section);
+  UINT  numGeosets = *(UINT *)section;
   section += 4;
   ASSERT(numGeosets <= 0xff);
-  shared->numGeosets = static_cast<BYTE>(numGeosets);
+  shared->numGeosets = numGeosets;
   modelptr->m_geosets.SetCount(numGeosets);
   shared->geosets.SetCount(numGeosets);
   modelptr->m_geosetColor.SetCount(numGeosets);
 
   UINT i;
   for (i = 0; i < numGeosets; ++i) {
-    UINT bytesThisGeo = *reinterpret_cast<UINT *>(section);
+    UINT bytesThisGeo = *(UINT *)section;
     ASSERT(dataDone >= (section + bytesThisGeo));
     LoadGeosetData(section + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
     section += bytesThisGeo;
@@ -860,23 +862,23 @@ void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelp
     return;
   }
 
-  sectionBytes = *reinterpret_cast<UINT *>(section) - 4;
+  sectionBytes = *(UINT *)section - 4;
   section += 4;
-  UINT numGeosetAnims = *reinterpret_cast<UINT *>(section);
+  UINT numGeosetAnims = *(UINT *)section;
   section += 4;
   for (i = 0; i < numGeosetAnims; ++i) {
     BYTE *animData = section;
-    UINT  bytesThisAnim = *reinterpret_cast<UINT *>(animData);
+    UINT  bytesThisAnim = *(UINT *)animData;
     animData += 4;
-    UINT geosetId = *reinterpret_cast<UINT *>(animData);
+    UINT geosetId = *(UINT *)animData;
     animData += 4;
     CGeosetColor &color = modelptr->m_geosetColor[geosetId];
-    color.animatedAlpha = *reinterpret_cast<float *>(animData);
+    color.animatedAlpha = *(float *)animData;
     animData += 4;
     color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
-    color.animatedColor.r = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[0] * 255.0f);
-    color.animatedColor.g = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[1] * 255.0f);
-    color.animatedColor.b = NTempest::CMath::ftol_0_256_(reinterpret_cast<float *>(animData)[2] * 255.0f);
+    color.animatedColor.r = NTempest::CMath::ftol_0_256_(((float *)animData)[0] * 255.0f);
+    color.animatedColor.g = NTempest::CMath::ftol_0_256_(((float *)animData)[1] * 255.0f);
+    color.animatedColor.b = NTempest::CMath::ftol_0_256_(((float *)animData)[2] * 255.0f);
     section += bytesThisAnim;
     ASSERT(sectionBytes >= bytesThisAnim);
     sectionBytes -= bytesThisAnim;
@@ -893,9 +895,9 @@ void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *m
     return;
   }
 
-  UINT sectionBytes = *reinterpret_cast<UINT *>(data) - 8;
-  UINT numAttached = *reinterpret_cast<UINT *>(data + 4);
-  UINT highestId = *reinterpret_cast<UINT *>(data + 8);
+  UINT sectionBytes = *(UINT *)data - 8;
+  UINT numAttached = *(UINT *)(data + 4);
+  UINT highestId = *(UINT *)(data + 8);
   data += 12;
 
   modelptr->m_attached.SetCount(numAttached);
@@ -906,7 +908,7 @@ void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *m
   memset(shared->attachIdToIndex.Ptr(), 0xFF, shared->attachIdToIndex.Count() * sizeof(UINT));
 
   for (UINT i = 0; i < numAttached; ++i) {
-    UINT bytesThisAttachment = *reinterpret_cast<UINT *>(data);
+    UINT bytesThisAttachment = *(UINT *)data;
     UINT attachmentId = LoadAttachment(data + 4, flags, &modelptr->m_attached[i], status);
     shared->attachIdToIndex[attachmentId] = i;
 

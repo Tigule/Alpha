@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -22,12 +22,14 @@
 
 HTEXTURE CMap::LoadTexture(LPCSTR fileName) {
   CStatus     status;
-  CGxTexFlags texFlags(
-      CWorld::enables & CWorld::Enable_Anisotropic ? GxTex_Anisotropic
-      : CWorld::enables & CWorld::Enable_Trilinear ? GxTex_LinearMipLinear
-                                                   : GxTex_LinearMipNearest,
-      1, 1, 0, 0, 0, CWorld::texMaxAnisotropy
-  );
+  EGxTexFilter filter = GxTex_LinearMipNearest;
+  if (CWorld::enables & CWorld::Enable_Anisotropic) {
+    filter = GxTex_Anisotropic;
+  } else if (CWorld::enables & CWorld::Enable_Trilinear) {
+    filter = GxTex_LinearMipLinear;
+  }
+
+  CGxTexFlags texFlags(filter, 1, 1, 0, 0, 0, CWorld::texMaxAnisotropy);
   HTEXTURE texture = TextureCreate(fileName, texFlags, &status, 0);
   SysMsgAdd(status, 2);
   if (!texture) {

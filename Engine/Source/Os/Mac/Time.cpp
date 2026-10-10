@@ -29,7 +29,7 @@ LONGLONG __cdecl OsGetAsyncTimeClocks() {
   DWORD lo;
 
   FastMicroseconds(&hi, &lo);
-  return (static_cast<LONGLONG>(hi) << 32) | lo;
+  return ((LONGLONG)hi << 32) | lo;
 }
 
 LONGLONG OsGetAsyncClocksPerSecond() {
@@ -87,7 +87,7 @@ DWORD OsGetTime() {
     s_timeCritsect.Enter();
 
     if (!s_cachedTime || ms - s_cachedTimeStamp >= 500) {
-      s_cachedTime = static_cast<DWORD>(time(0));
+      s_cachedTime = (DWORD)time(0);
       s_cachedTimeStamp = ms;
     }
 
@@ -101,10 +101,10 @@ LONG OsGetTime(LONG *timer) {
   time_t seconds = time(0);
 
   if (timer) {
-    *timer = static_cast<LONG>(seconds);
+    *timer = (LONG)seconds;
   }
 
-  return static_cast<LONG>(seconds);
+  return (LONG)seconds;
 }
 
 void OsGetTimeStr(char *timebuf, DWORD len) {
@@ -140,7 +140,7 @@ void OsFileTimeGetCurrent(OSFILETIME *filetime) {
   FATALASSERT(filetime);
 
   time(&seconds);
-  OsTimeToFileTime(static_cast<DWORD>(seconds), filetime);
+  OsTimeToFileTime((DWORD)seconds, filetime);
 }
 
 int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
@@ -164,7 +164,7 @@ static LONGLONG TimeZoneSeconds() {
   if (!s_timeZoneValid) {
     CFTimeZoneRef timeZone = CFTimeZoneCopySystem();
 
-    s_timeZoneSeconds = static_cast<LONGLONG>(CFTimeZoneGetSecondsFromGMT(timeZone, CFAbsoluteTimeGetCurrent()));
+    s_timeZoneSeconds = (LONGLONG)CFTimeZoneGetSecondsFromGMT(timeZone, CFAbsoluteTimeGetCurrent());
     CFRelease(timeZone);
 
     s_timeZoneValid = 1;
@@ -187,7 +187,7 @@ void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
   FATALASSERT(fileTime);
   FATALASSERT(sysTime);
 
-  seconds = static_cast<time_t>(fileTime->m_value / OS_FILETIME_PER_SECOND - OS_FILETIME_EPOCH_SECONDS);
+  seconds = (time_t)(fileTime->m_value / OS_FILETIME_PER_SECOND - OS_FILETIME_EPOCH_SECONDS);
   broken = gmtime(&seconds);
 
   sysTime->year = broken->tm_year + 1900;
@@ -197,7 +197,7 @@ void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
   sysTime->hour = broken->tm_hour;
   sysTime->minute = broken->tm_min;
   sysTime->second = broken->tm_sec;
-  sysTime->milliseconds = static_cast<WORD>(fileTime->m_value / 10000 % 1000);
+  sysTime->milliseconds = (WORD)(fileTime->m_value / 10000 % 1000);
 }
 
 void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {

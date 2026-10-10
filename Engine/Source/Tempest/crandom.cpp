@@ -9,9 +9,9 @@
 static inline DWORD lattice_(long x) {
   x ^= ((ulong(x) >> 11) | (ulong(x) << 21)) ^ ((ulong(x) >> 21) | (ulong(x) << 11));
 
-  DWORD n1 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(NTempest::gnoise32_) + ((ulong(x) >> 4) & 0xFC));
-  DWORD n2 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(NTempest::gnoise32_) + ((ulong(x) >> 10) & 0xFC));
-  DWORD n3 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(NTempest::gnoise32_) + ((ulong(x) >> 16) & 0xFC));
+  DWORD n1 = *(const DWORD *)((const BYTE *)NTempest::gnoise32_ + ((ulong(x) >> 4) & 0xFC));
+  DWORD n2 = *(const DWORD *)((const BYTE *)NTempest::gnoise32_ + ((ulong(x) >> 10) & 0xFC));
+  DWORD n3 = *(const DWORD *)((const BYTE *)NTempest::gnoise32_ + ((ulong(x) >> 16) & 0xFC));
   return ((n3 << 3) | (n3 >> 29)) ^ ((n2 << 2) | (n2 >> 30)) ^ ((n1 << 1) | (n1 >> 31)) ^ NTempest::gnoise32_[x & 0x3F];
 }
 
@@ -186,9 +186,9 @@ namespace NTempest {
   DWORD CRandom::Seed(char *password) {
     ASSERT(password != 0);
     DWORD length = SStrLen(password);
-    DWORD seed = static_cast<BYTE>(password[0]);
+    DWORD seed = (BYTE)password[0];
     for (DWORD i = 1; i < length; ++i) {
-      seed = (seed ^ 31277 * seed) + static_cast<BYTE>(password[i]);
+      seed = (seed ^ 31277 * seed) + (BYTE)password[i];
     }
     return seed;
   }
@@ -196,10 +196,10 @@ namespace NTempest {
   void CRandom::array_(DWORD *buf, DWORD count, CRndSeed &seed) {
     DWORD acc = seed.rndacc;
     DWORD vls = seed.rndvls;
-    long  r1 = static_cast<long>(vls >> 24);
-    long  r2 = static_cast<long>((vls >> 16) & 0xFF);
-    long  r3 = static_cast<long>((vls >> 8) & 0xFF);
-    long  r4 = static_cast<long>(vls & 0xFF);
+    long  r1 = vls >> 24;
+    long  r2 = (vls >> 16) & 0xFF;
+    long  r3 = (vls >> 8) & 0xFF;
+    long  r4 = vls & 0xFF;
     for (DWORD ind = 0; ind < count; ++ind) {
       r1 -= 4;
       r2 -= 12;
@@ -210,31 +210,31 @@ namespace NTempest {
       if (r2 < 0) {
         r2 += 53 * 4;
       }
-      DWORD n1 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r1);
+      DWORD n1 = *(const DWORD *)((const BYTE *)gnoise32_ + r1);
       r4 -= 28;
       if (r3 < 0) {
         r3 += 59 * 4;
       }
-      DWORD n2 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r2);
+      DWORD n2 = *(const DWORD *)((const BYTE *)gnoise32_ + r2);
       n1 = (n1 << 1) | (n1 >> 31);
       if (r4 < 0) {
         r4 += 61 * 4;
       }
-      DWORD n3 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r3);
+      DWORD n3 = *(const DWORD *)((const BYTE *)gnoise32_ + r3);
       n3 = (n3 << 3) | (n3 >> 29);
       n2 = (n2 << 2) | (n2 >> 30);
-      DWORD n4 = *reinterpret_cast<const DWORD *>(reinterpret_cast<const BYTE *>(gnoise32_) + r4);
+      DWORD n4 = *(const DWORD *)((const BYTE *)gnoise32_ + r4);
       acc += n3 ^ n2 ^ n4 ^ n1;
       buf[ind] = acc;
     }
 
-    seed.rndvls = (((((static_cast<DWORD>(r1) << 8) | static_cast<DWORD>(r2)) << 8) | static_cast<DWORD>(r3)) << 8) | static_cast<DWORD>(r4);
+    seed.rndvls = ((((((DWORD)r1 << 8) | (DWORD)r2) << 8) | (DWORD)r3) << 8) | (DWORD)r4;
     seed.rndacc = acc;
   }
 
   void CRandom::array_(long *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf != 0);
-    array_(reinterpret_cast<DWORD *>(buf), count, seed);
+    array_((DWORD *)buf, count, seed);
   }
 
   void CRandom::array_(float *buf, DWORD count, CRndSeed &seed) {
@@ -274,7 +274,7 @@ namespace NTempest {
   }
 
   float CRandom::reale_(CRndSeed &seed) {
-    return static_cast<float>(CMath::log2_(realp_(seed)) * -0.69314718f);
+    return CMath::log2_(realp_(seed)) * -0.69314718f;
   }
 
   double CRandom::lreale_(CRndSeed &seed) {
@@ -282,7 +282,7 @@ namespace NTempest {
   }
 
   float CRandom::reale_(float mean, CRndSeed &seed) {
-    return static_cast<float>(CMath::log2_(realp_(seed)) * mean * -0.69314718f);
+    return CMath::log2_(realp_(seed)) * mean * -0.69314718f;
   }
 
   double CRandom::lreale_(double mean, CRndSeed &seed) {
@@ -301,7 +301,7 @@ namespace NTempest {
     float s;
     float c;
     CMath::sincos_(real_(seed) * 6.2831855f, s, c);
-    radius = CMath::sqrt_(static_cast<float>(CMath::log2_(radius) * -1.3862944f));
+    radius = CMath::sqrt_(CMath::log2_(radius) * -1.3862944f);
     cache = s * radius;
     return radius * c;
   }
@@ -380,8 +380,7 @@ namespace NTempest {
   }
 
   C2Vector CRandom::C2Vector_(CRndSeed &seed) {
-    float angle = real_(seed) * 6.2831855f;
-    return C2Vector(CMath::cos_(angle), CMath::sin_(angle));
+    return C2Vector::FromAxisAngle(real_(seed) * 6.2831855f, 1.0f);
   }
 
   C3Vector CRandom::C3Vector_(CRndSeed &seed) {
@@ -411,12 +410,12 @@ namespace NTempest {
   void CRandom::shuffle_(char *buf, CRndSeed &seed) {
     ASSERT(buf != 0);
     DWORD count = SStrLen(buf);
-    shuffle_(reinterpret_cast<BYTE *>(buf), count, seed);
+    shuffle_((BYTE *)buf, count, seed);
   }
 
   void CRandom::shuffle_(char *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf != 0);
-    shuffle_(reinterpret_cast<BYTE *>(buf), count, seed);
+    shuffle_((BYTE *)buf, count, seed);
   }
 
   void CRandom::shuffle_(BYTE *buf, DWORD count, CRndSeed &seed) {
@@ -426,14 +425,14 @@ namespace NTempest {
         DWORD bi = buf[i];
         DWORD index = dice_(i + 1, seed);
         buf[i] = buf[index];
-        buf[index] = static_cast<BYTE>(bi);
+        buf[index] = bi;
       }
     }
   }
 
   void CRandom::shuffle_(short *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf != 0);
-    shuffle_(reinterpret_cast<WORD *>(buf), count, seed);
+    shuffle_((WORD *)buf, count, seed);
   }
 
   void CRandom::shuffle_(WORD *buf, DWORD count, CRndSeed &seed) {
@@ -442,15 +441,15 @@ namespace NTempest {
       for (DWORD i = 1; i < count; ++i) {
         DWORD bi = buf[i];
         DWORD index = dice_(i + 1, seed);
-        buf[i] = static_cast<BYTE>(buf[index]);
-        buf[index] = static_cast<BYTE>(bi);
+        buf[i] = (BYTE)buf[index];
+        buf[index] = (BYTE)bi;
       }
     }
   }
 
   void CRandom::shuffle_(long *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf != 0);
-    shuffle_(reinterpret_cast<DWORD *>(buf), count, seed);
+    shuffle_((DWORD *)buf, count, seed);
   }
 
   void CRandom::shuffle_(DWORD *buf, DWORD count, CRndSeed &seed) {
@@ -498,7 +497,7 @@ namespace NTempest {
     buf += offset;
     size = (size - offset) >> 2;
     for (DWORD ind = 0; ind < size; ++ind) {
-      buf[ind] ^= static_cast<char>(uint32_(seed));
+      buf[ind] ^= uint32_(seed);
     }
   }
 
@@ -513,20 +512,20 @@ namespace NTempest {
 
   DWORD CRandom::lattice_(long x, long y) {
     DWORD value = ::lattice_(y);
-    return ::lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
+    return ::lattice_(x ^ (long)((value << 4) | (value >> 28)));
   }
 
   DWORD CRandom::lattice_(long x, long y, long z) {
     DWORD value = ::lattice_(z);
-    value = ::lattice_(y ^ static_cast<long>((value << 4) | (value >> 28)));
-    return ::lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
+    value = ::lattice_(y ^ (long)((value << 4) | (value >> 28)));
+    return ::lattice_(x ^ (long)((value << 4) | (value >> 28)));
   }
 
   DWORD CRandom::lattice_(long x, long y, long z, long w) {
     DWORD value = ::lattice_(w);
-    value = ::lattice_(z ^ static_cast<long>((value << 4) | (value >> 28)));
-    value = ::lattice_(y ^ static_cast<long>((value << 4) | (value >> 28)));
-    return ::lattice_(x ^ static_cast<long>((value << 4) | (value >> 28)));
+    value = ::lattice_(z ^ (long)((value << 4) | (value >> 28)));
+    value = ::lattice_(y ^ (long)((value << 4) | (value >> 28)));
+    return ::lattice_(x ^ (long)((value << 4) | (value >> 28)));
   }
 
   void CRandom::lattice2_(long x, DWORD *vtx) {
@@ -622,7 +621,7 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x) {
-    long integer = static_cast<long>(x);
+    long integer = x;
     if (x < 0.0)
       --integer;
     double fraction = x - integer;
@@ -630,31 +629,31 @@ namespace NTempest {
     DWORD first = lattice_(integer);
     DWORD second = lattice_(integer + 1);
     DWORD bits = 0x40000000 | ((first & 0xFFFF) << 7);
-    float firstSlope = *reinterpret_cast<float *>(&bits) - 3.0f;
+    float firstSlope = *(float *)&bits - 3.0f;
     bits = 0x40000000 | ((second & 0xFFFF) << 7);
-    float secondSlope = *reinterpret_cast<float *>(&bits) - 3.0f;
+    float secondSlope = *(float *)&bits - 3.0f;
     bits = 0x40400000 + ((first >> 10) & 0x3FFFC0);
-    float firstValue = *reinterpret_cast<float *>(&bits) - 3.0f;
+    float firstValue = *(float *)&bits - 3.0f;
     bits = 0x40400000 + ((second >> 10) & 0x3FFFC0) - ((first >> 10) & 0x3FFFC0);
-    float difference = *reinterpret_cast<float *>(&bits) - 3.0f;
+    float difference = *(float *)&bits - 3.0f;
 
     double fraction2 = fraction * fraction;
     double value = (((fraction - 2.0) * fraction2 + fraction) * firstSlope + (3.0 - fraction - fraction) * fraction2 * difference +
                     (fraction2 * fraction - fraction2) * secondSlope + firstValue) *
                        0.75 +
                    0.125;
-    return static_cast<float>((3.0 - value - value) * value * value);
+    return (3.0 - value - value) * value * value;
   }
 
   float CRandom::noise_(double x, double y) {
-    long xi = static_cast<long>(x);
-    long yi = static_cast<long>(y);
+    long xi = x;
+    long yi = y;
     if (x < 0.0)
       --xi;
     if (y < 0.0)
       --yi;
-    float xf = static_cast<float>(x - xi);
-    float yf = static_cast<float>(y - yi);
+    float xf = x - xi;
+    float yf = y - yi;
     DWORD vertices[4];
     lattice4_(xi, yi, vertices);
 
@@ -664,13 +663,13 @@ namespace NTempest {
     float derivativesXY[4];
     for (DWORD i = 0; i < 4; ++i) {
       DWORD bits = (vertices[i] >> 10 & 0x3FF800) | 0x40400000;
-      values[i] = *reinterpret_cast<float *>(&bits);
+      values[i] = *(float *)&bits;
       bits = ((vertices[i] & 0x3F80) | 0x200000) << 9;
-      derivativesX[i] = *reinterpret_cast<float *>(&bits);
+      derivativesX[i] = *(float *)&bits;
       bits = 4 * ((vertices[i] & 0x1FC000) | 0x10000000);
-      derivativesY[i] = *reinterpret_cast<float *>(&bits);
+      derivativesY[i] = *(float *)&bits;
       bits = ((vertices[i] & 0x7F) | 0x4000) << 16;
-      derivativesXY[i] = *reinterpret_cast<float *>(&bits);
+      derivativesXY[i] = *(float *)&bits;
     }
 
     float xf2 = xf * xf;
@@ -692,18 +691,18 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x, double y, double z) {
-    long xi = static_cast<long>(x);
-    long yi = static_cast<long>(y);
-    long zi = static_cast<long>(z);
+    long xi = x;
+    long yi = y;
+    long zi = z;
     if (x < 0.0)
       --xi;
     if (y < 0.0)
       --yi;
     if (z < 0.0)
       --zi;
-    float xp = static_cast<float>(x - xi);
-    float yp = static_cast<float>(y - yi);
-    float zp = static_cast<float>(z - zi);
+    float xp = (float)(x - xi);
+    float yp = y - yi;
+    float zp = (float)(z - zi);
     DWORD vtx[8];
     lattice8_(xi, yi, zi, vtx);
 
@@ -746,18 +745,18 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x, double y, double z, C3Vector &derivative) {
-    long xi = static_cast<long>(x);
-    long yi = static_cast<long>(y);
-    long zi = static_cast<long>(z);
+    long xi = x;
+    long yi = y;
+    long zi = z;
     if (x < 0.0)
       --xi;
     if (y < 0.0)
       --yi;
     if (z < 0.0)
       --zi;
-    float xf = static_cast<float>(x - xi);
-    float yf = static_cast<float>(y - yi);
-    float zf = static_cast<float>(z - zi);
+    float xf = (float)(x - xi);
+    float yf = y - yi;
+    float zf = (float)(z - zi);
     DWORD vertices[8];
     lattice8_(xi, yi, zi, vertices);
 

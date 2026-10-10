@@ -54,7 +54,10 @@ class CGPartyInfo {
     return m_lootMaster;
   }
   static RemoteStats *GetRemoteStats(DWORDLONG guid);
-  static RemoteStats *GetRemoteStatsByIndex(int index);
+  static RemoteStats *GetRemoteStatsByIndex(int index) {
+    FATALASSERT(index >= 0);
+    return m_members[index] ? &m_remoteStats[index] : 0;
+  }
   static BOOL IsLookingForGroup() {
     return m_lookingForGroup;
   }

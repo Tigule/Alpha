@@ -20,6 +20,7 @@
 
 namespace NTempest {
   class C3Vector;
+  class CAaSphere;
   struct CFacet;
 }  // namespace NTempest
 
@@ -28,7 +29,6 @@ class Particulate;
 class CGGameObject_C;
 class CDetailDoodadInst;
 class DNSky;
-class CWFrustum;
 class CWSoundEmitter;
 class CGUnit_C;
 class CGxPixelShader;
@@ -171,6 +171,114 @@ class CWTriData {
 };
 
 void ProjectTex2d(const NTempest::CAaBox &box, NTempest::CImVector color, const NTempest::C44Matrix *basis, float fadeOffset);
+
+enum WorldCullStatus {
+  WorldCull_outside = 0,
+  WorldCull_inside = 1,
+  WorldCull_intersect = 2,
+  WorldCull_notOutside = 3,
+  WorldCull_count = 4
+};
+
+class CWFrustum {
+  friend class CGCamera;
+  friend class CMap;
+  friend class CMapObj;
+  friend class CMapObjGroup;
+  friend class CWorld;
+  friend class CWorldScene;
+
+ protected:
+  NTempest::C4Plane  planes[6];
+  NTempest::C3Vector corners[8];
+
+ public:
+  enum {
+    NEAR_LL = 0,
+    NEAR_UL = 1,
+    NEAR_UR = 2,
+    NEAR_LR = 3,
+    FAR_LL = 4,
+    FAR_UL = 5,
+    FAR_UR = 6,
+    FAR_LR = 7,
+    NUM_CORNERS = 8
+  };
+
+  enum {
+    P_TOP = 0,
+    P_BOTTOM = 1,
+    P_LEFT = 2,
+    P_RIGHT = 3,
+    P_FAR = 4,
+    P_NEAR = 5,
+    NUM_PLANES = 6
+  };
+
+  NTempest::C3Vector lookPos;
+  NTempest::C3Vector lookAt;
+  NTempest::C3Vector lookUp;
+  float              fovy;
+  float              aspect;
+  float              minz;
+  float              maxz;
+  LINKDECLEX(CWFrustum, sceneLink);
+
+  CWFrustum() {
+  }
+  CWFrustum(
+      const NTempest::C3Vector &lPos,
+      const NTempest::C3Vector &lAt,
+      const NTempest::C3Vector &lUp,
+      float                     p_fovy,
+      float                     p_aspect,
+      float                     p_minz,
+      float                     p_maxz
+  );
+  CWFrustum(const NTempest::C3Vector *c);
+  CWFrustum &operator=(const CWFrustum &frustum) {
+    if (this != &frustum) {
+      UINT i;
+      for (i = 0; i < NUM_PLANES; ++i) {
+        planes[i] = frustum.planes[i];
+      }
+      for (i = 0; i < 8; ++i) {
+        corners[i] = frustum.corners[i];
+      }
+      lookPos = frustum.lookPos;
+      lookAt = frustum.lookAt;
+      lookUp = frustum.lookUp;
+      fovy = frustum.fovy;
+      aspect = frustum.aspect;
+      minz = frustum.minz;
+      maxz = frustum.maxz;
+    }
+    return *this;
+  }
+  void                      CalcPlanesFromCorners();
+  void                      CalcPlanesFromCorners(const NTempest::C3Vector *c);
+  const NTempest::C3Vector &Corner(UINT sub) const {
+    FATALASSERT(sub < (sizeof(corners) / sizeof(corners[0])));
+    return corners[sub];
+  }
+  const NTempest::C3Vector *Corners() const {
+    return corners;
+  }
+  const NTempest::C4Plane &Plane(UINT index) const {
+    FATALASSERT(index < 6);
+    return planes[index];
+  }
+  WorldCullStatus Cull(const NTempest::CAaBox &box) const;
+  WorldCullStatus Cull(const NTempest::CAaBox &box, NTempest::C33Matrix &basis, NTempest::C3Vector &pos);
+  WorldCullStatus Cull(const NTempest::C3Vector &center, float radius) const;
+  WorldCullStatus Cull(const NTempest::CAaSphere &sphere) const;
+  WorldCullStatus Cull(const NTempest::C3Vector &point) const;
+  WorldCullStatus Cull(const NTempest::C4Plane &plane) const;
+  void            Cull(const NTempest::C3Vector &point, UINT &cullFlags) const;
+  void            Translate(const NTempest::C3Vector &t);
+  void            Transform(const NTempest::C44Matrix &mat);
+  void            Render() const;
+};
 
 class CWorld {
  public:
@@ -398,7 +506,9 @@ class CWorld {
   static BOOL                bShowSimpleDoodads;
 
  public:
-  static DWORD GetEnables();
+  static DWORD GetEnables() {
+    return enables;
+  }
   static float GetCurTimeSec() {
     return curTimeSec;
   }
@@ -418,7 +528,9 @@ class CWorld {
   static void  GetCounts(int counts[]);
   static float GetFarClip();
   static float GetNearClip();
-  static UINT  GetTexMaxAnisotropyLog2();
+  static UINT  GetTexMaxAnisotropyLog2() {
+    return texMaxAnisotropyLog2;
+  }
 
  private:
   static int  ConsoleCommand_DebugBSP(LPCSTR command, LPCSTR arguments);

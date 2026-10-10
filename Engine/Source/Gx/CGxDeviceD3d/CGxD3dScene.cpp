@@ -36,12 +36,12 @@ void CGxDeviceD3d::SceneClear(UINT mask) {
 
   NTempest::CImVector clearColor = m_clearColor;
   if (!(m_appState.m_masterEnables & (1U << GxMasterEnable_NormalProjection))) {
-    const float phase = static_cast<float>(t) * PI * 0.0078125f;
+    const float phase = (float)t * PI * 0.0078125f;
     t = (t + 1) & 0xFF;
 
     clearColor.Set(
-        static_cast<BYTE>(0xFF), static_cast<BYTE>((sinf(phase * 3.0f) + 1.0f) * 127.5f), static_cast<BYTE>((sinf(phase * 5.0f) + 1.0f) * 127.5f),
-        static_cast<BYTE>((sinf(phase * 7.0f) + 1.0f) * 127.5f)
+        0xFF, (BYTE)((sinf(phase * 3.0f) + 1.0f) * 127.5f), (BYTE)((sinf(phase * 5.0f) + 1.0f) * 127.5f),
+        (BYTE)((sinf(phase * 7.0f) + 1.0f) * 127.5f)
     );
   }
 

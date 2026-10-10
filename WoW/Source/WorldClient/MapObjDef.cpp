@@ -6,7 +6,7 @@
 #include <MapDefs.h>
 
 #include "WorldClient/World.h"
-#include "WorldClient/CMapObj.h"
+#include "WorldClient/Map.h"
 #include "WorldClient/WorldParam.h"
 #include "WorldClient/DetailDoodad.h"
 #include "WorldClient/CSimpleDoodad.h"
@@ -33,17 +33,16 @@ void CMapObjDefGroup::SelectLights() {
   UINT whichLight = 1;
 
   ITERATELIST(CMapBaseObjLink, lightLinkList, link) {
-    if (whichLight >= 8) {
-      break;
-    }
-    CMapLight *light = static_cast<CMapLight *>(link->owner);
+    CMapLight *light = (CMapLight *)link->owner;
     GxLightSet(whichLight, light->gxLight, CWorldScene::camPos);
     ++whichLight;
+    if (whichLight == 8) {
+      break;
+    }
   }
 
-  while (whichLight < 8) {
+  for (; whichLight != 8; ++whichLight) {
     GxLightEnable(whichLight, 0);
-    ++whichLight;
   }
 }
 
@@ -68,7 +67,7 @@ void CMapObjDefGroup::Update(const NTempest::C44Matrix &newMat) {
 
   {
     ITERATELIST(CMapBaseObjLink, doodadDefLinkList, link) {
-      static_cast<CMapDoodadDef *>(link->owner)->Update(newMat);
+      ((CMapDoodadDef *)link->owner)->Update(newMat);
     }
   }
 

@@ -171,7 +171,7 @@ void CGxDeviceOpenGl::DsSet(EDeviceState which, UINT newVal, int force) {
       break;
 
     case Ds_PolygonOffset:
-      glPolygonOffset(*reinterpret_cast<float *>(&newVal), -1.0f);
+      glPolygonOffset(*(float *)&newVal, -1.0f);
       break;
 
     case Ds_BlendEnable:
@@ -328,7 +328,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
           glTmp.y = -app.m_dir.y;
           glTmp.z = -app.m_dir.z;
           glTmp.w = 0.0f;
-          reinterpret_cast<NTempest::C3Vector *>(&glTmp)->Normalize();
+          ((NTempest::C3Vector *)&glTmp)->Normalize();
         }
         glLightfv(light, GL_POSITION, &glTmp.x);
       }
@@ -410,7 +410,7 @@ void CGxDeviceOpenGl::IStateSyncTexTransforms() {
   int texture;
 
   for (UINT tmu = 0; tmu < m_caps.m_numTmus; ++tmu) {
-    RsGet(static_cast<EGxRenderState>(GxRs_Texture0 + tmu), texture);
+    RsGet((EGxRenderState)(GxRs_Texture0 + tmu), texture);
     if (texture && (m_xforms[tmu].m_dirty || m_texGen[tmu].m_dirty)) {
       IStateSyncTexTransform(tmu);
     }
@@ -423,7 +423,7 @@ void CGxDeviceOpenGl::IStateSyncTexTransform(UINT tmu) {
   DsSet(Ds_MatrixMode, GL_TEXTURE, 0);
 
   int ts;
-  GxRsGet(static_cast<EGxRenderState>(GxRs_TextureShader0 + tmu), ts);
+  GxRsGet((EGxRenderState)(GxRs_TextureShader0 + tmu), ts);
   switch (ts) {
     case GxTS_PassThru:
       glLoadIdentity();
@@ -485,7 +485,7 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
       glTmp.x = -light.m_dir.x;
       glTmp.y = -light.m_dir.y;
       glTmp.z = -light.m_dir.z;
-      reinterpret_cast<NTempest::C3Vector *>(&glTmp)->Normalize();
+      ((NTempest::C3Vector *)&glTmp)->Normalize();
     }
     glLightfv(glLight, GL_POSITION, &glTmp.x);
     if (light.m_enabled)
@@ -524,19 +524,19 @@ void CGxDeviceOpenGl::ISetTexture(UINT tmu, CGxTex *tex) {
   }
   DsSet(Ds_ActiveTexture, tmu, 0);
   if (tex) {
-    DsSet(static_cast<EDeviceState>(Ds_TexTarget0 + tmu), GL_TEXTURE_2D, 0);
+    DsSet((EDeviceState)(Ds_TexTarget0 + tmu), GL_TEXTURE_2D, 0);
     BindTexture(tex, tmu);
     ITexMarkAsUpdated(tex, tmu);
     ITexBind(tex);
   } else {
-    DsSet(static_cast<EDeviceState>(Ds_TexTarget0 + tmu), 0, 0);
+    DsSet((EDeviceState)(Ds_TexTarget0 + tmu), 0, 0);
   }
 }
 
 void CGxDeviceOpenGl::ISetTexBlend(UINT tmu, EGxTexBlend blend) {
   if (tmu < m_caps.m_numTmus) {
     DsSet(Ds_ActiveTexture, tmu, 0);
-    DsSet(static_cast<EDeviceState>(Ds_TexEnvMode0 + tmu), s_texEnv[blend], 0);
+    DsSet((EDeviceState)(Ds_TexEnvMode0 + tmu), s_texEnv[blend], 0);
   }
 }
 
@@ -554,41 +554,41 @@ void CGxDeviceOpenGl::ISetTexGen(UINT tmu, EGxTexGen texGen) {
   DsSet(Ds_ActiveTexture, tmu, 0);
   switch (texGen) {
     case GxTexGen_Disable:
-      DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), 0, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), 0, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), 0, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_Object:
-      DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), GL_OBJECT_LINEAR, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), GL_OBJECT_LINEAR, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), GL_OBJECT_LINEAR, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_OBJECT_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_OBJECT_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_OBJECT_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_World:
     case GxTexGen_View:
-      DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), GL_EYE_LINEAR, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), GL_EYE_LINEAR, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), GL_EYE_LINEAR, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_EYE_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_EYE_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_EYE_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_ViewReflection:
-      DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), GL_REFLECTION_MAP_NV, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), GL_REFLECTION_MAP_NV, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), GL_REFLECTION_MAP_NV, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_REFLECTION_MAP_NV, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_REFLECTION_MAP_NV, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_REFLECTION_MAP_NV, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_ViewNormal:
-      DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), GL_NORMAL_MAP_NV, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), GL_NORMAL_MAP_NV, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), GL_NORMAL_MAP_NV, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_NORMAL_MAP_NV, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_NORMAL_MAP_NV, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_NORMAL_MAP_NV, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_SphereMap:
-      DsSet(static_cast<EDeviceState>(Ds_TexGenS0 + tmu), GL_SPHERE_MAP, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenT0 + tmu), GL_SPHERE_MAP, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenR0 + tmu), 0, 0);
-      DsSet(static_cast<EDeviceState>(Ds_TexGenQ0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_SPHERE_MAP, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_SPHERE_MAP, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), 0, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     default:
       FATALASSERT(0);
@@ -620,8 +620,8 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
   float floatVal;
   int   intVal;
 
-  floatVal = *reinterpret_cast<float *>(&mAppRenderStates[which].mValue);
-  intVal = *reinterpret_cast<int *>(&mAppRenderStates[which].mValue);
+  floatVal = *(float *)&mAppRenderStates[which].mValue;
+  intVal = *(int *)&mAppRenderStates[which].mValue;
 
   switch (which) {
     case GxRs_PolygonOffset: {
@@ -629,28 +629,28 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       if (floatVal == 0.0f) {
         DsSet(Ds_PolygonOffsetEnable, 0, 0);
       } else {
-        DsSet(Ds_PolygonOffset, *reinterpret_cast<UINT *>(&floatVal), 0);
+        DsSet(Ds_PolygonOffset, *(UINT *)&floatVal, 0);
         DsSet(Ds_PolygonOffsetEnable, 1, 0);
       }
       break;
     }
     case GxRs_MatDiffuse:
       IStateSetColorSource(Cs_Material);
-      IStateSetColorSourceColor(Cs_Material, *reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue));
+      IStateSetColorSourceColor(Cs_Material, *(NTempest::CImVector *)&mAppRenderStates[which].mValue);
       break;
     case GxRs_MatEmissive: {
-      color4f[0] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->a * oo255;
+      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
+      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
+      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
+      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
       glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, color4f);
       break;
     }
     case GxRs_MatSpecular: {
-      color4f[0] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->a * oo255;
+      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
+      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
+      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
+      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
       glMaterialfv(GL_FRONT, GL_SPECULAR, color4f);
       break;
     }
@@ -664,10 +664,10 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
         glDisable(GL_NORMALIZE);
       break;
     case GxRs_SceneAmbient: {
-      color4f[0] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->a * oo255;
+      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
+      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
+      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
+      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
       glLightModelfv(GL_LIGHT_MODEL_AMBIENT, color4f);
       break;
     }
@@ -700,10 +700,10 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       glFogf(GL_FOG_DENSITY, floatVal);
       break;
     case GxRs_FogColor:
-      color4f[0] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = reinterpret_cast<NTempest::CImVector *>(&mAppRenderStates[which].mValue)->a * oo255;
+      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
+      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
+      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
+      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
       glFogfv(GL_FOG_COLOR, color4f);
       break;
     case GxRs_Lighting:
@@ -744,13 +744,13 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
     case GxRs_Texture1:
     case GxRs_Texture2:
     case GxRs_Texture3:
-      ISetTexture(which - GxRs_Texture0, reinterpret_cast<CGxTex *>(intVal));
+      ISetTexture(which - GxRs_Texture0, (CGxTex *)intVal);
       break;
     case GxRs_TexBlend0:
     case GxRs_TexBlend1:
     case GxRs_TexBlend2:
     case GxRs_TexBlend3:
-      ISetTexBlend(which - GxRs_TexBlend0, static_cast<EGxTexBlend>(intVal));
+      ISetTexBlend(which - GxRs_TexBlend0, (EGxTexBlend)intVal);
       break;
     case GxRs_TexLodBias0:
     case GxRs_TexLodBias1:
@@ -762,7 +762,7 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
     case GxRs_TexGen1:
     case GxRs_TexGen2:
     case GxRs_TexGen3:
-      ISetTexGen(which - GxRs_TexGen0, static_cast<EGxTexGen>(intVal));
+      ISetTexGen(which - GxRs_TexGen0, (EGxTexGen)intVal);
       break;
     case GxRs_TextureShader0:
     case GxRs_TextureShader1:
@@ -771,7 +771,7 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
     case GxRs_VertexShader:
       return;
     case GxRs_PixelShader:
-      IPixelShaderBind(reinterpret_cast<CGxPixelShader *>(intVal));
+      IPixelShaderBind((CGxPixelShader *)intVal);
       break;
     default:
       FATALASSERT(0);

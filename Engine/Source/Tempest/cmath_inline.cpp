@@ -21,11 +21,11 @@ namespace NTempest {
   }
 
   long CMath::mulhw_(long x, long y) {
-    return static_cast<long>((static_cast<LONGLONG>(x) * y) >> 32);
+    return ((LONGLONG)x * y) >> 32;
   }
 
   DWORD CMath::mulhwu_(DWORD x, DWORD y) {
-    return static_cast<DWORD>((static_cast<DWORDLONG>(x) * y) >> 32);
+    return ((DWORDLONG)x * y) >> 32;
   }
 
   DWORD CMath::div3_(DWORD n) {
@@ -72,22 +72,14 @@ namespace NTempest {
     return min(a, c);
   }
   long CMath::med_(long a, long b, long c) {
-    if (((a - b) ^ (c - b)) < 0)
-      return b;
-    if (((a - b) ^ (a - c)) < 0)
-      return a;
-    return c;
+    return ((a - b) ^ (c - b)) < 0 ? b : ((a - b) ^ (a - c)) < 0 ? a : c;
   }
   long CMath::max_(long a, long b, long c) {
     a = max(a, b);
     return max(a, c);
   }
   long CMath::span_(long a, long b, long c) {
-    if (((c - b) ^ (a - b)) < 0)
-      return c - a > 0 ? c - a : -(c - a);
-    if (((a - c) ^ (a - b)) < 0)
-      return c - b > 0 ? c - b : -(c - b);
-    return a - b > 0 ? a - b : -(a - b);
+    return ((c - b) ^ (a - b)) < 0 ? iabs_(c - a) : ((a - c) ^ (a - b)) < 0 ? iabs_(c - b) : iabs_(a - b);
   }
   long CMath::mean_(long a, long b, long c) {
     return div3_(a + b + c);
@@ -99,9 +91,15 @@ namespace NTempest {
     return min(a, c);
   }
   long CMath::med_(long a, long b, long c, long d, long e) {
-    long ablo = a < b ? a : b, abhi = a > b ? a : b;
-    long deLo = d < e ? d : e, deHi = d > e ? d : e;
-    return med_(abhi < deHi ? abhi : deHi, c, ablo > deLo ? ablo : deLo);
+    long ablo, abhi, deLo, deHi;
+
+    if (a > b) { ablo = b; abhi = a; } else { ablo = a; abhi = b; }
+    if (e < d) { deHi = d; deLo = e; } else { deHi = e; deLo = d; }
+
+    if (deHi < abhi) abhi = deHi;
+    if (ablo > deLo) deLo = ablo;
+
+    return med_(abhi, c, deLo);
   }
   long CMath::max_(long a, long b, long c, long d, long e) {
     a = max(a, b);
@@ -110,9 +108,15 @@ namespace NTempest {
     return max(a, c);
   }
   long CMath::span_(long a, long b, long c, long d, long e) {
-    long ablo = a < b ? a : b, abhi = a > b ? a : b;
-    long deLo = d < e ? d : e, deHi = d > e ? d : e;
-    return span_(deLo < ablo ? deLo : ablo, c, abhi > deHi ? abhi : deHi);
+    long ablo, abhi, deLo, deHi;
+
+    if (a > b) { ablo = b; abhi = a; } else { ablo = a; abhi = b; }
+    if (e < d) { deHi = d; deLo = e; } else { deHi = e; deLo = d; }
+
+    if (abhi > deHi) deHi = abhi;
+    if (deLo < ablo) ablo = deLo;
+
+    return span_(ablo, c, deHi);
   }
   long CMath::mean_(long a, long b, long c, long d, long e) {
     return div5_(a + b + c + d + e);
@@ -232,49 +236,49 @@ namespace NTempest {
       range = i - a;
       a = i;
     }
-    if (static_cast<DWORD>(c - lo) > range) {
+    if ((DWORD)(c - lo) > range) {
       if (c < lo)
         lo = c;
       else
         a = c;
       range = a - lo;
     }
-    if (static_cast<DWORD>(g - lo) > range) {
+    if ((DWORD)(g - lo) > range) {
       if (g < lo)
         lo = g;
       else
         a = g;
       range = a - lo;
     }
-    if (static_cast<DWORD>(b - lo) > range) {
+    if ((DWORD)(b - lo) > range) {
       if (b < lo)
         lo = b;
       else
         a = b;
       range = a - lo;
     }
-    if (static_cast<DWORD>(d - lo) > range) {
+    if ((DWORD)(d - lo) > range) {
       if (d < lo)
         lo = d;
       else
         a = d;
       range = a - lo;
     }
-    if (static_cast<DWORD>(f - lo) > range) {
+    if ((DWORD)(f - lo) > range) {
       if (f < lo)
         lo = f;
       else
         a = f;
       range = a - lo;
     }
-    if (static_cast<DWORD>(h - lo) > range) {
+    if ((DWORD)(h - lo) > range) {
       if (h < lo)
         lo = h;
       else
         a = h;
       range = a - lo;
     }
-    if (static_cast<DWORD>(e - lo) > range) {
+    if ((DWORD)(e - lo) > range) {
       if (e < lo)
         lo = e;
       else
@@ -311,41 +315,41 @@ namespace NTempest {
   }
 
   float CMath::frsqrte_(float x, DWORD magic) {
-    DWORD bits = *reinterpret_cast<DWORD *>(&x);
+    DWORD bits = *(DWORD *)&x;
     bits = magic - ((bits >> 1) & 0x3FFFFFFF);
-    return *reinterpret_cast<float *>(&bits);
+    return *(float *)&bits;
   }
   double CMath::frsqrte_(double x, DWORD magic) {
-    reinterpret_cast<DWORD *>(&x)[1] = magic - ((reinterpret_cast<DWORD *>(&x)[1] >> 1) & 0x3FFFFFFF);
+    ((DWORD *)&x)[1] = magic - ((((DWORD *)&x)[1] >> 1) & 0x3FFFFFFF);
     return x;
   }
   float CMath::frsqrte_(float *x, DWORD magic) {
-    *reinterpret_cast<DWORD *>(x) = magic - ((*reinterpret_cast<DWORD *>(x) >> 1) & 0x3FFFFFFF);
+    *(DWORD *)x = magic - ((*(DWORD *)x >> 1) & 0x3FFFFFFF);
     return *x;
   }
   double CMath::frsqrte_(double *x, DWORD magic) {
-    reinterpret_cast<DWORD *>(x)[1] = magic - ((reinterpret_cast<DWORD *>(x)[1] >> 1) & 0x3FFFFFFF);
+    ((DWORD *)x)[1] = magic - ((((DWORD *)x)[1] >> 1) & 0x3FFFFFFF);
     return *x;
   }
   float CMath::fres_(float x, DWORD magic) {
-    DWORD bits = magic - *reinterpret_cast<DWORD *>(&x);
-    return *reinterpret_cast<float *>(&bits);
+    DWORD bits = magic - *(DWORD *)&x;
+    return *(float *)&bits;
   }
   double CMath::fres_(double x, DWORD magic) {
-    reinterpret_cast<DWORD *>(&x)[1] = magic - reinterpret_cast<DWORD *>(&x)[1];
+    ((DWORD *)&x)[1] = magic - ((DWORD *)&x)[1];
     return x;
   }
   float CMath::fres_(float *x, DWORD magic) {
-    *reinterpret_cast<DWORD *>(x) = magic - *reinterpret_cast<DWORD *>(x);
+    *(DWORD *)x = magic - *(DWORD *)x;
     return *x;
   }
   double CMath::fres_(double *x, DWORD magic) {
-    reinterpret_cast<DWORD *>(x)[1] = magic - reinterpret_cast<DWORD *>(x)[1];
+    ((DWORD *)x)[1] = magic - ((DWORD *)x)[1];
     return *x;
   }
 
   void CMath::split_(double xlr, double &xf, long &xi) {
-    xi = static_cast<long>(xlr);
+    xi = xlr;
     xi = xlr < 0.0 ? xi - 1 : xi;
     xf = xlr - xi;
   }
@@ -355,12 +359,12 @@ namespace NTempest {
     xf = xr - xi;
   }
   void CMath::splitr_(double xlr, double &xf, double &xi) {
-    xi = static_cast<long>(xlr);
+    xi = (long)xlr;
     xi = xlr < 0.0 ? xi - 1.0 : xi;
     xf = xlr - xi;
   }
   void CMath::splitr_(float xr, float &xf, float &xi) {
-    xi = static_cast<float>(fint_(xr));
+    xi = fint_(xr);
     xi = xr < 0.0f ? xi - 1.0f : xi;
     xf = xr - xi;
   }
@@ -389,7 +393,7 @@ namespace NTempest {
     return gammai_(x, 1.0f / g);
   }
   double CMath::bias_(float x, float g) {
-    return pow(x, -log2_(static_cast<double>(g)));
+    return pow_(x, log2_(g) * -1.0f);
   }
   double CMath::gain_(float x, float g) {
     return x < 0.5f ? bias_(x + x, 1.0f - g) * 0.5 : 1.0 - bias_(2.0f - (x + x), 1.0f - g) * 0.5;
@@ -404,11 +408,11 @@ namespace NTempest {
   }
   float CMath::sinc_(float x, float a) {
     float v = x * a * 3.1415927f;
-    return static_cast<float>(sin(v) / v);
+    return sin(v) / v;
   }
   float CMath::sinc_(float x) {
     float v = x * 3.1415927f;
-    return static_cast<float>(sin(v) / v);
+    return sin(v) / v;
   }
 
 }  // namespace NTempest

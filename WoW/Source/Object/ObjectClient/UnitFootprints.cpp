@@ -135,7 +135,7 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
   }
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
-      vertices = static_cast<CGxVertexPNCT0T1 *>(GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices)));
+      vertices = (CGxVertexPNCT0T1 *)GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices));
       *cmd.vertex.mem[GxVM_Position] = &vertices->p;
       *cmd.vertex.mem[GxVM_Normal] = &vertices->n;
       *cmd.vertex.mem[GxVM_Color] = &vertices->c;
@@ -143,16 +143,16 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
       *cmd.vertex.mem[GxVM_Texture1] = &vertices->tc[1];
       break;
     case GxBufOp_Fill:
-      vertices = static_cast<CGxVertexPNCT0T1 *>(*cmd.vertex.mem[GxVM_Position]);
+      vertices = (CGxVertexPNCT0T1 *)*cmd.vertex.mem[GxVM_Position];
       break;
   }
   switch (cmd.index.op) {
     case GxBufOp_Assign:
-      idx = static_cast<WORD *>(GxAllocIndexMem(buf->IndexCount() * sizeof(*idx)));
+      idx = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(*idx));
       *cmd.index.mem[GxVM_Indices] = idx;
       break;
     case GxBufOp_Fill:
-      idx = static_cast<WORD *>(*cmd.index.mem[GxVM_Indices]);
+      idx = (WORD *)*cmd.index.mem[GxVM_Indices];
       break;
   }
 
@@ -160,10 +160,10 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
   for (SPLATDATA *splat = s_currentChunk->m_splats.Head(); splat; splat = splat->normalLink.Next()) {
     if (!splat->skip) {
       int i;
-      for (i = 0; i < static_cast<int>(splat->indices.Count()); ++i, ++idx) {
+      for (i = 0; i < (int)splat->indices.Count(); ++i, ++idx) {
         *idx = splat->indices[i] + vertsWritten;
       }
-      for (i = 0; i < static_cast<int>(splat->data.Count()); ++i, ++vertices, ++vertsWritten) {
+      for (i = 0; i < (int)splat->data.Count(); ++i, ++vertices, ++vertsWritten) {
         vertices->p = splat->data[i].p;
         vertices->n = s_zup;
         vertices->c = splat->color;
@@ -176,7 +176,13 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
 
 bool SPLATDATA::Update(float progress, bool &nuke) {
   nuke = 0;
-  if (!data.Count() || !indices.Count() || (position - s_currentCamera).SquaredMag() > s_maxPurgeDist * s_maxPurgeDist) {
+  if (!data.Count() || !indices.Count()) {
+    nuke = 1;
+    return 1;
+  }
+
+  NTempest::C3Vector diff = position - s_currentCamera;
+  if (diff.SquaredMag() > s_maxPurgeDist * s_maxPurgeDist) {
     nuke = 1;
     return 1;
   }
@@ -186,7 +192,7 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
   }
   if (startTime == -1) {
     static int MAXALPHA = 128;
-    int        alpha = static_cast<int>((1.0 - progress) * MAXALPHA);
+    int        alpha = (1.0 - progress) * MAXALPHA;
     color.a = alpha <= 0 ? 0 : alpha;
   } else {
     int elapsed = s_currentTime - startTime;
@@ -195,11 +201,11 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
       return 1;
     }
     if (elapsed < FADEIN) {
-      color.a = static_cast<BYTE>(MAXALPHA * (static_cast<float>(elapsed) / FADEIN));
+      color.a = MAXALPHA * ((float)elapsed / FADEIN);
     } else if (elapsed < FADEOUT) {
-      color.a = static_cast<BYTE>(MAXALPHA);
+      color.a = MAXALPHA;
     } else if (elapsed < FADEDONE) {
-      color.a = static_cast<BYTE>(MAXALPHA - MAXALPHA * (static_cast<float>(elapsed - FADEOUT) / (FADEDONE - FADEOUT)));
+      color.a = MAXALPHA - MAXALPHA * ((float)(elapsed - FADEOUT) / (FADEDONE - FADEOUT));
     }
   }
   chunk->m_vertCount += data.Count();
@@ -235,7 +241,7 @@ void LISTBASE::Render() {
   for (SPLATDATA *splat = m_splatOrder.Tail(); splat;) {
     SPLATDATA *newTail = splat->orderLink.Prev();
     bool       nuke;
-    if (splat->Update(static_cast<float>(found) / m_maxCount, nuke) && nuke) {
+    if (splat->Update((float)found / m_maxCount, nuke) && nuke) {
       splat->chunk->RecycleSplat(splat);
     } else {
       ++m_currentCount;
@@ -390,9 +396,9 @@ SPLATDATA *CHUNKDATA::Add(const CWTriData::Batch &batch, const NTempest::CAaBox 
   }
   splat->data.SetCount(vertCount);
   splat->indices.SetCount(batch.GetIndexCount());
-  for (int j = 0; j < static_cast<int>(splat->indices.Count()); ++j) {
+  for (int j = 0; j < (int)splat->indices.Count(); ++j) {
     WORD sourceIndex = batch.vertexIndices[j];
-    WORD localIndex = static_cast<WORD>(s_scratch[sourceIndex]);
+    WORD localIndex = s_scratch[sourceIndex];
     splat->indices[j] = localIndex;
     NTempest::C3Vector source = batch.vertices[sourceIndex];
     VERTDATA          &vert = splat->data[localIndex];
@@ -425,8 +431,8 @@ void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
 }
 
 void UnitFootprintInitialize() {
-  s_renderSplatsCVar = CVar::Register("showfootprints", "toggles rendering of unit footprint splats", 1, "1", 0, GRAPHICS, false, 0);
-  s_renderParticlesCVar = CVar::Register("showfootprintparticles", "toggles rendering of footprint particles", 1, "1", 0, GRAPHICS, false, 0);
+  s_renderSplatsCVar = CVar::Register("showfootprints", "toggles rendering of unit footprint splats", CVar::ARCHIVE, "1", 0, GRAPHICS, false, 0);
+  s_renderParticlesCVar = CVar::Register("showfootprintparticles", "toggles rendering of footprint particles", CVar::ARCHIVE, "1", 0, GRAPHICS, false, 0);
   InitializeTextureTable();
   InitializeBloodSplatTable();
 }
@@ -483,14 +489,14 @@ void UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &positio
       effect = unit->IsWalking() ? SPECIALEFFECT_FOOTSTEPSPRAYWATERWALK : SPECIALEFFECT_FOOTSTEPSPRAYWATER;
       NTempest::C3Vector splashPos = position;
       splashPos.z += depth;
-      UnitEffectOneShot(static_cast<UNITEFFECTSPECIALS>(effect), unit->GetGUID(), &splashPos, unit->GetFacing(), scale, false);
+      UnitEffectOneShot((UNITEFFECTSPECIALS)effect, unit->GetGUID(), &splashPos, unit->GetFacing(), scale, false);
     }
 
     const TerrainTypeRec *rec = g_terrainTypeDB.GetRecord(terrainID);
     if (rec) {
       effect = unit->IsWalking() ? rec->m_FootstepSprayWalk : rec->m_FootstepSprayRun;
-      if (effect != static_cast<UINT>(-1)) {
-        UnitEffectOneShot(static_cast<UNITEFFECTSPECIALS>(effect), unit->GetGUID(), &position, unit->GetFacing(), scale, false);
+      if (effect != (UINT)-1) {
+        UnitEffectOneShot((UNITEFFECTSPECIALS)effect, unit->GetGUID(), &position, unit->GetFacing(), scale, false);
       }
     }
   }

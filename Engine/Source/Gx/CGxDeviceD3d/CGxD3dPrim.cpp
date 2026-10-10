@@ -21,9 +21,9 @@ static const NTempest::C3Vector  s_genericNormal(0.0f, 1.0f, 0.0f);
 static const NTempest::C2Vector  s_genericTexCoord(0.0f, 0.0f);
 static const NTempest::CImVector s_genericColor(0xFFFFFFFF);
 
-static enum _D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last] = {static_cast<enum _D3DPRIMITIVETYPE>(1), static_cast<enum _D3DPRIMITIVETYPE>(2),
-                                                                     static_cast<enum _D3DPRIMITIVETYPE>(3), static_cast<enum _D3DPRIMITIVETYPE>(4),
-                                                                     static_cast<enum _D3DPRIMITIVETYPE>(5), static_cast<enum _D3DPRIMITIVETYPE>(6)};
+static enum _D3DPRIMITIVETYPE s_primitiveConversion[GxPrims_Last] = {(enum _D3DPRIMITIVETYPE)1, (enum _D3DPRIMITIVETYPE)2,
+                                                                     (enum _D3DPRIMITIVETYPE)3, (enum _D3DPRIMITIVETYPE)4,
+                                                                     (enum _D3DPRIMITIVETYPE)5, (enum _D3DPRIMITIVETYPE)6};
 
 static DWORD s_vtxBufFmtConversion[GxVertexBufferFormats_Last] = {
     D3DFVF_XYZ | D3DFVF_NORMAL,
@@ -288,7 +288,7 @@ void CGxDeviceD3d::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format
 
   if (freq == GxBWF_Low || freq == GxBWF_Medium) {
     ITERATELIST(CGxBuf, m_bufList, buf) {
-      CGxBufD3d *d3dBuf = static_cast<CGxBufD3d *>(buf);
+      CGxBufD3d *d3dBuf = (CGxBufD3d *)buf;
       if (d3dBuf->m_vbFormat == format && d3dBuf->m_writeFreq == freq) {
         d3dBuf->Release();
       }
@@ -359,7 +359,7 @@ void CGxDeviceD3d::IBufSetBuffers(CGxBufD3d *buf) {
 void CGxDeviceD3d::BufLock(CGxBuf *b) {
   CGxDevice::BufLock(b);
 
-  CGxBufD3d *buf = static_cast<CGxBufD3d *>(b);
+  CGxBufD3d *buf = (CGxBufD3d *)b;
   IBufSetBuffers(buf);
 
   LPVOID        vmember[GxVertexMembers_Last];
@@ -373,7 +373,7 @@ void CGxDeviceD3d::BufLock(CGxBuf *b) {
   if (buf->m_vertexStatus != CGxBuf::S_VALID) {
     buf->LockVB(vmem);
     for (UINT member = 0; member < GxVertexMembers_Last; ++member) {
-      vmember[member] = static_cast<BYTE *>(vmem) + GxVertexMemberOffset(buf->m_vbFormat, static_cast<EGxVertexMember>(member));
+      vmember[member] = (BYTE *)vmem + GxVertexMemberOffset(buf->m_vbFormat, (EGxVertexMember)member);
       cmd.vertex.mem[member] = &vmember[member];
       cmd.vertex.stride[member] = GxVertexSize(buf->m_vbFormat);
     }
@@ -428,11 +428,11 @@ void CGxDeviceD3d::BufRender(const CGxBatch *batches, UINT count) {
   CGxDevice::BufRender(batches, count);
   IStateSync();
 
-  buf = static_cast<CGxBufD3d *>(m_bufLocked);
+  buf = (CGxBufD3d *)m_bufLocked;
   while (count--) {
     if (batches->m_count) {
-      minIndex = batches->m_minIndex < 0 ? 0 : static_cast<UINT>(batches->m_minIndex);
-      numVertices = batches->m_maxIndex < 0 ? m_bufLocked->VertexCount() : static_cast<UINT>(batches->m_maxIndex - minIndex);
+      minIndex = batches->m_minIndex < 0 ? 0 : (UINT)batches->m_minIndex;
+      numVertices = batches->m_maxIndex < 0 ? m_bufLocked->VertexCount() : (batches->m_maxIndex - minIndex);
       m_d3dDevice->DrawIndexedPrimitive(
           s_primitiveConversion[batches->m_primType], buf->m_vertexBase, minIndex, numVertices, buf->m_indexBase + batches->m_start,
           PrimCalcCount(batches->m_primType, batches->m_count)
@@ -450,7 +450,7 @@ void CGxDeviceD3d::BufUnlock() {
 void CGxDeviceD3d::BufDestroy(CGxBuf *&b) {
   CGxDevice::BufDestroy(b);
 
-  CGxBufD3d *d3dBuf = static_cast<CGxBufD3d *>(b);
+  CGxBufD3d *d3dBuf = (CGxBufD3d *)b;
   d3dBuf->UnsetVB();
   d3dBuf->UnsetIB();
   m_bufList.UnlinkNode(b);
@@ -556,7 +556,7 @@ void CGxDeviceD3d::IPrimSetupPos(LPVOID dstBuf) {
   NTempest::C2Vector  tmpTex1;
   NTempest::C2Vector  tmpTex0;
   DWORD               tmpColor;
-  NTempest::C3Vector *dstP = static_cast<NTempest::C3Vector *>(dstBuf);
+  NTempest::C3Vector *dstP = (NTempest::C3Vector *)dstBuf;
   NTempest::C3Vector *dstN = &tmpNormal;
   DWORD              *dstC = &tmpColor;
   NTempest::C2Vector *dstT0 = &tmpTex0;
@@ -569,50 +569,50 @@ void CGxDeviceD3d::IPrimSetupPos(LPVOID dstBuf) {
 
   switch (m_vertexBufferFormat) {
     case GxVBF_PN:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstN = (NTempest::C3Vector *)((BYTE *)dstBuf + 12);
       dnStride = GxVertexSize(GxVBF_PN);
       break;
     case GxVBF_PNC:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 24);
+      dstN = (NTempest::C3Vector *)((BYTE *)dstBuf + 12);
+      dstC = (DWORD *)((BYTE *)dstBuf + 24);
       dnStride = dcStride = GxVertexSize(GxVBF_PNC);
       break;
     case GxVBF_PNT0:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 24);
+      dstN = (NTempest::C3Vector *)((BYTE *)dstBuf + 12);
+      dstT0 = (NTempest::C2Vector *)((BYTE *)dstBuf + 24);
       dnStride = dt0Stride = GxVertexSize(GxVBF_PNT0);
       break;
     case GxVBF_PNCT0:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 24);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 28);
+      dstN = (NTempest::C3Vector *)((BYTE *)dstBuf + 12);
+      dstC = (DWORD *)((BYTE *)dstBuf + 24);
+      dstT0 = (NTempest::C2Vector *)((BYTE *)dstBuf + 28);
       dnStride = dcStride = dt0Stride = GxVertexSize(GxVBF_PNCT0);
       break;
     case GxVBF_PNT0T1:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 24);
-      dstT1 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 32);
+      dstN = (NTempest::C3Vector *)((BYTE *)dstBuf + 12);
+      dstT0 = (NTempest::C2Vector *)((BYTE *)dstBuf + 24);
+      dstT1 = (NTempest::C2Vector *)((BYTE *)dstBuf + 32);
       dnStride = dt0Stride = dt1Stride = GxVertexSize(GxVBF_PNT0T1);
       break;
     case GxVBF_PNCT0T1:
-      dstN = reinterpret_cast<NTempest::C3Vector *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 24);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 28);
-      dstT1 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 36);
+      dstN = (NTempest::C3Vector *)((BYTE *)dstBuf + 12);
+      dstC = (DWORD *)((BYTE *)dstBuf + 24);
+      dstT0 = (NTempest::C2Vector *)((BYTE *)dstBuf + 28);
+      dstT1 = (NTempest::C2Vector *)((BYTE *)dstBuf + 36);
       dnStride = dcStride = dt0Stride = dt1Stride = GxVertexSize(GxVBF_PNCT0T1);
       break;
     case GxVBF_PCT0:
-      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 16);
+      dstC = (DWORD *)((BYTE *)dstBuf + 12);
+      dstT0 = (NTempest::C2Vector *)((BYTE *)dstBuf + 16);
       dcStride = dt0Stride = GxVertexSize(GxVBF_PCT0);
       break;
     case GxVBF_PC:
-      dstC = reinterpret_cast<DWORD *>(static_cast<BYTE *>(dstBuf) + 12);
+      dstC = (DWORD *)((BYTE *)dstBuf + 12);
       dcStride = GxVertexSize(GxVBF_PC);
       break;
     case GxVBF_PT0T1:
-      dstT0 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 12);
-      dstT1 = reinterpret_cast<NTempest::C2Vector *>(static_cast<BYTE *>(dstBuf) + 20);
+      dstT0 = (NTempest::C2Vector *)((BYTE *)dstBuf + 12);
+      dstT1 = (NTempest::C2Vector *)((BYTE *)dstBuf + 20);
       dt0Stride = dt1Stride = GxVertexSize(GxVBF_PT0T1);
       break;
     default:
@@ -625,21 +625,21 @@ void CGxDeviceD3d::IPrimSetupPos(LPVOID dstBuf) {
       for (UINT ndx = 0; ndx != s_vertexCount; ++ndx) {
         *dstP = *s_pos;
         *dstN = *s_normal;
-        *dstC = *reinterpret_cast<const DWORD *>(s_color);
+        *dstC = *(const DWORD *)s_color;
         *dstT0 = *s_tex[0];
         *dstT1 = *s_tex[1];
 
-        s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
-        s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
-        s_color = reinterpret_cast<const NTempest::CImVector *>(reinterpret_cast<const BYTE *>(s_color) + s_colorStride);
-        s_tex[0] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[0]) + s_texStride[0]);
-        s_tex[1] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[1]) + s_texStride[1]);
+        s_pos = (const NTempest::C3Vector *)((const BYTE *)s_pos + s_posStride);
+        s_normal = (const NTempest::C3Vector *)((const BYTE *)s_normal + s_normalStride);
+        s_color = (const NTempest::CImVector *)((const BYTE *)s_color + s_colorStride);
+        s_tex[0] = (const NTempest::C2Vector *)((const BYTE *)s_tex[0] + s_texStride[0]);
+        s_tex[1] = (const NTempest::C2Vector *)((const BYTE *)s_tex[1] + s_texStride[1]);
 
-        dstP = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstP) + dpStride);
-        dstN = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstN) + dnStride);
-        dstC = reinterpret_cast<DWORD *>(reinterpret_cast<BYTE *>(dstC) + dcStride);
-        dstT0 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT0) + dt0Stride);
-        dstT1 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT1) + dt1Stride);
+        dstP = (NTempest::C3Vector *)((BYTE *)dstP + dpStride);
+        dstN = (NTempest::C3Vector *)((BYTE *)dstN + dnStride);
+        dstC = (DWORD *)((BYTE *)dstC + dcStride);
+        dstT0 = (NTempest::C2Vector *)((BYTE *)dstT0 + dt0Stride);
+        dstT1 = (NTempest::C2Vector *)((BYTE *)dstT1 + dt1Stride);
       }
       break;
     }
@@ -656,22 +656,22 @@ void CGxDeviceD3d::IPrimSetupPos(LPVOID dstBuf) {
         dstN->y = bone.a1 * s_normal->x + bone.b1 * s_normal->y + bone.c1 * s_normal->z;
         dstN->z = bone.a2 * s_normal->x + bone.b2 * s_normal->y + bone.c2 * s_normal->z;
 
-        *dstC = *reinterpret_cast<const DWORD *>(s_color);
+        *dstC = *(const DWORD *)s_color;
         *dstT0 = *s_tex[0];
         *dstT1 = *s_tex[1];
 
-        s_pos = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_pos) + s_posStride);
-        s_normal = reinterpret_cast<const NTempest::C3Vector *>(reinterpret_cast<const BYTE *>(s_normal) + s_normalStride);
-        s_color = reinterpret_cast<const NTempest::CImVector *>(reinterpret_cast<const BYTE *>(s_color) + s_colorStride);
+        s_pos = (const NTempest::C3Vector *)((const BYTE *)s_pos + s_posStride);
+        s_normal = (const NTempest::C3Vector *)((const BYTE *)s_normal + s_normalStride);
+        s_color = (const NTempest::CImVector *)((const BYTE *)s_color + s_colorStride);
         s_bone += s_boneStride;
-        s_tex[0] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[0]) + s_texStride[0]);
-        s_tex[1] = reinterpret_cast<const NTempest::C2Vector *>(reinterpret_cast<const BYTE *>(s_tex[1]) + s_texStride[1]);
+        s_tex[0] = (const NTempest::C2Vector *)((const BYTE *)s_tex[0] + s_texStride[0]);
+        s_tex[1] = (const NTempest::C2Vector *)((const BYTE *)s_tex[1] + s_texStride[1]);
 
-        dstP = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstP) + dpStride);
-        dstN = reinterpret_cast<NTempest::C3Vector *>(reinterpret_cast<BYTE *>(dstN) + dnStride);
-        dstC = reinterpret_cast<DWORD *>(reinterpret_cast<BYTE *>(dstC) + dcStride);
-        dstT0 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT0) + dt0Stride);
-        dstT1 = reinterpret_cast<NTempest::C2Vector *>(reinterpret_cast<BYTE *>(dstT1) + dt1Stride);
+        dstP = (NTempest::C3Vector *)((BYTE *)dstP + dpStride);
+        dstN = (NTempest::C3Vector *)((BYTE *)dstN + dnStride);
+        dstC = (DWORD *)((BYTE *)dstC + dcStride);
+        dstT0 = (NTempest::C2Vector *)((BYTE *)dstT0 + dt0Stride);
+        dstT1 = (NTempest::C2Vector *)((BYTE *)dstT1 + dt1Stride);
       }
       break;
     }

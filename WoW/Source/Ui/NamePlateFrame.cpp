@@ -31,10 +31,12 @@ static NTempest::CImVector s_friendlyColor(0xFF00FF00);
 static NTempest::CImVector s_neutralColor(0xFFFFFF00);
 static NTempest::CImVector s_hostileColor(0xFFFF0000);
 
-CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent), m_unit(0), m_highlight(0), m_nameFrame(0), m_healthBar(0) {
+CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent) {
+  m_unit = 0;
+
   CBackdropGenerator *backdrop = NEW(CBackdropGenerator);
   backdrop->m_background = "Interface\\Tooltips\\UI-Tooltip-Background";
-  backdrop->m_pieces = 255;
+  backdrop->m_pieces = CBackdropGenerator::THEWORKS;
   backdrop->m_tileBackground = 1;
   backdrop->m_border = "Interface\\Tooltips\\UI-Tooltip-Border";
   backdrop->m_cornerSize = 0.01f;
@@ -42,7 +44,7 @@ CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent)
   backdrop->m_rightInset = 0.0025f;
   backdrop->m_topInset = 0.0025f;
   backdrop->m_bottomInset = 0.0025f;
-  backdrop->SetVertexColor(NTempest::CImVector(0xFF161616));
+  backdrop->SetVertexColor(NTempest::CImVector(0xFF161630));
   backdrop->SetBorderVertexColor(NTempest::CImVector(0xFFFFFFFF));
   SetBackdrop(backdrop);
 
@@ -73,7 +75,8 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
 
   char level[32];
   char buf[32];
-  SStrCopy(level, FrameScript_GetText("LEVEL", -1, GENDER_NOT_APPLICABLE), sizeof(level));
+  LPCSTR text = FrameScript_GetText("LEVEL", -1, GENDER_NOT_APPLICABLE);
+  SStrCopy(level, text, sizeof(level));
   SStrPrintf(buf, sizeof(buf), "%s %d", level, unit->GetLevel());
   m_nameFrame->SetText(unit->GetUnitName());
   m_healthBar->SetUnit(unit);
@@ -81,7 +84,7 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player && unit->UnitReaction(player) <= UNIT_REACTION_HOSTILE) {
     m_healthBar->SetStatusBarColor(s_hostileColor);
-  } else if (unit->GetType() & TYPE_PLAYER) {
+  } else if (unit->IsA(TYPE_PLAYER)) {
     m_healthBar->SetStatusBarColor(s_playerColor);
   } else if (player && unit->UnitReaction(player) >= UNIT_REACTION_AMIABLE) {
     m_healthBar->SetStatusBarColor(s_friendlyColor);
@@ -90,11 +93,10 @@ void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
   }
 
   float width = m_nameFrame->GetWidth();
-  if (width < m_healthBar->GetWidth()) {
-    width = m_healthBar->GetWidth();
-  }
-  SetWidth(width + 0.01f);
-  SetHeight(m_nameFrame->GetHeight() + 0.016f);
+  width = max(width, m_healthBar->GetWidth());
+
+  SetWidth(width + XOFFSET * 2);
+  SetHeight(m_nameFrame->GetHeight() + YOFFSET * 2 + 0.006f);
 }
 
 void CGNamePlateFrame::OnLayerCursorEnter() {

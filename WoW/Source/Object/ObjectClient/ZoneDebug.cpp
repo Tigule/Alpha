@@ -56,8 +56,8 @@ void ZoneDebugDestroy() {
 
 bool ZoneDebugIsInCurrentZone(float x, float y) {
   NTempest::C2iVector cellPos;
-  cellPos.x = static_cast<int>((x * 36.0f + 614400.0f) * 0.00020833334f);
-  cellPos.y = static_cast<int>((y * 36.0f + 614400.0f) * 0.00020833334f);
+  cellPos.x = (x * 36.0f + 614400.0f) * 0.00020833334f;
+  cellPos.y = (y * 36.0f + 614400.0f) * 0.00020833334f;
 
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player) {
@@ -65,7 +65,7 @@ bool ZoneDebugIsInCurrentZone(float x, float y) {
   }
 
   NTempest::C3Vector position = player->GetPosition();
-  UINT               playerX = static_cast<UINT>((position.x * 36.0f + 614400.0f) * 0.00020833334f);
-  UINT               playerY = static_cast<UINT>((position.y * 36.0f + 614400.0f) * 0.00020833334f);
+  UINT               playerX = (position.x * 36.0f + 614400.0f) * 0.00020833334f;
+  UINT               playerY = (position.y * 36.0f + 614400.0f) * 0.00020833334f;
   return s_zoneIDMap[playerX][playerY] == s_zoneIDMap[cellPos.x][cellPos.y];
 }

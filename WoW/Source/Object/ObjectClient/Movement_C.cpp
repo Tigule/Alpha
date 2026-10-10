@@ -30,7 +30,7 @@ void MovementUnlockMoversList(int fromWriting) {
 }
 
 LPVOID MovementTryLock(DWORDLONG) {
-  return reinterpret_cast<LPVOID>(1);
+  return (LPVOID)1;
 }
 
 void MovementUnlock(LPVOID obj) {

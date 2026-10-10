@@ -19,14 +19,14 @@ void CParticleKey::Interpolate(float time, NTempest::CImVector &color, int &head
     headCell = NTempest::CMath::ftol_0_256_(m_deltaHead * t + m_initialHead);
     tailCell = NTempest::CMath::ftol_0_256_(m_deltaTail * t + m_initialTail);
   } else {
-    float rt = static_cast<float>(fmod(t * m_repeat, 1.0));
+    float rt = fmod(t * m_repeat, 1.0);
     headCell = NTempest::CMath::ftol_0_256_(m_deltaHead * rt + m_initialHead);
     tailCell = NTempest::CMath::ftol_0_256_(m_deltaTail * rt + m_initialTail);
   }
 }
 
 CParticleKey::CParticleKey()
-    : m_startColor(static_cast<UINT>(-1)),
+    : m_startColor(-1),
       m_initialHead(0),
       m_deltaHead(0),
       m_initialTail(0),
@@ -36,7 +36,7 @@ CParticleKey::CParticleKey()
       m_startTime(0.0f),
       m_ooSegLength(1.0f),
       m_endTime(1.0f),
-      m_endColor(static_cast<UINT>(-1)),
+      m_endColor(-1),
       m_headStart(0),
       m_headEnd(0),
       m_tailStart(0),

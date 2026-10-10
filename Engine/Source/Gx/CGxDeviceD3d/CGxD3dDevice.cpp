@@ -8,14 +8,12 @@ const _D3DFORMAT CGxDeviceD3d::s_GxFormatToD3dFormat[CGxFormat::Formats_Last] = 
                                                                                  D3DFMT_D16,    D3DFMT_D24X8,    D3DFMT_D24S8,    D3DFMT_D32};
 
 LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-  CGxDeviceD3d *device = reinterpret_cast<CGxDeviceD3d *>(GetWindowLongA(hWnd, GWL_USERDATA));
+  CGxDeviceD3d *device = (CGxDeviceD3d *)GetWindowLongA(hWnd, GWL_USERDATA);
 
   switch (uMsg) {
-    case WM_CREATE: {
-      CREATESTRUCTA *create = reinterpret_cast<CREATESTRUCTA *>(lParam);
-      SetWindowLongA(hWnd, GWL_USERDATA, reinterpret_cast<LONG>(create->lpCreateParams));
+    case WM_CREATE:
+      SetWindowLongA(hWnd, GWL_USERDATA, (LONG)(((CREATESTRUCTA *)lParam)->lpCreateParams));
       return 0;
-    }
 
     case WM_ERASEBKGND:
       return 0;
@@ -31,8 +29,8 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
       NTempest::CRect rect;
       rect.t = 0.0f;
       rect.l = 0.0f;
-      rect.b = static_cast<float>(HIWORD(lParam));
-      rect.r = static_cast<float>(LOWORD(lParam));
+      rect.b = HIWORD(lParam);
+      rect.r = LOWORD(lParam);
 
       long sizeCode = 0;
       if (wParam == SIZE_MINIMIZED) {
@@ -40,7 +38,7 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
       } else if (wParam == SIZE_MAXHIDE) {
         sizeCode = 2;
       }
-      device->DeviceWM(GxWM_Size, reinterpret_cast<long>(&rect), sizeCode);
+      device->DeviceWM(GxWM_Size, (long)&rect, sizeCode);
       break;
     }
 
@@ -48,15 +46,17 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
       NTempest::CRect rect;
       rect.t = 0.0f;
       rect.l = 0.0f;
-      rect.b = static_cast<float>(HIWORD(lParam));
-      rect.r = static_cast<float>(LOWORD(lParam));
-      device->DeviceWM(GxWM_DisplayChange, reinterpret_cast<long>(&rect), 0);
+      rect.b = HIWORD(lParam);
+      rect.r = LOWORD(lParam);
+      device->DeviceWM(GxWM_DisplayChange, (long)&rect, 0);
       break;
     }
 
     case WM_SYSCOMMAND:
-      if (wParam == SC_SCREENSAVE || wParam == SC_MONITORPOWER) {
-        return 0;
+      switch (wParam) {
+        case SC_SCREENSAVE:
+        case SC_MONITORPOWER:
+          return 0;
       }
       break;
   }
@@ -77,7 +77,7 @@ static WORD WindowClassCreate() {
   wc.lpfnWndProc = CGxDeviceD3d::WindowProcD3d;
   wc.hInstance = instance;
   wc.lpszClassName = s_WndClassName;
-  wc.hIcon = static_cast<HICON>(LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE));
+  wc.hIcon = (HICON)LoadImageA(instance, "BlizzardIcon.ico", IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
   wc.hCursor = LoadCursorA(instance, "BlizzardCursor.cur");
   if (!wc.hCursor) {
     wc.hCursor = LoadCursorA(instance, IDC_ARROW);
@@ -111,16 +111,11 @@ static void WindowDestroy(HWND &hwnd) {
 }
 
 static void WindowClassDestroy(WORD &hClass) {
-  UnregisterClassA(reinterpret_cast<LPCSTR>(hClass), GetModuleHandleA(0));
+  UnregisterClassA((LPCSTR)hClass, GetModuleHandleA(0));
   hClass = 0;
 }
 
 CGxDeviceD3d::CGxDeviceD3d() {
-  for (UINT i = 0; i < 8; ++i) {
-    m_d3dStatesLight[i].which = static_cast<DWORD>(-1);
-    m_d3dStatesLight[i].chkSum = 0;
-  }
-
   m_api = GxApi_Direct3d;
   m_hwnd = 0;
   m_d3dLib = 0;
@@ -157,33 +152,31 @@ BOOL CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
   typedef IDirect3D9 *(__stdcall * D3dCreateProc)(UINT);
 
   D3dCreateProc d3dCreateProc;
-  LPCSTR        failure;
 
   d3dLib = 0;
   d3d = 0;
 
   d3dLib = LoadLibraryA("d3d9.dll");
   if (!d3dLib) {
-    failure = "CGxDeviceD3d::ILoadD3dLib(): unable to LoadLibrary()";
-    goto failed;
+    Log("CGxDeviceD3d::ILoadD3dLib(): unable to LoadLibrary()");
+    goto finallylabel;
   }
 
-  d3dCreateProc = reinterpret_cast<D3dCreateProc>(GetProcAddress(d3dLib, "Direct3DCreate9"));
+  d3dCreateProc = (D3dCreateProc)GetProcAddress(d3dLib, "Direct3DCreate9");
   if (!d3dCreateProc) {
-    failure = "CGxDeviceD3d::ILoadD3dLib(): unable to GetProcAddress()";
-    goto failed;
+    Log("CGxDeviceD3d::ILoadD3dLib(): unable to GetProcAddress()");
+    goto finallylabel;
   }
 
   d3d = d3dCreateProc(D3D_SDK_VERSION);
   if (!d3d) {
-    failure = "CGxDeviceD3d::ILoadD3dLib(): unable to d3dCreateProc()";
-    goto failed;
+    Log("CGxDeviceD3d::ILoadD3dLib(): unable to d3dCreateProc()");
+    goto finallylabel;
   }
 
   return 1;
 
-failed:
-  Log(failure);
+finallylabel:
   IUnloadD3dLib(d3dLib, d3d);
   return 0;
 }
@@ -213,54 +206,59 @@ void CGxDeviceD3d::ISetCaps() {
   if (m_caps.m_texFilterAnisotropic && m_caps.m_maxTexAnisotropy < 2) {
     m_caps.m_texFilterAnisotropic = 0;
   }
-  m_caps.m_mipMapLodBias = (m_d3dCaps.RasterCaps >> 13) & 1;
   m_caps.m_depthBias = (m_d3dCaps.RasterCaps >> 26) & 1;
+  m_caps.m_mipMapLodBias = (m_d3dCaps.RasterCaps >> 13) & 1;
 
-  switch (m_d3dCaps.PixelShaderVersion) {
-    case 0xFFFF0200:
-      m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_2_0;
-      break;
-    case 0xFFFF0104:
-    case 0xFFFF0103:
-      m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_3;
-      break;
-    case 0xFFFF0102:
-      m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_2;
-      break;
-    case 0xFFFF0101:
-      m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_1;
-      break;
-    default:
-      m_caps.m_pixelShaderTarget = CGxPixelShader::Target_gx;
-      break;
+  if (m_d3dCaps.PixelShaderVersion == 0xFFFF0200) {
+    m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_2_0;
+  } else if (m_d3dCaps.PixelShaderVersion == 0xFFFF0104) {
+    m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_3;
+  } else if (m_d3dCaps.PixelShaderVersion == 0xFFFF0103) {
+    m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_3;
+  } else if (m_d3dCaps.PixelShaderVersion == 0xFFFF0102) {
+    m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_2;
+  } else if (m_d3dCaps.PixelShaderVersion == 0xFFFF0101) {
+    m_caps.m_pixelShaderTarget = CGxPixelShader::Target_ps_1_1;
+  } else {
+    m_caps.m_pixelShaderTarget = CGxPixelShader::Target_gx;
   }
 
   m_deviceSupports32BitTextures = ICheckTextureFormat(0, D3DFMT_A8R8G8B8);
-  m_caps.m_texFmtDxt = ICheckTextureFormat(0, D3DFMT_DXT1) && ICheckTextureFormat(0, D3DFMT_DXT3) && ICheckTextureFormat(0, D3DFMT_DXT5);
+  m_caps.m_texFmtDxt = ICheckTextureFormat(0, s_GxTexFmtToD3dFmt[GxTex_Dxt1]) && ICheckTextureFormat(0, s_GxTexFmtToD3dFmt[GxTex_Dxt3]) &&
+                       ICheckTextureFormat(0, s_GxTexFmtToD3dFmt[GxTex_Dxt5]);
   if (m_d3dCaps.Caps2 & 0x40000000) {
-    m_caps.m_generateMipMaps = ICheckTextureFormat(0x400, D3DFMT_A8R8G8B8) && ICheckTextureFormat(0x400, D3DFMT_A4R4G4B4) &&
-                               ICheckTextureFormat(0x400, D3DFMT_A1R5G5B5) && ICheckTextureFormat(0x400, D3DFMT_R5G6B5);
+    m_caps.m_generateMipMaps =
+        ICheckTextureFormat(D3DUSAGE_AUTOGENMIPMAP, s_GxTexFmtToD3dFmt[GxTex_Argb8888]) &&
+        ICheckTextureFormat(D3DUSAGE_AUTOGENMIPMAP, s_GxTexFmtToD3dFmt[GxTex_Argb4444]) &&
+        ICheckTextureFormat(D3DUSAGE_AUTOGENMIPMAP, s_GxTexFmtToD3dFmt[GxTex_Argb1555]) &&
+        ICheckTextureFormat(D3DUSAGE_AUTOGENMIPMAP, s_GxTexFmtToD3dFmt[GxTex_Rgb565]);
   }
-  m_caps.m_rttFormat[GxTex_Argb8888] = ICheckTextureFormat(1, D3DFMT_A8R8G8B8);
-  m_caps.m_rttFormat[GxTex_Rgb565] = ICheckTextureFormat(1, D3DFMT_R5G6B5);
+  m_caps.m_rttFormat[GxTex_Argb8888] = ICheckTextureFormat(D3DUSAGE_RENDERTARGET, s_GxTexFmtToD3dFmt[GxTex_Argb8888]);
+  m_caps.m_rttFormat[GxTex_Rgb565] = ICheckTextureFormat(D3DUSAGE_RENDERTARGET, s_GxTexFmtToD3dFmt[GxTex_Rgb565]);
 }
 
 BOOL CGxDeviceD3d::ICreateD3d() {
-  if (!ILoadD3dLib(m_d3dLib, m_d3d) || m_d3d->GetDeviceCaps(0, D3DDEVTYPE_HAL, &m_d3dCaps) < 0) {
-    IDestroyD3d();
-    return 0;
+  if (!ILoadD3dLib(m_d3dLib, m_d3d)) {
+    goto finallylabel;
+  }
+
+  if (m_d3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &m_d3dCaps) < 0) {
+    goto finallylabel;
   }
 
   if (m_desktopDisplayMode.Format == D3DFMT_UNKNOWN) {
     D3DDISPLAYMODE oldDisplayMode;
-    if (m_d3d->GetAdapterDisplayMode(0, &oldDisplayMode) < 0) {
-      IDestroyD3d();
-      return 0;
+    if (m_d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &oldDisplayMode) < 0) {
+      goto finallylabel;
     }
     m_desktopDisplayMode = oldDisplayMode;
   }
 
   return 1;
+
+finallylabel:
+  IDestroyD3d();
+  return 0;
 }
 
 void CGxDeviceD3d::IDestroyD3d() {
@@ -269,12 +267,12 @@ void CGxDeviceD3d::IDestroyD3d() {
 }
 
 BOOL CGxDeviceD3d::ICheckTextureFormat(DWORD usage, _D3DFORMAT textureFormat) {
-  return m_d3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, m_devAdapterFormat, usage, D3DRTYPE_TEXTURE, textureFormat) == 0;
+  return m_d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, m_devAdapterFormat, usage, D3DRTYPE_TEXTURE, textureFormat) == 0;
 }
 
 BOOL CGxDeviceD3d::IAllocBuffers() {
   for (UINT format = 0; format != GxVertexBufferFormats_Last; ++format) {
-    ICreateBuffers(static_cast<EGxVertexBufferFormat>(format), 0x4000, m_VBL[GxBWF_Dynamic][format], 0xC000, m_IB[GxBWF_Dynamic][0]);
+    ICreateBuffers((EGxVertexBufferFormat)format, 0x4000, m_VBL[GxBWF_Dynamic][format], 0xC000, m_IB[GxBWF_Dynamic][0]);
 
     if (!m_VBL[GxBWF_Dynamic][format].m_vbList.Count() || !m_IB[GxBWF_Dynamic][0]) {
       return 0;
@@ -282,7 +280,7 @@ BOOL CGxDeviceD3d::IAllocBuffers() {
 
     for (int frequency = GxBWF_Low; frequency <= GxBWF_Medium; ++frequency) {
       BufReserve(
-          static_cast<EGxBufWriteFreq>(frequency), static_cast<EGxVertexBufferFormat>(format), m_VBReserve[frequency][format],
+          (EGxBufWriteFreq)frequency, (EGxVertexBufferFormat)format, m_VBReserve[frequency][format],
           m_IBReserve[frequency][format]
       );
     }
@@ -302,7 +300,8 @@ BOOL CGxDeviceD3d::ICreateD3dDevice(const CGxFormat &format) {
   ISetPresentParms(d3dpp, format);
 
   long result = m_d3d->CreateDevice(
-      0, D3DDEVTYPE_HAL, m_hwnd, D3DCREATE_FPU_PRESERVE | (hwTnL ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING), &d3dpp,
+      D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, m_hwnd,
+      hwTnL ? D3DCREATE_FPU_PRESERVE | D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_FPU_PRESERVE | D3DCREATE_SOFTWARE_VERTEXPROCESSING, &d3dpp,
       &m_d3dDevice
   );
   if (result < 0) {
@@ -324,8 +323,8 @@ BOOL CGxDeviceD3d::ICreateD3dDevice(const CGxFormat &format) {
     return 0;
   }
 
-  m_devAdapterFormat = d3dpp.BackBufferFormat;
   m_devDepthFormat = d3dpp.AutoDepthStencilFormat;
+  m_devAdapterFormat = d3dpp.BackBufferFormat;
   if (!IAllocBuffers()) {
     IDestroyD3dDevice();
     return 0;
@@ -351,7 +350,7 @@ void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS &d3dpp, const CGxForma
 
   if (format.window) {
     D3DDISPLAYMODE currMode;
-    if (m_d3d->GetAdapterDisplayMode(0, &currMode) < 0) {
+    if (m_d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &currMode) < 0) {
       ASSERT(0);
       currMode.Format = m_desktopDisplayMode.Format;
     }
@@ -386,7 +385,7 @@ void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
   IShaderForceRecreation(freeTextures);
 
   ITERATELIST(CGxBuf, m_bufList, buf) {
-    static_cast<CGxBufD3d *>(buf)->Release();
+    ((CGxBufD3d *)buf)->Release();
   }
 
   for (UINT frequency = 0; frequency < 4; ++frequency) {
@@ -424,28 +423,45 @@ BOOL CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format
 
   HDC hDC = GetDC(0);
   if (GetDeviceGammaRamp(hDC, &m_systemGammaRamp)) {
-    m_gammaRamp = m_systemGammaRamp;
+    if (&m_gammaRamp != &m_systemGammaRamp) {
+      m_gammaRamp = m_systemGammaRamp;
+    }
   }
   ReleaseDC(0, hDC);
 
   m_hwndClass = WindowClassCreate();
-  if (m_hwndClass && ICreateD3d() && CGxDevice::DeviceCreate(windowProc, format)) {
-    return 1;
+  if (!m_hwndClass) {
+    goto finallylabel;
   }
 
-  CGxDevice::DeviceDestroy();
+  if (!ICreateD3d()) {
+    goto finallylabel;
+  }
+
+  if (!CGxDevice::DeviceCreate(windowProc, format)) {
+    goto finallylabel;
+  }
+
+  return 1;
+
+finallylabel:
+  DeviceDestroy();
   return 0;
 }
 
 BOOL CGxDeviceD3d::DeviceCreate(UINT hwnd, const CGxFormat &format) {
   m_ownhwnd = 0;
   CGxDevice::DeviceCreate(hwnd, format);
-  m_hwnd = reinterpret_cast<HWND>(hwnd);
+  m_hwnd = (HWND)hwnd;
   ASSERT(!"FIX ME");
-  if (ICreateD3d()) {
-    return 1;
+  if (!ICreateD3d()) {
+    goto finallylabel;
   }
-  CGxDevice::DeviceDestroy();
+
+  return 1;
+
+finallylabel:
+  DeviceDestroy();
   return 0;
 }
 
@@ -468,11 +484,22 @@ BOOL CGxDeviceD3d::DeviceSetFormat(const CGxFormat &format) {
   IDestroyD3dDevice();
   WindowDestroy(m_hwnd);
   m_hwnd = WindowCreate(this, format);
-  if (m_hwnd && ICreateD3dDevice(format) && CGxDevice::DeviceSetFormat(format)) {
-    m_context = 1;
-    return 1;
+  if (!m_hwnd) {
+    goto finallylabel;
   }
 
+  if (!ICreateD3dDevice(format)) {
+    goto finallylabel;
+  }
+
+  if (!CGxDevice::DeviceSetFormat(format)) {
+    goto finallylabel;
+  }
+
+  m_context = 1;
+  return 1;
+
+finallylabel:
   Log("CGxDeviceD3d::DeviceSetFormat(): unable to set format!");
   IDestroyD3dDevice();
   WindowDestroy(m_hwnd);
@@ -488,7 +515,7 @@ void CGxDeviceD3d::DeviceSetGamma(float gamma) {
   CGxDevice::DeviceSetGamma(gamma);
 
   if ((m_d3dCaps.Caps2 & 0x00020000) && !IDevIsWindowed()) {
-    m_d3dDevice->SetGammaRamp(0, 0, reinterpret_cast<const D3DGAMMARAMP *>(&m_gammaRamp));
+    m_d3dDevice->SetGammaRamp(0, 0, (const D3DGAMMARAMP *)&m_gammaRamp);
   }
 }
 
@@ -496,7 +523,7 @@ void CGxDeviceD3d::DeviceSetGamma(const CGxGammaRamp &ramp) {
   CGxDevice::DeviceSetGamma(ramp);
 
   if ((m_d3dCaps.Caps2 & 0x00020000) && !IDevIsWindowed()) {
-    m_d3dDevice->SetGammaRamp(0, 0, reinterpret_cast<const D3DGAMMARAMP *>(&m_gammaRamp));
+    m_d3dDevice->SetGammaRamp(0, 0, (const D3DGAMMARAMP *)&m_gammaRamp);
   }
 }
 
@@ -506,7 +533,7 @@ void CGxDeviceD3d::DeviceSetTextureQuality(int force32) {
 }
 
 DWORD CGxDeviceD3d::DeviceWindow() {
-  return reinterpret_cast<DWORD>(m_hwnd);
+  return (DWORD)m_hwnd;
 }
 
 void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) {
@@ -527,22 +554,22 @@ void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTem
   bb->GetDesc(&desc);
 
   if (bb->LockRect(&r, 0, D3DLOCK_READONLY | D3DLOCK_NOSYSLOCK) >= 0) {
-    BYTE *src = static_cast<BYTE *>(r.pBits);
-    BYTE *dst = reinterpret_cast<BYTE *>(pixels.Ptr());
+    BYTE *src = (BYTE *)r.pBits;
+    BYTE *dst = (BYTE *)pixels.Ptr();
 
     for (int y = rect.b - rect.t; y; --y) {
       switch (desc.Format) {
         case D3DFMT_A8R8G8B8:
         case D3DFMT_X8R8G8B8:
-          memcpy(dst, src, width * 4);
+          memcpy(dst, src, width * sizeof(NTempest::CImVector));
           break;
 
         case D3DFMT_R5G6B5: {
           for (int x = 0; x < width; ++x) {
-            WORD pixel = reinterpret_cast<WORD *>(src)[x];
-            dst[x * 4 + 0] = static_cast<BYTE>(pixel << 3);
-            dst[x * 4 + 1] = static_cast<BYTE>((pixel >> 3) & 0xFC);
-            dst[x * 4 + 2] = static_cast<BYTE>((pixel >> 8) & 0xF8);
+            WORD pixel = ((WORD *)src)[x];
+            dst[x * 4 + 0] = pixel << 3;
+            dst[x * 4 + 1] = (pixel >> 3) & 0xFC;
+            dst[x * 4 + 2] = (pixel >> 8) & 0xF8;
             dst[x * 4 + 3] = 0xFF;
           }
           break;
@@ -551,22 +578,22 @@ void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTem
         case D3DFMT_X1R5G5B5:
         case D3DFMT_A1R5G5B5: {
           for (int x = 0; x < width; ++x) {
-            WORD pixel = reinterpret_cast<WORD *>(src)[x];
-            dst[x * 4 + 0] = static_cast<BYTE>(pixel << 3);
-            dst[x * 4 + 1] = static_cast<BYTE>((pixel >> 2) & 0xF8);
-            dst[x * 4 + 2] = static_cast<BYTE>((pixel >> 7) & 0xF8);
+            WORD pixel = ((WORD *)src)[x];
+            dst[x * 4 + 0] = pixel << 3;
+            dst[x * 4 + 1] = (pixel >> 2) & 0xF8;
+            dst[x * 4 + 2] = (pixel >> 7) & 0xF8;
             dst[x * 4 + 3] = 0xFF;
           }
           break;
         }
 
         default:
-          memset(dst, 0xFF, width * 4);
+          memset(dst, 0xFF, width * sizeof(NTempest::CImVector));
           break;
       }
 
       src += r.Pitch;
-      dst += width * 4;
+      dst += width * sizeof(NTempest::CImVector);
     }
 
     bb->UnlockRect();
@@ -583,7 +610,7 @@ void CGxDeviceD3d::DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<floa
 }
 
 void CGxDeviceD3d::DeviceWM(EGxWM wm, long param1, long param2) {
-  const NTempest::CRect &rect = *reinterpret_cast<const NTempest::CRect *>(param1);
+  const NTempest::CRect &rect = *(const NTempest::CRect *)param1;
 
   switch (wm) {
     case GxWM_Size:
@@ -615,26 +642,24 @@ void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT p
   CGxDevice::DeviceSetRenderTarget(buffer, gxTex, plane);
 
   if (target.m_apiSpecific) {
-    static_cast<IDirect3DSurface9 *>(target.m_apiSpecific)->Release();
+    ((IDirect3DSurface9 *)target.m_apiSpecific)->Release();
     target.m_apiSpecific = 0;
   }
 
   if (gxTex) {
     ASSERT(gxTex->m_apiSpecificData);
-    IDirect3DBaseTexture9 *tex = static_cast<IDirect3DBaseTexture9 *>(gxTex->m_apiSpecificData);
 
     if (gxTex->m_target == GxTex_CubeMap) {
-      reinterpret_cast<IDirect3DCubeTexture9 *>(tex)->GetCubeMapSurface(
-          s_d3dCubeMapFaces[plane], 0, reinterpret_cast<IDirect3DSurface9 **>(&target.m_apiSpecific)
-      );
+      ((IDirect3DCubeTexture9 *)gxTex->m_apiSpecificData)
+          ->GetCubeMapSurface(s_d3dCubeMapFaces[plane], 0, (IDirect3DSurface9 **)&target.m_apiSpecific);
     } else {
-      static_cast<IDirect3DTexture9 *>(tex)->GetSurfaceLevel(0, reinterpret_cast<IDirect3DSurface9 **>(&target.m_apiSpecific));
+      ((IDirect3DTexture9 *)gxTex->m_apiSpecificData)->GetSurfaceLevel(0, (IDirect3DSurface9 **)&target.m_apiSpecific);
     }
   }
 
   IDirect3DSurface9 *colorSurface = m_defColorSurface;
   if (m_textureTarget[GxBuffers_Color].m_apiSpecific || m_textureTarget[GxBuffers_Depth].m_apiSpecific) {
-    colorSurface = static_cast<IDirect3DSurface9 *>(m_textureTarget[GxBuffers_Color].m_apiSpecific);
+    colorSurface = (IDirect3DSurface9 *)m_textureTarget[GxBuffers_Color].m_apiSpecific;
   }
   m_d3dDevice->SetRenderTarget(0, colorSurface);
 
@@ -646,6 +671,6 @@ void CGxDeviceD3d::DeviceOverride(EGxOverride override, DWORD value) {
 
   if (override == GxOverride_PixelShader) {
     ASSERT(value >= CGxPixelShader::Target_ps_1_1 && value <= CGxPixelShader::Target_ps_2_0);
-    m_caps.m_pixelShaderTarget = static_cast<CGxPixelShader::Target>(value);
+    m_caps.m_pixelShaderTarget = (CGxPixelShader::Target)value;
   }
 }

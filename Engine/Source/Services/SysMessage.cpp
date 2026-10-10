@@ -119,7 +119,7 @@ BOOL SysMsgAdd(const CStatus &status, UINT categoryMask) {
   }
 
   msg = status.GetErrorStrAlloc(STATUS_INFO);
-  result = SysMsgAdd(msg, static_cast<SYSMSG_TYPE>(status.GetHighestSeverity()), categoryMask);
+  result = SysMsgAdd(msg, (SYSMSG_TYPE)status.GetHighestSeverity(), categoryMask);
   FREE(msg);
   return result;
 }
@@ -231,7 +231,7 @@ void SysMsgEnableFileLog(LPCSTR baseDir) {
     s_osFile = OsCreateFile(fileName, 0x40000000, 1, 4, 0x80, 0x3F3F3F3F);
   }
 
-  if (s_osFile == reinterpret_cast<HOSFILE>(-1)) {
+  if (s_osFile == (HOSFILE)-1) {
     s_osFile = 0;
   }
 }

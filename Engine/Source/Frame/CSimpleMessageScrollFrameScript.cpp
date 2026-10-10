@@ -7,7 +7,7 @@
 #include <lua.h>
 
 static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
 
   if (!lua_isstring(L, 2)) {
     return 0;
@@ -23,12 +23,12 @@ static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
     return 0;
   }
 
-  float red = static_cast<float>(lua_tonumber(L, 3));
-  float green = static_cast<float>(lua_tonumber(L, 4));
-  float blue = static_cast<float>(lua_tonumber(L, 5));
+  float red = lua_tonumber(L, 3);
+  float green = lua_tonumber(L, 4);
+  float blue = lua_tonumber(L, 5);
   float alpha = 1.0f;
   if (lua_isnumber(L, 6)) {
-    alpha = static_cast<float>(lua_tonumber(L, 6));
+    alpha = lua_tonumber(L, 6);
   }
 
   NTempest::CImVector color;
@@ -40,43 +40,43 @@ static int CSimpleMessageScrollFrame_AddMessage(lua_State *L) {
 }
 
 static int CSimpleMessageScrollFrame_ScrollUp(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   object->ScrollUp();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_ScrollDown(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   object->ScrollDown();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_PageUp(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   object->PageUp();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_PageDown(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   object->PageDown();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_ScrollToTop(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   object->ScrollToTop();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_ScrollToBottom(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   object->ScrollToBottom();
   return 0;
 }
 
 static int CSimpleMessageScrollFrame_AtBottom(lua_State *L) {
-  CSimpleMessageScrollFrame *object = static_cast<CSimpleMessageScrollFrame *>(FrameScript_GetObjectThis(L));
+  CSimpleMessageScrollFrame *object = (CSimpleMessageScrollFrame *)FrameScript_GetObjectThis(L);
   if (object->AtBottom()) {
     lua_pushnumber(L, 1.0);
   } else {

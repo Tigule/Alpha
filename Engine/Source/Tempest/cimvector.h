@@ -28,7 +28,7 @@ namespace NTempest {
       DWORD dg;
       DWORD db;
       Get(dr, dg, db);
-      Set(0, static_cast<BYTE>((a * dr) >> 8), static_cast<BYTE>((a * dg) >> 8), static_cast<BYTE>((a * db) >> 8));
+      Set(0, (BYTE)((a * dr) >> 8), (BYTE)((a * dg) >> 8), (BYTE)((a * db) >> 8));
     }
     void        ScaleRGB_(DWORD scale);
     static BYTE ScaleC255(DWORD value, DWORD scale);
@@ -38,7 +38,7 @@ namespace NTempest {
       DWORD dg;
       DWORD db;
       Get(dr, dg, db);
-      Set(0, static_cast<BYTE>((a * dr + 255) >> 8), static_cast<BYTE>((a * dg + 255) >> 8), static_cast<BYTE>((a * db + 255) >> 8));
+      Set(0, (BYTE)((a * dr + 255) >> 8), (BYTE)((a * dg + 255) >> 8), (BYTE)((a * db + 255) >> 8));
     }
 
     void        Scale255RGB_(DWORD scale);
@@ -49,23 +49,23 @@ namespace NTempest {
       CImVector d(*this);
 
       *IV_() = MakeRGB(
-                   static_cast<BYTE>((R_(*d.IV_()) * R_(*sa.IV_()) + 255) >> 8), static_cast<BYTE>((G_(*d.IV_()) * G_(*sa.IV_()) + 255) >> 8),
-                   static_cast<BYTE>((B_(*d.IV_()) * B_(*sa.IV_()) + 255) >> 8)
+                   (BYTE)((R_(*d.IV_()) * R_(*sa.IV_()) + 255) >> 8), (BYTE)((G_(*d.IV_()) * G_(*sa.IV_()) + 255) >> 8),
+                   (BYTE)((B_(*d.IV_()) * B_(*sa.IV_()) + 255) >> 8)
                ) |
                (*d.IV_() & eAlphaMask);
     }
 
     static BYTE BlendC(DWORD alpha, DWORD source, DWORD destination) {
-      return static_cast<BYTE>(destination + ((alpha * (source - destination)) >> 8));
+      return (BYTE)(destination + ((alpha * (source - destination)) >> 8));
     }
 
     void        Blend_(DWORD alpha, const CImVector *source);
 
     void BlendRGB_(DWORD alpha, const CImVector *source) {
       CImVector destination(*this);
-      Set(destination.a, static_cast<BYTE>(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
-          static_cast<BYTE>(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
-          static_cast<BYTE>(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
+      Set(destination.a, (BYTE)(destination.r + ((alpha * (source->r - destination.r)) >> 8)),
+          (BYTE)(destination.g + ((alpha * (source->g - destination.g)) >> 8)),
+          (BYTE)(destination.b + ((alpha * (source->b - destination.b)) >> 8)));
     }
 
     void        BlendARGB_(DWORD alpha, const CImVector *source);
@@ -139,22 +139,22 @@ namespace NTempest {
     }
 
     CImVector(const CImVector *value) {
-      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(value);
+      *(DWORD *)this = *(const DWORD *)value;
     }
 
     CImVector(const CImVector &value) {
-      *reinterpret_cast<DWORD *>(this) = *reinterpret_cast<const DWORD *>(&value);
+      *(DWORD *)this = *(const DWORD *)&value;
     }
 
     ~CImVector() {
     }
 
     static DWORD MakeARGB(BYTE alpha, BYTE red, BYTE green, BYTE blue) {
-      return (static_cast<DWORD>(alpha) << 24) | (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
+      return ((DWORD)alpha << 24) | ((DWORD)red << 16) | ((DWORD)green << 8) | (DWORD)blue;
     }
 
     static DWORD MakeRGB(BYTE red, BYTE green, BYTE blue) {
-      return (static_cast<DWORD>(red) << 16) | (static_cast<DWORD>(green) << 8) | static_cast<DWORD>(blue);
+      return ((DWORD)red << 16) | ((DWORD)green << 8) | (DWORD)blue;
     }
 
     static DWORD A_(DWORD value);
@@ -203,7 +203,7 @@ namespace NTempest {
     static BYTE  Gray(DWORD value);
     BYTE         Gray() const;
     DWORD *IV_() const {
-      return reinterpret_cast<DWORD *>(const_cast<CImVector *>(this));
+      return (DWORD *)((CImVector *)this);
     }
 
     DWORD Get() const;
@@ -234,8 +234,8 @@ namespace NTempest {
 
     void Set(float alpha, float red, float green, float blue) {
       *IV_() = MakeARGB(
-          static_cast<BYTE>(CMath::fuint_n(alpha * 255.0f)), static_cast<BYTE>(CMath::fuint_n(red * 255.0f)),
-          static_cast<BYTE>(CMath::fuint_n(green * 255.0f)), static_cast<BYTE>(CMath::fuint_n(blue * 255.0f))
+          (BYTE)CMath::fuint_n(alpha * 255.0f), (BYTE)CMath::fuint_n(red * 255.0f),
+          (BYTE)CMath::fuint_n(green * 255.0f), (BYTE)CMath::fuint_n(blue * 255.0f)
       );
     }
 
@@ -332,7 +332,7 @@ namespace NTempest {
   };
 
   inline CImVector::CImVector(DWORD n) {
-    *reinterpret_cast<DWORD *>(this) = n;
+    *(DWORD *)this = n;
   }
 
   class CRgb565 {
@@ -366,7 +366,7 @@ namespace NTempest {
     }
 
     CRgb565(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
+      *(WORD *)this = value;
     }
 
     CImVector      MakeArgb() const;
@@ -379,16 +379,16 @@ namespace NTempest {
     void           FromARGB(BYTE alpha, const CRgb565 &rgb);
 
     operator WORD() const {
-      return *reinterpret_cast<const WORD *>(this);
+      return *(const WORD *)this;
     }
 
     CRgb565 &operator=(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
+      *(WORD *)this = value;
       return *this;
     }
 
     CRgb565 &operator=(const CRgb565 &value) {
-      return *this = static_cast<WORD>(value);
+      return *this = (WORD)value;
     }
 
     CRgb565 &operator=(const CImVector &c) {
@@ -439,7 +439,7 @@ namespace NTempest {
     }
 
     CArgb1555(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
+      *(WORD *)this = value;
     }
 
     void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
@@ -451,16 +451,16 @@ namespace NTempest {
     void       FromARGB(BYTE alpha, const CArgb1555 &rgb);
 
     operator WORD() const {
-      return *reinterpret_cast<const WORD *>(this);
+      return *(const WORD *)this;
     }
 
     CArgb1555 &operator=(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
+      *(WORD *)this = value;
       return *this;
     }
 
     CArgb1555 &operator=(const CArgb1555 &value) {
-      return *this = static_cast<WORD>(value);
+      return *this = (WORD)value;
     }
 
     CArgb1555 &operator=(const CRgb565 &c) {
@@ -517,7 +517,7 @@ namespace NTempest {
     }
 
     CArgb4444(WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
+      *(WORD *)this = value;
     }
 
     void       From1555(BYTE alpha, BYTE red, BYTE green, BYTE blue);
@@ -529,16 +529,16 @@ namespace NTempest {
     void       FromARGB(BYTE alpha, const CArgb4444 &rgb);
 
     operator WORD() const {
-      return *reinterpret_cast<const WORD *>(this);
+      return *(const WORD *)this;
     }
 
     CArgb4444 &operator=(const WORD value) {
-      *reinterpret_cast<WORD *>(this) = value;
+      *(WORD *)this = value;
       return *this;
     }
 
     CArgb4444 &operator=(const CArgb4444 &value) {
-      return *this = static_cast<WORD>(value);
+      return *this = (WORD)value;
     }
 
     CArgb4444 &operator=(const CRgb565 &c) {

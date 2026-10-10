@@ -70,7 +70,9 @@ namespace NTempest {
     bool    NotInvalid() const;
     bool    Encloses(const C2iVector &value) const;
     bool    Encloses(const CiRect &value) const;
-    bool    Contains(const C2iVector &value) const;
+    bool    Contains(const C2iVector &value) const {
+      return value.x >= l && value.x <= r && value.y >= t && value.y <= b;
+    }
     bool    Contains(const CiRect &value) const;
     bool    InOpenR(const C2iVector &value) const;
     bool    InOpenR(const CiRect &value) const;

@@ -82,48 +82,48 @@ namespace MDL {
   int CallTextReadHandler(UINT token, mdl_scan &scanner, MDLDATA &data, CMDLStatus *status) {
     Parser parse(status, scanner);
     switch (token) {
-      case 0x103:
+      case MDLTOK_VERSION:
         return ReadVersion(parse, data, status);
-      case 0x104:
+      case MDLTOK_MODEL:
         return ReadModelGlobals(parse, data, status);
-      case 0x105:
+      case MDLTOK_SEQUENCES:
         return ReadSequences(parse, data, status);
-      case 0x106:
+      case MDLTOK_GLOBALSEQUENCES:
         return ReadGlobalSequences(parse, data, status);
-      case 0x107:
+      case MDLTOK_TEXTUREANIMS:
         return ReadTextureAnims(parse, data, status);
-      case 0x108:
+      case MDLTOK_TEXTURES:
         return ReadTextures(parse, data, status);
-      case 0x109:
+      case MDLTOK_MATERIALS:
         return ReadMaterials(parse, data, status);
-      case 0x10A:
+      case MDLTOK_GEOSET:
         return ReadGeoset(parse, data, status);
-      case 0x10B:
+      case MDLTOK_GEOSETANIM:
         return ReadGeosetAnim(parse, data, status);
-      case 0x10C:
+      case MDLTOK_BONE:
         return ReadBone(parse, data, status);
-      case 0x10E:
+      case MDLTOK_LIGHT:
         return ReadLight(parse, data, status);
-      case 0x10F:
+      case MDLTOK_HELPER:
         return ReadHelper(parse, data, status);
-      case 0x110:
+      case MDLTOK_ATTACHMENT:
         return ReadAttachment(parse, data, status);
-      case 0x111:
+      case MDLTOK_PIVOTPOINTS:
         return ReadPivotPoints(parse, data, status);
-      case 0x112:
+      case MDLTOK_PARTICLEEMITTER:
         return ReadParticleEmitter(parse, data, status);
-      case 0x113:
+      case MDLTOK_PARTICLEEMITTER2:
         return ReadParticleEmitter2(parse, data, status);
-      case 0x114:
+      case MDLTOK_CAMERA:
         return ReadCamera(parse, data, status);
-      case 0x115:
+      case MDLTOK_EVENTOBJECT:
         return ReadEventObject(parse, data, status);
-      case 0x116:
-      case 0x117:
+      case MDLTOK_HITTESTSHAPE:
+      case MDLTOK_COLLISIONSHAPE:
         return ReadHitTest(parse, data, status);
-      case 0x118:
+      case MDLTOK_RIBBONEMITTER:
         return ReadRibbonEmitter(parse, data, status);
-      case 0x119:
+      case MDLTOK_COLLISION:
         return ReadCollision(parse, data, status);
     }
     parse.FatalUnexpected(scanner.mdltext);

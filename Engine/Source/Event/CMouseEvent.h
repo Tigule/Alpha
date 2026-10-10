@@ -11,7 +11,7 @@ class CEvent : public TRefCnt {
   LPVOID param;
 
  public:
-  CEvent(UINT id = static_cast<UINT>(-1), LPVOID param = 0) : id(id), param(param) {
+  CEvent(UINT id = -1, LPVOID param = 0) : id(id), param(param) {
   }
 
   virtual ~CEvent() {
@@ -40,11 +40,11 @@ class CCharEvent : public CEvent, public EVENT_DATA_CHAR {
   }
 
   CCharEvent(const EVENT_DATA_CHAR &data) {
-    static_cast<EVENT_DATA_CHAR &>(*this) = data;
+    (EVENT_DATA_CHAR &)*this = data;
   }
 
   CCharEvent &operator=(const EVENT_DATA_CHAR &data) {
-    static_cast<EVENT_DATA_CHAR &>(*this) = data;
+    (EVENT_DATA_CHAR &)*this = data;
     return *this;
   }
 
@@ -62,11 +62,11 @@ class CImeEvent : public CEvent, public EVENT_DATA_IME {
   }
 
   CImeEvent(const EVENT_DATA_IME &data) {
-    static_cast<EVENT_DATA_IME &>(*this) = data;
+    (EVENT_DATA_IME &)*this = data;
   }
 
   CImeEvent &operator=(const EVENT_DATA_IME &data) {
-    static_cast<EVENT_DATA_IME &>(*this) = data;
+    (EVENT_DATA_IME &)*this = data;
     return *this;
   }
 
@@ -80,11 +80,11 @@ class CFocusEvent : public CEvent, public EVENT_DATA_FOCUS {
   }
 
   CFocusEvent(const EVENT_DATA_FOCUS &data) {
-    static_cast<EVENT_DATA_FOCUS &>(*this) = data;
+    (EVENT_DATA_FOCUS &)*this = data;
   }
 
   CFocusEvent &operator=(const EVENT_DATA_FOCUS &data) {
-    static_cast<EVENT_DATA_FOCUS &>(*this) = data;
+    (EVENT_DATA_FOCUS &)*this = data;
     return *this;
   }
 
@@ -98,11 +98,11 @@ class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
   }
 
   CKeyEvent(const EVENT_DATA_KEY &data) {
-    static_cast<EVENT_DATA_KEY &>(*this) = data;
+    (EVENT_DATA_KEY &)*this = data;
   }
 
   CKeyEvent &operator=(const EVENT_DATA_KEY &data) {
-    static_cast<EVENT_DATA_KEY &>(*this) = data;
+    (EVENT_DATA_KEY &)*this = data;
     return *this;
   }
 
@@ -145,11 +145,11 @@ class CSizeEvent : public CEvent, public EVENT_DATA_SIZE {
   }
 
   CSizeEvent(const EVENT_DATA_SIZE &data) {
-    static_cast<EVENT_DATA_SIZE &>(*this) = data;
+    (EVENT_DATA_SIZE &)*this = data;
   }
 
   CSizeEvent &operator=(const EVENT_DATA_SIZE &data) {
-    static_cast<EVENT_DATA_SIZE &>(*this) = data;
+    (EVENT_DATA_SIZE &)*this = data;
     return *this;
   }
 

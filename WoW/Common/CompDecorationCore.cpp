@@ -125,7 +125,7 @@ void CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buf
     return;
   }
 
-  BuildTexComponentPath(string, section, finalName, sizeof(finalName), static_cast<UNIT_SEX>(sex), includeSex);
+  BuildTexComponentPath(string, section, finalName, sizeof(finalName), (UNIT_SEX)sex, includeSex);
   if (finalName[0] && ComponentUtilImageFileExists(finalName)) {
     SStrCopy(buffer, finalName, size);
   } else {

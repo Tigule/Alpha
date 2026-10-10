@@ -14,11 +14,11 @@ HOBJECT HandleCreate(CHandleObject *ptr, LPCSTR handleName) {
   VALIDATEEND;
 
   ptr->IncRef();
-  return reinterpret_cast<HOBJECT>(ptr);
+  return (HOBJECT)ptr;
 }
 
 CHandleObject *HandleDereference(HOBJECT handle) {
-  return reinterpret_cast<CHandleObject *>(handle);
+  return (CHandleObject *)handle;
 }
 
 void HandleDestroy() {
@@ -33,7 +33,7 @@ HOBJECT HandleDuplicate(HOBJECT handle) {
 
   ptr = HandleDereference(handle);
   ptr->IncRef();
-  return reinterpret_cast<HOBJECT>(ptr);
+  return (HOBJECT)ptr;
 }
 
 void HandleInitialize() {

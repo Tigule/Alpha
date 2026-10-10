@@ -21,7 +21,7 @@ struct SYNCDATA {
 };
 
 static SYNCDATA *SyncData(LPVOID opaqueData) {
-  return reinterpret_cast<SYNCDATA *>(opaqueData);
+  return (SYNCDATA *)opaqueData;
 }
 
 static void SyncDeadline(DWORD timeoutMs, struct timespec *deadline) {
@@ -110,7 +110,7 @@ DWORD SSyncObject::Wait(DWORD timeoutMs) {
     }
 
     if (locked != EBUSY) {
-      return static_cast<DWORD>(-1);
+      return (DWORD)-1;
     }
 
     gettimeofday(&now, 0);
@@ -137,7 +137,7 @@ DWORD SSyncObject::Wait(DWORD timeoutMs) {
     waited = pthread_cond_timedwait(&sync->cond, &sync->mutex, &deadline);
     if (waited) {
       pthread_mutex_unlock(&sync->mutex);
-      return waited == ETIMEDOUT ? WAIT_TIMEOUT : static_cast<DWORD>(-1);
+      return waited == ETIMEDOUT ? WAIT_TIMEOUT : (DWORD)-1;
     }
   }
 }
@@ -203,31 +203,31 @@ BOOL SSemaphore::Signal(UINT count) {
 }
 
 CSRWLock::CSRWLock() {
-  pthread_rwlock_init(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData), 0);
+  pthread_rwlock_init((pthread_rwlock_t *)m_opaqueData, 0);
 }
 
 CSRWLock::~CSRWLock() {
-  pthread_rwlock_destroy(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData));
+  pthread_rwlock_destroy((pthread_rwlock_t *)m_opaqueData);
 }
 
 void CSRWLock::Enter(int forwriting) {
   if (forwriting) {
-    pthread_rwlock_wrlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData));
+    pthread_rwlock_wrlock((pthread_rwlock_t *)m_opaqueData);
   } else {
-    pthread_rwlock_rdlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData));
+    pthread_rwlock_rdlock((pthread_rwlock_t *)m_opaqueData);
   }
 }
 
 void CSRWLock::Leave(int fromwriting) {
-  pthread_rwlock_unlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData));
+  pthread_rwlock_unlock((pthread_rwlock_t *)m_opaqueData);
 }
 
 BOOL CSRWLock::TryEnter(int forwriting) {
   if (forwriting) {
-    return pthread_rwlock_trywrlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData)) == 0;
+    return pthread_rwlock_trywrlock((pthread_rwlock_t *)m_opaqueData) == 0;
   }
 
-  return pthread_rwlock_tryrdlock(reinterpret_cast<pthread_rwlock_t *>(m_opaqueData)) == 0;
+  return pthread_rwlock_tryrdlock((pthread_rwlock_t *)m_opaqueData) == 0;
 }
 
 int SGetCurrentThreadPriority() {

@@ -43,7 +43,7 @@ namespace Private {
     int i;
 
     for (i = 7; i >= 0; i--) {
-      b[i] = (BYTE)a;
+      b[i] = a;
       a >>= 8;
     }
   }
@@ -52,7 +52,7 @@ namespace Private {
     int i;
 
     for (i = 3; i >= 0; i--) {
-      b[i] = (BYTE)a;
+      b[i] = a;
       a >>= 8;
     }
   }

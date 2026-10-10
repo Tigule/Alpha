@@ -51,7 +51,7 @@ class CSimpleHTML : public CSimpleHyperlinkedFrame {
   LISTDECL(REGIONNODE, m_content);
   CLayoutFrame               *m_layoutAnchor;
   float                       m_layoutOffset;
-  CSimpleFontStringAttributes m_attrib[4];
+  CSimpleFontStringAttributes m_attrib[NUM_HTML_TEXT_TYPES];
   LISTDECLEX(CSimpleHyperlinkButton, m_link, m_hyperlinks);
 };
 

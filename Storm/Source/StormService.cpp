@@ -23,19 +23,19 @@ extern "C" int __cdecl StormCallService(int selector, ...) {
 
   switch (selector) {
     case STORM_SERVICE_SMEM_GET_ALLOCATOR:
-      result = ISMemGetAllocator((char *)args);
+      result = ISMemGetAllocator(args);
       break;
 
     case STORM_SERVICE_SMEM_GENERATE_REPORT:
-      result = ISMemGenerateReport((char *)args);
+      result = ISMemGenerateReport(args);
       break;
 
     case STORM_SERVICE_SSTR_I64_TO_STRING:
-      result = ISStrI64ToString((char *)args);
+      result = ISStrI64ToString(args);
       break;
 
     case STORM_SERVICE_SMEM_MARK_ALL_HEAPS:
-      result = ISMemMarkAllHeaps((char *)args);
+      result = ISMemMarkAllHeaps(args);
       break;
 
     default:

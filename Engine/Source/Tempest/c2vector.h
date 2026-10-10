@@ -20,7 +20,7 @@ namespace NTempest {
     C2Vector(float x, float y) : x(x), y(y) {
     }
 
-    C2Vector(const C2iVector &a) : x(static_cast<float>(a.x)), y(static_cast<float>(a.y)) {
+    C2Vector(const C2iVector &a) : x((float)a.x), y((float)a.y) {
     }
 
     ~C2Vector() {
@@ -187,7 +187,7 @@ namespace NTempest {
     return C2Vector(l * r.x, l * r.y);
   }
 
-  inline C2iVector::C2iVector(const C2Vector &vector) : x(static_cast<long>(vector.x)), y(static_cast<long>(vector.y)) {
+  inline C2iVector::C2iVector(const C2Vector &vector) : x((long)vector.x), y((long)vector.y) {
   }
 
 }  // namespace NTempest

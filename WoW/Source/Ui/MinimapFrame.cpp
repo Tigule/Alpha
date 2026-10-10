@@ -134,15 +134,24 @@ static TSGrowableArray<OBJINFO> s_miniMapObjects[5];
 static PARTYMEMBERINFO          s_partyDirectionData[5];
 static WORD                     idx[4] = {0, 1, 3, 2};
 
+inline NTempest::CRect &NTempest::CRect::operator-=(const NTempest::CRect &value) {
+  t -= value.t;
+  l -= value.l;
+  b -= value.b;
+  r -= value.r;
+  return *this;
+}
+
 NTempest::C2Vector
 CGMinimapFrame::WorldPosToMinimapFrameCoords(const NTempest::C3Vector centerPoint, float radius, float x, float y, float layoutScale) {
-  const float halfSize = MINIMAPSIDELENGTH * layoutScale * 0.5f;
-  const float ooRadius = 1.0f / radius;
-  return NTempest::C2Vector(halfSize - halfSize * (y - centerPoint.y) * ooRadius, halfSize + halfSize * (x - centerPoint.x) * ooRadius);
+  NTempest::C2Vector offset(x - centerPoint.x, y - centerPoint.y);
+  offset *= MINIMAPSIDELENGTH * layoutScale * 0.5f;
+  offset /= radius;
+  return NTempest::C2Vector(MINIMAPSIDELENGTH * layoutScale * 0.5f - offset.y, MINIMAPSIDELENGTH * layoutScale * 0.5f + offset.x);
 }
 
 BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
-  MINIMAPINFO *info = static_cast<MINIMAPINFO *>(param);
+  MINIMAPINFO *info = (MINIMAPINFO *)param;
   FATALASSERT(info);
 
   if (object == ClntObjMgrGetActivePlayer()) {
@@ -166,7 +175,7 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
         return 1;
       }
     case HIER_TYPE_UNIT: {
-      CGUnit_C *unit = static_cast<CGUnit_C *>(objectPtr);
+      CGUnit_C *unit = (CGUnit_C *)objectPtr;
       if (unit->GetControlGUID() == ClntObjMgrGetActivePlayer()) {
         type = 2;
       } else {
@@ -182,7 +191,7 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
     }
     case HIER_TYPE_GAMEOBJECT:
       type = 0;
-      if (!player->CanTrack(static_cast<CGGameObject_C *>(objectPtr))) {
+      if (!player->CanTrack((CGGameObject_C *)objectPtr)) {
         return 1;
       }
       break;
@@ -203,11 +212,8 @@ QUADDATA::QUADDATA() : m_texture(0) {
 
 NTempest::CRect QUADDATA::NormalizeToQuad(UINT quad, NTempest::CRect clippedRect) {
   FATALASSERT(quad < MAX_QUADDATA);
-  const QUADINFO &box = s_mapBoxExtents[quad];
-  return NTempest::CRect(
-      2.0f * (clippedRect.t - box.m_UL.y), 2.0f * (clippedRect.l - box.m_UL.x), 2.0f * (clippedRect.b - box.m_UL.y),
-      2.0f * (clippedRect.r - box.m_UL.x)
-  );
+  clippedRect -= NTempest::CRect(s_mapBoxExtents[quad].m_UL.y, s_mapBoxExtents[quad].m_UL.x, s_mapBoxExtents[quad].m_UL.y, s_mapBoxExtents[quad].m_UL.x);
+  return NTempest::CRect(2.0f * clippedRect.t, 2.0f * clippedRect.l, 2.0f * clippedRect.b, 2.0f * clippedRect.r);
 }
 
 void QUADDATA::UpdateData(UINT quad, const NTempest::C2Vector centerPoint, float radius, float layoutScale) {
@@ -218,22 +224,23 @@ void QUADDATA::UpdateData(UINT quad, const NTempest::C2Vector centerPoint, float
   }
 
   NTempest::CRect maskBox(centerPoint.y - radius, centerPoint.x - radius, centerPoint.y + radius, centerPoint.x + radius);
-  const QUADINFO &box = s_mapBoxExtents[quad];
-  NTempest::CRect clippedRect;
-  clippedRect.t = box.m_UL.y > maskBox.t ? box.m_UL.y : maskBox.t;
-  clippedRect.l = box.m_UL.x > maskBox.l ? box.m_UL.x : maskBox.l;
-  clippedRect.b = box.m_LR.y < maskBox.b ? box.m_LR.y : maskBox.b;
-  clippedRect.r = box.m_LR.x < maskBox.r ? box.m_LR.x : maskBox.r;
-  if (clippedRect.b > box.m_UL.y && clippedRect.t < box.m_LR.y && clippedRect.r > box.m_UL.x && clippedRect.l < box.m_LR.x) {
-    GenerateVertTexInfo(clippedRect, quad, centerPoint, radius, maskBox, layoutScale);
-    m_flags |= 1;
+  NTempest::CRect clippedRect(
+      max(maskBox.t, s_mapBoxExtents[quad].m_UL.y), max(maskBox.l, s_mapBoxExtents[quad].m_UL.x), min(maskBox.b, s_mapBoxExtents[quad].m_LR.y),
+      min(maskBox.r, s_mapBoxExtents[quad].m_LR.x)
+  );
+  if (clippedRect.b <= s_mapBoxExtents[quad].m_UL.y || clippedRect.t >= s_mapBoxExtents[quad].m_LR.y ||
+      clippedRect.r <= s_mapBoxExtents[quad].m_UL.x || clippedRect.l >= s_mapBoxExtents[quad].m_LR.x) {
+    return;
   }
+
+  GenerateVertTexInfo(clippedRect, quad, centerPoint, radius, maskBox, layoutScale);
+  m_flags |= 1;
 }
 
 void CGMinimapFrame::OnLayerUpdate(float elapsedSec) {
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
-  if (m_playerArrowFrame->ModelJustLoaded() || (!(m_playerArrowFrame->m_flags & 0x8) && (m_playerArrowFrame->m_flags & 0x1))) {
+  if (m_playerArrowFrame->ModelJustLoaded() || (!(m_playerArrowFrame->m_flags & MODEL_ARROW_LOADED) && (m_playerArrowFrame->m_flags & 0x1))) {
     SetPlayerArrowPosition();
   }
 
@@ -441,8 +448,8 @@ void QUADDATA::GenerateVertTexInfo(
 }
 
 void CGMinimapFrame::UpdateGeometry(const NTempest::C2Vector &centerPoint, float radius) {
-  for (UINT quad = 0; quad < 1024; ++quad) {
-    s_quadData[quad].UpdateData(quad, centerPoint, radius, GetLayoutScale());
+  for (UINT quad = 0; quad < MAX_QUADDATA; ++quad) {
+    s_quadData[quad].UpdateData(quad, centerPoint, radius, m_layoutScale);
   }
 }
 
@@ -483,17 +490,19 @@ void CGMinimapFrame::OnFrameRender(CRenderBatch *batch, UINT layer) {
 
 void CGMinimapFrame::RenderCallback(LPVOID param) {
   if (param) {
-    static_cast<CGMinimapFrame *>(param)->Render();
+    ((CGMinimapFrame *)param)->Render();
   }
 }
 
 void CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
-  for (UINT index = 0; index < 1024; ++index) {
+  for (UINT index = 0; index < MAX_QUADDATA; ++index) {
     QUADDATA *quad = &s_quadData[index];
     if (quad->m_flags & 2) {
-      QUADDATA **link = &rHead;
-      while (*link && quad->sortz > (*link)->sortz) {
-        link = &(*link)->rLink;
+      QUADDATA **link;
+      for (link = &rHead; *link; link = &(*link)->rLink) {
+        if (quad->sortz <= (*link)->sortz) {
+          break;
+        }
       }
       quad->rLink = *link;
       *link = quad;
@@ -525,15 +534,15 @@ void CGMinimapFrame::RenderInsideQuad(QUADDATA *q) {
 }
 
 void CGMinimapFrame::RenderInsideTexture() {
-  NTempest::C44Matrix oldViewMtx;
   NTempest::C44Matrix oldProjMtx;
-  NTempest::C44Matrix projMtx;
-  QUADDATA           *rHead = 0;
-  const float         orthoSize = s_minimapTexParams.size * 1.5f;
-
   GxXformProjection(oldProjMtx);
+
+  NTempest::C44Matrix projMtx;
+  const float         orthoSize = s_minimapTexParams.size * 1.5f;
   GxuXformCreateOrtho(-orthoSize, orthoSize, -orthoSize, orthoSize, -1000.0f, 1000.0f, projMtx);
   GxXformSetProjection(projMtx);
+
+  NTempest::C44Matrix oldViewMtx;
   GxXformView(oldViewMtx);
   GxXformSetView(NTempest::C44Matrix());
 
@@ -554,6 +563,7 @@ void CGMinimapFrame::RenderInsideTexture() {
   );
 
   s_minimapTexParams.asyncTexWait = 0;
+  QUADDATA *rHead = 0;
   RenderInsideSortQuads(rHead);
   for (QUADDATA *quad = rHead; quad; quad = quad->rLink) {
     RenderInsideQuad(quad);
@@ -687,7 +697,7 @@ void CGMinimapFrame::Initialize(int continentID) {
 
   s_minimapTexParams.size = 10.0f;
 
-  EGxTexFormat format;
+  EGxTexFormat format = GxTex_Unknown;
   if (GxCaps().m_rttFormat[GxTex_Argb8888]) {
     format = GxTex_Argb8888;
   } else if (GxCaps().m_rttFormat[GxTex_Rgb565]) {
@@ -698,16 +708,16 @@ void CGMinimapFrame::Initialize(int continentID) {
 
   GxTexCreate(256, 256, format, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1), 0, MinimapTextureCallback, s_minimapTexParams.texture);
 
-  for (UINT icon = 0; icon < 16; ++icon) {
-    float left = static_cast<float>(32 * (icon & 3));
-    float right = left + 32.0f;
-    float top = static_cast<float>(32 * (icon / 4));
-    float bottom = top + 32.0f;
+  for (int icon = 0; icon < sizeof(s_iconCoords) / sizeof(s_iconCoords[0]); ++icon) {
+    s_iconCoords[icon][0].Set((icon % 4) * 32, (icon / 4 + 1) * 32);
+    s_iconCoords[icon][1].Set((icon % 4 + 1) * 32, (icon / 4 + 1) * 32);
+    s_iconCoords[icon][2].Set((icon % 4) * 32, (icon / 4) * 32);
+    s_iconCoords[icon][3].Set((icon % 4 + 1) * 32, (icon / 4) * 32);
 
-    s_iconCoords[icon][0] = NTempest::C2Vector(left * 0.0078125f, bottom * 0.0078125f);
-    s_iconCoords[icon][1] = NTempest::C2Vector(right * 0.0078125f, bottom * 0.0078125f);
-    s_iconCoords[icon][2] = NTempest::C2Vector(left * 0.0078125f, top * 0.0078125f);
-    s_iconCoords[icon][3] = NTempest::C2Vector(right * 0.0078125f, top * 0.0078125f);
+    s_iconCoords[icon][0] *= NTempest::C2Vector(0.0078125f);
+    s_iconCoords[icon][1] *= NTempest::C2Vector(0.0078125f);
+    s_iconCoords[icon][2] *= NTempest::C2Vector(0.0078125f);
+    s_iconCoords[icon][3] *= NTempest::C2Vector(0.0078125f);
   }
 }
 
@@ -772,12 +782,12 @@ void CGMinimapFrame::Render() {
   if (brightness > 255) {
     brightness = 255;
   }
-  ambient.r = static_cast<BYTE>(ambient.r + ((brightness * (255 - ambient.r)) >> 8));
-  ambient.g = static_cast<BYTE>(ambient.g + ((brightness * (255 - ambient.g)) >> 8));
-  ambient.b = static_cast<BYTE>(ambient.b + ((brightness * (255 - ambient.b)) >> 8));
-  color.r = static_cast<BYTE>(color.r + ((192 * (ambient.r - color.r)) >> 8));
-  color.g = static_cast<BYTE>(color.g + ((192 * (ambient.g - color.g)) >> 8));
-  color.b = static_cast<BYTE>(color.b + ((192 * (ambient.b - color.b)) >> 8));
+  ambient.r = ambient.r + ((brightness * (255 - ambient.r)) >> 8);
+  ambient.g = ambient.g + ((brightness * (255 - ambient.g)) >> 8);
+  ambient.b = ambient.b + ((brightness * (255 - ambient.b)) >> 8);
+  color.r = color.r + ((192 * (ambient.r - color.r)) >> 8);
+  color.g = color.g + ((192 * (ambient.g - color.g)) >> 8);
+  color.b = color.b + ((192 * (ambient.b - color.b)) >> 8);
   GxVertexShaderSelect(GxVS_PassThru);
 
   if (s_minimapTexParams.inside) {
@@ -805,7 +815,7 @@ void CGMinimapFrame::Render() {
     RenderInside(s_minimapTexParams.size, texOffset);
     GxXformSetView(oldViewMtx);
   } else {
-    for (UINT quad = 0; quad < 1024; ++quad) {
+    for (UINT quad = 0; quad < MAX_QUADDATA; ++quad) {
       s_quadData[quad].Render(quad, color);
     }
   }
@@ -854,7 +864,7 @@ void CGMinimapFrame::Render() {
   if (s_minimapTexParams.inside) {
     for (UINT hideArrow = 0; hideArrow < 3; ++hideArrow) {
       m_rotatingArrowFrame[hideArrow]->Hide();
-      if (s_tooltipDisplayDistant == static_cast<int>(hideArrow) && !s_tooltipDisplay) {
+      if (s_tooltipDisplayDistant == (int)hideArrow && !s_tooltipDisplay) {
         m_tooltip->Hide();
       }
     }
@@ -865,7 +875,7 @@ void CGMinimapFrame::Render() {
     }
     for (UINT hideArrow = arrowCount; hideArrow < 3; ++hideArrow) {
       m_rotatingArrowFrame[hideArrow]->Hide();
-      if (s_tooltipDisplayDistant == static_cast<int>(hideArrow) && !s_tooltipDisplay) {
+      if (s_tooltipDisplayDistant == (int)hideArrow && !s_tooltipDisplay) {
         m_tooltip->Hide();
       }
     }
@@ -889,7 +899,7 @@ void CGMinimapFrame::Render() {
       m_rotatingPartyFrame[partyVisibility]->Show();
     } else {
       m_rotatingPartyFrame[partyVisibility]->Hide();
-      if (s_tooltipDisplayParty == static_cast<int>(partyVisibility) && !s_tooltipDisplay) {
+      if (s_tooltipDisplayParty == (int)partyVisibility && !s_tooltipDisplay) {
         m_tooltip->Hide();
       }
     }
@@ -947,14 +957,13 @@ void CGMinimapFrame::Render() {
 void CGMinimapFrame::Shutdown() {
   MinimapShutdown();
 
-  for (UINT quad = 0; quad < 1024; ++quad) {
+  for (UINT quad = 0; quad < MAX_QUADDATA; ++quad) {
     if (s_quadData[quad].m_texture) {
       HandleClose(s_quadData[quad].m_texture);
       s_quadData[quad].m_texture = 0;
     }
     s_quadData[quad].m_flags = 0;
-    s_quadData[quad].m_areaNum.x = -1;
-    s_quadData[quad].m_areaNum.y = -1;
+    s_quadData[quad].m_areaNum = NTempest::C2iVector(-1, -1);
   }
 
   if (s_iconTexture) {
@@ -984,7 +993,7 @@ void CGMinimapFrame::Shutdown() {
 }
 
 CGMinimapFrame::CGMinimapFrame(CSimpleFrame *parent) : CSimpleFrame(parent), m_lastFacing(-10000.0f), m_lastBlipUpdate(0) {
-  EnableEvent(SIMPLE_EVENT_MOUSE, static_cast<UINT>(-1));
+  EnableEvent(SIMPLE_EVENT_MOUSE, -1);
 }
 
 void CGMinimapFrame::SetPlayerArrowPosition() {
@@ -1036,14 +1045,14 @@ void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CGMinimapFrame::SetPingPosition(const DWORDLONG &sender, const NTempest::C2Vector &pos) {
-  char               name[32] = "player";
-  NTempest::C2Vector diff;
-  CGPlayer_C        *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
     return;
   }
 
   m_pingPosition = pos;
+
+  char name[32] = "player";
   for (int index = 0; index < 4; ++index) {
     if (sender == CGGameUI::GetPartyMember(index)) {
       SStrPrintf(name, sizeof(name), "party%d", index + 1);
@@ -1051,24 +1060,24 @@ void CGMinimapFrame::SetPingPosition(const DWORDLONG &sender, const NTempest::C2
     }
   }
 
-  diff = pos - static_cast<NTempest::C2Vector>(player->GetPosition());
-  float scale = 1.0f / (MinimapGetViewRadius() * 2.0f);
-  FrameScript_SignalEvent(337, "%s%f%f", name, -diff.y * scale, diff.x * scale);
+  NTempest::C2Vector diff = pos - (NTempest::C2Vector)player->GetPosition();
+  diff /= MinimapGetViewRadius() * 2.0f;
+  FrameScript_SignalEvent(337, "%s%f%f", name, -diff.y, diff.x);
 }
 
 static int CGMinimapFrame_GetZoomLevels(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(MinimapGetZoomLevels()));
+  lua_pushnumber(L, MinimapGetZoomLevels());
   return 1;
 }
 
 static int CGMinimapFrame_GetZoom(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(MinimapGetZoom()));
+  lua_pushnumber(L, MinimapGetZoom());
   return 1;
 }
 
 static int CGMinimapFrame_SetZoom(lua_State *L) {
   if (lua_isnumber(L, 2)) {
-    MinimapSetZoom(static_cast<UINT>(lua_tonumber(L, 2)));
+    MinimapSetZoom(lua_tonumber(L, 2));
     return 0;
   }
   luaL_error(L, "Usage: SetZoom(level)");
@@ -1098,9 +1107,9 @@ static int CGMinimapFrame_PingLocation(lua_State *L) {
   float y = 0.0f;
   float viewSize = MinimapGetViewRadius() * 2.0f;
   if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
-    CGMinimapFrame *object = static_cast<CGMinimapFrame *>(FrameScript_GetObjectThis(L));
-    y = -static_cast<float>(lua_tonumber(L, 2) * 0.0009765625f * 0.8f);
-    x = static_cast<float>(lua_tonumber(L, 3) * 0.0009765625f * 0.8f);
+    CGMinimapFrame *object = (CGMinimapFrame *)FrameScript_GetObjectThis(L);
+    y = -(((float)lua_tonumber(L, 2) / 1024.0f) * 0.8f);
+    x = ((float)lua_tonumber(L, 3) / 1024.0f) * 0.8f;
     x = x / object->GetWidth() * viewSize;
     y = y / object->GetHeight() * viewSize;
   }
@@ -1116,8 +1125,7 @@ static int CGMinimapFrame_PingLocation(lua_State *L) {
     msg.Finalize();
     ClientServices_Send(&msg);
   } else {
-    NTempest::C2Vector position(x, y);
-    CGMinimapFrame::SetPingPosition(ClntObjMgrGetActivePlayer(), position);
+    CGMinimapFrame::SetPingPosition(ClntObjMgrGetActivePlayer(), NTempest::C2Vector(x, y));
   }
   return 0;
 }
@@ -1128,7 +1136,7 @@ static int CGMinimapFrame_GetPingPosition(lua_State *L) {
     lua_pushnumber(L, 0.0);
     lua_pushnumber(L, 0.0);
   } else {
-    NTempest::C2Vector diff = CGMinimapFrame::GetPingPosition() - static_cast<NTempest::C2Vector>(player->GetPosition());
+    NTempest::C2Vector diff = CGMinimapFrame::GetPingPosition() - (NTempest::C2Vector)player->GetPosition();
     diff /= MinimapGetViewRadius() * 2.0f;
     lua_pushnumber(L, -diff.y);
     lua_pushnumber(L, diff.x);

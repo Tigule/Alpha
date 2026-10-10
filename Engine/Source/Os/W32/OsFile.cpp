@@ -26,31 +26,29 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
 
   ASSERT(fileName);
   if (!fileName) {
-    return reinterpret_cast<HOSFILE>(INVALID_HANDLE_VALUE);
+    return (HOSFILE)INVALID_HANDLE_VALUE;
   }
 
   ASSERT(desiredAccess);
   if (!desiredAccess) {
-    return reinterpret_cast<HOSFILE>(INVALID_HANDLE_VALUE);
+    return (HOSFILE)INVALID_HANDLE_VALUE;
   }
 
   ASSERT(createDisposition >= OS_CREATE_NEW);
   ASSERT(createDisposition <= OS_TRUNCATE_EXISTING);
 
   if (createDisposition < OS_CREATE_NEW || createDisposition > OS_TRUNCATE_EXISTING) {
-    return reinterpret_cast<HOSFILE>(INVALID_HANDLE_VALUE);
+    return (HOSFILE)INVALID_HANDLE_VALUE;
   }
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
 
   (void)extendedFileType;
-  return reinterpret_cast<HOSFILE>(
-      CreateFileW(reinterpret_cast<LPCWSTR>(fileName16), desiredAccess, shareMode, 0, createDisposition, flagsAndAttributes, 0)
-  );
+  return (HOSFILE)CreateFileW(fileName16, desiredAccess, shareMode, 0, createDisposition, flagsAndAttributes, 0);
 }
 
 void OsCloseFile(HOSFILE fileHandle) {
-  CloseHandle(reinterpret_cast<HANDLE>(fileHandle));
+  CloseHandle(fileHandle);
 }
 
 BOOL OsFileExists(LPCSTR path) {
@@ -79,7 +77,7 @@ BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *byt
   VALIDATE(bytesRead);
   VALIDATEEND;
 
-  return ReadFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToRead, bytesRead, 0);
+  return ReadFile(fileHandle, buffer, bytesToRead, bytesRead, 0);
 }
 
 BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
@@ -88,43 +86,43 @@ BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *
   VALIDATE(bytesWritten);
   VALIDATEEND;
 
-  return WriteFile(reinterpret_cast<HANDLE>(fileHandle), buffer, bytesToWrite, bytesWritten, 0);
+  return WriteFile(fileHandle, buffer, bytesToWrite, bytesWritten, 0);
 }
 
 int OsFlushFile(HOSFILE__ *fileHandle) {
-  return FlushFileBuffers(reinterpret_cast<HANDLE>(fileHandle));
+  return FlushFileBuffers(fileHandle);
 }
 
 DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD moveMethod) {
   LARGE_INTEGER distance;
 
   distance.QuadPart = distanceToMove;
-  distance.LowPart = SetFilePointer(reinterpret_cast<HANDLE>(fileHandle), distance.LowPart, &distance.HighPart, moveMethod);
+  distance.LowPart = SetFilePointer(fileHandle, distance.LowPart, &distance.HighPart, moveMethod);
 
   if (distance.LowPart == 0xFFFFFFFF && GetLastError()) {
-    return static_cast<DWORDLONG>(-1);
+    return (DWORDLONG)-1;
   }
 
-  return static_cast<DWORDLONG>(distance.QuadPart);
+  return distance.QuadPart;
 }
 
 DWORDLONG OsGetFileSize(HOSFILE__ *fileHandle) {
   LARGE_INTEGER size;
-  size.LowPart = GetFileSize(reinterpret_cast<HANDLE>(fileHandle), reinterpret_cast<DWORD *>(&size.HighPart));
+  size.LowPart = GetFileSize(fileHandle, (DWORD *)&size.HighPart);
   return size.QuadPart;
 }
 
 int OsGetFileTime(HOSFILE__ *fileHandle, OSFILETIME *createFileTime, OSFILETIME *accessFileTime, OSFILETIME *writeFileTime) {
   return GetFileTime(
-      reinterpret_cast<HANDLE>(fileHandle), reinterpret_cast<FILETIME *>(createFileTime), reinterpret_cast<FILETIME *>(accessFileTime),
-      reinterpret_cast<FILETIME *>(writeFileTime)
+      fileHandle, (FILETIME *)createFileTime, (FILETIME *)accessFileTime,
+      (FILETIME *)writeFileTime
   );
 }
 
 int OsSetFileTime(HOSFILE__ *fileHandle, const OSFILETIME *createFileTime, const OSFILETIME *accessFileTime, const OSFILETIME *writeFileTime) {
   return SetFileTime(
-      reinterpret_cast<HANDLE>(fileHandle), reinterpret_cast<const FILETIME *>(createFileTime), reinterpret_cast<const FILETIME *>(accessFileTime),
-      reinterpret_cast<const FILETIME *>(writeFileTime)
+      fileHandle, (const FILETIME *)createFileTime, (const FILETIME *)accessFileTime,
+      (const FILETIME *)writeFileTime
   );
 }
 
@@ -150,7 +148,7 @@ int OsGetFileTime(LPCSTR fileName, OSFILETIME *createFileTime, OSFILETIME *acces
 }
 
 int OsSetEndOfFile(HOSFILE__ *fileHandle) {
-  return SetEndOfFile(reinterpret_cast<HANDLE>(fileHandle));
+  return SetEndOfFile(fileHandle);
 }
 
 DWORD OsGetFileAttributes(LPCSTR fileName) {
@@ -161,7 +159,7 @@ DWORD OsGetFileAttributes(LPCSTR fileName) {
   VALIDATEEND;
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
-  return GetFileAttributesW(reinterpret_cast<LPCWSTR>(fileName16));
+  return GetFileAttributesW(fileName16);
 }
 
 int OsSetFileAttributes(LPCSTR fileName, DWORD attributes) {
@@ -172,7 +170,7 @@ int OsSetFileAttributes(LPCSTR fileName, DWORD attributes) {
   VALIDATEEND;
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
-  return SetFileAttributesW(reinterpret_cast<LPCWSTR>(fileName16), attributes);
+  return SetFileAttributesW(fileName16, attributes);
 }
 
 BOOL OsMoveFile(LPCSTR existingFileName, LPCSTR newFileName) {
@@ -186,7 +184,7 @@ BOOL OsMoveFile(LPCSTR existingFileName, LPCSTR newFileName) {
 
   SUniConvertUTF8to16(newFileName16, MAX_PATH, newFileName, 0x7FFFFFFF, 0, 0);
   SUniConvertUTF8to16(existingFileName16, MAX_PATH, existingFileName, 0x7FFFFFFF, 0, 0);
-  return MoveFileW(reinterpret_cast<LPCWSTR>(existingFileName16), reinterpret_cast<LPCWSTR>(newFileName16));
+  return MoveFileW(existingFileName16, newFileName16);
 }
 
 int OsCopyFile(LPCSTR existingFileName, LPCSTR newFileName, int failIfExists) {
@@ -194,7 +192,7 @@ int OsCopyFile(LPCSTR existingFileName, LPCSTR newFileName, int failIfExists) {
   WORD newFileName16[MAX_PATH];
   SUniConvertUTF8to16(newFileName16, MAX_PATH, newFileName, 0x7FFFFFFF, 0, 0);
   SUniConvertUTF8to16(existingFileName16, MAX_PATH, existingFileName, 0x7FFFFFFF, 0, 0);
-  return CopyFileW(reinterpret_cast<LPCWSTR>(existingFileName16), reinterpret_cast<LPCWSTR>(newFileName16), failIfExists);
+  return CopyFileW(existingFileName16, newFileName16, failIfExists);
 }
 
 BOOL OsDeleteFile(LPCSTR fileName) {
@@ -205,7 +203,7 @@ BOOL OsDeleteFile(LPCSTR fileName) {
   VALIDATEEND;
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
-  return DeleteFileW(reinterpret_cast<LPCWSTR>(fileName16));
+  return DeleteFileW(fileName16);
 }
 
 BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
@@ -223,14 +221,14 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
     while (slash) {
       *slash = 0;
       SUniConvertUTF8to16(pathName16, MAX_PATH, tempName, 0x7FFFFFFF, 0, 0);
-      CreateDirectoryW(reinterpret_cast<LPCWSTR>(pathName16), 0);
+      CreateDirectoryW(pathName16, 0);
       *slash = '\\';
       slash = SStrChr(slash + 1, '\\');
     }
   }
 
   SUniConvertUTF8to16(pathName16, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
-  return CreateDirectoryW(reinterpret_cast<LPCWSTR>(pathName16), 0);
+  return CreateDirectoryW(pathName16, 0);
 }
 
 int OsRemoveDirectory(LPCSTR pathName) {
@@ -241,7 +239,7 @@ int OsRemoveDirectory(LPCSTR pathName) {
   VALIDATEEND;
 
   SUniConvertUTF8to16(pathName16, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
-  return RemoveDirectoryW(reinterpret_cast<LPCWSTR>(pathName16));
+  return RemoveDirectoryW(pathName16);
 }
 
 struct RemoveDirectoryRecurseData {
@@ -260,7 +258,7 @@ BOOL OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &
   {
     WORD findPath16[MAX_PATH];
     SUniConvertUTF8to16(findPath16, MAX_PATH, findPath, 0x7FFFFFFF, 0, 0);
-    findHandle = FindFirstFileW(reinterpret_cast<LPCWSTR>(findPath16), &findData);
+    findHandle = FindFirstFileW(findPath16, &findData);
   }
   int result = 0;
   if (findHandle != INVALID_HANDLE_VALUE) {
@@ -292,7 +290,7 @@ BOOL OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &
 }
 
 static BOOL EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
-  RemoveDirectoryRecurseData *data = static_cast<RemoveDirectoryRecurseData *>(param);
+  RemoveDirectoryRecurseData *data = (RemoveDirectoryRecurseData *)param;
   LPCSTR                      pathSlash;
   char                        relPath[MAX_PATH];
 
@@ -340,7 +338,7 @@ BOOL OsSetCurrentDirectory(LPCSTR pathName) {
   VALIDATEEND;
 
   SUniConvertUTF8to16(dst, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
-  return SetCurrentDirectoryW(reinterpret_cast<LPCWSTR>(dst));
+  return SetCurrentDirectoryW(dst);
 }
 
 BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
@@ -350,7 +348,7 @@ BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   VALIDATE(pathName);
   VALIDATEEND;
 
-  if (!GetCurrentDirectoryW(pathLen, reinterpret_cast<LPWSTR>(pathNameW))) {
+  if (!GetCurrentDirectoryW(pathLen, pathNameW)) {
     return 0;
   }
 
@@ -365,7 +363,7 @@ BOOL OsFileAssocGetIdentifier(LPCSTR inFileExt, char *inBuffer, int inBufSize) {
   }
   DWORD type;
   DWORD bytesRead = inBufSize;
-  long  result = RegQueryValueExA(key, "", 0, &type, reinterpret_cast<BYTE *>(inBuffer), &bytesRead);
+  long  result = RegQueryValueExA(key, "", 0, &type, (BYTE *)inBuffer, &bytesRead);
   RegCloseKey(key);
   if (type != REG_SZ) {
     return 0;
@@ -376,7 +374,7 @@ BOOL OsFileAssocGetIdentifier(LPCSTR inFileExt, char *inBuffer, int inBufSize) {
 void OsFileAssocSetIdentifier(LPCSTR inFileExt, LPCSTR inIdentifier) {
   HKEY key;
   if (!RegCreateKeyExA(HKEY_CLASSES_ROOT, inFileExt, 0, 0, 0, KEY_WRITE, 0, &key, 0)) {
-    RegSetValueExA(key, "", 0, REG_SZ, reinterpret_cast<const BYTE *>(inIdentifier), SStrLen(inIdentifier) + 1);
+    RegSetValueExA(key, "", 0, REG_SZ, (const BYTE *)inIdentifier, SStrLen(inIdentifier) + 1);
     RegCloseKey(key);
   }
 }
@@ -402,7 +400,7 @@ BOOL OsFileAssocGetValue(LPCSTR inFileExt, int inAssocType, char *inBuffer, int 
   }
   DWORD type;
   DWORD bytesRead = inBufSize;
-  long  result = RegQueryValueExA(key, "", 0, &type, reinterpret_cast<BYTE *>(inBuffer), &bytesRead);
+  long  result = RegQueryValueExA(key, "", 0, &type, (BYTE *)inBuffer, &bytesRead);
   RegCloseKey(key);
   if (type != REG_SZ) {
     return 0;
@@ -422,7 +420,7 @@ void OsFileAssocSetValue(LPCSTR inFileExt, int inAssocType, LPCSTR inValue) {
     SStrPack(keyName, sFileAssocKey[inAssocType], 0x7FFFFFFF);
     HKEY key;
     if (!RegCreateKeyExA(HKEY_CLASSES_ROOT, keyName, 0, 0, 0, KEY_WRITE, 0, &key, 0)) {
-      RegSetValueExA(key, "", 0, REG_SZ, reinterpret_cast<const BYTE *>(inValue), SStrLen(inValue) + 1);
+      RegSetValueExA(key, "", 0, REG_SZ, (const BYTE *)inValue, SStrLen(inValue) + 1);
       RegCloseKey(key);
     }
   }
@@ -446,7 +444,7 @@ LONGLONG OsFileFreeSpace(LPCSTR path) {
   freeSpace.QuadPart = 0;
   totalBytes.QuadPart = 0;
   SUniConvertUTF8to16(path16, MAX_PATH, pathstr, 0x7FFFFFFF, 0, 0);
-  if (!GetDiskFreeSpaceExW(reinterpret_cast<LPCWSTR>(path16), &freeSpace, &totalBytes, 0)) {
+  if (!GetDiskFreeSpaceExW(path16, &freeSpace, &totalBytes, 0)) {
     return 0;
   }
   return freeSpace.QuadPart;

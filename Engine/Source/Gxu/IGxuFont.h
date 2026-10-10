@@ -160,9 +160,9 @@ struct GLYPHBITMAPDATA : public TSHashObject<GLYPHBITMAPDATA, HASHKEY_NONE> {
 struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
   CHARCODEDESC()
       : dataValid(0),
-        textureNumber(static_cast<UINT>(-1)),
-        rowNumber(static_cast<UINT>(-1)),
-        glyphStartPixel(static_cast<UINT>(-1)),
+        textureNumber(-1),
+        rowNumber(-1),
+        glyphStartPixel((UINT)-1),
         glyphEndPixel(0),
         bitmapData(0) {
   }

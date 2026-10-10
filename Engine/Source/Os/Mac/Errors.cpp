@@ -8,7 +8,7 @@
 char *OsGetLastErrorStr() {
   LPCSTR message = strerror(errno);
   DWORD  bytes = SStrLen(message) + 1;
-  char  *buffer = static_cast<char *>(SMemAlloc(bytes, __FILE__, __LINE__, 0));
+  char  *buffer = (char *)SMemAlloc(bytes, __FILE__, __LINE__, 0);
 
   SStrCopy(buffer, message, bytes);
   return buffer;

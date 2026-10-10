@@ -101,7 +101,7 @@ struct MDLKEYFRAME {
 
 template <class T>
 struct MDLKEYTRACK {
-  MDLKEYTRACK(MDLTRACKTYPE trackType = TRACK_HERMITE) : type(trackType), globalSeqId(static_cast<UINT>(-1)) {
+  MDLKEYTRACK(MDLTRACKTYPE trackType = TRACK_HERMITE) : type(trackType), globalSeqId((UINT)-1) {
   }
 
   TSGrowableArray<MDLKEYFRAME<T> > keys;
@@ -119,7 +119,7 @@ struct MDLINTKEY {
 
 template <class T>
 struct MDLSIMPLEKEYTRACK {
-  MDLSIMPLEKEYTRACK() : globalSeqId(static_cast<UINT>(-1)) {
+  MDLSIMPLEKEYTRACK() : globalSeqId((UINT)-1) {
   }
 
   TSGrowableArray<T> keys;
@@ -138,7 +138,7 @@ enum MDLTEXOP {
 };
 
 struct MDLTEXLAYER {
-  MDLTEXLAYER() : blendMode(TEXOP_LOAD), flags(0), textureId(0), transformId(static_cast<UINT>(-1)), coordId(0), staticAlpha(1.0f) {
+  MDLTEXLAYER() : blendMode(TEXOP_LOAD), flags(0), textureId(0), transformId((UINT)-1), coordId(0), staticAlpha(1.0f) {
   }
 
   MDLTEXOP                     blendMode;
@@ -210,7 +210,7 @@ struct MDLGEOSETANIMSECTION {
 };
 
 struct MDLGENOBJECT {
-  MDLGENOBJECT(UINT objectFlags = 0) : objectId(0), parentId(static_cast<UINT>(-1)), flags(objectFlags) {
+  MDLGENOBJECT(UINT objectFlags = 0) : objectId(0), parentId((UINT)-1), flags(objectFlags) {
   }
 
   CMdlString<80>                      name;
@@ -278,8 +278,12 @@ struct MDLSEQUENCESSECTION {
   NTempest::CiRange replay;
   UINT              blendTime;
 };
+
+inline MDLSEQUENCESSECTION::MDLSEQUENCESSECTION() : time(0), movespeed(0.0f), flags(0), frequency(0.0f), replay(0), blendTime(150) {
+}
+
 struct MDLGLOBALSEQSECTION {
-  MDLGLOBALSEQSECTION() {
+  MDLGLOBALSEQSECTION() : length(0) {
   }
 
   UINT length;
@@ -367,7 +371,7 @@ struct MDLTARGETSECTION {
 
 struct MDLCAMERASECTION {
   MDLCAMERASECTION() : pivot(0.0f), fieldOfView(0.0f), farClip(1000.0f), nearClip(8.0f) {
-    static_cast<char *>(name)[0] = 0;
+    ((char *)name)[0] = 0;
   }
 
   CMdlString<80>                  name;
@@ -481,8 +485,8 @@ struct MDLPARTICLEEMITTER2 : public MDLGENOBJECT {
         followScale1(0.0f),
         followSpeed2(0.0f),
         followScale2(0.0f) {
-    static_cast<char *>(geometryMdl)[0] = 0;
-    static_cast<char *>(recursionMdl)[0] = 0;
+    ((char *)geometryMdl)[0] = 0;
+    ((char *)recursionMdl)[0] = 0;
   }
 
   PARTICLE_EMITTER_TYPE               emitterType;
@@ -603,7 +607,8 @@ struct MDLPLANE {
 };
 
 struct MDLHITTESTSHAPE : public MDLGENOBJECT {
-  MDLHITTESTSHAPE() : MDLGENOBJECT(0x1000) {
+  MDLHITTESTSHAPE() : MDLGENOBJECT(0x1000), type(SHAPE_BOX) {
+    memset(&shape, 0, sizeof(shape));
   }
 
   MDLHITTESTSHAPE(const MDLHITTESTSHAPE &source) {

@@ -15,7 +15,7 @@
 #pragma pack(1)
 
 void ConvertUInt16FromBinary(WORD &value) {
-  value = (WORD)((((BYTE *)&value)[1] << 8) | ((BYTE *)&value)[0]);
+  value = (((BYTE *)&value)[1] << 8) | ((BYTE *)&value)[0];
 }
 
 void ConvertUInt32FromBinary(UINT &value) {
@@ -246,7 +246,7 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
   }
 
   UINT fileSize = ftell(file);
-  if (fileSize == static_cast<UINT>(-1)) {
+  if (fileSize == (UINT)-1) {
     return 0;
   }
 
@@ -262,7 +262,7 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
 
   UINT signatureOffset = 0;
   while (!feof(file)) {
-    if (static_cast<char>(fgetc(file)) == centralDirectoryHeaderSignature[signatureOffset]) {
+    if ((char)fgetc(file) == centralDirectoryHeaderSignature[signatureOffset]) {
       ++signatureOffset;
       if (signatureOffset == sizeof(centralDirectoryHeaderSignature)) {
         break;
@@ -276,7 +276,7 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
   }
 
   UINT headerOffset = ftell(file);
-  if (headerOffset == static_cast<UINT>(-1)) {
+  if (headerOffset == (UINT)-1) {
     return 0;
   }
   if (fseek(file, headerOffset - sizeof(cdirHeader.signature), SEEK_SET)) {
@@ -296,7 +296,7 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
 BOOL ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader) {
   DWORD i;
 
-  if (fseek(file, (long)cdirHeader.centralDirectoryOffset, SEEK_SET) != 0) {
+  if (fseek(file, cdirHeader.centralDirectoryOffset, SEEK_SET) != 0) {
     return 0;
   }
 
@@ -350,8 +350,8 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
     return 0;
   }
 
-  saveOffset = (DWORD)ftell(file);
-  fseek(file, (long)cdirFileHeader.localHeaderOffset, SEEK_SET);
+  saveOffset = ftell(file);
+  fseek(file, cdirFileHeader.localHeaderOffset, SEEK_SET);
   if (fread(&localFileHeader, sizeof(localFileHeader), 1, file) != 1) {
     return 0;
   }
@@ -380,7 +380,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
     localFileHeader.compressedSize = trailer.compressedSize;
     localFileHeader.uncompressedSize = trailer.uncompressedSize;
   }
-  compressedDataOffset = (DWORD)ftell(file);
+  compressedDataOffset = ftell(file);
 
   entry = (ZipFileDirEntry *)SMemAlloc(sizeof(ZipFileDirEntry), __FILE__, __LINE__, 0);
   if (entry) {
@@ -394,7 +394,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
   entry->compressionMethod = cdirFileHeader.compressionMethod;
   s_directory.Insert(entry, entry->filename);
 
-  fseek(file, (long)saveOffset, SEEK_SET);
+  fseek(file, saveOffset, SEEK_SET);
   return 1;
 }
 
@@ -476,8 +476,8 @@ ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD archive) {
     fcb->zlibStream.avail_in = 0;
     fcb->zlibStream.next_out = NULL;
     fcb->zlibStream.avail_out = 0;
-    fcb->zlibStream.zalloc = (alloc_func)zalloc;
-    fcb->zlibStream.zfree = (free_func)zfree;
+    fcb->zlibStream.zalloc = zalloc;
+    fcb->zlibStream.zfree = zfree;
     fcb->flags.Set(2);
     if (inflateInit2(&fcb->zlibStream, -15)) {
       DEL(fcb);
@@ -661,12 +661,12 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
     return 0;
   }
   archive = dirEntry->archive;
-  if (fseek(archive->file, (long)dirEntry->startOffset, SEEK_SET)) {
+  if (fseek(archive->file, dirEntry->startOffset, SEEK_SET)) {
     return 0;
   }
 
-  stream.zalloc = (alloc_func)zalloc;
-  stream.zfree = (free_func)zfree;
+  stream.zalloc = zalloc;
+  stream.zfree = zfree;
   compressedData = (BYTE *)SMemAlloc(dirEntry->compressedSize, __FILE__, __LINE__, 0);
   FATALASSERT(compressedData);
   stream.next_in = compressedData;
@@ -732,7 +732,7 @@ WowFile *TestFileSystemProvider::Open(LPCSTR filename) {
 }
 
 bool TestFileSystemProvider::Close(WowFile *f) {
-  fclose(static_cast<TestFile *>(f)->m_f);
+  fclose(((TestFile *)f)->m_f);
   delete f;
   return true;
 }

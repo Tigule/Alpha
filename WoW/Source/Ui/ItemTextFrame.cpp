@@ -105,7 +105,7 @@ void CGItemText::SetItem(const DWORDLONG &item, int callback) {
     return;
   }
 
-  CGItem_C *itemObject = static_cast<CGItem_C *>(object);
+  CGItem_C *itemObject = (CGItem_C *)object;
   if (itemObject->IsTranslated()) {
     DisplayText(item, 1);
     return;
@@ -117,7 +117,7 @@ void CGItemText::SetItem(const DWORDLONG &item, int callback) {
     if (container) {
       int slot = container->GetBag()->GetIndexOfObject(item);
       if (slot >= 0) {
-        player->ReadItem(itemObject->GetContainedIn(), static_cast<BYTE>(slot));
+        player->ReadItem(itemObject->GetContainedIn(), slot);
       }
     }
   }
@@ -145,7 +145,7 @@ void CGItemText::DisplayText(const DWORDLONG &item, int useSkill) {
 
   UINT language = 0;
   if (object->GetType() & TYPE_ITEM) {
-    CGItem_C *itemObject = static_cast<CGItem_C *>(object);
+    CGItem_C *itemObject = (CGItem_C *)object;
     if (itemObject->IsTranslated()) {
       SStrCopy(m_text, text->m_text, sizeof(m_text));
       FrameScript_SignalEvent(275);
@@ -156,7 +156,7 @@ void CGItemText::DisplayText(const DWORDLONG &item, int useSkill) {
     FATALASSERT(stats);
     language = stats->m_languageID;
   } else if (object->GetType() & TYPE_GAMEOBJECT) {
-    language = static_cast<CGGameObject_C *>(object)->GetPageTextLanguage();
+    language = ((CGGameObject_C *)object)->GetPageTextLanguage();
   } else {
     FrameScript_SignalEvent(275);
     return;
@@ -208,7 +208,7 @@ static int Script_ItemTextGetMaterial(lua_State *L) {
         material = stats->m_pageMaterial;
       }
     } else if (object->IsA(ID_GAMEOBJECT)) {
-      material = static_cast<CGGameObject_C *>(object)->GetPageTextMaterial();
+      material = ((CGGameObject_C *)object)->GetPageTextMaterial();
     }
     if (material > 0) {
       const PageTextMaterialRec *rec = g_pageTextMaterialDB.GetRecord(material);
@@ -223,7 +223,7 @@ static int Script_ItemTextGetMaterial(lua_State *L) {
 }
 
 static int Script_ItemTextGetPage(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGItemText::GetCurrentPage() + 1));
+  lua_pushnumber(L, CGItemText::GetCurrentPage() + 1);
   return 1;
 }
 

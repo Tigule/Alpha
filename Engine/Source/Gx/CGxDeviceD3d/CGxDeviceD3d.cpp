@@ -26,9 +26,9 @@ BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
 
   for (UINT i = 0; i < 4; ++i) {
     format = s_colorFormat[i];
-    nModes = d3d->GetAdapterModeCount(0, format);
+    nModes = d3d->GetAdapterModeCount(D3DADAPTER_DEFAULT, format);
     for (mode = 0; mode < nModes; ++mode) {
-      if (d3d->EnumAdapterModes(0, format, mode, &dm) < 0 || dm.Width < 640 || dm.Height < 480) {
+      if (d3d->EnumAdapterModes(D3DADAPTER_DEFAULT, format, mode, &dm) < 0 || dm.Width < 640 || dm.Height < 480) {
         continue;
       }
 
@@ -87,9 +87,9 @@ BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi
     d3dLib = 0;
     d3d = 0;
     if (CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
-      if (d3d->GetAdapterIdentifier(0, 0, &adapterId) >= 0) {
-        vendorID = static_cast<WORD>(adapterId.VendorId);
-        deviceID = static_cast<WORD>(adapterId.DeviceId);
+      if (d3d->GetAdapterIdentifier(D3DADAPTER_DEFAULT, 0, &adapterId) >= 0) {
+        vendorID = adapterId.VendorId;
+        deviceID = adapterId.DeviceId;
         driverVersionHi = adapterId.DriverVersion.HighPart;
         driverVersionLow = adapterId.DriverVersion.LowPart;
         retVal = 1;
@@ -108,14 +108,14 @@ static WORD HToI(LPCSTR h, UINT count) {
   int  cValue;
 
   while (count) {
-    value = static_cast<WORD>(value * 16);
+    value = value * 16;
     c = *h++;
     cValue = c;
     if (isxdigit(cValue)) {
       if (isdigit(cValue)) {
-        value = static_cast<WORD>(value + c - '0');
+        value = value + c - '0';
       } else {
-        value = static_cast<WORD>(value + toupper(cValue) - 'A' + 10);
+        value = value + toupper(cValue) - 'A' + 10;
       }
     }
     --count;
@@ -137,8 +137,8 @@ BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
     return 0;
   }
 
-  if (d3d->GetDeviceCaps(0, D3DDEVTYPE_HAL, &caps) >= 0) {
-    if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures > 2 && static_cast<WORD>(caps.PixelShaderVersion) >= 0x101) {
+  if (d3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps) >= 0) {
+    if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures > 2 && (WORD)caps.PixelShaderVersion >= 0x101) {
       deviceID = 2;
     } else if ((caps.DevCaps & 0x10000) && caps.MaxSimultaneousTextures >= 2) {
       deviceID = 1;

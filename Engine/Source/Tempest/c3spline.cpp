@@ -172,10 +172,10 @@ namespace NTempest {
 
   void C3Spline::ParametricSegT(float wholeT, UINT segCount, UINT &segment, float &t) const {
     float tPerSeg;
-    float fSegCount = static_cast<float>(segCount);
+    float fSegCount = segCount;
     tPerSeg = 1.0f / fSegCount;
     segment = CMath::ftol_0_256_(fSegCount * wholeT);
-    t = (wholeT - static_cast<float>(segment) * tPerSeg) * fSegCount;
+    t = (wholeT - (float)segment * tPerSeg) * fSegCount;
   }
 
   static C44Matrix s_bezierCoeffs(-1.0f, 3.0f, -3.0f, 1.0f, 3.0f, -6.0f, 3.0f, 0.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f);
@@ -231,7 +231,7 @@ namespace NTempest {
     }
 
     frame.Row1AsVec3()->Set(-frame.a1, frame.a0, 0.0f);
-    C2Vector &binormal = *reinterpret_cast<C2Vector *>(frame.Row1AsVec3());
+    C2Vector &binormal = *(C2Vector *)frame.Row1AsVec3();
     binormal /= binormal.Mag();
     *frame.Row2AsVec3() = C3Vector::Cross(*frame.Row0AsVec3(), binormal);
   }
@@ -349,7 +349,7 @@ namespace NTempest {
     UINT  segment;
     float segt;
     ArclengthSegT(t, segment, segt);
-    Evaluate(segment, segt, *reinterpret_cast<C3Vector *>(&frame.d0));
+    Evaluate(segment, segt, *(C3Vector *)&frame.d0);
 
     C3Vector linearFacing = points[segment + 2] - points[segment + 1];
     float    magnitude = linearFacing.Mag();
@@ -382,7 +382,7 @@ namespace NTempest {
     frame.b0 = -frame.a1;
     frame.b1 = frame.a0;
     frame.b2 = 0.0f;
-    C2Vector &binormal = *reinterpret_cast<C2Vector *>(&frame.b0);
+    C2Vector &binormal = *(C2Vector *)&frame.b0;
     magnitude = binormal.Mag();
     if (CMath::fabs_(magnitude) >= 0.00000023841858f) {
       binormal /= magnitude;

@@ -64,8 +64,8 @@ void CSimpleMessageFrame::LoadXML(const XMLNode *node, CStatus *status) {
 
 void CSimpleMessageFrame::SetMessageFrameInsets(float right, float left, float top, float bottom) {
   m_messageFrameInset.l = left;
-  m_messageFrameInset.b = top;
   m_messageFrameInset.r = right;
+  m_messageFrameInset.b = top;
   m_messageFrameInset.t = bottom;
 
   if (IsRectValid()) {
@@ -132,8 +132,8 @@ void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   float fontHeight = (m_attrib.GetSpacing() + m_attrib.GetFontHeight()) * m_layoutScale;
 
   ASSERT(fontHeight);
-  m_rows = static_cast<UINT>((m_messageFrameArea.b - m_messageFrameArea.t) / fontHeight);
-  if (NTempest::CMath::fequal_((m_rows + 1) * fontHeight, m_messageFrameArea.b - m_messageFrameArea.t)) {
+  m_rows = m_messageFrameArea.Height() / fontHeight;
+  if (NTempest::CMath::fequal_((m_rows + 1) * fontHeight, m_messageFrameArea.Height())) {
     ++m_rows;
   }
 
@@ -209,7 +209,7 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
           HideLineNode(node);
         } else {
           node->fadeLeft = fadeLeft;
-          node->color.a = static_cast<BYTE>(fadeLeft / m_fadeDuration * 255.0f);
+          node->color.a = fadeLeft / m_fadeDuration * 255.0f;
           node->string->SetVertexColor(node->color);
         }
       }
@@ -231,8 +231,8 @@ void CSimpleMessageFrame::AddPendingMessage(LPCSTR text, const NTempest::CImVect
   node->string->SetVertexColor(color);
   ShowLineNode(node, timeVisible, m_fadeDuration, permanent);
 
-  float rows = static_cast<float>(floor(node->string->GetHeight() / node->string->GetFontHeight() + 0.5));
-  if (rows > 1.0f && m_rows > static_cast<UINT>(rows)) {
+  float rows = floor(node->string->GetHeight() / node->string->GetFontHeight() + 0.5);
+  if (rows > 1.0f && m_rows > (UINT)rows) {
     UINT start = m_insertMode == INSERT_AT_TOP;
     do {
       ScrollMessages(start);
@@ -269,8 +269,8 @@ void CSimpleMessageFrame::ShowLineNode(CSimpleMessageFrameLineNode *node, float 
   ASSERT(!node->isVisible);
 
   node->string->Show();
-  node->fadeLeft = fadeDuration;
   node->timeLeft = timeVisible;
+  node->fadeLeft = fadeDuration;
   node->isVisible = 1;
   node->permanent = permanent || timeVisible == 0.0f;
   ++m_numVisible;
@@ -278,7 +278,8 @@ void CSimpleMessageFrame::ShowLineNode(CSimpleMessageFrameLineNode *node, float 
 }
 
 CSimpleMessageFrameLineNode::CSimpleMessageFrameLineNode()
-    : color(0ul), string(NEW(CSimpleFontString)(0, 2, 1)), timeLeft(0.0f), fadeLeft(0.0f), permanent(0), isVisible(0) {
+    : color(0ul), timeLeft(0.0f), fadeLeft(0.0f), permanent(0), isVisible(0) {
+  string = NEW(CSimpleFontString)(0, 2, 1);
   string->SetIgnoreNewlines(1);
 }
 

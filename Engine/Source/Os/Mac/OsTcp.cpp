@@ -44,12 +44,12 @@ static void ConnFillAddr(NETCONN *conn) {
   socklen_t   len;
 
   len = sizeof(peer);
-  if (!getpeername(conn->socket, reinterpret_cast<sockaddr *>(&peer), &len)) {
+  if (!getpeername(conn->socket, (sockaddr *)&peer, &len)) {
     AddrFromSockaddr(peer, &conn->addr.peerAddr);
   }
 
   len = sizeof(self);
-  if (!getsockname(conn->socket, reinterpret_cast<sockaddr *>(&self), &len)) {
+  if (!getsockname(conn->socket, (sockaddr *)&self, &len)) {
     AddrFromSockaddr(self, &conn->addr.selfAddr);
   }
 }
@@ -81,7 +81,7 @@ BOOL OsNetInitialize(DWORD hints, DWORD parts) {
 
   // the scheduler only pumps for a net server, so sockets get their own
   // thread here just as they do on win32
-  SThread::Create(NetPumpThread, 0, s_pumpThread, const_cast<char *>("OsTcp_Pump"));
+  SThread::Create(NetPumpThread, 0, s_pumpThread, (char *)"OsTcp_Pump");
 
   return 1;
 }
@@ -104,7 +104,7 @@ void OsNetDestroy(DWORD parts) {
 }
 
 HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
-  NETCONN *netConn = reinterpret_cast<NETCONN *>(conn);
+  NETCONN *netConn = (NETCONN *)conn;
 
   if (netConn) {
     s_netLock.Enter();
@@ -116,7 +116,7 @@ HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
 }
 
 void OsNetConnFreeHandle(HNETCONN__ *conn) {
-  NETCONN *netConn = reinterpret_cast<NETCONN *>(conn);
+  NETCONN *netConn = (NETCONN *)conn;
 
   if (!netConn) {
     return;
@@ -146,7 +146,7 @@ DWORD OsNetGetHostAddr(LPCSTR hostName) {
   }
 
   if (results) {
-    address = reinterpret_cast<sockaddr_in *>(results->ai_addr)->sin_addr.s_addr;
+    address = ((sockaddr_in *)results->ai_addr)->sin_addr.s_addr;
   }
 
   freeaddrinfo(results);
@@ -182,7 +182,7 @@ BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC ho
     colon = SStrChr(name, ':');
     if (colon) {
       *colon = 0;
-      port = static_cast<WORD>(SStrToInt(colon + 1));
+      port = (WORD)SStrToInt(colon + 1);
     }
 
     address = OsNetGetHostAddr(name);
@@ -198,7 +198,7 @@ BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC ho
 }
 
 DWORD OsNetAddrGetAddress(const NETADDR *netAddr, WORD *port) {
-  const sockaddr_in *addr = reinterpret_cast<const sockaddr_in *>(netAddr);
+  const sockaddr_in *addr = (const sockaddr_in *)netAddr;
 
   if (port) {
     *port = ntohs(addr->sin_port);
@@ -242,24 +242,24 @@ void OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID us
 
   s_netLock.Leave();
 
-  if (connect(handle, reinterpret_cast<sockaddr *>(&target), sizeof(target)) && errno != EINPROGRESS) {
+  if (connect(handle, (sockaddr *)&target, sizeof(target)) && errno != EINPROGRESS) {
     ConnClose(conn);
 
     if (eventProc) {
       DWORD consumed = 0;
-      eventProc(reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_CANTCONNECT, user, 0, 0, &consumed);
+      eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_CANTCONNECT, user, 0, 0, &consumed);
     }
 
     return;
   }
 
   if (data && bytes) {
-    OsTcpConnSend(reinterpret_cast<HNETCONN__ *>(conn), data, bytes);
+    OsTcpConnSend((HNETCONN__ *)conn, data, bytes);
   }
 }
 
 void OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
-  NETCONN *netConn = reinterpret_cast<NETCONN *>(conn);
+  NETCONN *netConn = (NETCONN *)conn;
 
   if (!netConn || netConn->socket < 0) {
     return;
@@ -338,7 +338,7 @@ void OsNetPump(DWORD timeout) {
         ConnClose(conn);
 
         if (conn->eventProc) {
-          conn->eventProc(reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_CANTCONNECT, conn->user, 0, 0, &consumed);
+          conn->eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_CANTCONNECT, conn->user, 0, 0, &consumed);
         }
 
         conn = next;
@@ -348,7 +348,7 @@ void OsNetPump(DWORD timeout) {
       ConnFillAddr(conn);
 
       if (conn->eventProc) {
-        conn->eventProc(reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_CONNECT, conn->user, 0, 0, &consumed);
+        conn->eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_CONNECT, conn->user, 0, 0, &consumed);
       }
     }
 
@@ -359,14 +359,14 @@ void OsNetPump(DWORD timeout) {
       if (received > 0) {
         if (conn->eventProc) {
           conn->eventProc(
-              reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_DATA, conn->user, buffer, static_cast<DWORD>(received), &consumed
+              (HNETCONN__ *)conn, &conn->addr, NETNOTE_DATA, conn->user, buffer, (DWORD)received, &consumed
           );
         }
       } else if (!received || errno != EWOULDBLOCK) {
         ConnClose(conn);
 
         if (conn->eventProc) {
-          conn->eventProc(reinterpret_cast<HNETCONN__ *>(conn), &conn->addr, NETNOTE_DISCONNECT, conn->user, 0, 0, &consumed);
+          conn->eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_DISCONNECT, conn->user, 0, 0, &consumed);
         }
       }
     }

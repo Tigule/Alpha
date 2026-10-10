@@ -39,7 +39,7 @@ class CGDynamicObject {
 
   DYNAMIC_OBJECT_TYPE GetDynamicType();
   void                SetStorage(DWORD *storage) {
-    m_dynamicObj = reinterpret_cast<CGDynamicObjectData *>(storage);
+    m_dynamicObj = (CGDynamicObjectData *)storage;
   }
 
   int                GetSpellID() const;

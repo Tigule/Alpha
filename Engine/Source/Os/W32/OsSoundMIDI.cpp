@@ -171,10 +171,12 @@ static void MIDI_CleanupSegment() {
 
     if (s_dmusicCollection) {
       s_dmusicCollection->Release();
-      s_dmusicCollection = 0;
     }
+    s_dmusicCollection = 0;
 
-    s_dmusicSegment->Release();
+    if (s_dmusicSegment) {
+      s_dmusicSegment->Release();
+    }
     s_dmusicSegment = 0;
   }
 }
@@ -184,45 +186,47 @@ static void PostLoadCallback(LPVOID userArg) {
     return;
   }
 
+  HRESULT            status;
   MY_DMUS_OBJECTDESC objDesc;
-  objDesc.dwSize = sizeof(objDesc);
+  objDesc.dwSize = sizeof(DMUS_OBJECTDESC);
   objDesc.dwValidData = 0x402;
   objDesc.guidClass = CLSID_DirectMusicSegment;
   objDesc.asyncLoader = &s_MID;
+  objDesc.pbMemData = (BYTE *)s_MID.buffer.Ptr();
   objDesc.llMemLength = s_MID.buffer.Count();
-  objDesc.pbMemData = reinterpret_cast<BYTE *>(s_MID.buffer.Ptr());
-  objDesc.pStream = 0;
-  if (s_loader.GetObjectA(&objDesc, IID_IDirectMusicSegment8, reinterpret_cast<LPVOID *>(&s_dmusicSegment))) {
-    MIDI_CleanupSegment();
-    return;
+  status = s_loader.GetObjectA(&objDesc, IID_IDirectMusicSegment8, (LPVOID *)&s_dmusicSegment);
+  if (status) {
+    goto finallylabel;
   }
 
   objDesc.guidClass = CLSID_DirectMusicCollection;
   objDesc.asyncLoader = &s_DLS;
+  objDesc.pbMemData = (BYTE *)s_DLS.buffer.Ptr();
   objDesc.llMemLength = s_DLS.buffer.Count();
-  objDesc.pbMemData = reinterpret_cast<BYTE *>(s_DLS.buffer.Ptr());
-  objDesc.pStream = 0;
-  if (s_loader.GetObjectA(&objDesc, IID_IDirectMusicCollection, reinterpret_cast<LPVOID *>(&s_dmusicCollection))) {
-    MIDI_CleanupSegment();
-    return;
+  status = s_loader.GetObjectA(&objDesc, IID_IDirectMusicCollection, (LPVOID *)&s_dmusicCollection);
+  if (status) {
+    goto finallylabel;
   }
 
-  if (s_dmusicSegment->SetParam(GUID_ConnectToDLSCollection, -1, 0x80000000, 0, s_dmusicCollection)) {
-    MIDI_CleanupSegment();
-    return;
+  status = s_dmusicSegment->SetParam(GUID_ConnectToDLSCollection, -1, 0x80000000, 0, s_dmusicCollection);
+  if (status) {
+    goto finallylabel;
   }
 
-  if (s_dmusicSegment->GetAudioPathConfig(reinterpret_cast<IUnknown **>(&s_dmusicPath))) {
-    MIDI_CleanupSegment();
-    return;
+  status = s_dmusicSegment->Download(s_dmusicPerformance);
+  if (status) {
+    goto finallylabel;
   }
 
-  if (s_dmusicSegment->SetRepeats(-1)) {
-    MIDI_CleanupSegment();
-    return;
+  status = s_dmusicSegment->SetRepeats(-1);
+  if (status) {
+    goto finallylabel;
   }
 
-  if (s_dmusicPerformance->PlaySegmentEx(s_dmusicSegment, 0, 0, 0, 0, 0, 0, s_dmusicPath)) {
+  status = s_dmusicPerformance->PlaySegmentEx(s_dmusicSegment, 0, 0, 0, 0, 0, 0, s_dmusicPath);
+
+finallylabel:
+  if (status) {
     MIDI_CleanupSegment();
   }
 }
@@ -231,24 +235,26 @@ static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   loader.Clear();
 
   SFile *file = 0;
-  if (SFile::Open(fileName, &file)) {
-    CAsyncObject *asyncLoader = AsyncFileReadCreateObject();
-    if (asyncLoader) {
-      UINT size = SFile::GetFileSize(file, 0);
-      loader.buffer.SetCount(size);
-      asyncLoader->isLoaded = 0;
-      asyncLoader->userPostloadCallback = PostLoadCallback;
-      asyncLoader->file = file;
-      asyncLoader->offset = 0;
-      asyncLoader->size = SFile::GetFileSize(file, 0);
-      asyncLoader->buffer = loader.buffer.Ptr();
-      asyncLoader->userArg = 0;
-      loader.asyncLoader = asyncLoader;
-      AsyncFileReadObject(asyncLoader);
-    } else {
-      SFile::Close(file);
-    }
+  if (!SFile::Open(fileName, &file)) {
+    return;
   }
+
+  CAsyncObject *asyncLoader = AsyncFileReadCreateObject();
+  if (!asyncLoader) {
+    SFile::Close(file);
+    return;
+  }
+
+  loader.buffer.SetCount(SFile::GetFileSize(file, 0));
+  asyncLoader->isLoaded = 0;
+  asyncLoader->userPostloadCallback = PostLoadCallback;
+  asyncLoader->file = file;
+  asyncLoader->offset = 0;
+  asyncLoader->size = SFile::GetFileSize(file, 0);
+  asyncLoader->buffer = loader.buffer.Ptr();
+  asyncLoader->userArg = 0;
+  loader.asyncLoader = asyncLoader;
+  AsyncFileReadObject(asyncLoader);
 }
 
 BOOL Sound::MIDI_Initialize() {
@@ -258,10 +264,10 @@ BOOL Sound::MIDI_Initialize() {
 
   HRESULT result = CoCreateInstance(
       CLSID_DirectMusicPerformance, 0, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER, IID_IDirectMusicPerformance8,
-      reinterpret_cast<LPVOID *>(&s_dmusicPerformance)
+      (LPVOID *)&s_dmusicPerformance
   );
   if (result == S_OK) {
-    result = s_dmusicPerformance->InitAudio(0, 0, reinterpret_cast<HWND>(GxDevWindow()), 0, 0, 63, 0);
+    result = s_dmusicPerformance->InitAudio(0, 0, (HWND)GxDevWindow(), 0, 0, 63, 0);
     if (result == S_OK) {
       result = s_dmusicPerformance->CreateStandardAudioPath(8, 16, true, &s_dmusicPath);
     }
@@ -275,7 +281,9 @@ void Sound::MIDI_Shutdown() {
   MIDI_CleanupSegment();
   if (s_dmusicPerformance) {
     s_dmusicPerformance->CloseDown();
-    s_dmusicPerformance->Release();
+    if (s_dmusicPerformance) {
+      s_dmusicPerformance->Release();
+    }
     s_dmusicPerformance = 0;
   }
   if (s_comInitialized) {
@@ -303,7 +311,7 @@ void Sound::MIDI_Stop() {
 void Sound::MIDI_SetVolume(float volume) {
   if (s_initialized) {
     ASSERT(volume >= 0.0f && volume <= 1.0f);
-    s_dmusicPath->SetVolume(-9600 - static_cast<long>(volume * -9600.0f), 0);
+    s_dmusicPath->SetVolume(-9600 - (long)(volume * -9600.0f), 0);
   }
 }
 
@@ -320,17 +328,15 @@ long CMyLoader::Init() {
 }
 
 long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv) {
-  wchar_t             wzExt[256];
-  DMUS_OBJECTDESC     DESC;
-  wchar_t             wzFileName[MAX_PATH];
-  char                name[MAX_PATH];
   IDirectMusicObject *pObject = 0;
-  IPersistStream     *pPersistStream = 0;
   const GUID         *pGUID = &myDesc->guidClass;
 
-  long status = CoCreateInstance(*pGUID, 0, CLSCTX_INPROC_SERVER, IID_IDirectMusicObject, reinterpret_cast<LPVOID *>(&pObject));
+  long status = CoCreateInstance(*pGUID, 0, CLSCTX_INPROC_SERVER, IID_IDirectMusicObject, (LPVOID *)&pObject);
   if (status >= 0) {
     if (myDesc->dwValidData & 0x400) {
+      wchar_t wzFileName[MAX_PATH];
+      wchar_t wzExt[256];
+
       _wmakepath(wzFileName, 0, m_wzSearchPath, myDesc->wszFileName, 0);
       _wsplitpath(wzFileName, 0, 0, 0, wzExt);
 
@@ -338,13 +344,17 @@ long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, 
       if (!stream) {
         status = E_OUTOFMEMORY;
       }
-      stream->m_loader = static_cast<MY_DMUS_OBJECTDESC *>(myDesc)->asyncLoader;
+      stream->m_loader = ((MY_DMUS_OBJECTDESC *)myDesc)->asyncLoader;
       if (status >= 0) {
+        char name[MAX_PATH];
+
         wcstombs(name, wzFileName, sizeof(name));
         status = stream->Attach(name, this);
       }
+
+      IPersistStream *pPersistStream = 0;
       if (status >= 0) {
-        status = pObject->QueryInterface(IID_IPersistStream, reinterpret_cast<LPVOID *>(&pPersistStream));
+        status = pObject->QueryInterface(IID_IPersistStream, (LPVOID *)&pPersistStream);
         if (status >= 0) {
           status = pPersistStream->Load(stream);
         }
@@ -353,21 +363,25 @@ long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, 
       if (pPersistStream) {
         pPersistStream->Release();
       }
-
-      if (status >= 0) {
-        if (!memcmp(pGUID, &CLSID_DirectMusicStyle, sizeof(*pGUID)) || !memcmp(pGUID, &CLSID_DirectSoundWave, sizeof(*pGUID)) ||
-            !memcmp(pGUID, &CLSID_DirectMusicCollection, sizeof(*pGUID)))
-        {
-          memset(&DESC, 0, sizeof(DESC));
-          DESC.dwSize = sizeof(DESC);
-          pObject->GetDescriptor(&DESC);
-        }
-        status = pObject->QueryInterface(riid, ppv);
-      }
     } else {
       status = E_FAIL;
     }
-    pObject->Release();
+
+    if (status >= 0) {
+      if (!memcmp(pGUID, &CLSID_DirectMusicStyle, sizeof(*pGUID)) || !memcmp(pGUID, &CLSID_DirectSoundWave, sizeof(*pGUID)) ||
+          !memcmp(pGUID, &CLSID_DirectMusicCollection, sizeof(*pGUID)))
+      {
+        DMUS_OBJECTDESC DESC;
+
+        memset(&DESC, 0, sizeof(DESC));
+        DESC.dwSize = sizeof(DESC);
+        pObject->GetDescriptor(&DESC);
+      }
+      status = pObject->QueryInterface(riid, ppv);
+    }
+    if (pObject) {
+      pObject->Release();
+    }
   }
   return status;
 }
@@ -393,9 +407,9 @@ DWORD __stdcall CMyIStream::AddRef() {
 long __stdcall CMyIStream::QueryInterface(const GUID &iid, LPVOID *ppv) {
   *ppv = 0;
   if (!memcmp(&iid, &IID_IUnknown, sizeof(iid)) || !memcmp(&iid, &IID_ISequentialStream, sizeof(iid)) || !memcmp(&iid, &IID_IStream, sizeof(iid))) {
-    *ppv = static_cast<IStream *>(this);
+    *ppv = this;
   } else if (!memcmp(&iid, &IID_IDirectMusicGetLoader, sizeof(iid))) {
-    *ppv = static_cast<IDirectMusicGetLoader *>(this);
+    *ppv = (IDirectMusicGetLoader *)this;
   } else {
     return E_NOINTERFACE;
   }
@@ -412,12 +426,12 @@ void CMyIStream::Detach() {
 }
 
 long __stdcall CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
-  if (!m_loader->asyncLoader->buffer || m_loader->buffer.Count() < static_cast<DWORDLONG>(m_cursor + cb)) {
+  if (!m_loader->asyncLoader->buffer || m_loader->buffer.Count() < (DWORDLONG)(m_cursor + cb)) {
     return E_FAIL;
   }
 
-  BYTE *destination = static_cast<BYTE *>(pv);
-  BYTE *source = reinterpret_cast<BYTE *>(m_loader->buffer.Ptr()) + static_cast<DWORD>(m_cursor);
+  BYTE *destination = (BYTE *)pv;
+  BYTE *source = (BYTE *)m_loader->buffer.Ptr() + (DWORD)m_cursor;
   for (DWORD i = 0; i < cb; ++i) {
     *destination++ = *source++;
   }
@@ -444,7 +458,7 @@ long __stdcall CMyIStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_I
   if (out) {
     out->QuadPart = m_cursor;
   }
-  if (static_cast<int>(m_loader->buffer.Count()) < m_cursor) {
+  if ((int)m_loader->buffer.Count() < m_cursor) {
     return E_FAIL;
   }
   return S_OK;
@@ -478,7 +492,7 @@ long __stdcall CMyLoader::QueryInterface(const GUID &iid, LPVOID *ppv) {
     return E_NOINTERFACE;
   }
 
-  *ppv = static_cast<IDirectMusicLoader *>(this);
+  *ppv = this;
   AddRef();
   return S_OK;
 }

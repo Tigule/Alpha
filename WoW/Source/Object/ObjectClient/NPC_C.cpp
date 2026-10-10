@@ -27,24 +27,21 @@ static BYTE      s_numQuestsOffered;
 static DWORDLONG s_npcGUID;
 static int       s_pendingNPCQuest;
 
-static BOOL NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
+static BOOL NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG npcGUID;
   msg->Get(npcGUID);
-  if (!npcGUID) {
-    return 1;
-  }
-
-  s_npcGUID = npcGUID;
-  CGObject_C *object = ClntObjMgrObjectPtr(npcGUID, __FILE__, __LINE__);
-  if (object && (object->GetType() & TYPE_UNIT)) {
-    CGUnit_C *unit = static_cast<CGUnit_C *>(object);
-    if (!unit->GetUnitNPCFlags()) {
+  if (npcGUID) {
+    s_npcGUID = npcGUID;
+    CGObject_C *object = ClntObjMgrObjectPtr(npcGUID, __FILE__, __LINE__);
+    if (!object || !object->IsA(ID_UNIT)) {
+      return 0;
+    }
+    CGUnit_C *unit = (CGUnit_C *)object;
+    if (!unit->IsNPC()) {
       SysMsgPrintf(SYSMSG_ERROR, 2, "UNITNOTNPC|%d|0x%016I64X", unit->GetEntryID(), s_npcGUID);
     }
-    return 1;
   }
-
-  return 0;
+  return 1;
 }
 
 void NPC_C_Initialize() {

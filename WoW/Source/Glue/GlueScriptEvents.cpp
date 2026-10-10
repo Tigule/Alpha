@@ -187,7 +187,7 @@ static int Script_GetRealmList(lua_State *) {
 }
 
 static int Script_GetNumRealms(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(ClientServices_GetRealmListCount()));
+  lua_pushnumber(L, ClientServices_GetRealmListCount());
   return 1;
 }
 
@@ -197,11 +197,11 @@ static int Script_GetRealmInfo(lua_State *L) {
     return 0;
   }
 
-  int               index = static_cast<int>(lua_tonumber(L, 1)) - 1;
+  int               index = (int)lua_tonumber(L, 1) - 1;
   const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex(index);
   if (realm) {
     lua_pushstring(L, realm->name);
-    lua_pushnumber(L, static_cast<double>(realm->players));
+    lua_pushnumber(L, realm->players);
 
     if (!SStrCmpI(realm->name, ClientServices_GetSelectedRealmName(), 0x7FFFFFFF)) {
       lua_pushnumber(L, 1.0);
@@ -223,7 +223,7 @@ static int Script_ChangeRealm(lua_State *L) {
     return 0;
   }
 
-  const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex(static_cast<int>(lua_tonumber(L, 1)) - 1);
+  const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex((int)lua_tonumber(L, 1) - 1);
   if (!realm) {
     luaL_error(L, "Bad realm index in ChangeRealm");
     return 0;

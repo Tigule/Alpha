@@ -35,7 +35,7 @@ BOOL CDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
     ASSERT(!IsFinal());                                     \
     ASSERT(pos + sizeof(val) <= m_size);                    \
     AssertFetchWrite(pos, sizeof(val), 0, 0);               \
-    *reinterpret_cast<type *>(m_data + pos - m_base) = val; \
+    *(type *)(m_data + pos - m_base) = val; \
     return *this;                                           \
   }
 
@@ -57,7 +57,7 @@ DATASTORE_SET(float)
   CDataStore &CDataStore::Put(type val) {                      \
     ASSERT(!IsFinal());                                        \
     AssertFetchWrite(m_size, sizeof(val), 0, 0);               \
-    *reinterpret_cast<type *>(m_data + m_size - m_base) = val; \
+    *(type *)(m_data + m_size - m_base) = val; \
     m_size += sizeof(val);                                     \
     return *this;                                              \
   }
@@ -85,7 +85,7 @@ CDataStore &CDataStore::PutString(LPCSTR pval) {
     return *this;
   }
 
-  PutArray(reinterpret_cast<const BYTE *>(pval), SStrLen(pval) + 1);
+  PutArray((const BYTE *)pval, SStrLen(pval) + 1);
   return *this;
 }
 
@@ -114,7 +114,7 @@ CDataStore &CDataStore::PutString(const WORD *pval) {
     copyBytes = max(copyBytes, minBytes);
 
     AssertFetchWrite(m_size, copyBytes, 0, 0);
-    result = ConvertUTF16toUTF8(reinterpret_cast<char *>(m_data + m_size - m_base), copyBytes, pval, 0x7FFFFFFF, &dstChars, &srcChars);
+    result = ConvertUTF16toUTF8((char *)(m_data + m_size - m_base), copyBytes, pval, 0x7FFFFFFF, &dstChars, &srcChars);
     ASSERT(result >= 0);
 
     if (!result) {
@@ -322,14 +322,14 @@ CDataStore &CDataStore::PutArray(const unreal *pval, UINT count) {
 }
 
 CDataStore &CDataStore::PutData(LPCVOID pval, UINT bytes) {
-  return PutArray(static_cast<const BYTE *>(pval), bytes);
+  return PutArray((const BYTE *)pval, bytes);
 }
 
 #define DATASTORE_GET(type)                                      \
   CDataStore &CDataStore::Get(type &val) {                       \
     ASSERT(IsFinal());                                           \
     if (FetchRead(m_read, sizeof(val))) {                        \
-      val = *reinterpret_cast<type *>(m_data - m_base + m_read); \
+      val = *(type *)(m_data - m_base + m_read); \
       m_read += sizeof(val);                                     \
     }                                                            \
     return *this;                                                \
@@ -373,7 +373,7 @@ CDataStore &CDataStore::GetString(char *pval, UINT maxChars) {
         copyBytes = min(copyBytes, m_size) - m_read;
         copyBytes = min(copyBytes, maxChars - length);
 
-        const char *src = reinterpret_cast<const char *>(m_data - m_base + m_read);
+        const char *src = (const char *)(m_data - m_base + m_read);
         UINT        i = 0;
 
         while (copyBytes && (pval[length++] = src[i++])) {
@@ -434,7 +434,7 @@ CDataStore &CDataStore::GetString(WORD *pval, UINT maxChars) {
 
         bytes -= m_read;
         result =
-            ConvertUTF8toUTF16(pval + length, maxChars - length, reinterpret_cast<LPCSTR>(m_data + m_read - m_base), bytes, &dstChars, &srcChars);
+            ConvertUTF8toUTF16(pval + length, maxChars - length, (LPCSTR)(m_data + m_read - m_base), bytes, &dstChars, &srcChars);
         if (result > 0) {
           Invalidate();
           break;
@@ -668,7 +668,7 @@ CDataStore &CDataStore::GetArray(unreal *pval, UINT count) {
 }
 
 CDataStore &CDataStore::GetData(LPVOID pval, UINT bytes) {
-  return GetArray(static_cast<BYTE *>(pval), bytes);
+  return GetArray((BYTE *)pval, bytes);
 }
 
 CDataStore &CDataStore::GetDataInSitu(LPVOID &pval, UINT bytes) {

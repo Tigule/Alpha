@@ -1,11 +1,11 @@
 #include <storm.h>
 #include <sys/stat.h>
 
+#include "../../Common/WowConst.h"
+
 #define MAX_LOADSTRING 100
 
 const char *WOW_ERROR_SERVER_ADDRESS = "12.41.72.213";
-
-#include "../../Common/WowConst.h"
 
 HINSTANCE ghInstance;
 HINSTANCE hInst;
@@ -94,7 +94,7 @@ ATOM MyRegisterClass(HINSTANCE hInstance) {
   WNDCLASSEX wcex;
   wcex.cbSize = sizeof(WNDCLASSEX);
   wcex.style = CS_HREDRAW | CS_VREDRAW;
-  wcex.lpfnWndProc = (WNDPROC)WndProc;
+  wcex.lpfnWndProc = WndProc;
   wcex.cbClsExtra = 0;
   wcex.cbWndExtra = 0;
   wcex.hInstance = hInstance;

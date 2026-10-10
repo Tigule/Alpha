@@ -41,9 +41,12 @@ void CGGuildRegistrar::LeaveWorld() {
 }
 
 void CGGuildRegistrar::SetRegistrar(DWORDLONG registrar, const PetitionVendorItem *petition) {
-  CGGameUI::SetInteractTarget(registrar, 0.0f);
+  CGGameUI::SetInteractTarget(registrar, MAX_SHOP_DISTANCE_SQUARED);
   m_registrar = registrar;
+
+  memset(&m_petition, 0, sizeof(m_petition));
   m_petition = *petition;
+
   FrameScript_SignalEvent(361);
 }
 
@@ -60,24 +63,39 @@ UINT CGGuildRegistrar::GetGuildCharterCost() {
 }
 
 void CGGuildRegistrar::BuyGuildCharter(LPCSTR guildName) {
-  if (!guildName || !*guildName || !m_registrar) {
+  if (!guildName || !*guildName) {
     return;
   }
-  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    if (player->GetGuildID()) {
-      CGGameUI::DisplayError(GERR_ALREADY_IN_GUILD);
-      return;
-    }
-    if (player->GetMoney() < static_cast<UINT>(m_petition.m_price)) {
-      CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
-      return;
-    }
-    CGPetition petition;
-    SStrCopy(petition.m_title, guildName, sizeof(petition.m_title));
-    petition.m_muid = m_petition.m_muid;
-    player->BuyPetition(m_registrar, &petition);
+  if (!m_registrar) {
+    return;
   }
+
+  CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!player) {
+    return;
+  }
+
+  if (player->GetGuildID()) {
+    CGGameUI::DisplayError(GERR_ALREADY_IN_GUILD);
+    return;
+  }
+
+  if (player->GetMoney() < (UINT)m_petition.m_price) {
+    CGGameUI::DisplayError(GERR_NOT_ENOUGH_MONEY);
+    return;
+  }
+
+  CGPetition petition;
+  SStrCopy(petition.m_title, guildName, sizeof(petition.m_title));
+  petition.m_bodyText[0] = 0;
+  petition.m_allowedRaces = 0;
+  petition.m_allowedGender = 0;
+  petition.m_allowedMaxLevel = 0;
+  petition.m_numChoices = 0;
+  petition.m_muid = m_petition.m_muid;
+  petition.m_flags = 0;
+
+  player->BuyPetition(m_registrar, &petition);
 }
 
 static int Script_CloseGuildRegistrar(lua_State *) {
@@ -86,7 +104,7 @@ static int Script_CloseGuildRegistrar(lua_State *) {
 }
 
 static int Script_GetGuildCharterCost(lua_State *L) {
-  lua_pushnumber(L, static_cast<double>(CGGuildRegistrar::GetGuildCharterCost()));
+  lua_pushnumber(L, CGGuildRegistrar::GetGuildCharterCost());
   return 1;
 }
 
@@ -102,16 +120,27 @@ static int Script_BuyGuildCharter(lua_State *L) {
     lua_pushnumber(L, 1.0);
   } else {
     switch (result) {
-      case NAME_NO_NAME: CGGameUI::DisplayError(GERR_GUILD_ENTER_NAME); break;
-      case NAME_TOO_SHORT: CGGameUI::DisplayError(GERR_GUILD_NAME_TOO_SHORT); break;
+      case NAME_NO_NAME:
+        CGGameUI::DisplayError(GERR_GUILD_ENTER_NAME);
+        break;
+      case NAME_TOO_SHORT:
+        CGGameUI::DisplayError(GERR_GUILD_NAME_TOO_SHORT);
+        break;
+      case NAME_MIXED_LANGUAGES:
+        CGGameUI::DisplayError(GERR_GUILD_NAME_MIXED_LANGUAGES);
+        break;
+      case NAME_PROFANE:
+        CGGameUI::DisplayError(GERR_GUILD_NAME_PROFANE);
+        break;
+      case NAME_RESERVED:
+        CGGameUI::DisplayError(GERR_GUILD_NAME_RESERVED);
+        break;
       case NAME_STARTS_WITH_GRAVE:
       case NAME_TWO_GRAVES:
       case NAME_INVALID_CHARACTER:
-      case NAME_FAILURE: CGGameUI::DisplayError(GERR_GUILD_NAME_INVALID); break;
-      case NAME_MIXED_LANGUAGES: CGGameUI::DisplayError(GERR_GUILD_NAME_MIXED_LANGUAGES); break;
-      case NAME_PROFANE: CGGameUI::DisplayError(GERR_GUILD_NAME_PROFANE); break;
-      case NAME_RESERVED: CGGameUI::DisplayError(GERR_GUILD_NAME_RESERVED); break;
-      default: break;
+      case NAME_FAILURE:
+        CGGameUI::DisplayError(GERR_GUILD_NAME_INVALID);
+        break;
     }
     lua_pushnil(L);
   }

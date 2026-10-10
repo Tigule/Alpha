@@ -303,7 +303,7 @@ CSimpleTexture *LoadXML_Texture(const XMLNode *node, CSimpleFrame *frame, CStatu
   CSimpleTexture *texture = new (ALLOC(sizeof(CSimpleTexture))) CSimpleTexture(frame, 2, 1);
 
   texture->PreLoadXML(node, status);
-  static_cast<CLayoutFrame *>(texture)->LoadXML(node, status);
+  ((CLayoutFrame *)texture)->LoadXML(node, status);
   texture->PostLoadXML(node, status);
   return texture;
 }
@@ -312,7 +312,7 @@ CSimpleFontString *LoadXML_String(const XMLNode *node, CSimpleFrame *frame, CSta
   CSimpleFontString *fontString = new (ALLOC(sizeof(CSimpleFontString))) CSimpleFontString(frame, 2, 1);
 
   fontString->PreLoadXML(node, status);
-  static_cast<CLayoutFrame *>(fontString)->LoadXML(node, status);
+  ((CLayoutFrame *)fontString)->LoadXML(node, status);
   fontString->PostLoadXML(node, status);
   return fontString;
 }

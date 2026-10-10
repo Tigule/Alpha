@@ -23,7 +23,7 @@ CLightning::CLightning() {
 void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
   NTempest::C3Vector diff = mDstPos - mSrcPos;
   float              length = diff.Mag();
-  UINT               numPoints = static_cast<UINT>(length / mAvgSegLen + 2.0f) + 1;
+  UINT               numPoints = (UINT)(length / mAvgSegLen + 2.0f) + 1;
   float              ooNumPoints = 1.0f / (numPoints - 1);
   float              noiseScale = length * mNoiseScale;
 
@@ -36,7 +36,7 @@ void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
     tmp.x = NTempest::CRandom::reals_(sRandSeed);
     tmp.y = NTempest::CRandom::reals_(sRandSeed);
     tmp.z = NTempest::CRandom::reals_(sRandSeed);
-    points[i] = points[0] + diff * static_cast<float>(i) * ooNumPoints;
+    points[i] = points[0] + diff * (float)i * ooNumPoints;
     points[i] += tmp * noiseScale;
   }
 }
@@ -60,11 +60,11 @@ void CLightning::Update(float elapsed) {
       mIndices.SetCount(numPos);
 
       for (UINT i = 0; i < numPos; i += 2) {
-        float x = static_cast<float>(i) * ooNumPos;
+        float x = (float)i * ooNumPos;
         mTexCoords[i] = NTempest::C2Vector(x, 0.0f);
         mTexCoords[i + 1] = NTempest::C2Vector(x, 1.0f);
-        mIndices[i] = static_cast<WORD>(i);
-        mIndices[i + 1] = static_cast<WORD>(i + 1);
+        mIndices[i] = i;
+        mIndices[i + 1] = i + 1;
       }
 
       mTexCoords[0] = mTexCoords[1] = NTempest::C2Vector(0.0f, 0.5f);
@@ -165,14 +165,14 @@ void CLightning::SetTexture(HTEXTURE texture) {
   if (mTexture) {
     HandleClose(mTexture);
   }
-  mTexture = static_cast<HTEXTURE>(HandleDuplicate(texture));
+  mTexture = (HTEXTURE)HandleDuplicate(texture);
 }
 
 CLightningManager::~CLightningManager() {
   UINT count = mLiveBolts.Count();
 
   while (count) {
-    CLightning *lightning = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[--count]) & ~NOTUSEDFLAG);
+    CLightning *lightning = (CLightning *)((ulong)mLiveBolts[--count] & ~NOTUSEDFLAG);
     DELIFUSED(lightning);
   }
 }
@@ -201,7 +201,7 @@ BoltID CLightningManager::Add(
     mLiveBolts[boltId] = NEW(CLightning);
   } else {
     boltId = *mDeadBolts.Top();
-    mLiveBolts[boltId] = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[boltId]) & ~NOTUSEDFLAG);
+    mLiveBolts[boltId] = (CLightning *)((ulong)mLiveBolts[boltId] & ~NOTUSEDFLAG);
     mDeadBolts.SetCount(mDeadBolts.Count() - 1);
   }
 
@@ -224,7 +224,7 @@ void CLightningManager::Update(float elapsed) {
 
   while (count) {
     --count;
-    if (!(reinterpret_cast<ulong>(mLiveBolts[count]) & NOTUSEDFLAG)) {
+    if (!((ulong)mLiveBolts[count] & NOTUSEDFLAG)) {
       mLiveBolts[count]->Update(elapsed);
     }
   }
@@ -282,7 +282,7 @@ void CLightningManager::Render(const NTempest::C3Vector &cameraPos) {
 
   while (count) {
     --count;
-    if (!(reinterpret_cast<ulong>(mLiveBolts[count]) & NOTUSEDFLAG)) {
+    if (!((ulong)mLiveBolts[count] & NOTUSEDFLAG)) {
       mLiveBolts[count]->Render(count, cameraPos);
     }
   }
@@ -292,6 +292,6 @@ void CLightningManager::Remove(BoltID boltId) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
   ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
 
-  mLiveBolts[boltId] = reinterpret_cast<CLightning *>(reinterpret_cast<ulong>(mLiveBolts[boltId]) | NOTUSEDFLAG);
+  mLiveBolts[boltId] = (CLightning *)((ulong)mLiveBolts[boltId] | NOTUSEDFLAG);
   *mDeadBolts.New() = boltId;
 }

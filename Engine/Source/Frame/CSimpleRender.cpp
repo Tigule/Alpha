@@ -60,7 +60,7 @@ void CSimpleRender::DrawBatch(CRenderBatch *batch) {
   UINT count = batch->m_texturelist.Count();
 
   if (count > 0) {
-    DWORD texture = static_cast<DWORD>(-1);
+    DWORD texture = -1;
     UINT  i;
 
     GxVertexShaderSelect(GxVS_PassThru);
@@ -311,7 +311,7 @@ BOOL CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
   }
 
   if (texHandle) {
-    m_texture = static_cast<HTEXTURE>(HandleDuplicate(texHandle));
+    m_texture = (HTEXTURE)HandleDuplicate(texHandle);
   }
 
   if (!m_texture) {
@@ -535,12 +535,12 @@ const CSimpleFontStringAttributes &CSimpleFontStringAttributes::operator=(const 
     m_flags |= FLAG_STYLE_UPDATE;
   }
 
-  if (*reinterpret_cast<DWORD *>(&m_color) != *reinterpret_cast<const DWORD *>(&rhs.m_color)) {
+  if (*(DWORD *)&m_color != *(const DWORD *)&rhs.m_color) {
     m_color = rhs.m_color;
     m_flags |= FLAG_COLOR_UPDATE;
   }
 
-  if (*reinterpret_cast<DWORD *>(&m_shadowColor) != *reinterpret_cast<const DWORD *>(&rhs.m_shadowColor) ||
+  if (*(DWORD *)&m_shadowColor != *(const DWORD *)&rhs.m_shadowColor ||
       m_shadowOffset.x != rhs.m_shadowOffset.x || m_shadowOffset.y != rhs.m_shadowOffset.y)
   {
     m_shadowColor = rhs.m_shadowColor;
@@ -853,7 +853,7 @@ void CSimpleFontString::SetTextLength(int size) {
     if (size) {
       ASSERT(size > 0);
 
-      char *text = static_cast<char *>(ALLOC(size + 1));
+      char *text = (char *)ALLOC(size + 1);
       *text = 0;
       ASSERT(!m_text || !*m_text);
       FREEIFUSED(m_text);
@@ -911,12 +911,11 @@ static LPCSTR LanguageProcess(LPCSTR text) {
 
     for (LPCSTR rule = text; *rule; ++rule) {
       if (*rule == '|') {
-        ++rule;
-        if (*rule != '|') {
-          if (isdigit(*rule)) {
-            found = 1;
-            break;
-          }
+        if (rule[1] == '|') {
+          ++rule;
+        } else if (isdigit(*++rule)) {
+          found = 1;
+          break;
         }
       }
     }
@@ -961,7 +960,7 @@ static LPCSTR LanguageRule1(LPCSTR text) {
         }
 
         readpos = end - 1;
-        selectedText = CheckJongsung(output16, static_cast<int>(writepos - output16) - 1) ? jongsungText : nonJongsungText;
+        selectedText = CheckJongsung(output16, (writepos - output16) - 1) ? jongsungText : nonJongsungText;
 
         while (*selectedText && *selectedText != ';') {
           *writepos++ = *selectedText++;
@@ -1108,7 +1107,7 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
 
     if (m_styleFlags & 0x100) {
       NTempest::CImVector shadowColor(m_shadowColor);
-      shadowColor.a = static_cast<BYTE>(m_shadowColor.a * m_frame->GetAlpha() / 255);
+      shadowColor.a = m_shadowColor.a * m_frame->GetAlpha() / 255;
       NTempest::C2Vector shadowOffset(m_shadowOffset.x * m_layoutScale, m_shadowOffset.y * m_layoutScale);
       TextBlockAddShadow(m_string, shadowColor, shadowOffset);
     }
@@ -1256,11 +1255,11 @@ void CRenderBatch::QueueTexture(CSimpleTexture *texture) {
 
     m_texturelist.SetCount(index + 1);
     CSimpleBatchedTexture &batched = m_texturelist[index];
-    batched.textureID = reinterpret_cast<DWORD>(texturedata);
-    batched.position = texture->m_position;
-    batched.texCoord = texture->m_texCoord;
-    batched.alphamode = texture->m_alphamode;
-    batched.GxColor = texture->m_GxColor;
+    batched.textureID = (DWORD)texturedata;
+    batched.position = texture->GetPosition();
+    batched.texCoord = texture->GetTexCoord();
+    batched.alphamode = texture->GetAlphaMode();
+    batched.GxColor = texture->GetGxColor();
     ++m_count;
   }
 }
@@ -1297,20 +1296,17 @@ void CRenderBatch::Finish() {
 }
 
 static int __cdecl SortByTexture(LPCVOID A, LPCVOID B) {
-  return static_cast<const CSimpleBatchedTexture *>(A)->textureID - static_cast<const CSimpleBatchedTexture *>(B)->textureID;
+  return ((const CSimpleBatchedTexture *)A)->textureID - ((const CSimpleBatchedTexture *)B)->textureID;
 }
 
 void CRenderBatch::Clear() {
-  m_texturelist.SetCount(0);
+  m_texturelist.SetNumElements(0);
 
   if (m_stringbatch) {
     GxuFontDestroyBatch(m_stringbatch);
     m_stringbatch = 0;
   }
 
-  while (m_callbacks.Head()) {
-    m_callbacks.DeleteNode(m_callbacks.Head());
-  }
-
+  m_callbacks.Clear();
   m_count = 0;
 }

@@ -110,9 +110,6 @@ struct STRINGWANNABE {
     return string;
   }
   void SetString(LPCSTR prefix, LPCSTR value) {
-    char textureName[MAX_PATH];
-
-    SStrPrintf(textureName, sizeof(textureName), "%s%s", prefix, value);
     string = value;
   }
   STRINGWANNABE() : string(0) {

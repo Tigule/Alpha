@@ -1,10 +1,10 @@
 #include "CGxDeviceD3d.h"
 
 inline NTempest::CRect::CRect(const tagRECT &value) {
-  t = static_cast<float>(value.top);
-  l = static_cast<float>(value.left);
-  b = static_cast<float>(value.bottom);
-  r = static_cast<float>(value.right);
+  t = value.top;
+  l = value.left;
+  b = value.bottom;
+  r = value.right;
 }
 
 void CGxDeviceD3d::CapsWindowSize(NTempest::CRect &dst) {
@@ -14,8 +14,8 @@ void CGxDeviceD3d::CapsWindowSize(NTempest::CRect &dst) {
 void CGxDeviceD3d::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   if (IDevIsWindowed()) {
     const NTempest::CRect &windowRect = DeviceCurWindow();
-    RECT                   wrect = {0, 0, static_cast<LONG>(windowRect.r), static_cast<LONG>(windowRect.b)};
-    MapWindowPoints(m_hwnd, 0, reinterpret_cast<LPPOINT>(&wrect), 2);
+    RECT                   wrect = {0, 0, windowRect.r, windowRect.b};
+    MapWindowPoints(m_hwnd, 0, (LPPOINT)&wrect, 2);
     dst = NTempest::CRect(wrect);
   } else {
     dst = DeviceCurWindow();
