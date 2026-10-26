@@ -555,10 +555,10 @@ extern "C" BOOL APIENTRY SCmdRegisterArgument(
   VALIDATE((((flags) & ((0 << 16) | (1 << 16) | (2 << 16))) != (0 << 16)) || (!variableptr) || (variablebytes == sizeof(DWORD)));
   VALIDATEEND;
 
-  if (flags & SCMD_ARG_MASK) {
-    cmd = SCMD_ARG_LIST->NewNode(LIST_TAIL, 0, 0);
-  } else {
+  if ((flags & SCMD_ARG_MASK) == SCMD_ARG_FLAGGED) {
     cmd = SCMD_FLAG_LIST->NewNode(LIST_TAIL, 0, 0);
+  } else {
+    cmd = SCMD_ARG_LIST->NewNode(LIST_TAIL, 0, 0);
   }
 
   SStrCopy(cmd->name, name, sizeof(cmd->name));

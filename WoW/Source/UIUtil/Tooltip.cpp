@@ -2801,7 +2801,7 @@ void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
 
   if (m_owner) {
     ClearAllPoints(1);
-    SetPoint(FRAMEPOINT_BOTTOMLEFT, owner, FRAMEPOINT_BOTTOMLEFT, x, STATUS_BAR_OFFSETY + STATUS_BAR_HEIGHT + y, 1);
+    SetPoint(FRAMEPOINT_BOTTOMLEFT, owner, FRAMEPOINT_BOTTOMLEFT, x, STATUS_BAR_HEIGHT + STATUS_BAR_OFFSETY + y, 1);
     ClearLines();
     m_reposition = 1;
   }

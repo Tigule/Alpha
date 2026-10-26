@@ -217,7 +217,7 @@ int CGReputationInfo::GetFactionStanding(int faction) {
   }
 
   int index = FactionToIndex(faction);
-  return m_factionStandings[index] + m_factionBase[index];
+  return m_factionBase[index] + m_factionStandings[index];
 }
 
 UNIT_REACTION CGReputationInfo::GetFactionStandingReaction(int faction) {

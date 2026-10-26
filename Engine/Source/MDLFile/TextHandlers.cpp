@@ -90,12 +90,12 @@ namespace MDL {
         return ReadSequences(parse, data, status);
       case MDLTOK_GLOBALSEQUENCES:
         return ReadGlobalSequences(parse, data, status);
-      case MDLTOK_TEXTUREANIMS:
-        return ReadTextureAnims(parse, data, status);
       case MDLTOK_TEXTURES:
         return ReadTextures(parse, data, status);
       case MDLTOK_MATERIALS:
         return ReadMaterials(parse, data, status);
+      case MDLTOK_TEXTUREANIMS:
+        return ReadTextureAnims(parse, data, status);
       case MDLTOK_GEOSET:
         return ReadGeoset(parse, data, status);
       case MDLTOK_GEOSETANIM:

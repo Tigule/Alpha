@@ -672,20 +672,20 @@ static void PostInitObject(CDataStore *msg) {
 
 static void CreateMessage(OBJECT_TYPE_ID id) {
   switch (id) {
-    case ID_OBJECT:
-      SysMsgAdd("Creating object", SYSMSG_INFO, 0x20);
-      break;
-    case ID_ITEM:
-      SysMsgAdd("Creating item", SYSMSG_INFO, 0x20);
-      break;
-    case ID_CONTAINER:
-      SysMsgAdd("Creating container", SYSMSG_INFO, 0x20);
+    case ID_PLAYER:
+      SysMsgAdd("Creating player", SYSMSG_INFO, 0x20);
       break;
     case ID_UNIT:
       SysMsgAdd("Creating unit", SYSMSG_INFO, 0x20);
       break;
-    case ID_PLAYER:
-      SysMsgAdd("Creating player", SYSMSG_INFO, 0x20);
+    case ID_CONTAINER:
+      SysMsgAdd("Creating container", SYSMSG_INFO, 0x20);
+      break;
+    case ID_ITEM:
+      SysMsgAdd("Creating item", SYSMSG_INFO, 0x20);
+      break;
+    case ID_OBJECT:
+      SysMsgAdd("Creating object", SYSMSG_INFO, 0x20);
       break;
     case ID_GAMEOBJECT:
       SysMsgAdd("Creating game object", SYSMSG_INFO, 0x20);

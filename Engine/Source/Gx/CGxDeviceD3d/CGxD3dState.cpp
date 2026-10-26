@@ -91,11 +91,8 @@ void CGxDeviceD3d::IStateSync() {
     case D3DERR_CONFLICTINGTEXTUREFILTER:
       DbgPrintf("\tThe current texture filters cannot be used together.\n");
       break;
-    case D3DERR_UNSUPPORTEDFACTORVALUE:
-      DbgPrintf("\tThe device does not support the specified texture factor value.\n");
-      break;
-    case D3DERR_UNSUPPORTEDTEXTUREFILTER:
-      DbgPrintf("\tThe device does not support the specified texture filter.\n");
+    case D3DERR_DEVICELOST:
+      DbgPrintf("\tThe device has been lost but cannot be reset at this time. Therefore, rendering is not possible.\n");
       break;
     case D3DERR_DRIVERINTERNALERROR:
       DbgPrintf(
@@ -103,8 +100,11 @@ void CGxDeviceD3d::IStateSync() {
           "Errors.\n"
       );
       break;
-    case D3DERR_DEVICELOST:
-      DbgPrintf("\tThe device has been lost but cannot be reset at this time. Therefore, rendering is not possible.\n");
+    case D3DERR_UNSUPPORTEDFACTORVALUE:
+      DbgPrintf("\tThe device does not support the specified texture factor value.\n");
+      break;
+    case D3DERR_UNSUPPORTEDTEXTUREFILTER:
+      DbgPrintf("\tThe device does not support the specified texture filter.\n");
       break;
     default:
       DbgPrintf("\tUnknown\n");

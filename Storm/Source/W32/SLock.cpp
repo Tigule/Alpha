@@ -220,7 +220,7 @@ long SRWLock::IAllocEvent(DWORD evtype) {
   long  event;
 
   if (SInterlockedDecrement(&s_freeCount[evtype]) < 0) {
-    FATALERROR(("IAllocEvent: too many %s event allocs", evtype ? "SUMREVTYPE" : "SUAREVTYPE"));
+    FATALERROR(("IAllocEvent: too many %s event allocs", !evtype ? "SUAREVTYPE" : "SUMREVTYPE"));
   }
 
   freeptr = &s_free[evtype][SInterlockedIncrement(&s_freeHead[evtype]) & (SRW_EVENT_SLOT_COUNT - 1)];
@@ -245,7 +245,7 @@ void SRWLock::IFreeEvent(DWORD evtype, long event, int forcereset) {
   long  oldevent;
 
   if (SInterlockedIncrement(&s_freeCount[evtype]) > SRW_EVENT_COUNT) {
-    FATALERROR(("IFreeEvent: too many %s event frees", evtype ? "SUMREVTYPE" : "SUAREVTYPE"));
+    FATALERROR(("IFreeEvent: too many %s event frees", !evtype ? "SUAREVTYPE" : "SUMREVTYPE"));
   }
 
   if (forcereset) {

@@ -120,10 +120,7 @@ int LOOPEDDOODADDESC::GetClosestIndex(const NTempest::C3Vector &listener) {
   float closest = 0.0f;
   for (int i = 0; i < 8; ++i) {
     if (posInUseFlags & (1 << i)) {
-      float x = listener.x - pos[i].x;
-      float y = listener.y - pos[i].y;
-      float z = listener.z - pos[i].z;
-      float distanceSquared = x * x + y * y + z * z;
+      float distanceSquared = (listener - pos[i]).SquaredMag();
       if (closestIndex == -1 || distanceSquared < closest) {
         closest = distanceSquared;
         closestIndex = i;
