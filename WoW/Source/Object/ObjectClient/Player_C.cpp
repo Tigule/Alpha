@@ -7258,7 +7258,8 @@ void CGPlayer_C::TurnInGuildCharter() {
   int       found = 0;
   UINT      j;
 
-  for (UINT index = 23; index <= 38; ++index) {
+  UINT index;
+  for (index = 23; index <= 38; ++index) {
     DWORDLONG guid = m_inventory.GetItem(index);
     if (guid) {
       item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));

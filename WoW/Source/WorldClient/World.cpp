@@ -764,7 +764,8 @@ void CWorld::SetCameraTarget(DWORD hWorldObject) {
 void CWorld::TriDataToFacetData(const CWTriData &triData, CWFacetData &facetData, DWORDLONG param64) {
   UINT startIndex = facetData.facets.Count();
 
-  for (UINT i = 0; i < triData.GetNumBatches(); ++i) {
+  UINT i;
+  for (i = 0; i < triData.GetNumBatches(); ++i) {
     const CWTriData::Batch &batch = triData.GetBatch(i);
     const WORD             *idx = batch.vertexIndices;
 

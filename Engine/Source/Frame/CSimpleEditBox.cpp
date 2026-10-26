@@ -1140,7 +1140,8 @@ void CSimpleEditBox::DeleteSubstring(int left, int right) {
       left = NextCharOffset(left);
     }
 
-    for (int stop = left; stop < m_textLength && ((m_textInfo[stop] >> 16) & 0xFF) != CODE_HYPERLINKSTOP;) {
+    int stop;
+    for (stop = left; stop < m_textLength && ((m_textInfo[stop] >> 16) & 0xFF) != CODE_HYPERLINKSTOP;) {
       stop = NextCharOffset(stop);
     }
 

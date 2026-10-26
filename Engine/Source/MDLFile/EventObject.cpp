@@ -156,7 +156,8 @@ namespace MDL {
     }
     buf.AddDword('STVE');
     UINT totalSize = 4;
-    for (UINT n = 0; n < numEvents; ++n) {
+    UINT n;
+    for (n = 0; n < numEvents; ++n) {
       const MDLEVENTSECTION &eventObject = data.events[n];
       UINT                   size = GetBinGenObjectSize(eventObject) + 4;
       size += GetBinEventKeyFramesSize(eventObject.eventKeys);

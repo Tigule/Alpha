@@ -305,15 +305,17 @@ EventReg::~EventReg() {
 }
 
 void EventReg::RegisterCallback(EVENTCALLBACK callback, LPVOID param) {
-  ITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
-    if (pCallbackReg->callback == callback) {
-      pCallbackReg->callback = callback;
-      pCallbackReg->param = param;
-      return;
+  {
+    ITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
+      if (pCallbackReg->callback == callback) {
+        pCallbackReg->callback = callback;
+        pCallbackReg->param = param;
+        return;
+      }
     }
   }
 
-  pCallbackReg = s_callbackRegAllocator.Get(0);
+  EVENTCALLBACKREG *pCallbackReg = s_callbackRegAllocator.Get(0);
   callbackList.LinkNode(pCallbackReg, LIST_TAIL, 0);
   ASSERT(pCallbackReg);
   pCallbackReg->callback = callback;
@@ -321,15 +323,17 @@ void EventReg::RegisterCallback(EVENTCALLBACK callback, LPVOID param) {
 }
 
 void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
-  ITERATELIST(EVENTDISPATCHREG, dispatchList, pDispatchReg) {
-    if (pDispatchReg->pObserver.m_ptr == pObserver) {
-      pDispatchReg->pObserver = pObserver;
-      pDispatchReg->expectedEventId = expectedEventId;
-      return;
+  {
+    ITERATELIST(EVENTDISPATCHREG, dispatchList, pDispatchReg) {
+      if (pDispatchReg->pObserver.m_ptr == pObserver) {
+        pDispatchReg->pObserver = pObserver;
+        pDispatchReg->expectedEventId = expectedEventId;
+        return;
+      }
     }
   }
 
-  pDispatchReg = s_dispatchRegAllocator.Get(0);
+  EVENTDISPATCHREG *pDispatchReg = s_dispatchRegAllocator.Get(0);
   dispatchList.LinkNode(pDispatchReg, LIST_TAIL, 0);
   ASSERT(pDispatchReg);
   pDispatchReg->pObserver = pObserver;

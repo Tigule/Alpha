@@ -663,7 +663,8 @@ float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &ta
   if (boxIntersect.facets.Count() > 0 && CWorld::NDCXform(boxFrustum, xform, false)) {
     RangeList boxRange(0.0f, 1.0f);
     UINT      count = boxIntersect.facets.Count();
-    for (UINT i = 0; i < count; ++i) {
+    UINT i;
+    for (i = 0; i < count; ++i) {
       NTempest::CFacet &facet = boxIntersect.facets[i];
       facet.vertices[0] = (facet.vertices[0] - boxFrustum.Corner(0)) * xform;
       facet.vertices[1] = (facet.vertices[1] - boxFrustum.Corner(0)) * xform;

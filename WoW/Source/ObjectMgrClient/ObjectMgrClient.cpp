@@ -331,7 +331,8 @@ static void SkipPartialObjectUpdate(CDataStore *msg) {
   msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= (((((( (((sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData)) > (sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData))) ? (sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData)) : (sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData))) ) / sizeof(DWORD))+7)/8)+sizeof(uint)-1)/sizeof(uint)));
 
-  for (int i = 0; i < updateMaskBlocks; ++i) {
+  int i;
+  for (i = 0; i < updateMaskBlocks; ++i) {
     msg->Get(changeMasks[i]);
   }
 
@@ -371,7 +372,8 @@ static void FillInPartialObjectData(C_OBJECTHASH *foundObj, CDataStore *msg, boo
 
   msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= (((((( (((sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData)) > (sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData))) ? (sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData)) : (sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData))) ) / sizeof(DWORD))+7)/8)+sizeof(uint)-1)/sizeof(uint)));
-  for (int i = 0; i < updateMaskBlocks; ++i) {
+  int i;
+  for (i = 0; i < updateMaskBlocks; ++i) {
     msg->Get(changeMasks[i]);
   }
 
@@ -440,7 +442,8 @@ static void CallMirrorHandlers(CDataStore *msg, bool forFullUpdate, DWORDLONG gu
 
   msg->Get(updateMaskBlocks);
   FATALASSERT(updateMaskBlocks <= (((((( (((sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData)) > (sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData))) ? (sizeof(CGObjectData) + sizeof(CGItemData) + sizeof(CGContainerData)) : (sizeof(CGObjectData) + sizeof(CGUnitData) + sizeof(CGPlayerData))) ) / sizeof(DWORD))+7)/8)+sizeof(uint)-1)/sizeof(uint)));
-  for (int i = 0; i < updateMaskBlocks; ++i) {
+  int i;
+  for (i = 0; i < updateMaskBlocks; ++i) {
     msg->Get(changeMasks[i]);
   }
 

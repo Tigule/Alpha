@@ -530,7 +530,8 @@ BOOL MinimapUpdate(
   worldBox.t += NTempest::C3Vector(mmtp.size);
   CWorld::QueryMapObjMinimap(hWorldObject, worldBox, wmmQuads);
 
-  for (UINT i = 0; i < wmmQuads.Count(); ++i) {
+  UINT i;
+  for (i = 0; i < wmmQuads.Count(); ++i) {
     SetupQuad(wmmQuads[0].groupNum, quads[i], wmmQuads[i], localPos.z, s_mapObjDir);
   }
   for (; i < 1024; ++i) {

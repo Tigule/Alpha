@@ -7,6 +7,7 @@
 
 typedef DWORD DWORD_PTR;
 
+#ifndef TIGULE_NO_AMBIENCE
 // embeds guids into object file
 #include <initguid.h>
 #include <dmusici.h>
@@ -518,3 +519,24 @@ ASYNCLOADER::~ASYNCLOADER() {
   buffer.Clear();
   Clear();
 }
+#else
+BOOL Sound::MIDI_Initialize() {
+  return 0;
+}
+
+void Sound::MIDI_Shutdown() {
+}
+
+void Sound::MIDI_Play(LPCSTR midiFilename, LPCSTR dlsFilename) {
+}
+
+void Sound::MIDI_Stop() {
+}
+
+void Sound::MIDI_SetVolume(float volume) {
+}
+
+bool Sound::MIDI_Playing() {
+  return false;
+}
+#endif

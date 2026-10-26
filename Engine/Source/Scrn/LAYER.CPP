@@ -59,15 +59,14 @@ static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
 }
 
 static BOOL OnPaint(LPCVOID, LPVOID) {
-  CILayer *nextLayer;
-  HSRGN    rgn;
-  RECTF    baseRect;
-  float    minX;
-  float    maxX;
-  float    minY;
-  float    maxY;
-  float    minZ;
-  float    maxZ;
+  HSRGN rgn;
+  RECTF baseRect;
+  float minX;
+  float maxX;
+  float minY;
+  float maxY;
+  float minZ;
+  float maxZ;
 
   if (s_ScrnDisable || !GxCapsIsWindowVisible()) {
     return 1;
@@ -80,23 +79,24 @@ static BOOL OnPaint(LPCVOID, LPVOID) {
   baseRect.top = 1.0f;
   SRgnCombineRectf(rgn, &baseRect, 0, 2);
 
-  ITERATELISTREVERSE(CILayer, s_zorderlist, layer) {
-    SRgnGetBoundingRectf(rgn, &layer->visible);
-    layer->visible.left = max(layer->visible.left, layer->rect.left);
-    layer->visible.bottom = max(layer->visible.bottom, layer->rect.bottom);
-    layer->visible.right = min(layer->visible.right, layer->rect.right);
-    layer->visible.top = min(layer->visible.top, layer->rect.top);
+  {
+    ITERATELISTREVERSE(CILayer, s_zorderlist, layer) {
+      SRgnGetBoundingRectf(rgn, &layer->visible);
+      layer->visible.left = max(layer->visible.left, layer->rect.left);
+      layer->visible.bottom = max(layer->visible.bottom, layer->rect.bottom);
+      layer->visible.right = min(layer->visible.right, layer->rect.right);
+      layer->visible.top = min(layer->visible.top, layer->rect.top);
 
-    if (!(layer->flags & 1)) {
-      SRgnCombineRectf(rgn, &layer->rect, 0, 4);
+      if (!(layer->flags & 1)) {
+        SRgnCombineRectf(rgn, &layer->rect, 0, 4);
+      }
     }
   }
 
   SRgnDelete(rgn);
   GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
-  for (layer = s_zorderlist.Head(); (int)layer > 0 ? ((nextLayer = s_zorderlist.RawNext(layer)), 1) : 0; layer = nextLayer) {
-
+  SAFEITERATELIST(CILayer, s_zorderlist, layer) {
     if (layer->visible.right <= layer->visible.left || layer->visible.top <= layer->visible.bottom) {
       continue;
     }

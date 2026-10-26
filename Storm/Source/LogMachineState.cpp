@@ -411,7 +411,7 @@ static void sLogModule(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID 
     params.logLineProc = logLineProc;
     params.logLineProcParam = logLineProcParam;
 
-    if (!sgDbgHelpDll.SymEnumerateSymbols(GetCurrentProcess(), baseAddress, sEnumSymbolsCallback, &params)) {
+    if (!sgDbgHelpDll.SymEnumerateSymbols(GetCurrentProcess(), baseAddress, (PSYM_ENUMSYMBOLS_CALLBACK)sEnumSymbolsCallback, &params)) {
       logLineProc(logLineProcParam, "****  SymEnumerateModules couldn't enumerate symbols, error: %d", GetLastError());
     }
 
@@ -795,7 +795,7 @@ static void sLogDbgHelpStackTrace(
     sLogHeader(logLineProc, logLineProcParam, "Loaded Modules");
 
     data.count = 0;
-    success = sgDbgHelpDll.SymEnumerateModules(GetCurrentProcess(), sEnumModulesCallback, &data);
+    success = sgDbgHelpDll.SymEnumerateModules(GetCurrentProcess(), (PSYM_ENUMMODULES_CALLBACK)sEnumModulesCallback, &data);
 
     qsort(data.modules, data.count, sizeof(data.modules[0]), sModuleCompareProc);
 

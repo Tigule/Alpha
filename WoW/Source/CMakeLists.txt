@@ -72,6 +72,9 @@ set_target_properties(Wow PROPERTIES OUTPUT_NAME Wowae)
 
 if(MSVC_VERSION EQUAL 1200)
     target_compile_options(Wow PRIVATE /Gr /Z7)
+endif()
+
+if(MSVC)
     set_property(SOURCE Client.cpp APPEND PROPERTY COMPILE_OPTIONS /GR-)
     set_property(SOURCE Client.cpp APPEND PROPERTY COMPILE_DEFINITIONS WOW_STORM_ENTRYPOINT=1)
     set_property(TARGET Wow APPEND_STRING PROPERTY LINK_FLAGS " /ENTRY:StormStaticEntryPoint")
@@ -79,6 +82,8 @@ endif()
 
 if(MSVC_VERSION EQUAL 1200)
     target_link_libraries(Wow PRIVATE unicows msvcrt)
+elseif(MSVC)
+    target_link_options(Wow PRIVATE /MANIFEST:NO)
 endif()
 
 if(WIN32)

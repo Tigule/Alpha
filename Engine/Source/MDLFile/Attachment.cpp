@@ -26,7 +26,8 @@ static void IAddAttachmentErrors(TSet &errors) {
 static void IReadAttachment(Parser &parse, TSet &errors, NTempest::C3Vector *pivot, MDLATTACHMENTSECTION *attachment, CMDLStatus *status) {
   parse.Expect('{');
   LPCSTR tokentext;
-  for (UINT token = parse.Token(&tokentext, 0); token != '}' && token; token = parse.Token(&tokentext, 0)) {
+  UINT token;
+  for (token = parse.Token(&tokentext, 0); token != '}' && token; token = parse.Token(&tokentext, 0)) {
     if (!errors.Check(token)) {
       parse.FatalDuplicate(tokentext);
     }

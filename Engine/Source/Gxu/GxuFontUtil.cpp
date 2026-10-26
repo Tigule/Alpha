@@ -1973,10 +1973,12 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   ASSERT(pixelsNeeded);
 
   BOOL found = 0;
-  ITERATELIST(CHARCODEDESC, glyphList, current) {
-    if (current == desc) {
-      found = 1;
-      break;
+  {
+    ITERATELIST(CHARCODEDESC, glyphList, current) {
+      if (current == desc) {
+        found = 1;
+        break;
+      }
     }
   }
 
@@ -2018,7 +2020,7 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   }
 
 finallylabel:
-  current = glyphList.Head();
+  CHARCODEDESC *current = glyphList.Head();
   widestFreeSlot = current ? current->GapToPreviousTexture() : 0;
   {
     ITERATELIST(CHARCODEDESC, glyphList, curr) {

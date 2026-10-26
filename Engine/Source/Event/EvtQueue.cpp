@@ -41,7 +41,7 @@ static void UpdateSyncKeyState(EvtContext *context, KEY key, EVENTID &id) {
       id = EVENT_ID_KEYDOWN_REPEATING;
     }
 
-    entry = keyDownList.NewNode(LIST_TAIL, 0, 0);
+    EvtKeyDown *entry = keyDownList.NewNode(LIST_TAIL, 0, 0);
     entry->key = key;
   }
 

@@ -547,7 +547,8 @@ static void Mul(BigBuffer &a, const BigBuffer &b, const BigBuffer &c, BigStack &
   aa.Clear();
   for (UINT bIndex = 0; b.IsUsed(bIndex); ++bIndex) {
     DWORDLONG carry = 0;
-    for (UINT cIndex = 0; c.IsUsed(cIndex); ++cIndex) {
+    UINT cIndex;
+    for (cIndex = 0; c.IsUsed(cIndex); ++cIndex) {
       carry += aa[cIndex + bIndex] + (DWORDLONG)c[cIndex] * b[bIndex];
       aa[cIndex + bIndex] = ExtractLowPart(&carry);
     }
@@ -744,7 +745,8 @@ static void Square(BigBuffer &a, const BigBuffer &b, BigStack &stack) {
   aa.Clear();
   for (UINT bIndex = 0; b.IsUsed(bIndex); ++bIndex) {
     carry = 0;
-    for (UINT cIndex = 0; cIndex <= bIndex; ++cIndex) {
+    UINT cIndex;
+    for (cIndex = 0; cIndex <= bIndex; ++cIndex) {
       mul = (DWORDLONG)b[cIndex] * b[bIndex];
       add = (DWORDLONG)aa[bIndex + cIndex] + mul;
       if (cIndex < bIndex) {
@@ -910,7 +912,8 @@ extern "C" void APIENTRY SBigBitLen(BigData *a, UINT *bits) {
   aa.Trim();
   UINT index = aa.Count() - 1;
   UINT data = aa[index];
-  for (UINT bit = 31; bit; --bit) {
+  UINT bit;
+  for (bit = 31; bit; --bit) {
     if ((1 << bit) & data) {
       break;
     }

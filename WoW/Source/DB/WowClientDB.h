@@ -47,10 +47,10 @@ class WowClientDB {
     }
     SFileReadTyped(f, &stringSize);
     m_records = (RECORD *)(new (__FILE__, __LINE__) char[sizeof(RECORD) * m_numRecords + stringSize]);
-
     stringBuffer = (char *)(m_records + m_numRecords);
     m_maxID = 0;
-    for (int i = 0; i < m_numRecords; ++i) {
+    int i;
+    for (i = 0; i < m_numRecords; ++i) {
       new (&m_records[i]) RECORD;
       m_records[i].Read(f, stringBuffer);
       if (m_records[i].NeedIDAssigned()) {

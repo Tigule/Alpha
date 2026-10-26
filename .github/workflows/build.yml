@@ -143,6 +143,54 @@ jobs:
         with:
           path: Build/bytecode-explorer
 
+  windows-modern:
+    runs-on: windows-2025
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Check for Visual Studio 2026
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $version = & $vswhere -latest -version "[18.0,19.0)" -property installationVersion
+          if (-not $version) {
+            Write-Error "Visual Studio 2026 is not installed on this runner image"
+            exit 1
+          }
+          Write-Output "Visual Studio $version"
+
+      - name: Download DirectX SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/DXSDK2010.zip" -OutFile "DXSDK2010.zip"
+
+      - name: Extract DirectX SDK
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: DXSDK2010.zip
+          extract_dir: DXSDK2010
+
+      - name: Build solution
+        shell: cmd
+        env:
+          DXSDK_DIR: ${{ github.workspace }}\DXSDK2010
+        run: |
+          cmake -G "Visual Studio 18 2026" -A Win32 -S . -B Build/vs2026
+          cmake --build Build/vs2026 --config Release --parallel
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-vs2026
+          path: |
+            Build/vs2026/WoW/bin/Release/UpdateClientAE.exe
+            Build/vs2026/WoW/bin/Release/Wowae.exe
+            Build/vs2026/WoW/bin/Release/WowErrorAE.exe
+            Build/vs2026/WoW/bin/Release/WowUpdateHelperAE.exe
+          if-no-files-found: error
+
   deploy-pages:
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     needs: windows-legacy

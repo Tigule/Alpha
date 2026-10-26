@@ -9180,7 +9180,8 @@ ACTIVEATTACHMENTINFO *CGUnit_C::CreateAttachmentInfo(
 ) {
   HMODEL models[2];
   int    attachmentPoints[2];
-  for (UINT i = 0; i < 2; ++i) {
+  UINT i;
+  for (i = 0; i < 2; ++i) {
     attachmentPoints[i] = 0;
     models[i] = 0;
   }

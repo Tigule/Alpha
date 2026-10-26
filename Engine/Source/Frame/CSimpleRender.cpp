@@ -909,7 +909,8 @@ static LPCSTR LanguageProcess(LPCSTR text) {
   for (;;) {
     BOOL found = 0;
 
-    for (LPCSTR rule = text; *rule; ++rule) {
+    LPCSTR rule;
+    for (rule = text; *rule; ++rule) {
       if (*rule == '|') {
         if (rule[1] == '|') {
           ++rule;

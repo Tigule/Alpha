@@ -10,7 +10,7 @@ inline void __cdecl operator delete(LPVOID, LPVOID) {
 }
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER == 1200
+#if defined(_MSC_VER)
 inline void __cdecl operator delete(LPVOID ptr) {
   if (ptr) {
     SMemFree(ptr, "delete", -1, 0);

@@ -705,7 +705,8 @@ bool NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
   int   sides[3];
   int   counts[3] = {0, 0, 0};
 
-  for (UINT i = 0; i < 3; ++i) {
+  UINT i;
+  for (i = 0; i < 3; ++i) {
     dists[i] = facet1.plane.DistSigned(facet0.vertices[i]);
     if (dists[i] > 0.01f) {
       sides[i] = 0;

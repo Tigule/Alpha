@@ -362,7 +362,8 @@ void CSimpleModel::RenderModel(LPVOID param) {
     } else {
       UINT numLights = ModelGetNumLights(model);
 
-      for (UINT i = 0; i < numLights; ++i) {
+      UINT i;
+      for (i = 0; i < numLights; ++i) {
         const CGxLight *modelLight = ModelGetLight(model, i);
 
         ASSERT(modelLight);

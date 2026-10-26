@@ -739,7 +739,8 @@ static int Script_GetTradeSkillItemStats(lua_State *L) {
   }
 
   subClass = 0;
-  for (int i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
+  int i;
+  for (i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
     const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
     if (rec && rec->m_classID == stats->m_class && rec->m_subClassID == stats->m_subclass) {
       subClass = rec;
