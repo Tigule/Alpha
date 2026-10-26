@@ -4,7 +4,7 @@
 
 #include "FrameXML/LoadXML.h"
 #include "FrameXML/XMLTree.h"
-#include "Gxu/IGxuFont.h"
+#include "Gxu/GxuFont.h"
 #include "Services/TextBlock.h"
 
 #include <malloc.h>

@@ -4,7 +4,7 @@
 
 #include "Base/Coordinate.h"
 #include "FrameXML/XMLTree.h"
-#include "Gxu/IGxuFont.h"
+#include "Gxu/GxuFont.h"
 
 #include <new>
 

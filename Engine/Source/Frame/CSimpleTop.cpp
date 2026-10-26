@@ -6,7 +6,7 @@
 #include "Base/Coordinate.h"
 #include "Base/Handle.h"
 #include "Event/CMouseEvent.h"
-#include "Gxu/IGxuFont.h"
+#include "Gxu/GxuFont.h"
 #include "Os/OsTime.h"
 #include "Services/Camera.h"
 #include "Tempest/c3vector.h"

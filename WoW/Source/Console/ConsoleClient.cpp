@@ -11,8 +11,7 @@
 #include <Base/Handle.h>
 #include <DB/DBClient/AutoCode/VideoHardwareRec.h>
 #include <Event/EvtApi.h>
-#include <Gx/CGxDevice.h>
-#include <Gxu/IGxuFont.h>
+#include <Gxu/GxuFont.h>
 #include <Os/W32/OsClipboard.h>
 #include <WorldClient/WorldParam.h>
 #include <storm.h>

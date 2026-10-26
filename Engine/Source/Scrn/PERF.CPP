@@ -5,7 +5,7 @@
 #include <Base/Activity.h>
 #include <Base/Handle.h>
 #include <Gx/Gx.h>
-#include <Gxu/IGxuFont.h>
+#include <Gxu/GxuFont.h>
 #include <Os/OsNet.h>
 #include <Os/OsTime.h>
 #include <Os/W32/OSSystem.h>

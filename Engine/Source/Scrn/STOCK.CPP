@@ -4,7 +4,7 @@
 
 #include <Base/Coordinate.h>
 #include <Base/Handle.h>
-#include <Gxu/IGxuFont.h>
+#include <Gxu/GxuFont.h>
 #include <Services/TextBlock.h>
 
 static HTEXTFONT__ *s_stockObjects[SCRNSTOCKOBJECTS];
