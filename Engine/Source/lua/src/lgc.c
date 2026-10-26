@@ -397,7 +397,7 @@ static void checkSizes (lua_State *L) {
     size_t newsize = luaZ_sizebuffer(&G(L)->buff) / 2;
     luaZ_resizebuffer(L, &G(L)->buff, newsize);
   }
-  G(L)->GCthreshold = 2*G(L)->nblocks;  /* new threshold */
+  luaM_adjustGC(L);  /* new threshold */
 }
 
 

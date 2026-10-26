@@ -92,6 +92,7 @@ static void f_luaopen (lua_State *L, void *ud) {
   UNUSED(ud);
   if (g == NULL) luaD_throw(L, LUA_ERRMEM);
   L->l_G = g;
+  g->mempools = NULL;
   g->mainthread = L;
   g->GCthreshold = 0;  /* mark it as unfinished state */
   g->strt.size = 0;

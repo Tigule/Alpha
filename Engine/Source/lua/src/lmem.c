@@ -62,29 +62,11 @@ void *luaM_growaux (lua_State *L, void *block, int *size, int size_elems,
 /*
 ** generic allocation routine.
 */
-void *luaM_realloc (lua_State *L, void *block, lu_mem oldsize, lu_mem size) {
-  lua_assert((oldsize == 0) == (block == NULL));
-  if (size == 0) {
-    if (block != NULL) {
-      l_free(block, oldsize);
-      block = NULL;
-    }
-    else return NULL;  /* avoid `nblocks' computations when oldsize==size==0 */
-  }
-  else if (size >= MAX_SIZET)
-    luaG_runerror(L, "memory allocation error: block too big");
-  else {
-    block = l_realloc(block, oldsize, size);
-    if (block == NULL) {
-      if (L)
-        luaD_throw(L, LUA_ERRMEM);
-      else return NULL;  /* error before creating state! */
-    }
-  }
+void *luaM_irealloc (lua_State *L, void *block, lu_mem oldsize, lu_mem size,
+                     const char *file, int line) {
   if (L) {
-    lua_assert(G(L) != NULL && G(L)->nblocks > 0);
     G(L)->nblocks -= oldsize;
     G(L)->nblocks += size;
   }
-  return block;
+  return luaM_reallocPool(L, block, size);
 }

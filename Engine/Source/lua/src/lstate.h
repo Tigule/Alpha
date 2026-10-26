@@ -109,6 +109,7 @@ typedef struct CallInfo {
 ** `global state', shared by all threads of this state
 */
 typedef struct global_State {
+  void *mempools;  /* block pools of luaM_reallocPool */
   stringtable strt;  /* hash table for strings */
   GCObject *rootgc;  /* list of (almost) all collectable objects */
   GCObject *rootudata;   /* (separated) list of all userdata */
