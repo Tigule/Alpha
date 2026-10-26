@@ -7501,7 +7501,7 @@ void CGPlayer_C::OnDeathAnimate() {
   CGUnit_C::OnDeathAnimate();
   CheckKillerFeedback();
   DWORDLONG guid = GetGUID();
-  if (guid == ClntObjMgrGetActivePlayer() && !(m_move.m_moveFlags & 0x4000)) {
+  if (guid == ClntObjMgrGetActivePlayer() && !m_move.IsFalling()) {
     CGGameUI::UpdateActivePlayer();
   }
 }

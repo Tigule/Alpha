@@ -400,7 +400,7 @@ void CMovement::Obstruct(DWORD timeStamp, const C3Vector &unitMove, const C3Vect
     return;
   }
 
-  if (!(m_moveFlags & 0xF)) {
+  if (!IsMovingOrStrafing()) {
     this ? SErrDisplayErrorFmt(
                STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
                "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
@@ -418,13 +418,13 @@ void CMovement::Obstruct(DWORD timeStamp, const C3Vector &unitMove, const C3Vect
   if (cosTheta < 0.0f) {
     planeIntersect = -planeIntersect;
   }
-  if (CMath::fequal4_(planeIntersect.SquaredMag(), 0.0f) || (CMath::fabs_(cosTheta) < 0.017452406f && (m_moveFlags & 0x4000))) {
+  if (CMath::fequal4_(planeIntersect.SquaredMag(), 0.0f) || (CMath::fabs_(cosTheta) < 0.017452406f && IsFalling())) {
     FallLogWrite("0x%016I64X: new redirected direction is horizontal, stopping\n", GetGUID());
     Halt(timeStamp);
     return;
   }
   AttemptRedirect(timeStamp, unitMove, planeIntersect);
-  if (m_moveFlags & 0xF) {
+  if (IsMovingOrStrafing()) {
     FallLogWrite("0x%016I64X: Setting redirected (" __FILE__ ": %d)\n", GetGUID(), __LINE__);
   }
 }
@@ -449,19 +449,19 @@ void CMovement::CallMoveEventHandlers(DWORD eventTime, int moveAdjusted, UINT ol
   if (moveAdjusted) {
     if ((m_moveFlags ^ oldMoveFlags) & 0xF) {
       OnPendingMoveStateChange(GetGUID(), GetMoveEventMsgId(oldMoveFlags, wasJumping), eventTime);
-      if (!(m_moveFlags & 0xF)) {
+      if (!IsMovingOrStrafing()) {
         UnitNotifyStopped(GetGUID(), m_spline && (m_spline->flags & 1));
       }
-    } else if (m_moveFlags & 0x10000000) {
+    } else if (IsHalted()) {
       if (!(oldMoveFlags & 0x10000000)) {
         OnCollideStuck(GetGUID(), eventTime);
       }
-    } else if (m_moveFlags & 0xF) {
+    } else if (IsMovingOrStrafing()) {
       OnCollideRedirected(GetGUID(), eventTime);
     }
   }
 
-  if (m_moveFlags & 0x4000) {
+  if (IsFalling()) {
     if ((m_moveFlags & 0x8000) && !(oldMoveFlags & 0x8000)) {
       OnCollideFalling(GetGUID(), eventTime);
     }
@@ -477,7 +477,7 @@ void CMovement::CallMoveEventHandlers(DWORD eventTime, int moveAdjusted, UINT ol
 float CMovement::RelDistanceFallen(DWORD currentTime, float updateFallTimeSecs) {
   float lastFallTime;
   float fallStartElevation;
-  if ((m_moveFlags & 0x4000) && currentTime != m_fallStartTime) {
+  if (IsFalling() && currentTime != m_fallStartTime) {
     lastFallTime = (int)(currentTime - m_fallStartTime) * 0.001f;
     if (!(lastFallTime >= 0.0f)) {
       this ? SErrDisplayErrorFmt(
@@ -520,7 +520,7 @@ float CMovement::RelDistanceFallen(UINT fallTimeMS) {
   } else {
     distance = (jumpVelocity + velocity * 0.5f) * fallTime;
   }
-  float startElevation = m_moveFlags & 0x4000 ? m_fallStartElevation : m_position.z;
+  float startElevation = IsFalling() ? m_fallStartElevation : m_position.z;
   return m_position.z - (startElevation - distance);
 }
 
@@ -583,7 +583,7 @@ void CMovement::CheckFallenFar(DWORD eventTime) {
 }
 
 void CMovement::ProcessFalling(DWORD eventTime) {
-  if (!(m_moveFlags & 0x4000)) {
+  if (!IsFalling()) {
     StartFalling(eventTime);
   }
   CheckFallenFar(eventTime);
@@ -1389,14 +1389,14 @@ UINT CMovement::Fall(UINT fallenSoFar, UINT timeIncrement) {
     m_position.z -= distFallen;
     if (CMath::fnotequal4_(distToFall, distFallen)) {
       timeIncrement = CMath::fint_n((distFallen / distToFall) * (timeIncrement * 0.001f) * 1000.0f);
-      if (!(m_moveFlags & 0x01000000)) {
+      if (!IsSliding()) {
         StopFalling();
         HandlePendingActions(fallenSoFar + timeIncrement + m_fallStartTime);
       }
       if (gameObjHit) {
         SetTransport(gameObjHit);
       }
-    } else if (!(m_moveFlags & 0x01000000)) {
+    } else if (!IsSliding()) {
       CheckFallenFar(fallEndTime + m_fallStartTime);
     }
   }
@@ -1515,11 +1515,11 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     UINT  timeLeft = timeElapsed - timeUsed;
     float distanceLeft = timeLeft * 0.001f * currSpeed;
     UINT  fallenSoFar = 0;
-    if (m_moveFlags & 0x4000) {
+    if (IsFalling()) {
       fallenSoFar = lastUpdateTime + timeUsed - m_fallStartTime;
     }
 
-    C3Vector &unitMove = m_moveFlags & 0x01000000 ? m_reDirection : moveDirWanted;
+    C3Vector &unitMove = IsSliding() ? m_reDirection : moveDirWanted;
     UINT      moveEndFallTime = fallenSoFar + timeElapsed;
     GetMoveFacets(distanceLeft, moveEndFallTime, unitMove);
     SaveMoveState(&state);
@@ -1530,11 +1530,11 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     UINT timeJustUsed;
     if (m_moveFlags & 0x02000000) {
       timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, moveDirWanted * distanceLeft, moveDirWanted);
-    } else if (!(m_moveFlags & 0x4000)) {
+    } else if (!IsFalling()) {
       timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, moveDirWanted, moveDirWanted);
-    } else if (m_moveFlags & 0x01000000) {
+    } else if (IsSliding()) {
       timeJustUsed = Slide(fallenSoFar, timeLeft);
-    } else if (m_moveFlags & 0xF) {
+    } else if (IsMovingOrStrafing()) {
       timeJustUsed = ProjectileFall(lastUpdateTime + timeUsed, timeLeft, moveDirWanted * distanceLeft, moveDirWanted);
     } else {
       timeJustUsed = Fall(fallenSoFar, timeLeft);
@@ -1567,7 +1567,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
         HandlePendingActions(lastUpdateTime + timeUsed);
         Halt(lastUpdateTime + timeUsed);
       }
-      if (!(m_moveFlags & 0x400F) || (m_moveFlags & 0x10000000)) {
+      if (!(m_moveFlags & 0x400F) || IsHalted()) {
         FallLogWrite(
             "0x%016I64X: unit blocked, moved (%g) instead of (%g)\n", GetGUID(), (timeUsed + timeJustUsed) * 0.001f * currSpeed, distanceLeft
         );
@@ -1594,11 +1594,11 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     FallLogWrite("0x%016I64X: (redir) lastUpdateTime (0x%08X), timeUsed (%d)\n", GetGUID(), lastUpdateTime, timeUsed);
     if (m_moveFlags & 0x02000000) {
       timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, m_reDirection * distanceLeft, moveDirWanted);
-    } else if (!(m_moveFlags & 0x4000)) {
+    } else if (!IsFalling()) {
       timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, m_reDirection, moveDirWanted);
-    } else if (m_moveFlags & 0xF) {
+    } else if (IsMovingOrStrafing()) {
       timeJustUsed = ProjectileFall(lastUpdateTime + timeUsed, timeLeft, m_reDirection * distanceLeft, moveDirWanted);
-      if ((m_moveFlags & 0x4000) && !timeJustUsed) {
+      if (IsFalling() && !timeJustUsed) {
         Halt(lastUpdateTime + timeUsed);
         continue;
       }
@@ -1616,7 +1616,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
       HandlePendingActions(lastUpdateTime + timeUsed);
       Halt(lastUpdateTime + timeUsed);
     }
-    if (!(m_moveFlags & 0x400F) || (m_moveFlags & 0x10000000)) {
+    if (!(m_moveFlags & 0x400F) || IsHalted()) {
       FallLogWrite(
           "0x%016I64X: unit blocked on redirect, moved (%g) instead of (%g)\n", GetGUID(),
           (timeUsed + timeJustUsed) * 0.001f * speedFactor * currSpeed, distanceLeft
@@ -1712,7 +1712,7 @@ float CMovement::AttemptMove(
   }
   m_position.z += adjustedElevation;
   FallLogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
-  if (CMath::fequal4_(m_reDirection.SquaredMag(), 1.0f) && (m_moveFlags & 0xF)) {
+  if (CMath::fequal4_(m_reDirection.SquaredMag(), 1.0f) && IsMovingOrStrafing()) {
     m_moveFlags |= 0x1000;
     FallLogWrite("0x%016I64X: Setting redirected (" __FILE__ ": %d)\n", GetGUID(), __LINE__);
   } else {
@@ -1756,7 +1756,7 @@ BOOL CMovement::IsTooLow(
     minElevation = position.z;
   } else {
     int timeToFall = CMath::fint_n((surface->closeDist - distanceMoved) * currSpeedInv * 1000.0f);
-    if (m_moveFlags & 0x4000) {
+    if (IsFalling()) {
       timeToFall = timeToFall - m_fallStartTime + moveStartTime;
     }
     if (!(timeToFall >= 0)) {
@@ -2035,7 +2035,7 @@ int CMovement::HandlePendingActions(DWORD eventTime) {
     m_moveFlags &= ~0xCU;
     BothLogWrite("0x%016I64X: Executing pending unstrafe at (%g,%g,%g)\n", GetGUID(), m_position.x, m_position.y, m_position.z);
   }
-  if (!(m_moveFlags & 0xF)) {
+  if (!IsMovingOrStrafing()) {
     m_moveFlags &= ~0x1000U;
   }
   if (m_moveFlags & 0x00180000) {
@@ -2201,7 +2201,7 @@ UINT CMovement::ProjectileFall(DWORD eventTime, UINT timeToMove, const C3Vector 
   if (distanceMoved >= distance) {
     m_position += move;
     distanceMoved = distance;
-    if (m_moveFlags & 0x4000) {
+    if (IsFalling()) {
       CheckFallenFar(eventTime + timeToMove);
     } else {
       if (gameObjHit) {
@@ -2213,7 +2213,7 @@ UINT CMovement::ProjectileFall(DWORD eventTime, UINT timeToMove, const C3Vector 
     move = unitMove * distanceMoved;
     m_position += move;
     timeToMove = CMath::fint_n(CMath::fabs_(distanceMoved) / distance * (timeToMove * 0.001f) * 1000.0f);
-    if (!(m_moveFlags & 0x4000)) {
+    if (!IsFalling()) {
       if (gameObjHit) {
         SetTransport(gameObjHit);
       }
@@ -2238,21 +2238,11 @@ UINT CMovement::TraceSurface(
     const C2Vector &unitMove,
     const C2Vector &unitMoveWanted
 ) {
-  if (m_moveFlags & 0x4000) {
-    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsFalling()", FALSE);
-  }
-  if (m_moveFlags & 0x01000000) {
-    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsSliding()", FALSE);
-  }
-  if (m_moveFlags & 0x02000000) {
-    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsSwimming()", FALSE);
-  }
-  if (m_moveFlags & 0x10000000) {
-    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "!IsHalted()", FALSE);
-  }
-  if (!(m_moveFlags & 0xF)) {
-    SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "IsMovingOrStrafing()", FALSE);
-  }
+  ASSERT(!IsFalling());
+  ASSERT(!IsSliding());
+  ASSERT(!IsSwimming());
+  ASSERT(!IsHalted());
+  ASSERT(IsMovingOrStrafing());
 
   static TSGrowableArray<CWalkableSurface> surfacePool;
   if (CMath::fequal4_(distance, 0.0f)) {
@@ -2309,7 +2299,7 @@ UINT CMovement::TraceSurface(
     float     adjustedDist = distance;
     CheckSurfaceObstacles(surface, currEventTime, &adjustedDist, distanceMoved, currentSpeedInv, &surfacePool, &hitInfo);
     CollisionInfoColorFace(surface->facetId, FACET_TESTED_TOUCHED);
-    if (m_moveFlags & 0x4000) {
+    if (IsFalling()) {
       this ? SErrDisplayErrorFmt(
                  STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
                  "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
@@ -2363,13 +2353,13 @@ UINT CMovement::TraceSurface(
     distanceMoved += distMoved;
     absDistMoved += CMath::fabs_(distMoved);
     distance -= CMath::fabs_(segmentDist);
-    if (!wasRedirected && (m_moveFlags & 0xF) && hitInfo.flags) {
+    if (!wasRedirected && IsMovingOrStrafing() && hitInfo.flags) {
       Redirect(currEventTime, C3Vector(unitMoveWanted.x, unitMoveWanted.y, 0.0f), currentPlatform.n, hitInfo);
     }
 
     timeUsed = CMath::fint_n(absDistMoved * currentSpeedInv * 1000.0f);
     if ((!wasRedirected && (m_moveFlags & 0x1000)) || CMath::fnotequal4_(distMoved, segmentDist) || distance < 0.00000095367432f ||
-        (m_moveFlags & 0x10000000))
+        IsHalted())
     {
       return min(timeUsed, timeToMove);
     }

@@ -197,18 +197,20 @@ class CMovementData {
   BOOL IsMovingOrTurning() const;
   BOOL IsMovingAndTurning() const;
   BOOL IsMovingOrFalling() const;
-  BOOL IsMovingOrStrafing() const;
+  BOOL IsMovingOrStrafing() const {
+    return m_moveFlags & 0xF;
+  }
   BOOL IsMovingStrafingOrFalling() const;
   BOOL IsMovingAndStrafing() const;
   BOOL IsMovingTurningOrStrafing() const;
   BOOL IsMoving() const {
-    return m_moveFlags & 3;
+    return m_moveFlags & 0x3;
   }
   BOOL IsMovingForward() const {
-    return m_moveFlags & 1;
+    return m_moveFlags & 0x1;
   }
   BOOL IsMovingBackwards() const {
-    return m_moveFlags & 2;
+    return m_moveFlags & 0x2;
   }
   BOOL IsTurning() const {
     return m_moveFlags & 0x30;
@@ -227,7 +229,9 @@ class CMovementData {
   BOOL IsStrafing() const {
     return m_moveFlags & 0xC;
   }
-  BOOL IsFalling() const;
+  BOOL IsFalling() const {
+    return m_moveFlags & 0x4000;
+  }
   BOOL IsJumping() const;
   BOOL HasFallenFar() const {
     return m_moveFlags & 0x8000;
@@ -254,7 +258,9 @@ class CMovementData {
   int IgnoresCollision() const {
     return m_moveFlags & 0x800;
   }
-  BOOL  IsHalted() const;
+  BOOL IsHalted() const {
+    return m_moveFlags & 0x10000000;
+  }
   int   WasNudged() const;
   float GetCollisionBoxHeight() const {
     return m_collisionBoxHeight;
@@ -659,7 +665,9 @@ class CMovement : public CMovementData {
   void SaveMoveState(CMoveState *state) const;
   void RestoreMoveState(const CMoveState &state);
   BOOL IsRedirected() const;
-  BOOL IsSliding() const;
+  BOOL IsSliding() const {
+    return m_moveFlags & 0x01000000;
+  }
   BOOL IsJumpingUp(DWORD eventTime);
   BOOL CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT moveTime);
   void ApplyAdjustedMove(DWORD timeStemp, const NTempest::C3Vector &moveWanted, BOOL wasAdjusted, UINT oldMoveFlags);

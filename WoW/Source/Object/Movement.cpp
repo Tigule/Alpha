@@ -282,7 +282,7 @@ void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
     );
 
     if ((m_moveFlags & 0x40FF) && timeToUse > 0) {
-      ApplyMovement(updateTime + 1, m_moveFlags & 0x4000 ? updateTime - m_fallStartTime : 0, timeToUse - m_moveStartTime + updateTime, timeToUse);
+      ApplyMovement(updateTime + 1, IsFalling() ? updateTime - m_fallStartTime : 0, timeToUse - m_moveStartTime + updateTime, timeToUse);
       m_moveFlags |= 0x00800000;
     }
 
@@ -869,7 +869,7 @@ BOOL CMovement::PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move) {
   UINT  actionFlags = 0;
   if (m_moveFlags & 0x30) {
     PlotUnitRotation(secsElapsed);
-    if (!(m_moveFlags & 0x4000)) {
+    if (!IsFalling()) {
       actionFlags |= IS_TURNING;
     }
   }
@@ -1312,8 +1312,8 @@ void CMovement::UpdateAnchors(DWORD eventTime) {
 
 BOOL CMovement::StartMove(DWORD eventTime, int forward) {
   m_moveFlags &= ~0x00190000;
-  if (m_moveFlags & 0x4000) {
-    if (m_moveFlags & 0xF) {
+  if (IsFalling()) {
+    if (IsMovingOrStrafing()) {
       if (forward) {
         if (!(m_moveFlags & 1)) {
           m_moveFlags |= 0x00080000;
@@ -1390,8 +1390,8 @@ void CMovement::OnMoveStartLocal(DWORD eventTime, int forward) {
 
 BOOL CMovement::StartStrafe(DWORD eventTime, int left) {
   m_moveFlags &= ~0x00620000;
-  if (m_moveFlags & 0x4000) {
-    if (m_moveFlags & 0xF) {
+  if (IsFalling()) {
+    if (IsMovingOrStrafing()) {
       if (left) {
         if (!(m_moveFlags & 4)) {
           m_moveFlags |= 0x00200000;
@@ -1449,7 +1449,7 @@ BOOL CMovement::ForceJump(DWORD eventTime) {
 }
 
 BOOL CMovement::Jump(DWORD eventTime) {
-  if (m_moveFlags & 0x4000) {
+  if (IsFalling()) {
     return 0;
   }
   return ForceJump(eventTime);
@@ -1498,7 +1498,7 @@ void CMovement::Halt(DWORD eventTime) {
       "0x%016I64X: Unit halted (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing * 57.29578f
   );
-  if (!(m_moveFlags & 0x4000)) {
+  if (!IsFalling()) {
     m_moveFlags |= 0x10000000;
     return;
   }
@@ -1537,7 +1537,7 @@ BOOL CMovement::StopMove(DWORD eventTime) {
     return 0;
   }
 
-  if (m_moveFlags & 0x4000) {
+  if (IsFalling()) {
     BothLogWrite("0x%016I64X: Move stop is pending\n", GetGUID());
     m_moveFlags = (m_moveFlags & ~0x00180000) | 0x00010000;
     return 0;
@@ -1589,7 +1589,7 @@ BOOL CMovement::StopStrafe(DWORD eventTime) {
     return 0;
   }
 
-  if (m_moveFlags & 0x4000) {
+  if (IsFalling()) {
     BothLogWrite("0x%016I64X: Strafe stop is pending\n", GetGUID());
     m_moveFlags = (m_moveFlags & ~0x00600000) | 0x00020000;
     return 0;
@@ -1844,11 +1844,11 @@ void CMovement::GetUpdateInfo(CClientMoveUpdate *init) const {
 }
 
 void CMovement::UpdateCurrentSpeed() {
-  if ((m_moveFlags & 0x4000) && !(m_moveFlags & 0x20000000)) {
+  if (IsFalling() && !(m_moveFlags & 0x20000000)) {
     return;
   }
 
-  if (!(m_moveFlags & 0xF)) {
+  if (!IsMovingOrStrafing()) {
     m_currentSpeed = 0.0f;
     LogWrite("0x%016I64X: Updating current speed to zero\n", GetGUID());
     return;
@@ -2360,7 +2360,7 @@ void CMovement::SetFacing(DWORD eventTime, float facing) {
         m_position.y, m_position.z, m_facing * 57.29578f, facing * 57.29578f
     );
     m_facing = facing;
-    if (!(m_moveFlags & 0x4000)) {
+    if (!IsFalling()) {
       UpdateAnchors(eventTime);
     }
   }
@@ -2442,7 +2442,7 @@ void CMovement::CollisionStateChanged() {
 void CMovement::CollisionStateChangedLocal(DWORD eventTime) {
   if (IgnoresCollision() || IsSplineFlyer()) {
     OnDisableGravity(eventTime);
-    if (!(m_moveFlags & 0xF)) {
+    if (!IsMovingOrStrafing()) {
       ((CMovementGlobals *)MovementGetGlobals())->m_localMover = NULL;
     }
   } else {
@@ -2585,7 +2585,7 @@ void CMovementData::RemoveFromMoversList() {
 }
 
 UINT CMovement::FallTime() const {
-  if (m_moveFlags & 0x4000) {
+  if (IsFalling()) {
     CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
     return globals->m_lastUpdateTime - m_fallStartTime;
   }
@@ -2689,7 +2689,7 @@ void CMovement::OnSwimStop(DWORD eventTime) {
 
 void CMovement::StartSwimLocal(DWORD eventTime) {
   StartSwim(eventTime);
-  if (!(m_moveFlags & 0xF)) {
+  if (!IsMovingOrStrafing()) {
     ((CMovementGlobals *)MovementGetGlobals())->m_localMover = 0;
   }
 }

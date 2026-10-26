@@ -3304,7 +3304,7 @@ void CGUnit_C::UpdateSmoothFacing() {
     }
   }
 
-  if (!(m_move.m_moveFlags & 0xF) && !m_unit->standState && !m_unit->emoteState) {
+  if (!m_move.IsMovingOrStrafing() && !m_unit->standState && !m_unit->emoteState) {
     if (m_flags & 1) {
       facing = m_forcedDisplayFacing;
     } else if (!(IsPlayerControlled() && IsA(ID_PLAYER))) {
@@ -3848,7 +3848,7 @@ void CGUnit_C::OnTurnRateChange(DWORD eventTime, const CMovementStatus &update, 
 }
 
 void CGUnit_C::OnPendingMoveStateChange(NETMESSAGE msgId) {
-  if (!(m_move.m_moveFlags & 0xF) && (msgId == MSG_MOVE_STOP || msgId == MSG_MOVE_STOP_STRAFE)) {
+  if (!m_move.IsMovingOrStrafing() && (msgId == MSG_MOVE_STOP || msgId == MSG_MOVE_STOP_STRAFE)) {
     UpdateBaseAnimation(ANIM_STATE_STOP, 0);
   } else {
     UpdateBaseAnimation(0);
@@ -3867,7 +3867,7 @@ void CGUnit_C::OnCollideFalling(DWORD eventTime) {
 }
 
 void CGUnit_C::OnCollideFallLand(DWORD eventTime) {
-  if (m_move.m_moveFlags & 0xF) {
+  if (m_move.IsMovingOrStrafing()) {
     UpdateBaseAnimation(0);
   } else if (!IsInStandSitTransition()) {
     UpdateBaseAnimation(ANIM_STATE_JUMP_LANDING, 0);
@@ -3924,7 +3924,7 @@ void UpdateLocalPlayerFallState(int falling) {
 
 static BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
-  if (unit && !(unit->m_move.m_moveFlags & 0x10000000)) {
+  if (unit && !unit->m_move.IsHalted()) {
     unit->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
     SysMsgAdd("MOVEMENT|Movement heartbeat", SYSMSG_INFO, 1);
   }
@@ -4005,7 +4005,7 @@ void CGUnit_C::UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth) {
       if (m_move.GetCollisionBoxHeight() * 0.75f < depth) {
         OnSwimStartLocal(eventTime);
       }
-      if (m_move.m_moveFlags & 0x4000) {
+      if (m_move.IsFalling()) {
         PlaySplashSound(GetPosition());
       }
     }
@@ -4847,7 +4847,7 @@ void CGUnit_C::InitializeSequenceFlags() {
 }
 
 float CGUnit_C::DetermineWalkRunTimeScale(int currentState) {
-  if (!(m_move.m_moveFlags & 0xF)) {
+  if (!m_move.IsMovingOrStrafing()) {
     return 1.0f;
   }
 
@@ -9870,7 +9870,7 @@ void ProcessLocalMoveEvent(UINT msgId) {
 }
 
 void CGUnit_C::ProcessLocalMoveEvent(NETMESSAGE msgId) {
-  if (!(m_move.m_moveFlags & 0xF) && (msgId == MSG_MOVE_STOP || msgId == MSG_MOVE_STOP_STRAFE)) {
+  if (!m_move.IsMovingOrStrafing() && (msgId == MSG_MOVE_STOP || msgId == MSG_MOVE_STOP_STRAFE)) {
     UpdateBaseAnimation(ANIM_STATE_STOP, 0);
   } else if (msgId != MSG_MOVE_SET_FACING && msgId != MSG_MOVE_SET_PITCH) {
     UpdateBaseAnimation(0);
