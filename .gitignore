@@ -43,3 +43,6 @@ WoW/Wow
 # Python
 __pycache__/
 .venv/
+
+# Node
+node_modules/

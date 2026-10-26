@@ -709,6 +709,193 @@ def _file_line_argument_evidence(artifact: ArtifactData, instructions: Sequence[
     return result
 
 
+def _locals(original: _Function, rebuilt: _Function | None, original_pdb: PDBData,
+            rebuilt_pdb: PDBData) -> list[dict[str, Any]]:
+    def side(function: _Function | None, pdb: PDBData) -> dict[str, dict[str, str]]:
+        symbol = next((value for value in function.symbols if value.locals), None) if function else None
+        return {} if symbol is None else {
+            local.name: {"type": pdb.types.describe(local.type_index), "location": local.location}
+            for local in symbol.locals
+        }
+
+    left, right = side(original, original_pdb), side(rebuilt, rebuilt_pdb)
+    rows = []
+    for name, value in left.items():
+        other = right.get(name)
+        status = ("missing" if other is None else "type_mismatch" if other["type"] != value["type"]
+                  else "location_mismatch" if other["location"] != value["location"] else "matched")
+        rows.append({"name": name, "original": value, "rebuilt": other, "status": status})
+    rows.extend({"name": name, "original": None, "rebuilt": value, "status": "extra"}
+                for name, value in right.items() if name not in left)
+    return rows
+
+
+def _field_members(pdb: PDBData, index: int | None) -> list[Any]:
+    members: list[Any] = []
+    seen: set[int] = set()
+    while index is not None and index not in seen:
+        seen.add(index)
+        node = pdb.types.resolve(index)
+        if node is None or node.kind != "field_list":
+            break
+        members.extend(member for member in node.members if member.kind != "continuation")
+        index = next((member.type_index for member in node.members if member.kind == "continuation"), None)
+    return members
+
+
+def _methods(pdb: PDBData, members: Sequence[Any]) -> list[tuple[str, int, int | None]]:
+    result = []
+    for member in members:
+        if member.kind == "method":
+            result.append((member.name, member.attributes, member.type_index))
+        elif member.kind == "overloaded_method":
+            listing = pdb.types.resolve(member.type_index)
+            for entry in (listing.members if listing is not None else ()):
+                result.append((member.name, entry.attributes, entry.type_index))
+    return result
+
+
+_ACCESS = {1: "private", 2: "protected", 3: "public"}
+_METHOD_PROPERTIES = {1: "virtual", 2: "static", 3: "friend", 4: "virtual", 5: "pure virtual", 6: "pure virtual"}
+
+
+def _type_detail(original: PDBData, left: int, rebuilt: PDBData, right: int | None,
+                 original_names: set[str], rebuilt_names: set[str]) -> dict[str, Any]:
+    a = original.types.resolve(left)
+    b = rebuilt.types.resolve(right) if right is not None else None
+
+    def layout(pdb: PDBData, node: Any) -> dict[tuple[str, str], dict[str, Any]]:
+        if node is None:
+            return {}
+        result: dict[tuple[str, str], dict[str, Any]] = {}
+        for member in _field_members(pdb, dict(node.refs).get("fields")):
+            if member.kind in ("member", "static_member"):
+                key = (member.kind, member.name or "")
+                result[key] = {"type": pdb.types.describe(member.type_index), "offset": member.offset}
+            elif member.kind in ("base_class", "virtual_base", "indirect_virtual_base"):
+                name = pdb.types.describe(member.type_index)
+                result[(member.kind, name)] = {"type": name, "offset": member.offset}
+            elif member.kind == "vfunctab":
+                result[("vfunctab", "vfptr")] = {"type": pdb.types.describe(member.type_index), "offset": 0}
+            elif member.kind == "enumerator":
+                result[("enumerator", member.name or "")] = {"type": str(member.value), "offset": None}
+        return result
+
+    left_layout, right_layout = layout(original, a), layout(rebuilt, b)
+    members = []
+    for (kind, name), value in left_layout.items():
+        other = right_layout.get((kind, name))
+        status = ("missing" if other is None else "type_mismatch" if other["type"] != value["type"]
+                  else "offset_mismatch" if other["offset"] != value["offset"] else "matched")
+        members.append({"kind": kind, "name": name, "offset": value["offset"], "original": value["type"],
+                        "rebuilt": None if other is None else other["type"],
+                        "rebuilt_offset": None if other is None else other["offset"], "status": status})
+    members.extend({"kind": kind, "name": name, "offset": value["offset"], "original": None, "rebuilt": value["type"],
+                    "rebuilt_offset": value["offset"], "status": "extra"}
+                   for (kind, name), value in right_layout.items() if (kind, name) not in left_layout)
+    methods = []
+    seen: set[str] = set()
+    for name, attributes, type_index in _methods(original, _field_members(original, dict(a.refs).get("fields")) if a else []):
+        qualified = f"{a.name}::{name}"
+        properties = (attributes >> 2) & 7
+        methods.append({"name": name, "access": _ACCESS.get(attributes & 3, ""),
+                        "property": _METHOD_PROPERTIES.get(properties, ""),
+                        "compiler_generated": bool(attributes & 0x100),
+                        "signature": original.types.signature(type_index, qualified),
+                        "original_code": qualified in original_names,
+                        "rebuilt_code": qualified in rebuilt_names,
+                        "overload": qualified in seen})
+        seen.add(qualified)
+    return {"kind": a.kind if a else None, "original_size": a.size if a else None,
+            "rebuilt_size": b.size if b else None, "members": members, "methods": methods}
+
+
+def _inline_functions(original: PDBData, rebuilt: PDBData,
+                      function_results: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    original_names = {symbol.name for symbol in original.functions}
+    rebuilt_names = {symbol.name for symbol in rebuilt.functions}
+    owners: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for row in function_results:
+        name = str(row.get("display_name") or "")
+        if "::" in name:
+            owners[name.rsplit("::", 1)[0]][str(row.get("compiland"))] += 1
+    rebuilt_signatures: dict[str, list[str]] = defaultdict(list)
+    for type_name, indexes in rebuilt.types.named_types.items():
+        for index in {rebuilt.types.aliases.get(i, i) for i in indexes}:
+            node = rebuilt.types.resolve(index)
+            if node is None or not node.supported or node.kind not in ("class", "structure", "union"):
+                continue
+            for name, _, type_index in _methods(rebuilt, _field_members(rebuilt, dict(node.refs).get("fields"))):
+                rebuilt_signatures[f"{type_name}::{name}"].append(rebuilt.types.signature(type_index, f"{type_name}::{name}"))
+    result = []
+    seen: set[str] = set()
+    for type_name in sorted(original.types.named_types):
+        for index in sorted({original.types.aliases.get(i, i) for i in original.types.named_types[type_name]}):
+            node = original.types.resolve(index)
+            if node is None or not node.supported or node.kind not in ("class", "structure", "union"):
+                continue
+            for name, attributes, type_index in _methods(original, _field_members(original, dict(node.refs).get("fields"))):
+                qualified = f"{type_name}::{name}"
+                if qualified in seen or qualified in original_names:
+                    continue
+                seen.add(qualified)
+                if attributes & 0x100 or ((attributes >> 2) & 7) in (5, 6):
+                    continue
+                candidates = owners.get(type_name, {})
+                compiland = max(sorted(candidates), key=lambda key: candidates[key]) if candidates else "unassigned"
+                signature = original.types.signature(type_index, qualified)
+                overloads = rebuilt_signatures.get(qualified, [])
+                result.append({"name": qualified, "type": type_name, "compiland": compiland, "signature": signature,
+                               "rebuilt_signature": signature if signature in overloads else next(iter(overloads), None),
+                               "access": _ACCESS.get(attributes & 3, ""),
+                               "status": "emitted" if qualified in rebuilt_names else "inlined"})
+    return result
+
+
+def _compare_globals(original_artifact: ArtifactData, original: PDBData,
+                     rebuilt_artifact: ArtifactData, rebuilt: PDBData) -> list[dict[str, Any]]:
+    def collect(artifact: ArtifactData, pdb: PDBData) -> dict[tuple[str, str], dict[str, Any]]:
+        keys = _module_keys(pdb)
+        names = {section.number: section.name for section in artifact.sections}
+        values = {}
+        for symbol in pdb.data:
+            key = keys.get(symbol.module)
+            if key is None or symbol.procedure is not None:
+                continue
+            values[(key, symbol.name)] = {"type": pdb.types.describe(symbol.type_index),
+                                          "scope": "global" if symbol.kind == "global" else "static",
+                                          "section": names.get(symbol.section, f"#{symbol.section}")}
+        return values
+
+    left, right = collect(original_artifact, original), collect(rebuilt_artifact, rebuilt)
+    rows = []
+    for (compiland, name), value in sorted(left.items()):
+        other = right.get((compiland, name))
+        status = ("missing" if other is None else "type_mismatch" if other["type"] != value["type"]
+                  else "section_mismatch" if other["section"] != value["section"] else "matched")
+        rows.append({"compiland": compiland, "name": name, "original": value, "rebuilt": other, "status": status})
+    rows.extend({"compiland": compiland, "name": name, "original": None, "rebuilt": value, "status": "extra"}
+                for (compiland, name), value in sorted(right.items()) if (compiland, name) not in left)
+    return rows
+
+
+def _compare_sections(original: ArtifactData, rebuilt: ArtifactData) -> list[dict[str, Any]]:
+    rebuilt_sections = {section.name: section for section in rebuilt.sections}
+
+    def side(value: Any) -> dict[str, Any] | None:
+        return None if value is None else {"virtual_size": value.virtual_size, "raw_size": value.raw_size,
+                                           "sha256": sha256(value.data).hexdigest()}
+
+    rows = []
+    for section in original.sections:
+        left, right = side(section), side(rebuilt_sections.get(section.name))
+        status = ("missing" if right is None else "matched" if left == right
+                  else "size_matched" if (left["virtual_size"], left["raw_size"]) == (right["virtual_size"], right["raw_size"])
+                  else "mismatch")
+        rows.append({"name": section.name, "original": left, "rebuilt": right, "status": status})
+    return rows
+
+
 def _identity_report(artifact: ArtifactData, pdb: PDBData) -> dict[str, Any]:
     image = artifact.identity
     matches = (image.codeview_kind == "NB10" and image.codeview_signature is not None
@@ -724,24 +911,29 @@ def _identity_report(artifact: ArtifactData, pdb: PDBData) -> dict[str, Any]:
 
 def _compare_types(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     results: list[dict[str, Any]] = []; total = matched = 0
+    original_names = {symbol.name for symbol in original.functions}
+    rebuilt_names = {symbol.name for symbol in rebuilt.functions}
     for name in sorted(original.types.named_types):
         left_indexes = sorted({original.types.aliases.get(i, i) for i in original.types.named_types[name]})
         right_indexes = sorted({rebuilt.types.aliases.get(i, i) for i in rebuilt.types.named_types.get(name, ())})
         for occurrence, left in enumerate(left_indexes):
             total += 1; identity = f"type:{name}#{occurrence}"
             if not right_indexes:
-                results.append({"identity": identity, "status": "missing", "reason": "named type absent from rebuilt PDB"}); continue
+                results.append({"identity": identity, "status": "missing", "reason": "named type absent from rebuilt PDB",
+                                "detail": _type_detail(original, left, rebuilt, None, original_names, rebuilt_names)}); continue
             comparisons = [(right, original.types.compare(left, rebuilt.types, right)) for right in right_indexes]
             equal = [(right, value) for right, value in comparisons if value.equal is True]
+            counterpart = equal[0][0] if equal else right_indexes[0] if len(right_indexes) == 1 else None
+            detail = _type_detail(original, left, rebuilt, counterpart, original_names, rebuilt_names)
             if len(equal) == 1:
-                matched += 1; results.append({"identity": identity, "status": "matched", "reason": equal[0][1].reason})
+                matched += 1; results.append({"identity": identity, "status": "matched", "reason": equal[0][1].reason, "detail": detail})
             elif len(equal) > 1:
-                results.append({"identity": identity, "status": "ambiguous", "reason": "multiple rebuilt type graphs match"})
+                results.append({"identity": identity, "status": "ambiguous", "reason": "multiple rebuilt type graphs match", "detail": detail})
             elif any(value.equal is False for _, value in comparisons):
                 reason = next(value.reason for _, value in comparisons if value.equal is False)
-                results.append({"identity": identity, "status": "mismatch", "reason": reason})
+                results.append({"identity": identity, "status": "mismatch", "reason": reason, "detail": detail})
             else:
-                results.append({"identity": identity, "status": "unsupported", "reason": comparisons[0][1].reason})
+                results.append({"identity": identity, "status": "unsupported", "reason": comparisons[0][1].reason, "detail": detail})
     return results, {"total_count": total, "matched_count": matched, "count_percent": _pct(matched, total)}
 
 
@@ -750,15 +942,23 @@ def _compare_compilands(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[
     for value in original.compilands: left[_compiland_key(value)].append(value)
     for value in rebuilt.compilands: right[_compiland_key(value)].append(value)
     results: list[dict[str, Any]] = []; matched = 0
+    original_order = {id(value): index for index, value in enumerate(original.compilands)}
+    rebuilt_order = {id(value): index for index, value in enumerate(rebuilt.compilands)}
     for key in sorted(left):
         originals, candidates = left[key], right.get(key, [])
         for occurrence, a in enumerate(originals):
             identity = f"{key}#{occurrence}"
+            counterpart = candidates[0] if len(candidates) == 1 else None
+            linkage = {"original_object": a.object_name, "original_order": original_order[id(a)],
+                       "original_sources": list(a.source_files),
+                       "rebuilt_object": counterpart.object_name if counterpart else None,
+                       "rebuilt_order": rebuilt_order[id(counterpart)] if counterpart else None,
+                       "rebuilt_sources": list(counterpart.source_files) if counterpart else []}
             if len(originals) != 1 or len(candidates) > 1:
                 results.append({"identity": identity, "status": "ambiguous", "original_count": len(originals),
-                                "rebuilt_count": len(candidates), "reason": "compiland key is not unique"})
+                                "rebuilt_count": len(candidates), "reason": "compiland key is not unique", **linkage})
             elif not candidates:
-                results.append({"identity": identity, "status": "missing", "reason": "compiland absent from rebuilt PDB"})
+                results.append({"identity": identity, "status": "missing", "reason": "compiland absent from rebuilt PDB", **linkage})
             else:
                 b = candidates[0]
                 original_metadata = {"compiler": a.compiler, "language": a.language, "flags": dict(a.flags),
@@ -773,7 +973,7 @@ def _compare_compilands(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[
                                 "reason": "identity and compiler metadata match" if metadata_equal else "identity matched but compiler/source metadata differs",
                                 "original_module": a.module_name, "rebuilt_module": b.module_name,
                                 "differences": differences, "original_metadata": original_metadata,
-                                "rebuilt_metadata": rebuilt_metadata})
+                                "rebuilt_metadata": rebuilt_metadata, **linkage})
     total = len(original.compilands)
     return results, {"total_count": total, "matched_count": matched, "count_percent": _pct(matched, total)}
 
@@ -826,6 +1026,7 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
     total_bytes = sum(function.size for function in functions_to_compare)
     per_compiland: dict[str, dict[str, int]] = defaultdict(lambda: {"total_count": 0, "total_bytes": 0,
         "code_matched_count": 0, "code_matched_bytes": 0, "signature_matched_count": 0, "signature_matched_bytes": 0})
+    used_rebuilt: set[tuple[int, int]] = set()
     for original in functions_to_compare:
         cm = per_compiland[original.compiland]; cm["total_count"] += 1; cm["total_bytes"] += original.size
         if same_artifact:
@@ -841,7 +1042,12 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
         identity = original.identities[0] if len(original.identities) == 1 else f"range:0x{original.rva:x}"
         result: dict[str, Any] = {"identity": identity, "aliases": list(original.identities),
                                   "display_name": _display_name(original), "compiland": original.compiland,
-                                  "original": {"rva": original.rva, "size": original.size}}
+                                  "original": {"rva": original.rva, "size": original.size},
+                                  "original_signature": original_pdb.types.signature(original.symbols[0].type_index, _display_name(original)),
+                                  "locals": _locals(original, rebuilt, original_pdb, rebuilt_pdb)}
+        if rebuilt is not None:
+            used_rebuilt.add((rebuilt.rva, rebuilt.size))
+            result["rebuilt_signature"] = rebuilt_pdb.types.signature(rebuilt.symbols[0].type_index, _display_name(rebuilt))
         if rebuilt is None:
             category = selection or "unsupported"
             result.update({"category": category, "code_matched": False, "signature_status": "unsupported",
@@ -913,6 +1119,18 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     cm["signature_matched_count"] += 1; cm["signature_matched_bytes"] += original.size
         categories[result["category"]]["count"] += 1; categories[result["category"]]["bytes"] += original.size
         function_results.append(result)
+    selected_key = None if selected_compiland is None else _compiland_key(selected_compiland[0])
+    rebuilt_only = [{"display_name": _display_name(function), "compiland": function.compiland,
+                     "rebuilt": {"rva": function.rva, "size": function.size},
+                     "rebuilt_signature": rebuilt_pdb.types.signature(function.symbols[0].type_index, _display_name(function))}
+                    for function in rebuilt_functions
+                    if (function.rva, function.size) not in used_rebuilt
+                    and (selected_key is None or function.compiland == selected_key)]
+    inline_functions = [row for row in _inline_functions(original_pdb, rebuilt_pdb, function_results)
+                        if selected_key is None or row["compiland"] == selected_key]
+    global_results = [row for row in _compare_globals(original_artifact, original_pdb, rebuilt_artifact, rebuilt_pdb)
+                      if selected_key is None or row["compiland"] == selected_key]
+    inline_matched = sum(row["status"] == "inlined" for row in inline_functions)
     if selected_compiland is None:
         type_results, type_metrics = _compare_types(original_pdb, rebuilt_pdb)
     else:
@@ -938,8 +1156,17 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     "note": ("selected compiland function bytes; bytes outside unique PDB procedure ranges are not counted as matched or mismatched"
                              if selected_compiland is not None else
                              "coverage only; bytes outside unique PDB procedure ranges are not counted as matched or mismatched")},
-                "types": type_metrics, "compilands": compiland_metrics, "categories": dict(sorted(categories.items()))},
+                "types": type_metrics, "compilands": compiland_metrics, "categories": dict(sorted(categories.items())),
+                "inline_functions": {"total_count": len(inline_functions), "matched_count": inline_matched,
+                                     "count_percent": _pct(inline_matched, len(inline_functions))},
+                "globals": {"total_count": sum(row["status"] != "extra" for row in global_results),
+                            "matched_count": sum(row["status"] == "matched" for row in global_results),
+                            "count_percent": _pct(sum(row["status"] == "matched" for row in global_results),
+                                                  sum(row["status"] != "extra" for row in global_results))}},
             "functions": function_results, "types": type_results, "compilands": compiland_results,
+            "rebuilt_only_functions": rebuilt_only, "inline_functions": inline_functions, "globals": global_results,
+            "sections": _compare_sections(original_artifact, rebuilt_artifact),
+            "executable": {"original": original_artifact.identity.path.name, "rebuilt": rebuilt_artifact.identity.path.name},
             "per_compiland": dict(sorted(per_compiland.items())),
             "diagnostics": {"original_artifact": [asdict(value) for value in original_artifact.diagnostics],
                 "rebuilt_artifact": [asdict(value) for value in rebuilt_artifact.diagnostics],

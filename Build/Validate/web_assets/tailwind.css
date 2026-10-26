@@ -1,0 +1,20 @@
+@import "tailwindcss" source(none);
+@source "./app.js";
+@source "../exporter.py";
+@custom-variant dark (&:where(.dark, .dark *));
+
+html.dark {
+  color-scheme: dark;
+}
+
+html body {
+  margin: 0;
+  font: inherit;
+  background-color: var(--color-slate-50);
+  color: var(--color-slate-900);
+}
+
+html.dark body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-100);
+}

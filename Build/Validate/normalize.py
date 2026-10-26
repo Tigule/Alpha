@@ -70,7 +70,7 @@ def decode_x86(code: bytes, address: int) -> tuple[Instruction, ...]:
 def _index_evidence(records: Iterable[Any]) -> dict[tuple[int, int], Evidence]:
     result: dict[tuple[int, int], Evidence] = {}
     for raw in records:
-        evidence = Evidence.from_record(raw)
+        evidence = raw if isinstance(raw, Evidence) else Evidence.from_record(raw)
         key = (evidence.offset, evidence.size)
         if key in result:
             
@@ -179,10 +179,13 @@ def _exact_push_width_change(a: Instruction, b: Instruction) -> bool:
 
 
 def _matching_macro_pair(left: Evidence | None, right: Evidence | None) -> bool:
-    return bool(left and right and left.resolved and right.resolved and left.identity
-                and left.identity == right.identity and left.kind == right.kind
-                and left.kind in {"macro_file", "macro_line"}
-                and _valid_macro_evidence(left) and _valid_macro_evidence(right))
+    if not (left and right and left.resolved and right.resolved and left.identity
+            and left.identity == right.identity and left.kind == right.kind
+            and left.kind in {"macro_file", "macro_line"}
+            and _valid_macro_evidence(left) and _valid_macro_evidence(right)):
+        return False
+    file_key = "value" if left.kind == "macro_file" else "paired_file"
+    return len({str((value.detail or {}).get(file_key)).replace("\\", "/").rsplit("/", 1)[-1].lower() for value in (left, right)}) == 1
 
 
 def _jump_table_evidence(procedure: DecodedProcedure) -> list[Evidence]:
@@ -464,18 +467,7 @@ def compare_code(
                 ea = _field_evidence(macro_left, a, field_a)
                 eb = _field_evidence(macro_right, b, field_b)
                 category = "macro"
-                if not (
-                    ea
-                    and eb
-                    and ea.resolved
-                    and eb.resolved
-                    and ea.identity
-                    and ea.identity == eb.identity
-                    and ea.kind == eb.kind
-                    and ea.kind in {"macro_file", "macro_line"}
-                    and _valid_macro_evidence(ea)
-                    and _valid_macro_evidence(eb)
-                ):
+                if not _matching_macro_pair(ea, eb):
                     return NormalizationResult(
                         False, "mismatch", "changed encoded value lacks matching resolved evidence", tuple(audit), a.offset
                     )

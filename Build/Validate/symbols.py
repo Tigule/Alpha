@@ -14,6 +14,14 @@ class PDBError(ValueError):
 
 
 @dataclass(frozen=True)
+class LocalSymbol:
+    name: str
+    type_index: int | None
+    kind: str
+    location: str
+
+
+@dataclass(frozen=True)
 class FunctionSymbol:
     module: str
     name: str
@@ -25,6 +33,7 @@ class FunctionSymbol:
     kind: str
     status: str = "parsed"
     reason: str | None = None
+    locals: tuple[LocalSymbol, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -34,6 +43,8 @@ class DataSymbol:
     section: int
     offset: int
     kind: str
+    type_index: int | None = None
+    procedure: str | None = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +92,16 @@ class TypeComparison:
     reason: str
 
 
+_PRIMITIVES = {
+    0x00: "notype", 0x03: "void", 0x08: "HRESULT", 0x10: "char", 0x11: "short", 0x12: "long", 0x13: "__int64",
+    0x20: "unsigned char", 0x21: "unsigned short", 0x22: "unsigned long", 0x23: "unsigned __int64",
+    0x30: "bool", 0x40: "float", 0x41: "double", 0x42: "long double", 0x68: "signed char", 0x69: "unsigned char",
+    0x70: "char", 0x71: "wchar_t", 0x72: "short", 0x73: "unsigned short", 0x74: "int", 0x75: "unsigned int",
+    0x76: "__int64", 0x77: "unsigned __int64",
+}
+_CALLING_CONVENTIONS = {0: "__cdecl", 4: "__fastcall", 7: "__stdcall", 11: "__thiscall"}
+
+
 @dataclass
 class TypeRepository:
     records: dict[int, TypeNode] = field(default_factory=dict)
@@ -88,6 +109,62 @@ class TypeRepository:
     diagnostics: list[str] = field(default_factory=list)
     aliases: dict[int, int] = field(default_factory=dict)
     normalize_name: Any = None
+    matches: dict[int, tuple[Any, set[tuple[int, int]]]] = field(default_factory=dict, compare=False, repr=False)
+
+    def describe(self, index: int | None, depth: int = 0) -> str:
+        if index is None:
+            return "?"
+        if depth > 12:
+            return "..."
+        if index < 0x1000:
+            base = _PRIMITIVES.get(index & 0xFF, f"primitive_0x{index & 0xFF:02x}")
+            return base + ("*" if (index >> 8) & 7 else "")
+        node = self.resolve(index)
+        if node is None:
+            return f"type_0x{index:x}"
+        scalars = dict(node.scalars)
+        refs = dict(node.refs)
+        if node.kind in ("class", "structure", "union", "enum"):
+            return node.name or f"<anonymous {node.kind}>"
+        if node.kind == "modifier":
+            attributes = scalars.get("attributes", 0)
+            prefix = ("const " if attributes & 1 else "") + ("volatile " if attributes & 2 else "")
+            return prefix + self.describe(refs.get("underlying"), depth + 1)
+        if node.kind == "pointer":
+            attributes = scalars.get("attributes", 0)
+            mode = (attributes >> 5) & 7
+            pointee = self.describe(refs.get("pointee"), depth + 1)
+            suffix = "&" if mode == 1 else "*"
+            if mode in (2, 3):
+                suffix = self.describe(refs.get("containing_class"), depth + 1) + "::*"
+                pointee += " "
+            return pointee + suffix + (" const" if attributes & 0x400 else "") + (" volatile" if attributes & 0x200 else "")
+        if node.kind == "array":
+            element = self.resolve(refs.get("element", 0))
+            count = node.size // element.size if element is not None and element.size else None
+            return f"{self.describe(refs.get('element'), depth + 1)}[{count if count is not None else ''}]"
+        if node.kind == "bitfield":
+            return f"{self.describe(refs.get('underlying'), depth + 1)} : {scalars.get('length')}"
+        if node.kind in ("procedure", "member_function"):
+            return self.signature(index, "", depth + 1)
+        if node.kind == "vtable_shape":
+            return "vftable"
+        if node.kind == "argument_list":
+            return ", ".join(self.describe(value, depth + 1) for _, value in node.refs)
+        return node.kind
+
+    def signature(self, index: int | None, name: str, depth: int = 0) -> str:
+        node = self.resolve(index) if index is not None else None
+        if node is None or node.kind not in ("procedure", "member_function"):
+            return f"{self.describe(index, depth)} {name}".strip()
+        scalars = dict(node.scalars)
+        refs = dict(node.refs)
+        convention = _CALLING_CONVENTIONS.get(scalars.get("calling_convention"), "")
+        arguments = self.describe(refs.get("arguments"), depth + 1) if refs.get("arguments") is not None else ""
+        if arguments == "void" or arguments == "notype":
+            arguments = ""
+        target = name or ("(" + convention + " *)" if convention else "(*)")
+        return f"{self.describe(refs.get('return'), depth + 1)} {convention + ' ' if convention and name else ''}{target}({arguments})"
 
     def resolve(self, index: int) -> TypeNode | None:
         if index < 0x1000:
@@ -98,9 +175,14 @@ class TypeRepository:
     def compare(self, index: int, other: "TypeRepository", other_index: int) -> TypeComparison:
         active: set[tuple[int, int]] = set()
         proven: set[tuple[int, int]] = set()
+        if self.matches.get(id(other), (None,))[0] is not other:
+            self.matches[id(other)] = (other, set())
+        matched = self.matches[id(other)][1]
 
         def cmp(aidx: int, bidx: int, where: str) -> tuple[bool | None, str]:
             key = (aidx, bidx)
+            if key in matched:
+                return True, "structural type graphs match"
             if key in proven or key in active:
                 return True, "recursive edge is consistent"
             a, b = self.resolve(aidx), other.resolve(bidx)
@@ -150,6 +232,8 @@ class TypeRepository:
                 None,
                 "type graph exceeds safe comparison recursion depth",
             )
+        if equal is True:
+            matched.update(proven)
         return TypeComparison(equal, reason)
 
 
@@ -588,6 +672,35 @@ def _source_files(data: bytes, module_count: int, diagnostics: list[str]) -> lis
     return result
 
 
+_REGISTERS = {
+    1: "al", 2: "cl", 3: "dl", 4: "bl", 5: "ah", 6: "ch", 7: "dh", 8: "bh",
+    9: "ax", 10: "cx", 11: "dx", 12: "bx", 13: "sp", 14: "bp", 15: "si", 16: "di",
+    17: "eax", 18: "ecx", 19: "edx", 20: "ebx", 21: "esp", 22: "ebp", 23: "esi", 24: "edi",
+}
+
+
+def _register(number: int) -> str:
+    return _REGISTERS.get(number, f"reg{number}")
+
+
+def _local_symbol(kind: int, b: bytes) -> LocalSymbol | None:
+    text = _pascal if kind < 0x1100 else _zstring
+    try:
+        if kind in (0x1006, 0x110B):
+            offset, type_index = struct.unpack_from("<iI", b)
+            name, _ = text(b, 8)
+            return LocalSymbol(name, type_index, "frame", f"[ebp{offset:+#x}]")
+        if kind in (0x1001, 0x1106):
+            type_index, register = struct.unpack_from("<IH", b)
+            name, _ = text(b, 6)
+            return LocalSymbol(name, type_index, "register", _register(register))
+        offset, type_index, register = struct.unpack_from("<iIH", b)
+        name, _ = text(b, 10)
+        return LocalSymbol(name, type_index, "register_relative", f"[{_register(register)}{offset:+#x}]")
+    except (PDBError, struct.error):
+        return None
+
+
 def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | None, int | None, dict[str, Any], tuple[str, ...], list[FunctionSymbol], list[DataSymbol]]:
     if len(data) < 4: raise PDBError("truncated module symbol stream")
     signature = struct.unpack_from("<I", data)[0]
@@ -595,6 +708,11 @@ def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | No
     limit = min(len(data), byte_count)
     if byte_count > len(data): raise PDBError("module symbol byte count exceeds stream")
     pos = 4; compiler: str | None = None; language: int | None = None; flags: dict[str, Any] = {}; options: tuple[str, ...] = (); functions: list[FunctionSymbol] = []; data_symbols: list[DataSymbol] = []
+    scopes: list[tuple[int, list[LocalSymbol]] | None] = []
+
+    def innermost() -> tuple[int, list[LocalSymbol]] | None:
+        return next((scope for scope in reversed(scopes) if scope is not None), None)
+
     while pos < limit:
         if pos + 4 > limit: raise PDBError("truncated symbol record header")
         length, kind = struct.unpack_from("<HH", data, pos); end = pos + 2 + length
@@ -605,11 +723,27 @@ def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | No
             proc_len = struct.unpack_from("<I", b, 12)[0]; type_index = struct.unpack_from("<I", b, 24)[0]; offset = struct.unpack_from("<I", b, 28)[0]; section = struct.unpack_from("<H", b, 32)[0]
             name, _ = (_pascal if kind < 0x1100 else _zstring)(b, 35)
             functions.append(FunctionSymbol(module, name, name, section, offset, proc_len, type_index, "local" if kind in (0x100A, 0x110F) else "global"))
+            scopes.append((len(functions) - 1, []))
         elif kind in (0x1007, 0x1008, 0x110C, 0x110D) and len(b) >= 11:
-            offset, section = struct.unpack_from("<IH", b, 4)
+            type_index, offset, section = struct.unpack_from("<IIH", b)
             name, _ = (_pascal if kind < 0x1100 else _zstring)(b, 10)
+            scope = innermost()
             if name:
-                data_symbols.append(DataSymbol(module, name, section, offset, "local" if kind in (0x1007, 0x110C) else "global"))
+                data_symbols.append(DataSymbol(module, name, section, offset, "local" if kind in (0x1007, 0x110C) else "global",
+                                               type_index, functions[scope[0]].name if scope else None))
+                if scope:
+                    scope[1].append(LocalSymbol(name, type_index, "static", "static"))
+        elif kind == 0x0006:
+            if scopes:
+                closed = scopes.pop()
+                if closed is not None:
+                    functions[closed[0]] = replace(functions[closed[0]], locals=tuple(closed[1]))
+        elif kind in (0x0206, 0x0207, 0x0208, 0x1102, 0x1103, 0x1104):
+            scopes.append(None)
+        elif kind in (0x1006, 0x110B, 0x1001, 0x1106, 0x100D, 0x1111) and innermost() is not None:
+            local = _local_symbol(kind, b)
+            if local is not None:
+                innermost()[1].append(local)
         elif kind == 0x0001 and len(b) >= 4:
             machine, raw_flags = b[0], int.from_bytes(b[1:4], "little"); compiler, _ = _pascal(b, 4); language = raw_flags & 0xFF; flags = {"machine": machine, "raw": raw_flags, "mode32": bool(raw_flags & (1 << 19))}
         elif kind in (0x1013, 0x1116) and len(b) >= 18:

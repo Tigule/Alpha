@@ -78,7 +78,7 @@ def require_decoder() -> None:
 
 
 def _instruction(decoder: Any, x86: Any, code: bytes, address: int, offset: int) -> Instruction:
-    raw_instruction = next(decoder.disasm(code[offset:], address + offset, count=1), None)
+    raw_instruction = next(decoder.disasm(code[offset:offset + 15], address + offset, count=1), None)
     if raw_instruction is None or raw_instruction.address != address + offset:
         raise DecodeFailure(f"decoder stopped at reachable byte {offset} of {len(code)}")
     operands: list[tuple[Any, ...]] = []

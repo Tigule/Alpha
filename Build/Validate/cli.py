@@ -289,7 +289,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.json_path:
             args.json_path.parent.mkdir(parents=True, exist_ok=True)
             with args.json_path.open("w", encoding="utf-8") as stream:
-                json.dump(report, stream, indent=2, sort_keys=True, allow_nan=False)
+                stream.write(json.dumps(report, sort_keys=True, allow_nan=False))
                 stream.write("\n")
         if args.text:
             args.text.parent.mkdir(parents=True, exist_ok=True)
