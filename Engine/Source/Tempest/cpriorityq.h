@@ -39,7 +39,11 @@ namespace NTempest {
         SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "\"CPriorityQ<T, B>: construction of base class failed.\"", FALSE);
       }
 
+#ifdef ASSERTIONS_ENABLED
       ASSERT(Grow());
+#else
+      Grow();
+#endif
     }
     CPriorityQ(const CPriorityQ &other) : CDynTable<T>(other) {
     }

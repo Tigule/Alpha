@@ -30,8 +30,7 @@ int TSet::Found(UINT token) {
       return set[i].seen;
     }
   }
-  SErrPrepareAppFatal(__FILE__, __LINE__);
-  SErrDisplayAppFatal("TSet::Found: found unregistered token 0x%x", token);
+  FATALERROR(("TSet::Found: found unregistered token 0x%x", token));
   return 1;
 }
 
@@ -41,8 +40,7 @@ int TSet::NotFound(UINT token) {
       return !set[i].seen;
     }
   }
-  SErrPrepareAppFatal(__FILE__, __LINE__);
-  SErrDisplayAppFatal("TSet::NotFound: found unregistered token 0x%x", token);
+  FATALERROR(("TSet::NotFound: found unregistered token 0x%x", token));
   return 1;
 }
 

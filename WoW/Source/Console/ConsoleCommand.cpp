@@ -17,7 +17,11 @@ CONSOLECOMMANDHANDLER                          g_defaultCommand = 0;
 
 static char       cmd[32];
 static const char whitespace[] = " ,;\t\"\r\n";
+#ifdef ASSERTIONS_ENABLED
 static const char verstr[] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003)";
+#else
+static const char verstr[] = "WoW [Release] Build 3368 (Dec 11 2003)";
+#endif
 static LPCSTR     NOHELPTEXT = "No help yet";
 static char       s_fileName[MAX_PATH];
 

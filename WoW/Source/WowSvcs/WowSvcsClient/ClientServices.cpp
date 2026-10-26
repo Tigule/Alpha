@@ -37,7 +37,11 @@ void BotClientSetAccount(LPCSTR accountName, LPCSTR password);
 static char              text[0x100];
 static LPCSTR            s_vendors[4] = {"Unknown", "intel", "AMD", "PPC"};
 static DWORDLONG         mhzCutoff = 990000000ui64;
+#ifdef ASSERTIONS_ENABLED
 static const char        verstr[0x43] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003 18:01:27)";
+#else
+static const char        verstr[] = "WoW [Release] Build 3368 (Dec 11 2003 18:01:27)";
+#endif
 static LPCSTR            s_sexNames[3] = {"Male", "Female", "Neuter"};
 static BYTE              s_accountNameValid;
 static char              s_accountName[64];

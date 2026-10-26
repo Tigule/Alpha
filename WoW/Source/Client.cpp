@@ -1391,8 +1391,13 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
 static void LaunchWoWError(LPCSTR logFileName) {
   char cmd[520];
 
+#ifdef ASSERTIONS_ENABLED
   SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowErrorAE.exe", logFileName);
   SCreateProcess("WowErrorAE.exe", cmd, 0, 0);
+#else
+  SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowError.exe", logFileName);
+  SCreateProcess("WowError.exe", cmd, 0, 0);
+#endif
 }
 
 static BOOL APIENTRY SendErrorLog(DWORD code, LPCSTR msg, LPCSTR file, int line, LPCSTR details) {
@@ -1415,7 +1420,11 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
     SRegSaveValue("Wow\\Client", "SendErrorLogs", 0, sendErrorLogs);
   }
 
+#ifdef ASSERTIONS_ENABLED
   SErrSetLogTitleString("World of WarCraft: Assertions Enabled Build (build 3368)");
+#else
+  SErrSetLogTitleString("World of WarCraft (build 3368)");
+#endif
   SErrSetLogCallback(WowLogHeader);
 
   if (sendErrorLogs) {

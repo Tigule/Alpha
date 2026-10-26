@@ -558,6 +558,7 @@ extern "C" int SSignatureGenerate(
 );
 
 // clang-format off
+#ifdef ASSERTIONS_ENABLED
 #define ASSERT(a)                         \
   if (!(a))                              \
     SErrDisplayError(STORM_ERROR_ASSERTION, \
@@ -584,6 +585,19 @@ extern "C" int SSignatureGenerate(
     SErrDisplayAppFatal(#a);                 \
     goto validatefailed;                     \
   }
+#else
+#define ASSERT(a)
+#define FATALASSERT(a)
+#define FATALERROR(args)                  \
+  if (1) {                                \
+    SErrDisplayAppFatal args;             \
+  }
+#define VALIDATEBEGIN
+#define VALIDATE(a)                          \
+  if (!(a)) {                                \
+    goto validatefailed;                     \
+  }
+#endif
 #define VALIDATEANDBLANK(a) \
   VALIDATE(a)               \
   *(a) = 0;

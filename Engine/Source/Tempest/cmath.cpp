@@ -233,9 +233,7 @@ namespace NTempest {
   }
 
   double CMath::spline_(double x, double *k, DWORD n) {
-    if (n < 4) {
-      SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "n >= 4", 0, 1);
-    }
+    ASSERT(n >= 4);
     n -= 3;
     x = clamp_(x, 0.0, 1.0) * n;
     DWORD span = x;
@@ -255,9 +253,7 @@ namespace NTempest {
   }
 
   float CMath::spline_(float x, float *k, DWORD n) {
-    if (n < 4) {
-      SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "n >= 4", 0, 1);
-    }
+    ASSERT(n >= 4);
     n -= 3;
     x = clamp_(x, 0.0f, 1.0f) * n;
     DWORD span = x;

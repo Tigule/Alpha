@@ -19,7 +19,9 @@ class TSStackArray {
   T   *m_data;
 
   void FatalArrayBounds() const {
+#ifdef ASSERTIONS_ENABLED
     SErrDisplayError(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0, TRUE, 1);
+#endif
   }
  public:
 
@@ -149,7 +151,9 @@ class TSCArray {
   }
 
   void FatalArrayBounds() const {
+#ifdef ASSERTIONS_ENABLED
     SErrDisplayError(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, MemFileName(), MemLineNo(), 0, TRUE, 1);
+#endif
   }
 
  public:
@@ -253,9 +257,11 @@ class TSBaseArray {
 
  protected:
   void CheckArrayBounds(UINT index) const {
+#ifdef ASSERTIONS_ENABLED
     if (index >= m_count) {
       SErrDisplayErrorFmt(STORM_ERROR_ACCESS_OUT_OF_BOUNDS, MemFileName(), MemLineNo(), TRUE, 1, "index (0x%08X), array size (0x%08X)", index, m_count);
     }
+#endif
   }
 
  public:
