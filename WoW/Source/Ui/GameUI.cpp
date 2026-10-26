@@ -3655,11 +3655,11 @@ static int Script_ToggleRun(lua_State *L) {
   DWORD     eventTime = lua_isnumber(L, 1) ? (DWORD)lua_tonumber(L, 1) : OsGetAsyncTimeMs();
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    if ((mover->GetMoveFlags() & 0x200) && (int)(eventTime - mover->GetMoveStartTime()) < 0) {
+    if ((mover->GetMoveFlags() & MOVEFLAG_TIME_VALID) && (int)(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
-    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400)) {
+    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED))) {
       mover->ToggleRunModeLocal(eventTime);
     }
   }
@@ -3683,11 +3683,11 @@ static int Script_Jump(lua_State *L) {
   DWORD     eventTime = lua_isnumber(L, 1) ? (DWORD)lua_tonumber(L, 1) : OsGetAsyncTimeMs();
   CGUnit_C *mover = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (mover) {
-    if ((mover->GetMoveFlags() & 0x200) && (int)(eventTime - mover->GetMoveStartTime()) < 0) {
+    if ((mover->GetMoveFlags() & MOVEFLAG_TIME_VALID) && (int)(eventTime - mover->GetMoveStartTime()) < 0) {
       eventTime = mover->GetMoveStartTime();
     }
 
-    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & 0x2400)) {
+    if (mover->GetHealth() > 0 && mover->IsClientControlled() && !mover->IsInStandSitTransition() && !(mover->GetMoveFlags() & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED))) {
       if (mover->IsSitting() || mover->IsSleeping()) {
         mover->ChangeStandState(UNIT_STANDING);
       } else {

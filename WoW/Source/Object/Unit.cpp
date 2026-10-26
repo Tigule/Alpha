@@ -28,7 +28,7 @@ int CGUnit::StandStateValid(UNITSTANDSTATE newState) const {
 }
 
 inline void CMovement::BuildMovementUpdate(CDataStore *msg) const {
-  *msg << m_transportGUID << GetRawPosition() << GetRawFacing() << GetPosition() << GetFacing() << GetPitch() << (m_moveFlags & 0xFAFF0BFF);
+  *msg << m_transportGUID << GetRawPosition() << GetRawFacing() << GetPosition() << GetFacing() << GetPitch() << (m_moveFlags & ~MOVEFLAG_LOCAL);
 }
 
 void CGUnit::BuildMovementUpdate(CDataStore *msg) const {

@@ -407,14 +407,14 @@ void CGInputControl::UpdatePlayer(DWORD now) {
     return;
   }
 
-  if ((player->GetMoveFlags() & 0x200) && (int)(now - player->GetMoveStartTime()) < 0) {
+  if ((player->GetMoveFlags() & MOVEFLAG_TIME_VALID) && (int)(now - player->GetMoveStartTime()) < 0) {
     now = player->GetMoveStartTime();
   }
 
   BYTE canMove = 0;
   BYTE canTurn = 0;
   if (player->GetHealth() > 0 && player->IsClientControlled() && !player->IsInStandSitTransition()) {
-    if (!(player->GetMoveFlags() & 0x2400)) {
+    if (!(player->GetMoveFlags() & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED))) {
       canMove = 1;
     }
     if (!(player->GetUnitFlags() & 0x40000)) {
@@ -442,7 +442,7 @@ void CGInputControl::UpdatePlayer(DWORD now) {
 
   if (canTurn) {
     TurnPlayer(now, player);
-    if (player->GetMoveFlags() & 0x2000000) {
+    if (player->GetMoveFlags() & MOVEFLAG_SWIMMING) {
       PitchPlayer(now, player);
     }
   } else {
@@ -735,8 +735,8 @@ void CGInputControl::CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, b
   }
 
   activeMover->OnSetRawFacingLocal(timestamp, yaw);
-  if (activeMover->m_move.m_moveFlags & 0x2000000) {
+  if (activeMover->m_move.IsSwimming()) {
     activeMover->OnSetPitchLocal(timestamp, TWO_PI - pitch);
   }
-  m_controlFlags &= 0xFFFF3FFF;
+  m_controlFlags &= ~(INPUT_TURN_PLAYER_SENT | INPUT_PITCH_PLAYER_SENT);
 }

@@ -1189,7 +1189,7 @@ void CWorldScene::CullMapObjDefGroup(const UINT groupNum, LPCVOID userParam, con
     mapObjDefGroup->frustumList.LinkNode(frustum, LIST_TAIL, 0);
   }
 
-  if (CWorld::enables & 0x400081) {
+  if (CWorld::enables & (CWorld::Enable_Doodads | CWorld::Enable_Collision | CWorld::Enable_AABoxes)) {
     CullDoodads(mapObjDefGroup->doodadDefLinkList);
   }
 

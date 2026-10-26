@@ -1835,7 +1835,7 @@ void CGUnit_C::FootstepAnimEventHit(const NTempest::C3Vector &position, BOOL isL
 
 void CGUnit_C::HandleFootstepAnimEvent(const NTempest::C3Vector &position) {
   FATALASSERT(m_modelData);
-  if (!(m_move.m_moveFlags & 2) && !(m_modelData->m_flags & 1)) {
+  if (!m_move.IsMovingBackwards() && !(m_modelData->m_flags & 1)) {
     UnitFootprintPlayParticle(this, position, m_terrain, GetScale() * m_footprintParticleScale);
   }
 
@@ -1926,40 +1926,40 @@ UINT CGUnit_C::GetAnimationState() {
   }
 
   UINT moveFlags = m_move.m_moveFlags;
-  if (moveFlags & 0x8000) {
+  if (moveFlags & MOVEFLAG_FALLEN_FAR) {
     return ANIM_STATE_FALLING;
   }
   if (m_move.m_jumpVelocity != 0.0f) {
     return ANIM_STATE_JUMPING;
   }
-  if (moveFlags & 0x2000000) {
-    if (moveFlags & 2) {
+  if (moveFlags & MOVEFLAG_SWIMMING) {
+    if (moveFlags & MOVEFLAG_BACKWARD) {
       return ANIM_STATE_SWIM_BACKWARDS;
     }
-    if (moveFlags & 0xC) {
-      return (moveFlags & 4) ? ANIM_STATE_SWIM_STRAFE_LEFT : ANIM_STATE_SWIM_STRAFE_RIGHT;
+    if (moveFlags & MOVEFLAG_STRAFE_MASK) {
+      return (moveFlags & MOVEFLAG_STRAFE_LEFT) ? ANIM_STATE_SWIM_STRAFE_LEFT : ANIM_STATE_SWIM_STRAFE_RIGHT;
     }
-    return (moveFlags & 0xF) ? ANIM_STATE_SWIM : ANIM_STATE_SWIM_IDLE;
+    return (moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK)) ? ANIM_STATE_SWIM : ANIM_STATE_SWIM_IDLE;
   }
-  if (moveFlags & 2) {
-    if (!(moveFlags & 0xC)) {
+  if (moveFlags & MOVEFLAG_BACKWARD) {
+    if (!(moveFlags & MOVEFLAG_STRAFE_MASK)) {
       return ANIM_STATE_WALK_BACKWARDS;
     }
-    return (moveFlags & 4) ? ANIM_STATE_DIAG_BACKWARDS_LEFT : ANIM_STATE_DIAG_BACKWARDS_RIGHT;
+    return (moveFlags & MOVEFLAG_STRAFE_LEFT) ? ANIM_STATE_DIAG_BACKWARDS_LEFT : ANIM_STATE_DIAG_BACKWARDS_RIGHT;
   }
-  if ((moveFlags & 0xF) == 0xF) {
-    if (moveFlags & 4) {
+  if ((moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK)) == (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK)) {
+    if (moveFlags & MOVEFLAG_STRAFE_LEFT) {
       return IsWalking() ? ANIM_STATE_DIAG_WALK_LEFT : ANIM_STATE_DIAG_RUN_LEFT;
     }
     return IsWalking() ? ANIM_STATE_DIAG_WALK_LEFT : ANIM_STATE_DIAG_RUN_LEFT;
   }
-  if (moveFlags & 4) {
+  if (moveFlags & MOVEFLAG_STRAFE_LEFT) {
     return IsWalking() ? ANIM_STATE_STRAFE_WALK_LEFT : ANIM_STATE_STRAFE_RUN_LEFT;
   }
-  if (moveFlags & 8) {
+  if (moveFlags & MOVEFLAG_STRAFE_RIGHT) {
     return IsWalking() ? ANIM_STATE_STRAFE_WALK_RIGHT : ANIM_STATE_STRAFE_RUN_RIGHT;
   }
-  if ((moveFlags & 1) && ((CMovement &)m_move).GetCurrentSpeed() > 0.0f) {
+  if ((moveFlags & MOVEFLAG_FORWARD) && ((CMovement &)m_move).GetCurrentSpeed() > 0.0f) {
     return IsWalking() ? ANIM_STATE_WALK : ANIM_STATE_RUN;
   }
 
@@ -2108,7 +2108,7 @@ void CGUnit_C::SetStrafeRotation() {
   NTempest::C3Vector spineTurn;
   NTempest::C3Vector waistTurn;
 
-  if (moveFlags & 3) {
+  if (moveFlags & MOVEFLAG_MOVE_MASK) {
     waistTurn.x = 0.9238795f;
     waistTurn.y = 0.38268343f;
     spineTurn.x = 0.98078525f;
@@ -2120,7 +2120,7 @@ void CGUnit_C::SetStrafeRotation() {
     spineTurn.y = 0.38268343f;
   }
 
-  if ((moveFlags & 2) == ((moveFlags >> 1) & 2)) {
+  if ((moveFlags & MOVEFLAG_BACKWARD) == ((moveFlags >> 1) & 2)) {
     waistTurn.y = -waistTurn.y;
     spineTurn.y = -spineTurn.y;
   }
@@ -3159,7 +3159,7 @@ void CGUnit_C::SetActiveMover(const DWORDLONG &guid) {
 }
 
 inline void CMovement::BuildMovementUpdate(CDataStore *msg) const {
-  *msg << m_transportGUID << GetRawPosition() << GetRawFacing() << GetPosition() << GetFacing() << GetPitch() << (m_moveFlags & 0xFAFF0BFF);
+  *msg << m_transportGUID << GetRawPosition() << GetRawFacing() << GetPosition() << GetFacing() << GetPitch() << (m_moveFlags & ~MOVEFLAG_LOCAL);
 }
 
 void CGUnit_C::BuildMovementUpdate(NETMESSAGE messageId, CDataStore *msg) const {
@@ -3177,7 +3177,7 @@ void CGUnit_C::SendMovementUpdate(NETMESSAGE messageId) {
 }
 
 BOOL CGUnit_C::ShouldShuffle() const {
-  return !(m_move.m_moveFlags & 0x02000000) && ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) &&
+  return !m_move.IsSwimming() && ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) &&
          !GetUnitBeingLooted() && !m_unit->standState && !(s_animInfo[m_currentTorsoAnimState].flags & 8);
 }
 
@@ -3198,7 +3198,7 @@ void CGUnit_C::UpdateDisplayFacing() {
   }
 
   float angleDelta = m_smoothFacing - m_displayFacing;
-  if ((m_move.m_moveFlags & 0x400F) || fabs(angleDelta) < 0.00000023841858f) {
+  if (m_move.IsMovingStrafingOrFalling() || fabs(angleDelta) < 0.00000023841858f) {
     ModelRemoveObjectFaceDir(model, 4);
     ModelRemoveObjectFaceDir(model, 6);
     if (IsTurningState()) {
@@ -3290,12 +3290,12 @@ void CGUnit_C::UpdateSmoothFacing() {
     if (IsClientControlled()) {
       m_smoothFacing = facing;
       CGInputControl *input = CGInputControl::GetActive();
-      if ((m_move.m_moveFlags & 0x30) || input->CameraCanTurnPlayer()) {
+      if (m_move.IsTurning() || input->CameraCanTurnPlayer()) {
         m_animFlags |= 8;
       } else {
         m_animFlags &= ~8u;
       }
-      if ((m_move.m_moveFlags & 0x30) || input->IsMouseDragMoving()) {
+      if (m_move.IsTurning() || input->IsMouseDragMoving()) {
         m_animFlags |= 0x10;
       } else {
         m_animFlags &= ~0x10u;
@@ -3447,10 +3447,10 @@ BOOL CGUnit_C::OnMoveEvent(NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
       OnTurnRateChange(eventTime, update, msg);
       return 1;
     case MSG_MOVE_ROOT:
-      m_move.m_moveFlags = (m_move.m_moveFlags & 0xFF87DFFF) | 0x2000;
+      m_move.m_moveFlags = (m_move.m_moveFlags & ~(MOVEFLAG_ROOTED | MOVEFLAG_PEND_MOVE_MASK | MOVEFLAG_PEND_STRAFE_MASK)) | 0x2000;
       return 1;
     case MSG_MOVE_UNROOT:
-      m_move.m_moveFlags &= ~0x2000u;
+      m_move.m_moveFlags &= ~MOVEFLAG_ROOTED;
       return 1;
     case MSG_MOVE_START_SWIM:
       OnSwimStart(eventTime, update);
@@ -3686,12 +3686,12 @@ BOOL CGUnit_C::OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *
       return 1;
     }
     case SMSG_FORCE_MOVE_ROOT:
-      m_move.m_moveFlags = (m_move.m_moveFlags & 0xFF87DFFF) | 0x2000;
+      m_move.m_moveFlags = (m_move.m_moveFlags & ~(MOVEFLAG_ROOTED | MOVEFLAG_PEND_MOVE_MASK | MOVEFLAG_PEND_STRAFE_MASK)) | 0x2000;
       SendMovementUpdate(CMSG_FORCE_MOVE_ROOT_ACK);
       CGInputControl::GetActive()->UpdatePlayer(eventTime);
       return 1;
     case SMSG_FORCE_MOVE_UNROOT:
-      m_move.m_moveFlags &= ~0x2000u;
+      m_move.m_moveFlags &= ~MOVEFLAG_ROOTED;
       SendMovementUpdate(CMSG_FORCE_MOVE_UNROOT_ACK);
       CGInputControl::GetActive()->UpdatePlayer(eventTime);
       return 1;
@@ -3701,7 +3701,7 @@ BOOL CGUnit_C::OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *
 }
 
 void CGUnit_C::OnMoveStart(DWORD eventTime, const CMovementStatus &update, int forward) {
-  if (m_move.m_moveFlags & 0x2400) {
+  if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
   }
@@ -3716,7 +3716,7 @@ void CGUnit_C::OnStrafeStartLocalNoUpdate(DWORD eventTime, int left) {
 }
 
 void CGUnit_C::OnStrafeStart(DWORD eventTime, const CMovementStatus &update, int left) {
-  if (m_move.m_moveFlags & 0x2400) {
+  if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
   }
@@ -3750,7 +3750,7 @@ void CGUnit_C::OnStrafeStop(DWORD eventTime, const CMovementStatus &update) {
 }
 
 void CGUnit_C::OnJump(DWORD eventTime, const CMovementStatus &update) {
-  if (m_move.m_moveFlags & 0x2400) {
+  if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
   }
@@ -3875,7 +3875,7 @@ void CGUnit_C::OnCollideFallLand(DWORD eventTime) {
 
   PlayUnitSound(UNITSOUNDTYPE_JUMPEND, 1);
 
-  if (GetGUID() == m_activeMover && !(m_move.m_moveFlags & 0x40FF)) {
+  if (GetGUID() == m_activeMover && !m_move.IsInMotion()) {
     UpdateLocalPlayerFallState(0);
     SendMovementUpdate(MSG_MOVE_HEARTBEAT);
   }
@@ -3898,7 +3898,7 @@ void CGUnit_C::OnSetRunMode(DWORD eventTime, const CMovementStatus &update, int 
 void CGUnit_C::OnToggleCollision(DWORD eventTime, const CMovementStatus &update) {
   FATALASSERT(GetGUID() != CGUnit_C::GetActiveMover());
   ((CMovement &)m_move).UpdateStatus(eventTime, update);
-  ((CMovement &)m_move).EnableCollision(eventTime, !(m_move.m_moveFlags & 0x800));
+  ((CMovement &)m_move).EnableCollision(eventTime, !m_move.IgnoresCollision());
 }
 
 void CGUnit_C::OnEnableCollisionLocalNoUpdate(DWORD eventTime) {
@@ -3996,12 +3996,12 @@ void CGUnit_C::OnTeleportAck(DWORD eventTime, const CMovementStatus &update) {
 }
 
 void CGUnit_C::UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth) {
-  if (m_move.m_moveFlags & 0x800) {
+  if (m_move.IgnoresCollision()) {
     return;
   }
 
   if (inWater) {
-    if (!(m_move.m_moveFlags & 0x02000000) && depth > 0.0f) {
+    if (!m_move.IsSwimming() && depth > 0.0f) {
       if (m_move.GetCollisionBoxHeight() * 0.75f < depth) {
         OnSwimStartLocal(eventTime);
       }
@@ -4009,7 +4009,7 @@ void CGUnit_C::UpdateSwimmingStatus(DWORD eventTime, int inWater, float depth) {
         PlaySplashSound(GetPosition());
       }
     }
-  } else if (m_move.m_moveFlags & 0x02000000) {
+  } else if (m_move.IsSwimming()) {
     OnSwimStopLocal(eventTime);
   }
 }
@@ -5816,13 +5816,13 @@ UINT CGUnit_C::GetRunSequence() const {
   }
 
   UINT moveFlags = m_move.m_moveFlags;
-  if ((moveFlags & 0x33) != 0x33) {
+  if ((moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_TURN_MASK)) != (MOVEFLAG_MOVE_MASK | MOVEFLAG_TURN_MASK)) {
     return ANIM_RUN;
   }
-  if ((moveFlags & 0x10) && (m_animFlags & 0x40)) {
+  if ((moveFlags & MOVEFLAG_LEFT) && (m_animFlags & 0x40)) {
     return ANIM_RUN_LEANLEFT;
   }
-  if ((moveFlags & 0x20) && (m_animFlags & 0x20)) {
+  if ((moveFlags & MOVEFLAG_RIGHT) && (m_animFlags & 0x20)) {
     return ANIM_RUN_LEANRIGHT;
   }
 
@@ -6473,23 +6473,23 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGIt
     return false;
   }
 
-  if ((spell->m_auraInterruptFlags & 0x100) && !(m_move.GetMoveFlags() & 0x2000000)) {
+  if ((spell->m_auraInterruptFlags & 0x100) && !(m_move.GetMoveFlags() & MOVEFLAG_SWIMMING)) {
     Spell_C_SpellFailed(spell->m_ID, SPELL_FAILED_ONLY_UNDERWATER, -1, -1);
     return false;
   }
-  if ((spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x100) && !(m_move.GetMoveFlags() & 0x2000000)) {
+  if ((spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x100) && !(m_move.GetMoveFlags() & MOVEFLAG_SWIMMING)) {
     Spell_C_SpellFailed(spell->m_ID, SPELL_FAILED_ONLY_UNDERWATER, -1, -1);
     return false;
   }
-  if ((spell->m_auraInterruptFlags & 0x80) && (m_move.GetMoveFlags() & 0x2000000)) {
+  if ((spell->m_auraInterruptFlags & 0x80) && (m_move.GetMoveFlags() & MOVEFLAG_SWIMMING)) {
     Spell_C_SpellFailed(spell->m_ID, SPELL_FAILED_ONLY_ABOVEWATER, -1, -1);
     return false;
   }
-  if ((spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x80) && (m_move.GetMoveFlags() & 0x2000000)) {
+  if ((spell->m_attributesEx & 4) && (spell->m_channelInterruptFlags & 0x80) && (m_move.GetMoveFlags() & MOVEFLAG_SWIMMING)) {
     Spell_C_SpellFailed(spell->m_ID, SPELL_FAILED_ONLY_ABOVEWATER, -1, -1);
     return false;
   }
-  if ((spell->m_interruptFlags & 1) && (m_move.GetMoveFlags() & 0x400F)) {
+  if ((spell->m_interruptFlags & 1) && (m_move.GetMoveFlags() & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK | MOVEFLAG_FALLING))) {
     Spell_C_SpellFailed(spell->m_ID, SPELL_FAILED_MOVING, -1, -1);
     return false;
   }
@@ -6588,7 +6588,7 @@ void CGUnit_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
     if (m_currentBaseAnim == 101) {
       blendRatio = 1.0f - ModelGetPrimarySequenceCompletion(model);
     } else {
-      if ((m_move.m_moveFlags & 0x02000000) && (m_move.m_moveFlags & 1)) {
+      if (m_move.IsSwimming() && m_move.IsMovingForward()) {
         GetSwimMatrix(worldMatrix);
       } else {
         ModelGetStandingMatrix(model, GetPosition(), GetGroundNormal(), GetRenderFacing(), GetScale() * GetRenderScale(), worldMatrix);
@@ -7286,7 +7286,7 @@ void CGUnit_C::StandStateChanged(UINT oldState) {
   if ((IsInStandSitTransition() || IsInSitSleepPosition()) && (!newState || oldState)) {
     QueueAnim(s_animStandUpTransitions[oldState], 0);
   }
-  if (newState || !(m_move.m_moveFlags & 0x40FF)) {
+  if (newState || !m_move.IsInMotion()) {
     QueueAnim(s_animStandDownTransitions[newState], 0);
   }
   if (m_currentTorsoAnimState == ANIM_STATE_EMOTE) {
@@ -7669,7 +7669,7 @@ void CGUnit_C::SetSpellImpactKit(const SpellVisualKitRec *impactKit) {
 
 int CGUnit_C::PlayEmoteAnimation(UINT emoteID, int flags) {
   const EmotesRec *emote = g_emotesDB.GetRecord(emoteID);
-  if (!emote || m_unit->standState == 3 || (emote->m_EmoteFlags & 2) || (m_move.m_moveFlags & 0x2000000)) {
+  if (!emote || m_unit->standState == 3 || (emote->m_EmoteFlags & 2) || m_move.IsSwimming()) {
     return 0;
   }
   return SetEmoteAnimation(emoteID, flags);
@@ -7678,7 +7678,7 @@ int CGUnit_C::PlayEmoteAnimation(UINT emoteID, int flags) {
 void CGUnit_C::RequestTalkEmote(TALKANIMATION talkAnim) {
   FATALASSERT(talkAnim < TALKANIM_NUMTALKANIMS);
 
-  if (s_talkEmotes[talkAnim] && !(m_move.m_moveFlags & 0x2000000) && SetEmoteAnimation(s_talkEmotes[talkAnim]->m_ID, 0) &&
+  if (s_talkEmotes[talkAnim] && !m_move.IsSwimming() && SetEmoteAnimation(s_talkEmotes[talkAnim]->m_ID, 0) &&
       (s_talkEmotes[talkAnim]->m_EmoteFlags & 0x800))
   {
     SetSheatheReason(SHEATHE_TALKEMOTE, 1, 1);
@@ -9703,7 +9703,7 @@ SPELLEFFECTDESC *CGUnit_C::GetActiveEffect(SpellEffectList &list) {
 
 void CGUnit_C::OnMoveStartLocal(DWORD eventTime, int forward) {
   OnMovementInitiated(0);
-  if (m_move.m_moveFlags & 0x2400) {
+  if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
   } else {
     ((CMovement &)m_move).OnMoveStartLocal(eventTime, forward);
@@ -9717,7 +9717,7 @@ void CGUnit_C::OnMoveStopLocal(DWORD eventTime) {
 void CGUnit_C::OnStrafeStartLocal(DWORD eventTime, int left) {
   if (!IsMounted()) {
     OnMovementInitiated(0);
-    if (m_move.m_moveFlags & 0x2400) {
+    if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
       CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     } else {
       ((CMovement &)m_move).OnStrafeStartLocal(eventTime, left);
@@ -9774,11 +9774,11 @@ void CGUnit_C::OnSetPitchLocal(DWORD eventTime, float pitch) {
 
 void CGUnit_C::OnJumpLocal(DWORD eventTime) {
   OnMovementInitiated(0);
-  if (m_move.m_moveFlags & 0x2400) {
+  if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
     CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
     return;
   }
-  if (IsMounted() && !(m_move.m_moveFlags & 0x40FF)) {
+  if (IsMounted() && !m_move.IsInMotion()) {
     CDataStore msg;
     msg.Put(CMSG_MOUNTSPECIAL_ANIM);
     msg.Put(GetGUID());
@@ -9860,7 +9860,7 @@ void CGUnit_C::OnSetRunModeLocal(DWORD eventTime, int run) {
 }
 
 void CGUnit_C::ToggleRunModeLocal(DWORD eventTime) {
-  OnSetRunModeLocal(eventTime, m_move.m_moveFlags & 0x100);
+  OnSetRunModeLocal(eventTime, m_move.m_moveFlags & MOVEFLAG_WALK);
 }
 
 void ProcessLocalMoveEvent(UINT msgId) {
@@ -9885,7 +9885,7 @@ void CGUnit_C::ProcessLocalMoveEvent(NETMESSAGE msgId) {
   switch (msgId) {
     case MSG_MOVE_STOP:
     case MSG_MOVE_STOP_STRAFE:
-      if (!(m_move.m_moveFlags & 0x40FF)) {
+      if (!m_move.IsInMotion()) {
         StopMoveHeartbeatTimer();
       }
       if (m_flags & 8) {
@@ -9981,7 +9981,7 @@ void CGUnit_C::SaveTrackingTarget(DWORDLONG target, TRACKTYPE type, bool snapToT
         CGGameUI::DisplayError(GERR_AUTOFOLLOW_TOO_FAR);
         target = 0;
       } else if (!s_trackingTarget) {
-        if (m_move.m_moveFlags & 0x100) {
+        if (m_move.IsWalking()) {
           s_trackingFlags &= ~4u;
         } else {
           s_trackingFlags |= 4;
@@ -10005,7 +10005,7 @@ void CGUnit_C::SaveTrackingTarget(DWORDLONG target, TRACKTYPE type, bool snapToT
       }
     }
 
-    if (s_trackTypeInfo[s_trackingType].hasMovement && (m_move.m_moveFlags & 0xFF)) {
+    if (s_trackTypeInfo[s_trackingType].hasMovement && (m_move.m_moveFlags & MOVEFLAG_MOTION_MASK)) {
       s_trackingFlags |= 2;
       OnMoveStopLocal(currentTime);
       OnTurnStopLocal(currentTime);
@@ -10102,7 +10102,7 @@ void CGUnit_C::HandleFollowTarget() {
 
   if (s_trackTypeInfo[s_trackingType].hasMovement) {
     UINT moveFlags = m_move.m_moveFlags;
-    if (moveFlags & 3) {
+    if (moveFlags & MOVEFLAG_MOVE_MASK) {
       if (diffSq <= TRACKMOVETHRESHOLDSQ) {
         s_trackingFlags |= 2;
         OnMoveStopLocal(currentTime);

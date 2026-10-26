@@ -351,9 +351,9 @@ void CMovement::AttemptRedirect(DWORD timeStamp, const C3Vector &unitMove, const
   C2Vector newDirection2d = newDirection;
   newDirection2d.SafeNormalize();
 
-  if (!(m_moveFlags & 0x1000)) {
+  if (!IsRedirected()) {
     m_reDirection = newDirection2d;
-    m_moveFlags |= 0x1000;
+    m_moveFlags |= MOVEFLAG_REDIRECTED;
     float cosTheta = C3Vector::Dot(m_reDirection, unitMove);
     CMath::clamp_x(cosTheta, -1.0f, 1.0f);
     FallLogWrite(
@@ -453,7 +453,7 @@ void CMovement::CallMoveEventHandlers(DWORD eventTime, int moveAdjusted, UINT ol
         UnitNotifyStopped(GetGUID(), m_spline && (m_spline->flags & 1));
       }
     } else if (IsHalted()) {
-      if (!(oldMoveFlags & 0x10000000)) {
+      if (!(oldMoveFlags & MOVEFLAG_HALTED)) {
         OnCollideStuck(GetGUID(), eventTime);
       }
     } else if (IsMovingOrStrafing()) {
@@ -462,14 +462,14 @@ void CMovement::CallMoveEventHandlers(DWORD eventTime, int moveAdjusted, UINT ol
   }
 
   if (IsFalling()) {
-    if ((m_moveFlags & 0x8000) && !(oldMoveFlags & 0x8000)) {
+    if (HasFallenFar() && !(oldMoveFlags & MOVEFLAG_FALLEN_FAR)) {
       OnCollideFalling(GetGUID(), eventTime);
     }
-  } else if (oldMoveFlags & 0x4000) {
+  } else if (oldMoveFlags & MOVEFLAG_FALLING) {
     OnCollideFallLand(GetGUID(), eventTime);
   }
 
-  if (!(m_moveFlags & 0x02000000) && (oldMoveFlags & 0x02000000) && IsLocalPlayer()) {
+  if (!IsSwimming() && (oldMoveFlags & MOVEFLAG_SWIMMING) && IsLocalPlayer()) {
     ProcessLocalMoveEvent(204);
   }
 }
@@ -547,7 +547,7 @@ BOOL CMovement::FallFromTransport() {
 
 void CMovement::StartFalling(DWORD eventTime) {
   FallFromTransport();
-  m_moveFlags |= 0x4000;
+  m_moveFlags |= MOVEFLAG_FALLING;
   m_fallStartTime = eventTime;
   m_fallStartElevation = m_position.z;
   FallLogWrite("0x%016I64X: Started to fall at (0x%08X) from (%g elevation)\n", GetGUID(), eventTime, m_fallStartElevation);
@@ -555,7 +555,7 @@ void CMovement::StartFalling(DWORD eventTime) {
 
 void CMovement::StopFalling() {
   BothLogWrite("0x%016I64X: Landed (%g)\n", GetGUID(), m_position.z);
-  m_moveFlags = (m_moveFlags & 0xF6FF2FFF) | 0x08000000;
+  m_moveFlags = (m_moveFlags & ~(MOVEFLAG_REDIRECTED | MOVEFLAG_FALL_MASK | MOVEFLAG_SPEED_DIRTY)) | 0x08000000;
   m_jumpVelocity = 0.0f;
   CalcDirection();
 }
@@ -568,7 +568,7 @@ void CMovement::ProcessFallReset(DWORD eventTime) {
 }
 
 void CMovement::CheckFallenFar(DWORD eventTime) {
-  if (m_moveFlags & 0x8000) {
+  if (HasFallenFar()) {
     return;
   }
   if (m_jumpVelocity != 0.0f) {
@@ -578,7 +578,7 @@ void CMovement::CheckFallenFar(DWORD eventTime) {
   } else if (eventTime - m_fallStartTime < 500) {
     return;
   }
-  m_moveFlags |= 0x8000;
+  m_moveFlags |= MOVEFLAG_FALLEN_FAR;
   FallLogWrite("0x%016I64X: Fallen far\n", GetGUID());
 }
 
@@ -834,9 +834,9 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
            : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "numHits > 0", FALSE, 1);
     }
     if (GetSlidingDirection(GetGUID(), surfNormals, numHits, &m_reDirection)) {
-      m_moveFlags |= 0x01000000;
+      m_moveFlags |= MOVEFLAG_SLIDING;
     } else {
-      m_moveFlags &= ~0x01000000;
+      m_moveFlags &= ~MOVEFLAG_SLIDING;
     }
   }
   return shortestDist > 0.0f ? shortestDist : 0.0f;
@@ -916,12 +916,12 @@ static int GetSlidingDirection(DWORDLONG guid, const C3Vector *normalList, UINT 
 float CMovement::CollideWithWaterSurface(const C3Vector &unitMove, const C3Vector &unitMoveWanted, float distanceWanted) {
   C3Vector moveVector = unitMove * distanceWanted;
   if (CMath::fequal4_(moveVector.z, 0.0f) || m_position.z + moveVector.z < m_waterSurfaceElev) {
-    m_moveFlags &= ~0x1000;
+    m_moveFlags &= ~MOVEFLAG_REDIRECTED;
     return distanceWanted;
   }
   m_reDirection = C2Vector(unitMoveWanted);
   m_reDirection.SafeNormalize();
-  m_moveFlags |= 0x1000;
+  m_moveFlags |= MOVEFLAG_REDIRECTED;
   return (m_waterSurfaceElev - m_position.z) / moveVector.z * distanceWanted;
 }
 
@@ -984,7 +984,7 @@ float CMovement::ExtrudeFlyBoxUp(const C3Vector &unitMove, const C3Vector &unitM
       hitInfoY.flags = 0;
     }
   }
-  if (((m_moveFlags & 0x1000) && CMath::fnotequal_(m_reDirection.z, 0.0f)) || hitInfoX.flags || hitInfoY.flags || hitInfoZ.flags) {
+  if ((IsRedirected() && CMath::fnotequal_(m_reDirection.z, 0.0f)) || hitInfoX.flags || hitInfoY.flags || hitInfoZ.flags) {
     FlyRedirect(unitMoveWanted, hitInfoX, hitInfoY, hitInfoZ);
   } else {
     distance = CollideWithWaterSurface(unitMove, unitMoveWanted, distanceWanted);
@@ -1130,7 +1130,7 @@ void CMovement::FlyRedirect(
   FATALASSERT(numNormals <= 6);
   m_reDirection = ComputeFlyRedirection(normals, numNormals, unitMoveWanted);
   if (CMath::fnotequal4_(m_reDirection.SquaredMag(), 0.0f)) {
-    m_moveFlags |= 0x1000;
+    m_moveFlags |= MOVEFLAG_REDIRECTED;
   }
 }
 
@@ -1189,7 +1189,7 @@ void CMovement::FlyRedirect(const C3Vector &unitMoveWanted, const CRedirect &hit
   FATALASSERT(numNormals <= 4);
   m_reDirection = ComputeFlyRedirection(normals, numNormals, unitMoveWanted);
   if (CMath::fnotequal4_(m_reDirection.SquaredMag(), 0.0f)) {
-    m_moveFlags |= 0x1000;
+    m_moveFlags |= MOVEFLAG_REDIRECTED;
   }
 }
 
@@ -1333,7 +1333,7 @@ UINT CMovement::Slide(UINT fallenSoFar, UINT timeIncrement) {
   if (!s_facetData.facets.Count()) {
     distanceSlid = distance;
     m_position += moveWanted;
-    m_moveFlags &= ~0x01000000U;
+    m_moveFlags &= ~MOVEFLAG_SLIDING;
   } else {
     C3Vector  unitMove = moveWanted / distance;
     CRedirect hitInfo;
@@ -1342,7 +1342,7 @@ UINT CMovement::Slide(UINT fallenSoFar, UINT timeIncrement) {
       m_position += moveWanted;
       distanceSlid = distance;
     } else {
-      m_moveFlags &= ~0x01000000U;
+      m_moveFlags &= ~MOVEFLAG_SLIDING;
       m_position += unitMove * distanceSlid;
       timeIncrement = CMath::fint_n((distanceSlid / distance) * (timeIncrement * 0.001f) * 1000.0f);
       if (!(hitInfo.surfaceNorm[0].z <= 0.64278764f)) {
@@ -1408,7 +1408,7 @@ UINT CMovement::Fall(UINT fallenSoFar, UINT timeIncrement) {
 
 void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &unitMove) {
   C3Vector moveVector;
-  if (m_moveFlags & 0x02000000) {
+  if (IsSwimming()) {
     moveVector = distance * unitMove;
   } else {
     moveVector = unitMove;
@@ -1437,7 +1437,7 @@ void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &u
   end.t += moveVector;
   CAaBox axisAlign(C3Vector::Min(start.b, end.b), C3Vector::Max(start.t, end.t));
 
-  if (!(m_moveFlags & 0x02000000)) {
+  if (!IsSwimming()) {
     axisAlign.t.z += m_stepUpHeight;
     axisAlign.b.z -= RelDistanceFallen(timeToFall);
   }
@@ -1460,7 +1460,7 @@ void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &u
 }
 
 void CMovement::ShowCollisionBox(const C3Vector &unitMove, UINT oldMoveFlags) {
-  if (oldMoveFlags & 0x02004000) {
+  if (oldMoveFlags & (MOVEFLAG_FALLING | MOVEFLAG_SWIMMING)) {
     CollisionInfoSetFallBox(m_position, m_collisionBoxHalfDepth, m_collisionBoxHeight);
     return;
   }
@@ -1477,7 +1477,7 @@ void CMovement::ShowCollisionBox(const C3Vector &unitMove, UINT oldMoveFlags) {
 
   C3Vector vectPos = m_position;
   vectPos.z += (m_collisionBoxHeight + m_stepUpHeight) * 0.5f;
-  if (m_moveFlags & 0x1000) {
+  if (IsRedirected()) {
     CollisionInfoAddVector(vectPos, m_reDirection);
   } else {
     CollisionInfoAddVector(vectPos, unitMove);
@@ -1492,7 +1492,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
   }
 
   float currSpeed = distance / (timeElapsed * 0.001f);
-  if (!(m_moveFlags & 0x30)) {
+  if (!IsTurning()) {
     FallLogWrite(
         "0x%016I64X: requested move (%g), should be (%g) for (%u ms)\n", GetGUID(), distance, GetCurrentSpeed() * (timeElapsed * 0.001f), timeElapsed
     );
@@ -1524,11 +1524,11 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     GetMoveFacets(distanceLeft, moveEndFallTime, unitMove);
     SaveMoveState(&state);
 
-    int wasRedirected = m_moveFlags & 0x1000;
+    int wasRedirected = m_moveFlags & MOVEFLAG_REDIRECTED;
     FallLogWrite("0x%016I64X: lastUpdateTime (0x%08X), timeUsed (%d)\n", GetGUID(), lastUpdateTime, timeUsed);
 
     UINT timeJustUsed;
-    if (m_moveFlags & 0x02000000) {
+    if (IsSwimming()) {
       timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, moveDirWanted * distanceLeft, moveDirWanted);
     } else if (!IsFalling()) {
       timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, moveDirWanted, moveDirWanted);
@@ -1543,7 +1543,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     FallLogWrite("0x%016I64X: move consumed (%d) ms\n", GetGUID(), timeJustUsed);
     if (timeJustUsed + 1 >= timeLeft) {
       if (wasRedirected) {
-        m_moveFlags &= ~0x1000U;
+        m_moveFlags &= ~MOVEFLAG_REDIRECTED;
         moveModified = 1;
         UpdateAnchors(lastUpdateTime + timeUsed);
       }
@@ -1567,7 +1567,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
         HandlePendingActions(lastUpdateTime + timeUsed);
         Halt(lastUpdateTime + timeUsed);
       }
-      if (!(m_moveFlags & 0x400F) || IsHalted()) {
+      if (!IsMovingStrafingOrFalling() || IsHalted()) {
         FallLogWrite(
             "0x%016I64X: unit blocked, moved (%g) instead of (%g)\n", GetGUID(), (timeUsed + timeJustUsed) * 0.001f * currSpeed, distanceLeft
         );
@@ -1580,7 +1580,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
       }
     }
 
-    if (!(m_moveFlags & 0x1000)) {
+    if (!IsRedirected()) {
       continue;
     }
 
@@ -1592,7 +1592,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
     GetMoveFacets(distanceLeft, moveEndFallTime, m_reDirection);
 
     FallLogWrite("0x%016I64X: (redir) lastUpdateTime (0x%08X), timeUsed (%d)\n", GetGUID(), lastUpdateTime, timeUsed);
-    if (m_moveFlags & 0x02000000) {
+    if (IsSwimming()) {
       timeJustUsed = Swim(lastUpdateTime + timeUsed, timeLeft, m_reDirection * distanceLeft, moveDirWanted);
     } else if (!IsFalling()) {
       timeJustUsed = TraceSurface(lastUpdateTime + timeUsed, timeLeft, distanceLeft, m_reDirection, moveDirWanted);
@@ -1616,7 +1616,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
       HandlePendingActions(lastUpdateTime + timeUsed);
       Halt(lastUpdateTime + timeUsed);
     }
-    if (!(m_moveFlags & 0x400F) || IsHalted()) {
+    if (!IsMovingStrafingOrFalling() || IsHalted()) {
       FallLogWrite(
           "0x%016I64X: unit blocked on redirect, moved (%g) instead of (%g)\n", GetGUID(),
           (timeUsed + timeJustUsed) * 0.001f * speedFactor * currSpeed, distanceLeft
@@ -1713,7 +1713,7 @@ float CMovement::AttemptMove(
   m_position.z += adjustedElevation;
   FallLogWrite("(%g,%g,%g)\n", m_position.x, m_position.y, m_position.z);
   if (CMath::fequal4_(m_reDirection.SquaredMag(), 1.0f) && IsMovingOrStrafing()) {
-    m_moveFlags |= 0x1000;
+    m_moveFlags |= MOVEFLAG_REDIRECTED;
     FallLogWrite("0x%016I64X: Setting redirected (" __FILE__ ": %d)\n", GetGUID(), __LINE__);
   } else {
     Halt(eventTime);
@@ -2027,30 +2027,30 @@ static void LogSurface(DWORDLONG guid, const CWalkableSurface &surface) {
 int CMovement::HandlePendingActions(DWORD eventTime) {
   UINT oldMoveFlags = m_moveFlags;
 
-  if (m_moveFlags & 0x00010000) {
-    m_moveFlags &= ~3U;
+  if (m_moveFlags & MOVEFLAG_PENDING_STOP) {
+    m_moveFlags &= ~MOVEFLAG_MOVE_MASK;
     BothLogWrite("0x%016I64X: Executing pending stop at (%g,%g,%g)\n", GetGUID(), m_position.x, m_position.y, m_position.z);
   }
-  if (m_moveFlags & 0x00020000) {
-    m_moveFlags &= ~0xCU;
+  if (m_moveFlags & MOVEFLAG_PENDING_UNSTRAFE) {
+    m_moveFlags &= ~MOVEFLAG_STRAFE_MASK;
     BothLogWrite("0x%016I64X: Executing pending unstrafe at (%g,%g,%g)\n", GetGUID(), m_position.x, m_position.y, m_position.z);
   }
   if (!IsMovingOrStrafing()) {
-    m_moveFlags &= ~0x1000U;
+    m_moveFlags &= ~MOVEFLAG_REDIRECTED;
   }
-  if (m_moveFlags & 0x00180000) {
+  if (m_moveFlags & MOVEFLAG_PEND_MOVE_MASK) {
     BothLogWrite("0x%016I64X: Executing pending move start at (%g,%g,%g)\n", GetGUID(), m_position.x, m_position.y, m_position.z);
-    StartMove(eventTime, m_moveFlags & 0x00080000);
+    StartMove(eventTime, m_moveFlags & MOVEFLAG_PENDING_FORWARD);
   }
-  if (m_moveFlags & 0x00600000) {
+  if (m_moveFlags & MOVEFLAG_PEND_STRAFE_MASK) {
     BothLogWrite("0x%016I64X: Executing pending strafe start at (%g,%g,%g)\n", GetGUID(), m_position.x, m_position.y, m_position.z);
-    StartStrafe(eventTime, m_moveFlags & 0x00200000);
+    StartStrafe(eventTime, m_moveFlags & MOVEFLAG_PENDING_STR_LEFT);
   }
-  if (m_moveFlags & 0x00040000) {
+  if (m_moveFlags & MOVEFLAG_PENDING_FALL) {
     StartFalling(eventTime);
   }
 
-  m_moveFlags &= 0xFF80FFFF;
+  m_moveFlags &= ~MOVEFLAG_PENDING_MASK;
   return (m_moveFlags ^ oldMoveFlags) & 0x400F;
 }
 
@@ -2095,7 +2095,7 @@ void CMovement::CheckSurfaceObstacles(
     float cosTheta = s_facetData.facets[surface->facetId].plane.n.z;
     CMath::clamp_x(cosTheta, -1.0f, 1.0f);
     FallLogWrite("0x%016I64X: Facet too steep (%g degree slope), but moving down-hill\n", GetGUID(), CMath::acos_(cosTheta) * 57.29578f);
-    m_moveFlags |= 0x40000;
+    m_moveFlags |= MOVEFLAG_PENDING_FALL;
     return;
   }
 
@@ -2349,7 +2349,7 @@ UINT CMovement::TraceSurface(
     }
 
     float distMoved = AttemptMove(currEventTime, fullMoveVector, segmentDist, unitMove, unitMoveWanted, s_facetData.facets[surface->facetId].plane);
-    int   wasRedirected = m_moveFlags & 0x1000;
+    int   wasRedirected = m_moveFlags & MOVEFLAG_REDIRECTED;
     distanceMoved += distMoved;
     absDistMoved += CMath::fabs_(distMoved);
     distance -= CMath::fabs_(segmentDist);
@@ -2358,7 +2358,7 @@ UINT CMovement::TraceSurface(
     }
 
     timeUsed = CMath::fint_n(absDistMoved * currentSpeedInv * 1000.0f);
-    if ((!wasRedirected && (m_moveFlags & 0x1000)) || CMath::fnotequal4_(distMoved, segmentDist) || distance < 0.00000095367432f ||
+    if ((!wasRedirected && IsRedirected()) || CMath::fnotequal4_(distMoved, segmentDist) || distance < 0.00000095367432f ||
         IsHalted())
     {
       return min(timeUsed, timeToMove);

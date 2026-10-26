@@ -44,18 +44,18 @@ BOOL CMovement::MoversOnList() {
 }
 
 void CMovement::MoveUnit(DWORD timeNow, DWORD lastUpdate, LPVOID obj) {
-  m_moveFlags &= ~0x00800000;
+  m_moveFlags &= ~MOVEFLAG_MOVED;
 
   if (int(timeNow - m_moveStartTime) < 0) {
     timeNow = m_moveStartTime;
   }
 
-  if (m_moveFlags & 0x40FF) {
+  if (IsInMotion()) {
     ApplyMovement(lastUpdate + 1, FallTime(), timeNow - m_moveStartTime, timeNow - lastUpdate);
-    m_moveFlags |= 0x00800000;
+    m_moveFlags |= MOVEFLAG_MOVED;
     OnMoveUpdate(GetGUID(), timeNow);
 
-    if (m_moveFlags & 0x40FF) {
+    if (IsInMotion()) {
       if (CMath::isnan_(m_position.x) || CMath::isnan_(m_position.y) || CMath::isnan_(m_position.z)) {
         ConsolePrintf("Mover at invalid position");
         MovementFixOutOfBoundsUnit(GetGUID());
@@ -83,7 +83,7 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
 
     LPVOID obj = MovementTryLock(mover->GetGUID());
     if (obj) {
-      mover->m_moveFlags &= ~0x00800000;
+      mover->m_moveFlags &= ~MOVEFLAG_MOVED;
 
       DWORD moveStartTime = mover->m_moveStartTime;
       if (int(timeNow - moveStartTime) < 0) {
@@ -109,11 +109,11 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
           mover->m_fallStartTime, timeNow, elapsed
       );
 
-      if (mover->m_moveFlags & 0x40FF) {
+      if (mover->IsInMotion()) {
         mover->ApplyMovement(lastUpdate + 1, mover->FallTime(), moveTime, elapsed);
-        mover->m_moveFlags |= 0x00800000;
+        mover->m_moveFlags |= MOVEFLAG_MOVED;
         OnMoveUpdate(mover->GetGUID(), timeNow);
-        if (mover->m_moveFlags & 0x40FF) {
+        if (mover->IsInMotion()) {
           if (CMath::isnan_(mover->m_position.x) || CMath::isnan_(mover->m_position.y) || CMath::isnan_(mover->m_position.z)) {
             ConsolePrintf("Mover at invalid position");
             MovementFixOutOfBoundsUnit(mover->GetGUID());
@@ -241,7 +241,7 @@ BOOL CMovement::UpdatePlayerMovement(DWORD timeNow) {
     ObjectFree(event->memHandle);
   }
 
-  return ((CMovementGlobals *)MovementGetGlobals())->m_localMoveQueue.HasEntries() || (m_moveFlags & 0x40FF);
+  return ((CMovementGlobals *)MovementGetGlobals())->m_localMoveQueue.HasEntries() || IsInMotion();
 }
 
 void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
@@ -261,7 +261,7 @@ void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
   }
 
   UINT timeUsed = 0;
-  m_moveFlags &= ~0x00800000;
+  m_moveFlags &= ~MOVEFLAG_MOVED;
 
   while (timeUsed < elapsedMS) {
     DWORD updateTime = lastUpdate + timeUsed;
@@ -281,9 +281,9 @@ void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
         lastUpdate, m_moveStartTime, m_fallStartTime, timeUsed
     );
 
-    if ((m_moveFlags & 0x40FF) && timeToUse > 0) {
+    if (IsInMotion() && timeToUse > 0) {
       ApplyMovement(updateTime + 1, IsFalling() ? updateTime - m_fallStartTime : 0, timeToUse - m_moveStartTime + updateTime, timeToUse);
-      m_moveFlags |= 0x00800000;
+      m_moveFlags |= MOVEFLAG_MOVED;
     }
 
     if (!UpdatePlayerMovement(updateTime + 1)) {
@@ -373,12 +373,12 @@ DWORD MovementGetLastUpdate() {
 }
 
 void CMovement::GetMovingDirection(NTempest::C3Vector *direction) const {
-  *direction = m_moveFlags & 2 ? -m_direction : m_direction;
+  *direction = m_moveFlags & MOVEFLAG_BACKWARD ? -m_direction : m_direction;
 }
 
 void CMovement::GetStrafingDirection(NTempest::C3Vector *direction) const {
   direction->Set(m_direction.y, m_direction.x, 0.0f);
-  if (m_moveFlags & 4) {
+  if (IsStrafingLeft()) {
     direction->x = -direction->x;
   } else {
     direction->y = -direction->y;
@@ -395,12 +395,12 @@ void CMovement::GetDiagonalDirection(NTempest::C3Vector *direction) const {
 }
 
 void CMovement::GetMovingDirection2d(NTempest::C2Vector *direction) const {
-  *direction = m_moveFlags & 2 ? -m_direction2d : m_direction2d;
+  *direction = m_moveFlags & MOVEFLAG_BACKWARD ? -m_direction2d : m_direction2d;
 }
 
 void CMovement::GetStrafingDirection2d(NTempest::C2Vector *direction) const {
   direction->Set(m_direction2d.y, m_direction2d.x);
-  if (m_moveFlags & 4) {
+  if (IsStrafingLeft()) {
     direction->x = -direction->x;
   } else {
     direction->y = -direction->y;
@@ -416,7 +416,7 @@ void CMovement::GetDiagonalDirection2d(NTempest::C2Vector *direction) const {
 }
 
 void CMovement::GetDirection(NTempest::C3Vector *direction) const {
-  if ((m_moveFlags & 0xF) == 0xF) {
+  if ((m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK)) == (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK)) {
     GetDiagonalDirection(direction);
   } else if (IsStrafing()) {
     GetStrafingDirection(direction);
@@ -867,20 +867,20 @@ BOOL CMovement::PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move) {
 
   float secsElapsed = (float)moveTime * 0.001f;
   UINT  actionFlags = 0;
-  if (m_moveFlags & 0x30) {
+  if (IsTurning()) {
     PlotUnitRotation(secsElapsed);
     if (!IsFalling()) {
       actionFlags |= IS_TURNING;
     }
   }
-  if (m_moveFlags & 0xC0) {
+  if (IsPitching()) {
     PlotUnitPitch(secsElapsed);
     actionFlags |= IS_PITCHING;
   }
-  if (m_moveFlags & 3) {
+  if (IsMoving()) {
     actionFlags |= IS_MOVING;
   }
-  if (m_moveFlags & 0xC) {
+  if (IsStrafing()) {
     actionFlags |= IS_STRAFING;
   }
 
@@ -1032,7 +1032,7 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
   {
     NTempest::C3Vector moveVector = m_anchorPosition + move - m_position;
     float              distanceSq;
-    if (m_moveFlags & 0x02000000) {
+    if (IsSwimming()) {
       distanceSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y + moveVector.z * moveVector.z;
     } else {
       distanceSq = moveVector.x * moveVector.x + moveVector.y * moveVector.y;
@@ -1066,8 +1066,8 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
 }
 
 void CMovement::ApplyAdjustedMove(DWORD timeStemp, const NTempest::C3Vector &moveWanted, BOOL wasAdjusted, UINT oldMoveFlags) {
-  if (wasAdjusted || (m_moveFlags & 0x1000)) {
-    if (IsSpline() && !(oldMoveFlags & 0x1000)) {
+  if (wasAdjusted || IsRedirected()) {
+    if (IsSpline() && !(oldMoveFlags & MOVEFLAG_REDIRECTED)) {
       m_spline->flags |= 2;
       m_direction = moveWanted;
       float mag = m_direction.Mag();
@@ -1102,7 +1102,7 @@ void CMovement::ApplyMovement(DWORD eventTime, UINT fallTime, UINT moveTime, UIN
     PlotUnitMovement(moveTime, &move);
   }
 
-  if (!(m_moveFlags & 0x400F)) {
+  if (!IsMovingStrafingOrFalling()) {
     return;
   }
   if (!CheckInvalidPositionOrMove(move, moveTime)) {
@@ -1117,12 +1117,12 @@ void CMovement::ApplyMovement(DWORD eventTime, UINT fallTime, UINT moveTime, UIN
 
   if (globals->ignoreObstacles) {
     m_position = move + m_anchorPosition;
-  } else if ((oldMoveFlags & 0x800) || (IsSpline() && (m_spline->flags & 0x200))) {
+  } else if ((oldMoveFlags & MOVEFLAG_DONTCOLLIDE) || (IsSpline() && (m_spline->flags & 0x200))) {
     SimpleRequestMove(fallTime + elapsed, move);
-  } else if (oldMoveFlags & 0x400F) {
-    m_moveFlags &= ~0x10000000;
+  } else if (oldMoveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK | MOVEFLAG_FALLING)) {
+    m_moveFlags &= ~MOVEFLAG_HALTED;
     NTempest::C3Vector moveVector = m_anchorPosition + move - m_position;
-    if (!(m_moveFlags & 0x02000000)) {
+    if (!IsSwimming()) {
       moveVector.z = 0.0f;
     }
     moveAdjusted = CollideRequestMove(eventTime, elapsed, moveVector);
@@ -1299,7 +1299,7 @@ void CMovement::UpdateAnchors(DWORD eventTime) {
   m_anchorFacing = m_facing;
   m_anchorPitch = m_pitch;
   m_moveStartTime = eventTime;
-  m_moveFlags |= 0x200;
+  m_moveFlags |= MOVEFLAG_TIME_VALID;
   FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", GetGUID(), eventTime);
   LogWrite(
       "0x%016I64X: Updating Anchors (0x%X): position(%g,%g) facing(%g degrees)", GetGUID(), m_moveStartTime, m_anchorPosition.x, m_anchorPosition.y,
@@ -1311,22 +1311,22 @@ void CMovement::UpdateAnchors(DWORD eventTime) {
 }
 
 BOOL CMovement::StartMove(DWORD eventTime, int forward) {
-  m_moveFlags &= ~0x00190000;
+  m_moveFlags &= ~(MOVEFLAG_PENDING_STOP | MOVEFLAG_PEND_MOVE_MASK);
   if (IsFalling()) {
     if (IsMovingOrStrafing()) {
       if (forward) {
-        if (!(m_moveFlags & 1)) {
-          m_moveFlags |= 0x00080000;
+        if (!IsMovingForward()) {
+          m_moveFlags |= MOVEFLAG_PENDING_FORWARD;
         }
       } else {
-        if (!(m_moveFlags & 2)) {
-          m_moveFlags |= 0x00100000;
+        if (!IsMovingBackwards()) {
+          m_moveFlags |= MOVEFLAG_PENDING_BACKWARD;
         }
       }
       LogWrite("0x%016I64X: Move start %s is pending\n", GetGUID(), forward ? "forward" : "backward");
       return 0;
     }
-    m_moveFlags |= 0x20000000;
+    m_moveFlags |= MOVEFLAG_NUDGE;
   }
 
   BothLogWrite(
@@ -1335,11 +1335,11 @@ BOOL CMovement::StartMove(DWORD eventTime, int forward) {
   );
   UpdateAnchors(eventTime);
   if (forward) {
-    m_moveFlags = (m_moveFlags & ~2) | 1;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_BACKWARD) | 1;
   } else {
-    m_moveFlags = (m_moveFlags & ~1) | 2;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_FORWARD) | 2;
   }
-  m_moveFlags |= 0x08000000;
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   return 1;
 }
 
@@ -1389,22 +1389,22 @@ void CMovement::OnMoveStartLocal(DWORD eventTime, int forward) {
 }
 
 BOOL CMovement::StartStrafe(DWORD eventTime, int left) {
-  m_moveFlags &= ~0x00620000;
+  m_moveFlags &= ~(MOVEFLAG_PENDING_UNSTRAFE | MOVEFLAG_PEND_STRAFE_MASK);
   if (IsFalling()) {
     if (IsMovingOrStrafing()) {
       if (left) {
-        if (!(m_moveFlags & 4)) {
-          m_moveFlags |= 0x00200000;
+        if (!IsStrafingLeft()) {
+          m_moveFlags |= MOVEFLAG_PENDING_STR_LEFT;
         }
       } else {
-        if (!(m_moveFlags & 8)) {
-          m_moveFlags |= 0x00400000;
+        if (!IsStrafingRight()) {
+          m_moveFlags |= MOVEFLAG_PENDING_STR_RGHT;
         }
       }
       LogWrite("0x%016I64X: Strafe start %s is pending\n", GetGUID(), left ? "left" : "right");
       return 0;
     }
-    m_moveFlags |= 0x20000000;
+    m_moveFlags |= MOVEFLAG_NUDGE;
   }
 
   BothLogWrite(
@@ -1413,11 +1413,11 @@ BOOL CMovement::StartStrafe(DWORD eventTime, int left) {
   );
   UpdateAnchors(eventTime);
   if (left) {
-    m_moveFlags = (m_moveFlags & ~8) | 4;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_STRAFE_RIGHT) | 4;
   } else {
-    m_moveFlags = (m_moveFlags & ~4) | 8;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_STRAFE_LEFT) | 8;
   }
-  m_moveFlags |= 0x08000000;
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   return 1;
 }
 
@@ -1432,7 +1432,7 @@ void CMovement::OnStrafeStart(DWORD eventTime, int left) {
 }
 
 BOOL CMovement::ForceJump(DWORD eventTime) {
-  if (m_moveFlags & 0x02000000) {
+  if (IsSwimming()) {
     return 0;
   }
 
@@ -1440,7 +1440,7 @@ BOOL CMovement::ForceJump(DWORD eventTime) {
     UpdateAnchors(eventTime);
     FallFromTransport();
     m_jumpVelocity -= 7.9555473f;
-    m_moveFlags = (m_moveFlags & ~0x1000) | 0x4000;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_REDIRECTED) | 0x4000;
     m_fallStartElevation = m_position.z;
     m_fallStartTime = eventTime;
     BothLogWrite("0x%016I64X: Executed jump at (0x%08X) from Z(%g)\n", GetGUID(), eventTime, m_fallStartElevation);
@@ -1499,39 +1499,39 @@ void CMovement::Halt(DWORD eventTime) {
       m_facing * 57.29578f
   );
   if (!IsFalling()) {
-    m_moveFlags |= 0x10000000;
+    m_moveFlags |= MOVEFLAG_HALTED;
     return;
   }
 
-  if (!(m_moveFlags & 0x10000)) {
-    if (m_moveFlags & 1) {
-      m_moveFlags |= 0x00080000;
+  if (!(m_moveFlags & MOVEFLAG_PENDING_STOP)) {
+    if (IsMovingForward()) {
+      m_moveFlags |= MOVEFLAG_PENDING_FORWARD;
     }
-    if (m_moveFlags & 2) {
-      m_moveFlags |= 0x00100000;
-    }
-  }
-  if (!(m_moveFlags & 0x20000)) {
-    if (m_moveFlags & 4) {
-      m_moveFlags |= 0x00200000;
-    }
-    if (m_moveFlags & 8) {
-      m_moveFlags |= 0x00400000;
+    if (IsMovingBackwards()) {
+      m_moveFlags |= MOVEFLAG_PENDING_BACKWARD;
     }
   }
-  m_moveFlags = (m_moveFlags & 0xFFFCEFF0) | 0x08000000;
+  if (!(m_moveFlags & MOVEFLAG_PENDING_UNSTRAFE)) {
+    if (IsStrafingLeft()) {
+      m_moveFlags |= MOVEFLAG_PENDING_STR_LEFT;
+    }
+    if (IsStrafingRight()) {
+      m_moveFlags |= MOVEFLAG_PENDING_STR_RGHT;
+    }
+  }
+  m_moveFlags = (m_moveFlags & ~MOVEFLAG_STOPPED_MASK) | 0x08000000;
   UpdateAnchors(eventTime);
 }
 
 void CMovement::OnStuckServer(DWORD eventTime) {
-  m_moveFlags = (m_moveFlags & 0xFFFCEFF0) | 0x18000000;
+  m_moveFlags = (m_moveFlags & ~MOVEFLAG_STOPPED_MASK) | 0x18000000;
   UpdateAnchors(eventTime);
 }
 
 BOOL CMovement::StopMove(DWORD eventTime) {
-  if (!(m_moveFlags & 3)) {
-    if (m_moveFlags & 0x00180000) {
-      m_moveFlags &= ~0x00180000;
+  if (!IsMoving()) {
+    if (m_moveFlags & MOVEFLAG_PEND_MOVE_MASK) {
+      m_moveFlags &= ~MOVEFLAG_PEND_MOVE_MASK;
       return 1;
     }
     return 0;
@@ -1539,7 +1539,7 @@ BOOL CMovement::StopMove(DWORD eventTime) {
 
   if (IsFalling()) {
     BothLogWrite("0x%016I64X: Move stop is pending\n", GetGUID());
-    m_moveFlags = (m_moveFlags & ~0x00180000) | 0x00010000;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_PEND_MOVE_MASK) | 0x00010000;
     return 0;
   }
 
@@ -1552,7 +1552,7 @@ void CMovement::ForceStopMove(DWORD eventTime) {
       "0x%016I64X: Move stop (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing * 57.29578f
   );
-  m_moveFlags = (m_moveFlags & 0xFFFEEFFC) | 0x08000000;
+  m_moveFlags = (m_moveFlags & ~(MOVEFLAG_MOVE_MASK | MOVEFLAG_REDIRECTED | MOVEFLAG_PENDING_STOP)) | 0x08000000;
   UpdateAnchors(eventTime);
 }
 
@@ -1562,10 +1562,10 @@ void CMovement::OnMoveStopLocal(DWORD eventTime) {
 
 BOOL CMovement::OnMoveStop(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
-  if (!StopMove(globals->m_lastUpdateTime) || (m_moveFlags & 0xC)) {
+  if (!StopMove(globals->m_lastUpdateTime) || IsStrafing()) {
     return 0;
   }
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
   return 1;
@@ -1576,14 +1576,14 @@ void CMovement::ForceStopStrafe(DWORD eventTime) {
       "0x%016I64X: Strafe stop (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing * 57.29578f
   );
-  m_moveFlags = (m_moveFlags & 0xFFFDEFF3) | 0x08000000;
+  m_moveFlags = (m_moveFlags & ~(MOVEFLAG_STRAFE_MASK | MOVEFLAG_REDIRECTED | MOVEFLAG_PENDING_UNSTRAFE)) | 0x08000000;
   UpdateAnchors(eventTime);
 }
 
 BOOL CMovement::StopStrafe(DWORD eventTime) {
-  if (!(m_moveFlags & 0xC)) {
-    if (m_moveFlags & 0x00600000) {
-      m_moveFlags &= ~0x00600000;
+  if (!IsStrafing()) {
+    if (m_moveFlags & MOVEFLAG_PEND_STRAFE_MASK) {
+      m_moveFlags &= ~MOVEFLAG_PEND_STRAFE_MASK;
       return 1;
     }
     return 0;
@@ -1591,7 +1591,7 @@ BOOL CMovement::StopStrafe(DWORD eventTime) {
 
   if (IsFalling()) {
     BothLogWrite("0x%016I64X: Strafe stop is pending\n", GetGUID());
-    m_moveFlags = (m_moveFlags & ~0x00600000) | 0x00020000;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_PEND_STRAFE_MASK) | 0x00020000;
     return 0;
   }
 
@@ -1605,10 +1605,10 @@ void CMovement::OnStrafeStopLocal(DWORD eventTime) {
 
 BOOL CMovement::OnStrafeStop(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
-  if (!StopStrafe(globals->m_lastUpdateTime) || (m_moveFlags & 3)) {
+  if (!StopStrafe(globals->m_lastUpdateTime) || IsMoving()) {
     return 0;
   }
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
   return 1;
@@ -1621,9 +1621,9 @@ void CMovement::StartTurn(DWORD eventTime, int left) {
   );
   UpdateAnchors(eventTime);
   if (left) {
-    m_moveFlags = (m_moveFlags & ~0x20) | 0x10;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_RIGHT) | 0x10;
   } else {
-    m_moveFlags = (m_moveFlags & ~0x10) | 0x20;
+    m_moveFlags = (m_moveFlags & ~MOVEFLAG_LEFT) | 0x20;
   }
 }
 
@@ -1640,7 +1640,7 @@ void CMovement::StopTurn(DWORD eventTime) {
   if (IsTurning()) {
     LogWrite("0x%016I64X: Turn stop (0x%X) at (%g,%g,%g), (%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z, m_facing);
     UpdateAnchors(eventTime);
-    m_moveFlags &= ~0x30;
+    m_moveFlags &= ~MOVEFLAG_TURN_MASK;
   }
 }
 
@@ -1651,7 +1651,7 @@ void CMovement::OnTurnStopLocal(DWORD eventTime) {
 void CMovement::OnTurnStop(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StopTurn(globals->m_lastUpdateTime);
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
 }
@@ -1663,12 +1663,12 @@ void CMovement::OnSetRunModeLocal(DWORD eventTime, int run) {
 void CMovement::SetRunMode(DWORD eventTime, int run) {
   UpdateAnchors(eventTime);
   if (run) {
-    m_moveFlags &= ~0x100U;
+    m_moveFlags &= ~MOVEFLAG_WALK;
   } else {
-    m_moveFlags |= 0x100;
+    m_moveFlags |= MOVEFLAG_WALK;
   }
-  m_moveFlags |= 0x08000000;
-  LogWrite("0x%016I64X: Switching to %s mode (0x%08X)\n", m_guid, (m_moveFlags & 0x100) ? "walk" : "run", m_moveStartTime);
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
+  LogWrite("0x%016I64X: Switching to %s mode (0x%08X)\n", m_guid, IsWalking() ? "walk" : "run", m_moveStartTime);
 }
 
 void CMovement::OnSetRunMode(DWORD eventTime, int run) {
@@ -1685,7 +1685,7 @@ void CMovement::Teleport(DWORD eventTime, const NTempest::C3Vector &position, fl
   m_pitch = 0.0f;
   ForceSetTransport(0);
   UpdateAnchors(eventTime);
-  m_moveFlags = (m_moveFlags & 0xFDFCEF00) | 0x08000000;
+  m_moveFlags = (m_moveFlags & ~(MOVEFLAG_TURN_MASK | MOVEFLAG_PITCH_MASK | MOVEFLAG_STOPPED_MASK | MOVEFLAG_SWIMMING)) | 0x08000000;
   if (IsSpline()) {
     m_spline->flags |= 4;
   }
@@ -1694,7 +1694,7 @@ void CMovement::Teleport(DWORD eventTime, const NTempest::C3Vector &position, fl
     CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
     FATALASSERT(globals);
     if (!globals->ignoreObstacles && !(IgnoresCollision() || IsSplineFlyer())) {
-      m_moveFlags |= 0x4000;
+      m_moveFlags |= MOVEFLAG_FALLING;
     }
     m_fallStartTime = eventTime;
     m_fallStartElevation = position.z;
@@ -1792,7 +1792,7 @@ void CMovement::OnSplineDoneFace(float facing) {
 
 void CMovement::GetMoveStatus(CMovementStatus *status) const {
   status->transport = m_transportGUID;
-  status->moveFlags = m_moveFlags & 0xFAFF0BFF;
+  status->moveFlags = m_moveFlags & ~MOVEFLAG_LOCAL;
   status->transRelPosition = GetRawPosition();
   status->transRelFacing = GetRawFacing();
   status->worldPosition = GetPosition();
@@ -1800,7 +1800,7 @@ void CMovement::GetMoveStatus(CMovementStatus *status) const {
   status->pitch = GetPitch();
 
   if (IsSpline()) {
-    status->moveFlags |= 0x04000000;
+    status->moveFlags |= MOVEFLAG_SPLINE_MOVER;
   }
 }
 
@@ -1817,7 +1817,7 @@ void CMovement::GetUpdateInfo(CClientMoveUpdate *init) const {
   }
 
   LogWrite("0x%016I64X: Send move (0x%X) ", GetGUID(), m_moveStartTime);
-  switch (m_moveFlags & 3) {
+  switch (m_moveFlags & MOVEFLAG_MOVE_MASK) {
     case 2:
       LogWrite("moving backward from ");
       break;
@@ -1829,7 +1829,7 @@ void CMovement::GetUpdateInfo(CClientMoveUpdate *init) const {
       break;
   }
   LogWrite("(%g,%g), ", m_anchorPosition.x, m_anchorPosition.y);
-  switch (m_moveFlags & 0x30) {
+  switch (m_moveFlags & MOVEFLAG_TURN_MASK) {
     case 0x20:
       LogWrite("turning right from ");
       break;
@@ -1844,7 +1844,7 @@ void CMovement::GetUpdateInfo(CClientMoveUpdate *init) const {
 }
 
 void CMovement::UpdateCurrentSpeed() {
-  if (IsFalling() && !(m_moveFlags & 0x20000000)) {
+  if (IsFalling() && !WasNudged()) {
     return;
   }
 
@@ -1862,7 +1862,7 @@ void CMovement::UpdateCurrentSpeed() {
 
   float speed = m_runSpeed;
   UINT  slowFlags = 0x20000102;
-  if (m_moveFlags & 0x02000000) {
+  if (IsSwimming()) {
     slowFlags = 0x2000010E;
     speed = m_swimSpeed;
   }
@@ -1870,14 +1870,14 @@ void CMovement::UpdateCurrentSpeed() {
     speed = min(speed, m_walkSpeed);
   }
   m_currentSpeed = speed;
-  m_moveFlags &= ~0x20000000;
+  m_moveFlags &= ~MOVEFLAG_NUDGE;
   LogWrite("0x%016I64X: Updating current speed to (%g)\n", GetGUID(), m_currentSpeed);
 }
 
 float CMovement::GetCurrentSpeed() {
-  if (m_moveFlags & 0x08000000) {
+  if (m_moveFlags & MOVEFLAG_SPEED_DIRTY) {
     UpdateCurrentSpeed();
-    m_moveFlags &= ~0x08000000;
+    m_moveFlags &= ~MOVEFLAG_SPEED_DIRTY;
   }
   return m_currentSpeed;
 }
@@ -1885,15 +1885,15 @@ float CMovement::GetCurrentSpeed() {
 float CMovement::GetCurrentTurnRate() const {
   float rate;
 
-  if (m_moveFlags & 0x10) {
+  if (IsTurningLeft()) {
     rate = m_turnRate;
-  } else if (m_moveFlags & 0x20) {
+  } else if (IsTurningRight()) {
     rate = -m_turnRate;
   } else {
     rate = 0.0f;
   }
 
-  if (m_moveFlags & 0x400F) {
+  if (IsMovingStrafingOrFalling()) {
     rate *= 0.75f;
   }
 
@@ -1903,15 +1903,15 @@ float CMovement::GetCurrentTurnRate() const {
 float CMovement::GetCurrentPitchRate() const {
   float rate;
 
-  if (m_moveFlags & 0x40) {
+  if (IsPitchingUp()) {
     rate = m_turnRate;
-  } else if (m_moveFlags & 0x80) {
+  } else if (IsPitchingDown()) {
     rate = -m_turnRate;
   } else {
     rate = 0.0f;
   }
 
-  if (m_moveFlags & 0x400F) {
+  if (IsMovingStrafingOrFalling()) {
     rate *= 0.75f;
   }
 
@@ -1919,7 +1919,7 @@ float CMovement::GetCurrentPitchRate() const {
 }
 
 void CMovement::SetIdleUpdates() {
-  if (m_moveFlags & 0x40FF) {
+  if (IsInMotion()) {
     AddToMoversList();
   } else {
     RemoveFromMoversList();
@@ -1986,15 +1986,15 @@ void CMovement::UpdateStatusInternal(DWORD eventTime, const CMovementStatus &upd
       update.transRelPosition.x, update.transRelPosition.y, update.transRelPosition.z
   );
 
-  m_moveFlags = (m_moveFlags & 0x0500E400) ^ (update.moveFlags & 0xFAFF0BFF) | 0x08000000;
+  m_moveFlags = (m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED | MOVEFLAG_FALL_MASK | MOVEFLAG_SPLINE_MOVER)) ^ (update.moveFlags & ~MOVEFLAG_LOCAL) | 0x08000000;
   m_position = update.worldPosition;
   m_anchorPosition = update.worldPosition;
   m_anchorFacing = m_facing = update.worldFacing;
   m_anchorPitch = m_pitch = update.pitch;
   CalcDirection();
 
-  if (m_moveFlags & 0xFF) {
-    if (!(m_moveFlags & 0x200)) {
+  if (m_moveFlags & MOVEFLAG_MOTION_MASK) {
+    if (!(m_moveFlags & MOVEFLAG_TIME_VALID)) {
       this ? SErrDisplayErrorFmt(
                  STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
                  "\"%s\", guid (0x%016I64X) loc (%g, %g, %g) facing (%g degrees)\n"
@@ -2014,7 +2014,7 @@ void CMovement::UpdateStatusInternal(DWORD eventTime, const CMovementStatus &upd
 
 void CMovement::UpdateStatusLocal(DWORD eventTime, const CMovementStatus &update) {
   UpdateStatusInternal(eventTime, update);
-  ((CMovementGlobals *)MovementGetGlobals())->m_localMover = (m_moveFlags & 0x40FF) ? this : NULL;
+  ((CMovementGlobals *)MovementGetGlobals())->m_localMover = IsInMotion() ? this : NULL;
 }
 
 void CMovement::UpdateStatus(DWORD eventTime, const CMovementStatus &update) {
@@ -2032,7 +2032,7 @@ void CMovement::LogUpdateInfo(const CClientMoveUpdate &init) {
       init.status.worldPosition.z
   );
   LogWrite("0x%016I64X: Receive move (0x%X) ", GetGUID(), m_moveStartTime);
-  switch (m_moveFlags & 3) {
+  switch (m_moveFlags & MOVEFLAG_MOVE_MASK) {
     case 2:
       LogWrite("moving backward from ");
       break;
@@ -2044,7 +2044,7 @@ void CMovement::LogUpdateInfo(const CClientMoveUpdate &init) {
       break;
   }
   LogWrite("(%g,%g), ", m_anchorPosition.x, m_anchorPosition.y);
-  switch (m_moveFlags & 0x30) {
+  switch (m_moveFlags & MOVEFLAG_TURN_MASK) {
     case 0x20:
       LogWrite("turning right from ");
       break;
@@ -2059,7 +2059,7 @@ void CMovement::LogUpdateInfo(const CClientMoveUpdate &init) {
 }
 
 void CMovement::AddSpline() {
-  m_moveFlags |= 0x04000000;
+  m_moveFlags |= MOVEFLAG_SPLINE_MOVER;
   if (!m_spline) {
     m_spline = NEW(CMoveSpline);
   }
@@ -2067,7 +2067,7 @@ void CMovement::AddSpline() {
 }
 
 void CMovementData::RemoveSpline() {
-  m_moveFlags &= ~0x04000000u;
+  m_moveFlags &= ~MOVEFLAG_SPLINE_MOVER;
   if (m_spline) {
     delete m_spline;
     m_spline = 0;
@@ -2090,7 +2090,7 @@ void CMovement::SetUpdateInfo(DWORD eventTime, const CClientMoveUpdate &init, in
   FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", GetGUID(), m_moveStartTime);
   m_fallStartTime = ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime - init.timeFallen;
 
-  if (init.status.moveFlags & 0x04000000) {
+  if (init.status.moveFlags & MOVEFLAG_SPLINE_MOVER) {
     AddSpline();
     *m_spline = init.spline;
   } else {
@@ -2098,9 +2098,9 @@ void CMovement::SetUpdateInfo(DWORD eventTime, const CClientMoveUpdate &init, in
   }
 
   if (((CMovementGlobals *)MovementGetGlobals())->ignoreObstacles) {
-    m_moveFlags |= 0x08000000;
+    m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   } else {
-    m_moveFlags |= 0x08004000;
+    m_moveFlags |= MOVEFLAG_FALLING | MOVEFLAG_SPEED_DIRTY;
   }
 
   if (localPlayer) {
@@ -2109,7 +2109,7 @@ void CMovement::SetUpdateInfo(DWORD eventTime, const CClientMoveUpdate &init, in
     UpdateStatus(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime, init.status);
   }
 
-  m_moveFlags |= 0x200;
+  m_moveFlags |= MOVEFLAG_TIME_VALID;
   m_fallStartElevation = CalcFallStartElevation(init.timeFallen);
   if (HasFallenFar()) {
     OnCollideFalling(GetGUID(), ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
@@ -2268,7 +2268,7 @@ BOOL CMovement::OnRunSpeedChange(DWORD eventTime, float speed) {
   }
   LogWrite("0x%016I64X: Changing run speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_runSpeed, speed, m_moveStartTime);
   m_runSpeed = speed;
-  m_moveFlags |= 0x08000000;
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
   return 1;
 }
@@ -2290,7 +2290,7 @@ BOOL CMovement::OnWalkSpeedChange(DWORD eventTime, float speed) {
   }
   LogWrite("0x%016I64X: Changing walk speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_walkSpeed, speed, m_moveStartTime);
   m_walkSpeed = speed;
-  m_moveFlags |= 0x08000000;
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
   return 1;
 }
@@ -2312,7 +2312,7 @@ BOOL CMovement::OnSwimSpeedChange(DWORD eventTime, float speed) {
   }
   LogWrite("0x%016I64X: Changing swim speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_swimSpeed, speed, m_moveStartTime);
   m_swimSpeed = speed;
-  m_moveFlags |= 0x08000000;
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
   return 1;
 }
@@ -2364,7 +2364,7 @@ void CMovement::SetFacing(DWORD eventTime, float facing) {
       UpdateAnchors(eventTime);
     }
   }
-  m_moveFlags &= ~0x30;
+  m_moveFlags &= ~MOVEFLAG_TURN_MASK;
 }
 
 void CMovement::OnSetPitchLocal(DWORD eventTime, float pitch) {
@@ -2380,7 +2380,7 @@ void CMovement::SetPitch(DWORD eventTime, float pitch) {
     m_pitch = pitch;
     UpdateAnchors(eventTime);
   }
-  m_moveFlags &= ~0xC0;
+  m_moveFlags &= ~MOVEFLAG_PITCH_MASK;
 }
 
 void CMovement::OnSetFacing(DWORD eventTime, float facing) {
@@ -2392,14 +2392,14 @@ void CMovement::OnSetFacing(DWORD eventTime, float facing) {
   }
 
   SetFacing(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime, facing);
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
 }
 
 void CMovement::OnSetPitch(DWORD eventTime, float pitch) {
   SetPitch(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime, pitch);
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
 }
@@ -2430,7 +2430,7 @@ void CMovement::OnEnableGravity(DWORD eventTime) {
 void CMovement::CollisionStateChanged() {
   if (IgnoresCollision() || IsSplineFlyer()) {
     OnDisableGravity(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
-    if (!(m_moveFlags & 0x40FF)) {
+    if (!IsInMotion()) {
       RemoveFromMoversList();
     }
   } else {
@@ -2453,16 +2453,16 @@ void CMovement::CollisionStateChangedLocal(DWORD eventTime) {
 
 void CMovement::ToggleCollision(DWORD eventTime) {
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
-  m_moveFlags ^= 0x800;
+  m_moveFlags ^= MOVEFLAG_DONTCOLLIDE;
   CollisionStateChangedLocal(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
 }
 
 void CMovement::EnableCollision(DWORD eventTime, int enable) {
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
   if (enable) {
-    m_moveFlags &= ~0x800;
+    m_moveFlags &= ~MOVEFLAG_DONTCOLLIDE;
   } else {
-    m_moveFlags |= 0x800;
+    m_moveFlags |= MOVEFLAG_DONTCOLLIDE;
   }
   CollisionStateChanged();
 }
@@ -2473,7 +2473,7 @@ void CMovement::BuildFullZoneUpdate(CDataStore *msg) {
   if (IsSpline()) {
     *msg << m_moveFlags;
   } else {
-    *msg << (m_moveFlags & ~0x04000000);
+    *msg << (m_moveFlags & ~MOVEFLAG_SPLINE_MOVER);
   }
   *msg << m_anchorPosition;
   *msg << m_anchorFacing;
@@ -2629,7 +2629,7 @@ void CMovement::RestoreMoveState(const CMoveState &state) {
   m_fallStartTime = state.fallStartTime;
   m_fallStartElevation = state.fallStartElevation;
   m_jumpVelocity = state.jumpVelocity;
-  m_moveFlags |= 0x08000000;
+  m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   FallLogWrite("0x%016I64X: restoring move state (0x%08X)\n", m_guid, m_moveStartTime);
 }
 
@@ -2676,7 +2676,7 @@ void CMovement::OnSwimStopLocal(DWORD eventTime) {
 void CMovement::OnSwimStart(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StartSwim(globals->m_lastUpdateTime);
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
 }
@@ -2702,14 +2702,14 @@ void CMovement::StopSwimLocal(DWORD eventTime) {
 void CMovement::StartSwim(DWORD eventTime) {
   BothLogWrite("0x%016I64X: Swim start (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
   UpdateAnchors(eventTime);
-  m_moveFlags |= 0x0A000000;
+  m_moveFlags |= MOVEFLAG_SWIMMING | MOVEFLAG_SPEED_DIRTY;
   OnDisableGravity(eventTime);
 }
 
 void CMovement::StopSwim(DWORD eventTime) {
   BothLogWrite("0x%016I64X: Swim stop (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
   UpdateAnchors(eventTime);
-  m_moveFlags = (m_moveFlags & 0xF5FFFF3F) | 0x08000000;
+  m_moveFlags = (m_moveFlags & ~(MOVEFLAG_PITCH_MASK | MOVEFLAG_SWIMMING | MOVEFLAG_SPEED_DIRTY)) | 0x08000000;
   m_anchorPitch = 0.0f;
   m_pitch = 0.0f;
   OnEnableGravity(eventTime);
@@ -2753,7 +2753,7 @@ void CMovement::OnPitchStopLocal(DWORD eventTime) {
 void CMovement::OnPitchStop(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   StopPitch(globals->m_lastUpdateTime);
-  if (!(m_moveFlags & 0x40FF)) {
+  if (!IsInMotion()) {
     RemoveFromMoversList();
   }
 }
@@ -2766,9 +2766,9 @@ void CMovement::StartPitch(DWORD eventTime, int up) {
     );
     UpdateAnchors(eventTime);
     if (up) {
-      m_moveFlags = (m_moveFlags & ~0x80) | 0x40;
+      m_moveFlags = (m_moveFlags & ~MOVEFLAG_PITCH_DOWN) | 0x40;
     } else {
-      m_moveFlags = (m_moveFlags & ~0x40) | 0x80;
+      m_moveFlags = (m_moveFlags & ~MOVEFLAG_PITCH_UP) | 0x80;
     }
   }
 }
@@ -2777,6 +2777,6 @@ void CMovement::StopPitch(DWORD eventTime) {
   if (IsSwimming() && IsPitching()) {
     LogWrite("0x%016I64X: Pitch stop (0x%X) at (%g,%g,%g), (%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z, m_facing);
     UpdateAnchors(eventTime);
-    m_moveFlags &= ~0xC0;
+    m_moveFlags &= ~MOVEFLAG_PITCH_MASK;
   }
 }

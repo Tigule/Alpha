@@ -586,22 +586,22 @@ void CMapObj::RenderGroupLightTex(const CMapObjGroup *group, UINT frustumCount) 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         SMOMaterial &material = materialList[batch->texture];
-        GxRsSet(GxRs_Lighting, !(material.flags & 0x1));
-        GxRsSet(GxRs_Fog, !(material.flags & 0x2));
-        GxRsSet(GxRs_Culling, !(material.flags & 0x4));
-        GxRsSet(GxRs_MatEmissive, material.flags & 0x10 ? material.frameSidnColor : NTempest::CImVector(0ul));
+        GxRsSet(GxRs_Lighting, !(material.flags & SMOMaterial::F_UNLIT));
+        GxRsSet(GxRs_Fog, !(material.flags & SMOMaterial::F_UNFOGGED));
+        GxRsSet(GxRs_Culling, !(material.flags & SMOMaterial::F_UNCULLED));
+        GxRsSet(GxRs_MatEmissive, material.flags & SMOMaterial::F_SIDN ? material.frameSidnColor : NTempest::CImVector(0ul));
         GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
         GxTexFlags(texture, diffTexFlags);
-        diffTexFlags.m_wrapU = !(material.flags & 0x40);
-        diffTexFlags.m_wrapV = !(material.flags & 0x80);
+        diffTexFlags.m_wrapU = !(material.flags & SMOMaterial::F_CLAMP_S);
+        diffTexFlags.m_wrapV = !(material.flags & SMOMaterial::F_CLAMP_T);
         GxTexSetFlags(texture, diffTexFlags);
         GxRsSet(GxRs_Texture0, texture);
 
@@ -642,20 +642,20 @@ void CMapObj::RenderGroupLightmapTex_Int(const CMapObjGroup *group, UINT frustum
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         SMOMaterial &material = materialList[batch->texture];
-        GxRsSet(GxRs_Fog, !(material.flags & 0x2));
-        GxRsSet(GxRs_Culling, !(material.flags & 0x4));
+        GxRsSet(GxRs_Fog, !(material.flags & SMOMaterial::F_UNFOGGED));
+        GxRsSet(GxRs_Culling, !(material.flags & SMOMaterial::F_UNCULLED));
         GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
         GxTexFlags(texture, diffTexFlags);
-        diffTexFlags.m_wrapU = !(material.flags & 0x40);
-        diffTexFlags.m_wrapV = !(material.flags & 0x80);
+        diffTexFlags.m_wrapU = !(material.flags & SMOMaterial::F_CLAMP_S);
+        diffTexFlags.m_wrapV = !(material.flags & SMOMaterial::F_CLAMP_T);
         GxTexSetFlags(texture, diffTexFlags);
         GxRsSet(GxRs_Texture0, texture);
 
@@ -691,16 +691,16 @@ void CMapObj::RenderGroupLightmapTex_Ext(const CMapObjGroup *group, UINT frustum
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         SMOMaterial &material = materialList[batch->texture];
-        GxRsSet(GxRs_Fog, !(material.flags & 0x2));
-        GxRsSet(GxRs_Culling, !(material.flags & 0x4));
+        GxRsSet(GxRs_Fog, !(material.flags & SMOMaterial::F_UNFOGGED));
+        GxRsSet(GxRs_Culling, !(material.flags & SMOMaterial::F_UNCULLED));
         GxRsSet(GxRs_Blend, (int)material.blendMode);
 
-        if (material.flags & 0x20) {
+        if (material.flags & SMOMaterial::F_WINDOW) {
           CGxLight &gxLight = CMap::sunLight->gxLight;
           gxLight.m_dirColor = dnInfo->lightInfo.windowDirColor;
           gxLight.m_ambColor = dnInfo->lightInfo.windowAmbColor;
@@ -710,8 +710,8 @@ void CMapObj::RenderGroupLightmapTex_Ext(const CMapObjGroup *group, UINT frustum
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
         GxTexFlags(texture, diffTexFlags);
-        diffTexFlags.m_wrapU = !(material.flags & 0x40);
-        diffTexFlags.m_wrapV = !(material.flags & 0x80);
+        diffTexFlags.m_wrapU = !(material.flags & SMOMaterial::F_CLAMP_S);
+        diffTexFlags.m_wrapV = !(material.flags & SMOMaterial::F_CLAMP_T);
         GxTexSetFlags(texture, diffTexFlags);
         GxRsSet(GxRs_Texture0, texture);
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
@@ -766,20 +766,20 @@ void CMapObj::RenderGroupColorTex_Int(const CMapObjGroup *group, UINT frustumCou
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         SMOMaterial &material = materialList[batch->texture];
-        GxRsSet(GxRs_Fog, !(material.flags & 0x2));
-        GxRsSet(GxRs_Culling, !(material.flags & 0x4));
+        GxRsSet(GxRs_Fog, !(material.flags & SMOMaterial::F_UNFOGGED));
+        GxRsSet(GxRs_Culling, !(material.flags & SMOMaterial::F_UNCULLED));
         GxRsSet(GxRs_Blend, (int)material.blendMode);
 
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
         GxTexFlags(texture, diffTexFlags);
-        diffTexFlags.m_wrapU = !(material.flags & 0x40);
-        diffTexFlags.m_wrapV = !(material.flags & 0x80);
+        diffTexFlags.m_wrapU = !(material.flags & SMOMaterial::F_CLAMP_S);
+        diffTexFlags.m_wrapV = !(material.flags & SMOMaterial::F_CLAMP_T);
         GxTexSetFlags(texture, diffTexFlags);
         GxRsSet(GxRs_Texture0, texture);
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
@@ -813,16 +813,16 @@ void CMapObj::RenderGroupColorTex_Ext(const CMapObjGroup *group, UINT frustumCou
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         SMOMaterial &material = materialList[batch->texture];
-        GxRsSet(GxRs_Fog, !(material.flags & 0x2));
-        GxRsSet(GxRs_Culling, !(material.flags & 0x4));
+        GxRsSet(GxRs_Fog, !(material.flags & SMOMaterial::F_UNFOGGED));
+        GxRsSet(GxRs_Culling, !(material.flags & SMOMaterial::F_UNCULLED));
         GxRsSet(GxRs_Blend, (int)material.blendMode);
 
-        if (material.flags & 0x20) {
+        if (material.flags & SMOMaterial::F_WINDOW) {
           CGxLight &gxLight = CMap::sunLight->gxLight;
           gxLight.m_dirColor = dnInfo->lightInfo.windowDirColor;
           gxLight.m_ambColor = dnInfo->lightInfo.windowAmbColor;
@@ -832,8 +832,8 @@ void CMapObj::RenderGroupColorTex_Ext(const CMapObjGroup *group, UINT frustumCou
         CGxTex *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         CGxTexFlags diffTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
         GxTexFlags(texture, diffTexFlags);
-        diffTexFlags.m_wrapU = !(material.flags & 0x40);
-        diffTexFlags.m_wrapV = !(material.flags & 0x80);
+        diffTexFlags.m_wrapU = !(material.flags & SMOMaterial::F_CLAMP_S);
+        diffTexFlags.m_wrapV = !(material.flags & SMOMaterial::F_CLAMP_T);
         GxTexSetFlags(texture, diffTexFlags);
         GxRsSet(GxRs_Texture0, texture);
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
@@ -881,10 +881,10 @@ void CMapObj::RenderGroupLightmap(const CMapObjGroup *group, UINT frustumCount) 
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         CGxTex *texture = TextureGetGxTex(group->lightmapTexList[batch->lightMap].hTexture, 1, 0);
         GxRsSet(GxRs_Texture0, texture);
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
@@ -916,16 +916,16 @@ void CMapObj::RenderGroupTex(const CMapObjGroup *group, UINT frustumCount) {
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         SMOMaterial &material = materialList[batch->texture];
         CGxTex      *texture = TextureGetGxTex(material.hMaps[0], 1, 0);
         GxRsSet(GxRs_Texture0, texture);
         GxTexFlags(texture, diffTexFlags);
-        diffTexFlags.m_wrapU = !(material.flags & 0x40);
-        diffTexFlags.m_wrapV = !(material.flags & 0x80);
+        diffTexFlags.m_wrapU = !(material.flags & SMOMaterial::F_CLAMP_S);
+        diffTexFlags.m_wrapV = !(material.flags & SMOMaterial::F_CLAMP_T);
         GxTexSetFlags(texture, diffTexFlags);
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
       }
@@ -951,10 +951,10 @@ void CMapObj::RenderGroup_Ext(const CMapObjGroup *group, UINT frustumCount) {
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
       }
     }
@@ -979,10 +979,10 @@ void CMapObj::RenderGroup_Int(const CMapObjGroup *group, UINT frustumCount) {
     SMOBatch *batch = group->batchList + gxBatch.batchStart;
     for (UINT i = 0; i < gxBatch.batchCount; ++i, ++batch) {
       if (!frustumCount) {
-        batch->flags &= 0x0F;
+        batch->flags &= ~SMOBatch::F_RENDERED;
       }
-      if (!(batch->flags & 0xF0) && !CullBatch(batch)) {
-        batch->flags |= 0xF0;
+      if (!(batch->flags & SMOBatch::F_RENDERED) && !CullBatch(batch)) {
+        batch->flags |= SMOBatch::F_RENDERED;
         GxPrimDrawElements(GxPrim_Triangles, batch->count, group->indexList + batch->startIndex);
       }
     }
@@ -1075,7 +1075,7 @@ void CMapObj::RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount) {
   {
     SMOPoly *poly = group->polyList;
     for (UINT i = 0; i < group->polyCount; ++i, ++poly) {
-      if ((poly->flags & 0x20) && !(poly->flags & 0x4)) {
+      if ((poly->flags & SMOPoly::F_RENDER) && !(poly->flags & SMOPoly::F_DETAIL)) {
         *nextIndex++ = 3 * i;
         *nextIndex++ = 3 * i + 1;
         *nextIndex++ = 3 * i + 2;
@@ -1095,7 +1095,7 @@ void CMapObj::RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount) {
   {
     SMOPoly *poly = group->polyList;
     for (UINT j = 0; j < group->polyCount; ++j, ++poly) {
-      if (poly->flags & 0x4) {
+      if (poly->flags & SMOPoly::F_DETAIL) {
         *nextIndex++ = 3 * j;
         *nextIndex++ = 3 * j + 1;
         *nextIndex++ = 3 * j + 2;
@@ -1116,7 +1116,7 @@ void CMapObj::RenderGroupBsp(const CMapObjGroup *group, UINT frustumCount) {
   {
     SMOPoly *poly = group->polyList;
     for (UINT k = 0; k < group->polyCount; ++k, ++poly) {
-      if (poly->flags & 0x8) {
+      if (poly->flags & SMOPoly::F_COLLISION) {
         *nextIndex++ = 3 * k;
         *nextIndex++ = 3 * k + 1;
         *nextIndex++ = 3 * k + 2;

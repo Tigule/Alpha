@@ -5,6 +5,7 @@
 #include <stpl.h>
 
 #include "Object/Object.h"
+#include "Object/Unit.h"
 #include "Tempest/c2vector.h"
 #include "Tempest/c3vector.h"
 #include "Tempest/caabox.h"
@@ -195,75 +196,117 @@ class CMovementData {
   DWORDLONG GetGUID() const {
     return m_guid;
   }
-  BOOL IsInMotion() const;
-  BOOL IsMovingOrTurning() const;
-  BOOL IsMovingAndTurning() const;
-  BOOL IsMovingOrFalling() const;
-  BOOL IsMovingOrStrafing() const {
-    return m_moveFlags & 0xF;
+  BOOL IsInMotion() const {
+    return m_moveFlags & (MOVEFLAG_MOTION_MASK | MOVEFLAG_FALLING);
   }
-  BOOL IsMovingStrafingOrFalling() const;
-  BOOL IsMovingAndStrafing() const;
-  BOOL IsMovingTurningOrStrafing() const;
+  BOOL IsMovingOrTurning() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_TURN_MASK);
+  }
+  BOOL IsMovingAndTurning() const {
+    return IsMoving() && IsTurning();
+  }
+  BOOL IsMovingOrFalling() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_FALLING);
+  }
+  BOOL IsMovingOrStrafing() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK);
+  }
+  BOOL IsMovingStrafingOrFalling() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK | MOVEFLAG_FALLING);
+  }
+  BOOL IsMovingAndStrafing() const {
+    return IsMoving() && IsStrafing();
+  }
+  BOOL IsMovingTurningOrStrafing() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK | MOVEFLAG_TURN_MASK);
+  }
   BOOL IsMoving() const {
-    return m_moveFlags & 0x3;
+    return m_moveFlags & MOVEFLAG_MOVE_MASK;
   }
   BOOL IsMovingForward() const {
-    return m_moveFlags & 0x1;
+    return m_moveFlags & MOVEFLAG_FORWARD;
   }
   BOOL IsMovingBackwards() const {
-    return m_moveFlags & 0x2;
+    return m_moveFlags & MOVEFLAG_BACKWARD;
   }
   BOOL IsTurning() const {
-    return m_moveFlags & 0x30;
+    return m_moveFlags & MOVEFLAG_TURN_MASK;
   }
-  BOOL IsTurningOrFalling() const;
-  BOOL IsTurningLeft() const;
-  BOOL IsTurningRight() const;
-  BOOL IsTurningOrPitching() const;
-  BOOL IsTurningAndPitching() const;
+  BOOL IsTurningOrFalling() const {
+    return m_moveFlags & (MOVEFLAG_TURN_MASK | MOVEFLAG_FALLING);
+  }
+  BOOL IsTurningLeft() const {
+    return m_moveFlags & MOVEFLAG_LEFT;
+  }
+  BOOL IsTurningRight() const {
+    return m_moveFlags & MOVEFLAG_RIGHT;
+  }
+  BOOL IsTurningOrPitching() const {
+    return m_moveFlags & (MOVEFLAG_TURN_MASK | MOVEFLAG_PITCH_MASK);
+  }
+  BOOL IsTurningAndPitching() const {
+    return IsTurning() && IsPitching();
+  }
   BOOL IsStrafingLeft() const {
-    return m_moveFlags & 4;
+    return m_moveFlags & MOVEFLAG_STRAFE_LEFT;
   }
   BOOL IsStrafingRight() const {
-    return m_moveFlags & 8;
+    return m_moveFlags & MOVEFLAG_STRAFE_RIGHT;
   }
   BOOL IsStrafing() const {
-    return m_moveFlags & 0xC;
+    return m_moveFlags & MOVEFLAG_STRAFE_MASK;
   }
   BOOL IsFalling() const {
-    return m_moveFlags & 0x4000;
+    return m_moveFlags & MOVEFLAG_FALLING;
   }
   BOOL IsJumping() const;
   BOOL HasFallenFar() const {
-    return m_moveFlags & 0x8000;
+    return m_moveFlags & MOVEFLAG_FALLEN_FAR;
   }
-  BOOL IsWalking() const;
-  int  Moved() const;
-  int  TimeIsValid() const;
+  BOOL IsWalking() const {
+    return m_moveFlags & MOVEFLAG_WALK;
+  }
+  int Moved() const {
+    return m_moveFlags & MOVEFLAG_MOVED;
+  }
+  int TimeIsValid() const {
+    return m_moveFlags & MOVEFLAG_TIME_VALID;
+  }
   BOOL IsImmobilized() const;
   BOOL IsRooted() const;
   BOOL IsSwimming() const {
-    return m_moveFlags & 0x02000000;
+    return m_moveFlags & MOVEFLAG_SWIMMING;
   }
-  BOOL IsSwimmingOrFalling() const;
+  BOOL IsSwimmingOrFalling() const {
+    return m_moveFlags & (MOVEFLAG_FALLING | MOVEFLAG_SWIMMING);
+  }
   BOOL IsPitching() const {
-    return m_moveFlags & 0xC0;
+    return m_moveFlags & MOVEFLAG_PITCH_MASK;
   }
-  BOOL IsPitchingUp() const;
-  BOOL IsPitchingDown() const;
-  BOOL IsMovingStrafingOrSwimming() const;
-  BOOL IsMovingStrafingFallingOrSwimming() const;
+  BOOL IsPitchingUp() const {
+    return m_moveFlags & MOVEFLAG_PITCH_UP;
+  }
+  BOOL IsPitchingDown() const {
+    return m_moveFlags & MOVEFLAG_PITCH_DOWN;
+  }
+  BOOL IsMovingStrafingOrSwimming() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK | MOVEFLAG_SWIMMING);
+  }
+  BOOL IsMovingStrafingFallingOrSwimming() const {
+    return m_moveFlags & (MOVEFLAG_MOVE_MASK | MOVEFLAG_STRAFE_MASK | MOVEFLAG_FALLING | MOVEFLAG_SWIMMING);
+  }
   BOOL IsSplineMover() const {
-    return m_moveFlags & 0x04000000;
+    return m_moveFlags & MOVEFLAG_SPLINE_MOVER;
   }
   int IgnoresCollision() const {
-    return m_moveFlags & 0x800;
+    return m_moveFlags & MOVEFLAG_DONTCOLLIDE;
   }
   BOOL IsHalted() const {
-    return m_moveFlags & 0x10000000;
+    return m_moveFlags & MOVEFLAG_HALTED;
   }
-  int   WasNudged() const;
+  int WasNudged() const {
+    return m_moveFlags & MOVEFLAG_NUDGE;
+  }
   float GetCollisionBoxHeight() const {
     return m_collisionBoxHeight;
   }
@@ -666,9 +709,11 @@ class CMovement : public CMovementData {
   void ShowCollisionBox(const NTempest::C3Vector &unitMove, UINT oldMoveFlags);
   void SaveMoveState(CMoveState *state) const;
   void RestoreMoveState(const CMoveState &state);
-  BOOL IsRedirected() const;
+  BOOL IsRedirected() const {
+    return m_moveFlags & MOVEFLAG_REDIRECTED;
+  }
   BOOL IsSliding() const {
-    return m_moveFlags & 0x01000000;
+    return m_moveFlags & MOVEFLAG_SLIDING;
   }
   BOOL IsJumpingUp(DWORD eventTime);
   BOOL CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT moveTime);

@@ -691,7 +691,7 @@ void CMapChunk::Create(BYTE *data) {
   zoneId = mChunk->areaid;
   holes = mChunk->holes;
   flags = 0;
-  if (mChunk->flags & 2) {
+  if (mChunk->flags & SMChunk::FLAG_IMPASS) {
     flags = CMapBaseObj::Flag_Impassable;
   }
   rSeed.SetSeed(cOffset.x | (cOffset.y << 16));
@@ -713,7 +713,7 @@ void CMapChunk::Create(BYTE *data) {
     CreateLayer(area, mLayer, alphaTex);
   }
 
-  if ((mChunk->flags & 1) && (CWorld::enables & CWorld::Enable_Shadow)) {
+  if ((mChunk->flags & SMChunk::FLAG_SHADOW) && (CWorld::enables & CWorld::Enable_Shadow)) {
     shadowSize = mChunk->sizeShadow;
     CreateShadow(shadowTex);
   } else {

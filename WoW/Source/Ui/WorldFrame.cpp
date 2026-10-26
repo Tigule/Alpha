@@ -174,17 +174,17 @@ inline NTempest::C3Vector CGCamera::Facing() const {
 CGWorldFrame *CGWorldFrame::s_currentWorldFrame;
 
 BOOL CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter) {
-  if (hitFilter & 0x70000) {
+  if (hitFilter & (HIT_TEST_PARTY | HIT_TEST_FRIENDS | HIT_TEST_ENEMIES)) {
     CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (!((hitFilter & 0x10000) && player->IsUnitInGroup(unit)) && !((hitFilter & 0x20000) && player->CanAssist(unit)) &&
-        !((hitFilter & 0x40000) && player->CanAttack(unit)))
+    if (!((hitFilter & HIT_TEST_PARTY) && player->IsUnitInGroup(unit)) && !((hitFilter & HIT_TEST_FRIENDS) && player->CanAssist(unit)) &&
+        !((hitFilter & HIT_TEST_ENEMIES) && player->CanAttack(unit)))
     {
       return 0;
     }
   }
-  if (hitFilter & 0x300000) {
+  if (hitFilter & (HIT_TEST_LIVE | HIT_TEST_DEAD)) {
     int alive = unit->IsAlive();
-    if (!((alive && (hitFilter & 0x100000)) || (!alive && (hitFilter & 0x200000)))) {
+    if (!((alive && (hitFilter & HIT_TEST_LIVE)) || (!alive && (hitFilter & HIT_TEST_DEAD)))) {
       return 0;
     }
   }
@@ -197,17 +197,17 @@ BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
 
   switch (object->GetType()) {
     case HIER_TYPE_PLAYER:
-      if (!(hitFilter & 8) || (!(hitFilter & 0x10) && object->GetGUID() == ClntObjMgrGetActivePlayer())) {
+      if (!(hitFilter & HIT_TEST_PLAYERS) || (!(hitFilter & HIT_TEST_ME) && object->GetGUID() == ClntObjMgrGetActivePlayer())) {
         return 0;
       }
       return IsUnitLegalSelection((CGUnit_C *)object, hitFilter);
     case HIER_TYPE_UNIT:
-      if (!(hitFilter & 4)) {
+      if (!(hitFilter & HIT_TEST_UNITS)) {
         return 0;
       }
       return IsUnitLegalSelection((CGUnit_C *)object, hitFilter);
     case HIER_TYPE_GAMEOBJECT:
-      if (!(hitFilter & 2)) {
+      if (!(hitFilter & HIT_TEST_OBJECTS)) {
         return 0;
       }
       if (Spell_C_IsTargeting() && !Spell_C_CanTargetObject(object)) {
@@ -215,7 +215,7 @@ BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
       }
       return 1;
     case HIER_TYPE_CORPSE:
-      if (!(hitFilter & 4)) {
+      if (!(hitFilter & HIT_TEST_UNITS)) {
         return 0;
       }
       return !Spell_C_IsTargeting();
@@ -396,7 +396,7 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTest(const NTempest::C3Vector &a, const 
   NTempest::C3Vector ip(0.0f);
   float              terrDist = 1.0f;
   int                terrainFound = 0;
-  if (hitFilter & 0x1) {
+  if (hitFilter & HIT_TEST_GROUND) {
     terrainFound = CWorld::Intersect(&a, &b, 0.0f, &ip, &terrDist, 273);
     if (terrainFound) {
       terrDist *= (a - b).Mag();
@@ -405,7 +405,7 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTest(const NTempest::C3Vector &a, const 
 
   float     objDist = 0.0f;
   DWORDLONG object = 0;
-  if (hitFilter & 0x1E) {
+  if (hitFilter & HIT_TEST_ALL_OBJS) {
     object = FindClosestModel(a, b, hitFilter, &objDist);
   }
 
@@ -442,24 +442,24 @@ UINT CGWorldFrame::GetHitTestFilterFlags() const {
 
   UINT hitFilter = 0;
   if (Spell_C_CanTargetTerrain()) {
-    hitFilter |= 0x1;
+    hitFilter |= HIT_TEST_GROUND;
   }
   if (Spell_C_CanTargetObjects()) {
-    hitFilter |= 0x2;
+    hitFilter |= HIT_TEST_OBJECTS;
   }
   if (Spell_C_CanTargetUnits()) {
-    hitFilter |= 0xC;
+    hitFilter |= HIT_TEST_UNITS | HIT_TEST_PLAYERS;
     if (Spell_C_CanTargetMe()) {
-      hitFilter |= 0x10;
+      hitFilter |= HIT_TEST_ME;
     }
     if (Spell_C_CanTargetParty()) {
-      hitFilter |= 0x10000;
+      hitFilter |= HIT_TEST_PARTY;
     }
     if (Spell_C_CanTargetFriends()) {
-      hitFilter |= 0x20000;
+      hitFilter |= HIT_TEST_FRIENDS;
     }
     if (Spell_C_CanTargetEnemies()) {
-      hitFilter |= 0x40000;
+      hitFilter |= HIT_TEST_ENEMIES;
     }
     hitFilter |= Spell_C_CanTargetDead() ? 0x200000 : 0x100000;
   }
@@ -1306,7 +1306,7 @@ BOOL CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   DWORD       processTime = evt.time;
-  if (player && (player->m_move.GetMoveFlags() & 0x200) && (long)(processTime - player->m_move.GetMoveStartTime()) < 0) {
+  if (player && (player->m_move.GetMoveFlags() & MOVEFLAG_TIME_VALID) && (long)(processTime - player->m_move.GetMoveStartTime()) < 0) {
     processTime = player->m_move.GetMoveStartTime();
   }
 

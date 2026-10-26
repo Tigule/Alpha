@@ -3787,7 +3787,7 @@ void CGPlayer_C::TalkToTrainer(const DWORDLONG &trainerUnit) {
 }
 
 int CGPlayer_C::LootUnit(CGUnit_C *unit) {
-  if (CanLoot(unit) && unit->CanBeLooted(OsGetAsyncTimeMs()) && !(m_move.GetMoveFlags() & 0x40FF)) {
+  if (CanLoot(unit) && unit->CanBeLooted(OsGetAsyncTimeMs()) && !(m_move.GetMoveFlags() & (MOVEFLAG_MOTION_MASK | MOVEFLAG_FALLING))) {
     CGGameUI::CloseLoot(1, 0);
 
     CDataStore lootMsg;
@@ -7316,7 +7316,7 @@ void CGPlayer_C::SendTextEmote(const EmotesTextRec *rec, const DWORDLONG &target
   }
 
   const EmotesRec *emote = g_emotesDB.GetRecord(rec->m_emoteID);
-  if (emote && (emote->m_EmoteFlags & 0x4000) && ((m_move.GetMoveFlags() & MOVEFLAG_FALLING) || (m_move.GetMoveFlags() & 0x33))) {
+  if (emote && (emote->m_EmoteFlags & 0x4000) && ((m_move.GetMoveFlags() & MOVEFLAG_FALLING) || (m_move.GetMoveFlags() & (MOVEFLAG_MOVE_MASK | MOVEFLAG_TURN_MASK)))) {
     CGGameUI::DisplayError(GERR_NOEMOTEWHILERUNNING);
     return;
   }

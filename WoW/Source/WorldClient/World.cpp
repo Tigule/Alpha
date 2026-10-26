@@ -113,7 +113,7 @@ extern void (*GxuLightSelect)(NTempest::C3Vector worldPos, const NTempest::C3Vec
 static void UpdateShadowGxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 void CWorld::Initialize() {
-  enables |= 0x07100B73;
+  enables |= CWorld::Enable_Doodads | CWorld::Enable_Chunks | CWorld::Enable_Sky | CWorld::Enable_Culling | CWorld::Enable_Shadow | CWorld::Enable_MapObjs | CWorld::Enable_MapObjLight | CWorld::Enable_MapObjTex | CWorld::Enable_DetailDoodads | CWorld::Enable_Water | CWorld::Enable_Particulates | CWorld::Enable_LowDetail;
   frameCnt = 0;
   chunkCnt = 0;
   enableLayerCnt = 4;
