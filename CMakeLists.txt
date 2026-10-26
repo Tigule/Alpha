@@ -1,10 +1,27 @@
 cmake_minimum_required(VERSION 3.18)
+
+set(CMAKE_CONFIGURATION_TYPES "Release_Assertions_Enabled;Release;Debug" CACHE STRING "" FORCE)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release_Assertions_Enabled CACHE STRING "" FORCE)
+endif()
+
 project(BuildWoW)
+
+foreach(lang C CXX RC)
+    set(CMAKE_${lang}_FLAGS_RELEASE_ASSERTIONS_ENABLED "${CMAKE_${lang}_FLAGS_RELEASE}")
+endforeach()
+
+foreach(type EXE SHARED MODULE STATIC)
+    set(CMAKE_${type}_LINKER_FLAGS_RELEASE_ASSERTIONS_ENABLED "${CMAKE_${type}_LINKER_FLAGS_RELEASE}")
+endforeach()
 
 set(CMAKE_CXX_STANDARD 98)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY Release_Assertions_Enabled)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY $<CONFIG>)
+
+add_compile_definitions($<$<NOT:$<CONFIG:Release>>:ASSERTIONS_ENABLED>)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/WoW/bin")
 set(CMAKE_C_OUTPUT_EXTENSION_REPLACE ON)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE ON)

@@ -1,4 +1,4 @@
-add_library(StormStAE STATIC
+add_library(Storm STATIC
     CRC.CPP
     SBig.cpp
     SCmd.cpp
@@ -18,7 +18,7 @@ add_library(StormStAE STATIC
 )
 
 if(WIN32)
-    target_sources(StormStAE PRIVATE
+    target_sources(Storm PRIVATE
         CryptRSA.cpp
         LogMachineState.cpp
         W32/SDir.cpp
@@ -39,16 +39,23 @@ if(WIN32)
     )
 endif()
 
-target_include_directories(StormStAE PRIVATE
+target_include_directories(Storm PRIVATE
     ../H
 
     .
 )
 
-set_target_properties(StormStAE PROPERTIES ARCHIVE_OUTPUT_DIRECTORY StormStRelease_Assertions_Enabled)
+# St = static, AE = assertions enabled
+set_target_properties(Storm PROPERTIES
+    OUTPUT_NAME StormSt
+    OUTPUT_NAME_RELEASE_ASSERTIONS_ENABLED StormStAE
+    OUTPUT_NAME_RELEASE StormSt
+    OUTPUT_NAME_DEBUG StormStD
+    ARCHIVE_OUTPUT_DIRECTORY StormSt$<CONFIG>
+)
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(StormStAE PRIVATE /Gr /Ob0 /Z7 /YX)
+    target_compile_options(Storm PRIVATE /Gr /Ob0 /Z7 /YX)
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES vc60.pch)
-    target_compile_definitions(StormStAE PRIVATE Z_PREFIX)
+    target_compile_definitions(Storm PRIVATE Z_PREFIX)
 endif()

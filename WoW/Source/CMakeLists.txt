@@ -68,7 +68,12 @@ target_include_directories(Wow PRIVATE
     .
 )
 
-set_target_properties(Wow PROPERTIES OUTPUT_NAME Wowae)
+set_target_properties(Wow PROPERTIES
+    OUTPUT_NAME Wow
+    OUTPUT_NAME_RELEASE_ASSERTIONS_ENABLED Wowae
+    OUTPUT_NAME_RELEASE Wow
+    OUTPUT_NAME_DEBUG Wowd
+)
 
 if(MSVC_VERSION EQUAL 1200)
     target_compile_options(Wow PRIVATE /Gr /Z7)
@@ -148,7 +153,7 @@ set(WOW_PROJECT_LIBRARIES
     ConsoleClient
     Magic
     Game
-    StormStAE
+    Storm
     WorldClient
     GameClient
     WorldCommon

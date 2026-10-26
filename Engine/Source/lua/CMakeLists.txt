@@ -33,5 +33,5 @@ if(MSVC_VERSION EQUAL 1200)
     set_source_files_properties(src/ldump.c PROPERTIES COMPILE_OPTIONS /Ob1)
 elseif(MSVC)
     # MSVC 19.51 /O2 drops the n == -1 check in computesizes() and builds a 0x80000000 array size
-    set_source_files_properties(src/ltable.c PROPERTIES COMPILE_OPTIONS /O1)
+    set_source_files_properties(src/ltable.c PROPERTIES COMPILE_OPTIONS $<$<NOT:$<CONFIG:Debug>>:/O1>)
 endif()

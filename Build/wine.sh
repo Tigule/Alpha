@@ -218,7 +218,7 @@ run_vc6_cmd() {
 }
 
 setup() {
-    run_vc6_cmd "\"$CMAKE_EXE\" -DCMAKE_BUILD_TYPE=Release -G \"NMake Makefiles\" .."
+    run_vc6_cmd "\"$CMAKE_EXE\" -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G \"NMake Makefiles\" .."
 }
 
 build() {

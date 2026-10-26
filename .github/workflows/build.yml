@@ -90,7 +90,7 @@ jobs:
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
           cd Build
-          cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" ..
+          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G "NMake Makefiles" ..
           nmake
 
       - name: Upload executables
@@ -178,17 +178,17 @@ jobs:
           DXSDK_DIR: ${{ github.workspace }}\DXSDK2010
         run: |
           cmake -G "Visual Studio 18 2026" -A Win32 -S . -B Build/vs2026
-          cmake --build Build/vs2026 --config Release --parallel
+          cmake --build Build/vs2026 --config Release_Assertions_Enabled --parallel
 
       - name: Upload executables
         uses: actions/upload-artifact@v7
         with:
           name: windows-vs2026
           path: |
-            Build/vs2026/WoW/bin/Release/UpdateClientAE.exe
-            Build/vs2026/WoW/bin/Release/Wowae.exe
-            Build/vs2026/WoW/bin/Release/WowErrorAE.exe
-            Build/vs2026/WoW/bin/Release/WowUpdateHelperAE.exe
+            Build/vs2026/WoW/bin/Release_Assertions_Enabled/UpdateClientAE.exe
+            Build/vs2026/WoW/bin/Release_Assertions_Enabled/Wowae.exe
+            Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowErrorAE.exe
+            Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowUpdateHelperAE.exe
           if-no-files-found: error
 
   deploy-pages:

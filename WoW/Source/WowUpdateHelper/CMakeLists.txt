@@ -6,7 +6,12 @@ target_include_directories(WowUpdateHelper PRIVATE
     ../../../Storm/H
 )
 
-set_target_properties(WowUpdateHelper PROPERTIES OUTPUT_NAME WowUpdateHelperAE)
+set_target_properties(WowUpdateHelper PROPERTIES
+    OUTPUT_NAME WowUpdateHelper
+    OUTPUT_NAME_RELEASE_ASSERTIONS_ENABLED WowUpdateHelperAE
+    OUTPUT_NAME_RELEASE WowUpdateHelper
+    OUTPUT_NAME_DEBUG WowUpdateHelperD
+)
 
 if(MSVC_VERSION EQUAL 1200)
     target_compile_options(WowUpdateHelper PRIVATE /Gr /YX)
@@ -17,5 +22,5 @@ target_link_libraries(WowUpdateHelper PRIVATE
     kernel32
     user32
     advapi32
-    StormStAE
+    Storm
 )
