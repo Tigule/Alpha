@@ -22,13 +22,6 @@
 #include <Model/CollisionData.h>
 #include <string.h>
 
-NTempest::CiRect NTempest::CiRect::Intersection(const CiRect &left, const CiRect &right) {
-  return CiRect(
-      left.t > right.t ? left.t : right.t, left.l > right.l ? left.l : right.l, left.b < right.b ? left.b : right.b,
-      left.r < right.r ? left.r : right.r
-  );
-}
-
 static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 
 static void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
@@ -1295,7 +1288,7 @@ bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest:
 
   static NTempest::CiRect scBounds(0, 0, 7, 7);
   NTempest::CiRect        scRect(sRect.t - 8 * cy, sRect.l - 8 * cx, sRect.b - 8 * cy, sRect.r - 8 * cx);
-  scRect = NTempest::CiRect::Intersection(scRect, scBounds);
+  scRect.Intersect(scBounds);
 
   UINT                culled[19];
   NTempest::C3Vector *v = &chunk->vertexList[scRect.l + 17 * scRect.t];

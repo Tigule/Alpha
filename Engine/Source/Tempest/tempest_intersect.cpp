@@ -323,7 +323,7 @@ namespace NTempest {
         *t = thisT;
       }
       if (p) {
-        *p = ray.origin + ray.dir * thisT;
+        *p = ray.Point(thisT);
       }
     }
     return true;

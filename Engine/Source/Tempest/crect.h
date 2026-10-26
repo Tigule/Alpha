@@ -85,7 +85,9 @@ namespace NTempest {
       return t < b && l < r;
     }
 
-    bool Empty() const;
+    bool Empty() const {
+      return !NotEmpty();
+    }
     bool Invalid() const;
     bool NotInvalid() const;
     bool Encloses(const C2Vector &value) const;
@@ -111,7 +113,9 @@ namespace NTempest {
     C2Vector TopRight() const;
     C2Vector BottomLeft() const;
     C2Vector BottomRight() const;
-    C2Vector Center() const;
+    C2Vector Center() const {
+      return C2Vector((r + l) * 0.5f, (b + t) * 0.5f);
+    }
     void     Center(const CRect &value);
     C2Vector Diagonal() const;
     void     CenterV(const CRect &value);

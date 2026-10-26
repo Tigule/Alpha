@@ -41,7 +41,9 @@ class CGCorpse {
   BYTE               GetHairStyleID() const;
   BYTE               GetHairColorID() const;
   BYTE               GetFacialHairStyleID() const;
-  NTempest::C3Vector GetCorpsePosition() const;
+  NTempest::C3Vector GetCorpsePosition() const {
+    return m_corpse->m_position;
+  }
   void               GetCorpsePosition(NTempest::C3Vector &position) const;
   float              GetCorpseFacing() const;
 
@@ -88,7 +90,7 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   virtual LPCSTR GetModelFileName() const;
   virtual BOOL   ShouldRender(DWORD worldStatus);
   virtual NTempest::C3Vector GetPosition() const {
-    return m_corpse->m_position;
+    return GetCorpsePosition();
   }
   virtual void   GetPosition(NTempest::C3Vector &vec) const {
     vec = m_corpse->m_position;

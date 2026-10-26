@@ -61,7 +61,9 @@ namespace NTempest {
     float    Width() const;
     float    Height() const;
     float    Depth() const;
-    C3Vector Diagonal() const;
+    C3Vector Diagonal() const {
+      return t - b;
+    }
     C3Vector Center() const {
       return (t + b) * 0.5f;
     }

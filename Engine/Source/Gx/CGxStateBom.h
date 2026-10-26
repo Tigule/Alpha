@@ -30,7 +30,9 @@ class CGxStateBom {
     return *(float *)&mData[0];
   }
 
-  NTempest::CImVector GetAsCArgb();
+  NTempest::CImVector GetAsCArgb() {
+    return *(NTempest::CImVector *)&mData[0];
+  }
 
   NTempest::C3Vector GetAsC3Vector() {
     return *(NTempest::C3Vector *)&mData[0];

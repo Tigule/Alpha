@@ -177,7 +177,9 @@ class CMovementData {
   NTempest::C3Vector GetAnchorPosition() const;
   float              GetAnchorFacing() const;
   float              GetAnchorPitch() const;
-  NTempest::C3Vector GetGroundNormal() const;
+  NTempest::C3Vector GetGroundNormal() const {
+    return m_groundNormal;
+  }
   NTempest::C3Vector GetRedirection() const;
   NTempest::C3Vector GetLastSentRedirection() const;
   DWORD              GetMoveStartTime() const {

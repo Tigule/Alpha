@@ -44,7 +44,9 @@ class CGDynamicObject {
 
   int                GetSpellID() const;
   float              GetRadius() const;
-  NTempest::C3Vector GetObjectPosition() const;
+  NTempest::C3Vector GetObjectPosition() const {
+    return m_dynamicObj->m_position;
+  }
   void               GetObjectPosition(NTempest::C3Vector &position) const;
   float              GetObjectFacing() const;
   DWORDLONG          GetCaster() const;
@@ -87,7 +89,7 @@ class CGDynamicObject_C : public CGObject_C, public CGDynamicObject {
   void                            HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &position);
   void                            AnimFinished();
   virtual NTempest::C3Vector GetPosition() const {
-    return m_dynamicObj->m_position;
+    return GetObjectPosition();
   }
   virtual void                    GetPosition(NTempest::C3Vector &vec) const {
     vec = m_dynamicObj->m_position;

@@ -369,7 +369,10 @@ namespace NTempest {
       *(WORD *)this = value;
     }
 
-    CImVector      MakeArgb() const;
+    CImVector MakeArgb() const {
+      DWORD value = *this;
+      return CImVector(((value << 3) & 0xF8) | ((value << 5) & 0xFC00) | ((value << 8) & 0xF80000) | 0xFF000000);
+    }
     void From565(BYTE r5, BYTE g6, BYTE b5) {
       *this = (r5 << eRedS) | (g6 << eGreenS) | (b5 << eBlueS);
     }

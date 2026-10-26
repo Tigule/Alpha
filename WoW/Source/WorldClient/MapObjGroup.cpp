@@ -570,7 +570,7 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Vector &point, WORD polyIdx, 
     min.b = (BYTE)(bottomB + ((WORD)(fracY * (min.b - bottomB)) >> 8));
 
     static const BYTE minval = 24;
-    color = min;
+    color = min.MakeArgb();
     if (color.r <= minval) {
       color.r = minval;
     }

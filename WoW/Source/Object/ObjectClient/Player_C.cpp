@@ -462,7 +462,7 @@ float CGUnit_C::GetFacing() const {
 }
 
 NTempest::C3Vector CGUnit_C::GetGroundNormal() const {
-  return m_move.m_groundNormal;
+  return CGUnit::GetGroundNormal();
 }
 
 BOOL CGUnit_C::ShouldFadeIn() const {

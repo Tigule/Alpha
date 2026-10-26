@@ -34,7 +34,7 @@ void CGxDevice::ClampRectToWindow(NTempest::CiRect &rect) {
   clip.l = window.l;
   clip.b = window.b;
   clip.r = window.r;
-  rect = NTempest::CiRect(max(rect.t, clip.t), max(rect.l, clip.l), min(rect.b, clip.b), min(rect.r, clip.r));
+  rect.Intersect(clip);
 }
 
 static LPCSTR FmtNames[CGxFormat::Formats_Last] = {"Rgb565", "ArgbX888", "Argb8888", "Argb2101010", "Ds160", "Ds24X", "Ds248", "Ds320"};
@@ -971,7 +971,7 @@ void CGxDevice::RsGet(EGxRenderState which, float &value) {
 }
 
 void CGxDevice::RsGet(EGxRenderState which, NTempest::CImVector &value) {
-  *value.IV_() = mAppRenderStates[which].mValue.mData[0];
+  value = mAppRenderStates[which].mValue.GetAsCArgb();
 }
 
 void CGxDevice::RsGet(EGxRenderState which, NTempest::C3Vector &value) {

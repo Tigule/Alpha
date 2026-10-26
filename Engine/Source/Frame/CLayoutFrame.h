@@ -43,6 +43,7 @@ class CLayoutFrame {
     UINT          dep;
 
     virtual ~FRAMENODE() {
+      frame = 0;
     }
   };
 

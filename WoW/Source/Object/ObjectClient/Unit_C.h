@@ -797,7 +797,9 @@ class CGUnit {
     return m_move.GetPosition();
   }
   void               GetPosition(NTempest::C3Vector &position) const;
-  NTempest::C3Vector GetRawPosition() const;
+  NTempest::C3Vector GetRawPosition() const {
+    return m_move.GetRawPosition();
+  }
   float              GetFacing() const;
   float              GetRawFacing() const;
   NTempest::C3Vector GetAnchorPosition() const;
@@ -806,7 +808,9 @@ class CGUnit {
   float GetPitch() const {
     return m_move.GetPitch();
   }
-  NTempest::C3Vector GetGroundNormal() const;
+  NTempest::C3Vector GetGroundNormal() const {
+    return m_move.GetGroundNormal();
+  }
   float              GetRunSpeed() const;
   float              GetWalkSpeed() const;
   float              GetSwimSpeed() const;

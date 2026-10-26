@@ -18,7 +18,9 @@ namespace NTempest {
     C3Ray(const C3Vector &origin, const C3Vector &dir) : origin(origin), dir(dir) {
     }
 
-    C3Vector Point(float distance) const;
+    C3Vector Point(float distance) const {
+      return origin + dir * distance;
+    }
     CAaBox   AaBox() const;
   };
 

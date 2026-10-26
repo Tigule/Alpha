@@ -100,12 +100,20 @@ namespace NTempest {
     void          AlignLeft(const CiRect &value);
     void          AlignBottom(const CiRect &value);
     void          AlignRight(const CiRect &value);
-    static CiRect Intersection(const CiRect &left, const CiRect &right);
+    static CiRect Intersection(const CiRect &left, const CiRect &right) {
+      return CiRect(
+          left.t > right.t ? left.t : right.t, left.l > right.l ? left.l : right.l, left.b < right.b ? left.b : right.b,
+          left.r < right.r ? left.r : right.r
+      );
+    }
     static CiRect Intersection(const CiRect &a, const CiRect &b, const CiRect &clip);
     static CiRect Union(const CiRect &l, const CiRect &r) {
       return CiRect(min(l.t, r.t), min(l.l, r.l), max(l.b, r.b), max(l.r, r.r));
     }
-    CiRect        Intersect(const CiRect &right);
+    CiRect Intersect(const CiRect &right) {
+      *this = Intersection(*this, right);
+      return *this;
+    }
     CiRect Unite(const CiRect &r) {
       *this = Union(*this, r);
       return *this;
