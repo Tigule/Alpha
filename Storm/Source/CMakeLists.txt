@@ -14,6 +14,7 @@ add_library(Storm STATIC
     SUnicode.cpp
     SZip.cpp
 
+    $<TARGET_OBJECTS:Pkware>
     $<TARGET_OBJECTS:Zlib>
 )
 

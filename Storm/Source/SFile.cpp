@@ -1,6 +1,7 @@
 #include <storm.h>
 #include <stpl.h>
 #include <W32/ISThread.h>
+#include "../Pkware/pkware.h"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -662,10 +663,21 @@ static void __cdecl DecompressLzw_BufferWrite(char *buffer, UINT *size, LPVOID p
 }
 
 static int DecompressLzw(BYTE *dest, BYTE *source, DWORD sourcebytes) {
-  (void)dest;
-  (void)source;
-  (void)sourcebytes;
-  return FALSE;
+  Storm::SFile::s_lzwcrit.Enter();
+  if (!Storm::SFile::s_explodebuffer) {
+    Storm::SFile::s_explodebuffer = ALLOC(EXP_BUFFER_SIZE);
+  }
+
+  _DECOMPRESSIONINFO info;
+  info.sourcebuffer = source;
+  info.sourceoffset = 0;
+  info.destbuffer = dest;
+  info.destoffset = 0;
+  info.bytes = sourcebytes;
+  explode(DecompressLzw_BufferRead, DecompressLzw_BufferWrite, (char *)Storm::SFile::s_explodebuffer, &info);
+
+  Storm::SFile::s_lzwcrit.Leave();
+  return TRUE;
 }
 
 static void Decrypt(DWORD *data, DWORD bytes, DWORD key) {

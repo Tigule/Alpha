@@ -2,6 +2,7 @@
 #include <stpl.h>
 #include "W32/ISThread.h"
 
+#include "../Pkware/pkware.h"
 #include "../Zlib/zlib.h"
 
 #define SOURCESYMBOLS   256
@@ -927,9 +928,11 @@ static UINT __cdecl PkwareBufferRead(char *buffer, UINT *size, LPVOID param) {
 
 static void __cdecl PkwareBufferWrite(char *buffer, UINT *size, LPVOID param) {
   _PKWAREINFO *info = (_PKWAREINFO *)param;
-  UINT         writesize = *size;
+  UINT         writesize;
 
-  if (*size >= info->destsize - info->destpos) {
+  if (*size < info->destsize - info->destpos) {
+    writesize = *size;
+  } else {
     writesize = info->destsize - info->destpos;
   }
   memcpy((BYTE *)info->dest + info->destpos, buffer, writesize);
@@ -937,21 +940,46 @@ static void __cdecl PkwareBufferWrite(char *buffer, UINT *size, LPVOID param) {
 }
 
 static void PkwareCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD *hint, DWORD optimization) {
-  (void)dest;
-  (void)source;
-  (void)optimization;
-  *destsize = sourcesize;
-  if (hint) {
-    *hint = SCOMP_HINT_NONE;
+  char *buffer = (char *)ALLOC(CMP_BUFFER_SIZE);
+
+  _PKWAREINFO info;
+  info.dest = dest;
+  info.destpos = 0;
+  info.destsize = *destsize;
+  info.source = source;
+  info.sourcepos = 0;
+  info.sourcesize = sourcesize;
+
+  UINT type = (*hint == SCOMP_HINT_TEXT) ? CMP_ASCII : CMP_BINARY;
+  UINT dictsize;
+  if (sourcesize >= 0xC00) {
+    dictsize = 4096;
+  } else {
+    dictsize = (sourcesize < 0x600) ? 1024 : 2048;
   }
+
+  implode(PkwareBufferRead, PkwareBufferWrite, buffer, &info, &type, &dictsize);
+  FREE(buffer);
+
+  *destsize = info.destpos;
+  *hint = SCOMP_HINT_NONE;
 }
 
 static void PkwareDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
-  (void)dest;
-  (void)source;
-  (void)sourcesize;
-  (void)filename;
-  *destsize = 0;
+  char *buffer = (char *)ALLOC(EXP_BUFFER_SIZE);
+
+  _PKWAREINFO info;
+  info.dest = dest;
+  info.destpos = 0;
+  info.destsize = *destsize;
+  info.source = source;
+  info.sourcepos = 0;
+  info.sourcesize = sourcesize;
+
+  explode(PkwareBufferRead, PkwareBufferWrite, buffer, &info);
+  FREE(buffer);
+
+  *destsize = info.destpos;
 }
 
 static LPVOID ZlibAlloc(LPVOID opaque, UINT items, UINT size) {
