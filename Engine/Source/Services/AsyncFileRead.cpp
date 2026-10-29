@@ -7,6 +7,7 @@
 #include "Event/EvtApi.h"
 #include "Os/OsTime.h"
 #include "Os/W32/Debugging.h"
+#include <stdio.h>
 
 #define OSWAIT_OBJECT_0 WAIT_OBJECT_0
 #define OSWAIT_TIMEOUT  WAIT_TIMEOUT

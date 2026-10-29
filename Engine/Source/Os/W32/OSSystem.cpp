@@ -1,6 +1,10 @@
-#include <Base/Base.h>
-
+#include <winsock2.h>
 #include <windows.h>
+#include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
+
 #include <shellapi.h>
 #include <float.h>
 #include <stdio.h>

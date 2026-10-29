@@ -11,7 +11,11 @@
 #include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
-
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Item_C.h"
+#include <regex/regex.h>
+#include <Ftol.h>
 #include "GameUI.h"
 #include "Magic/MagicClient/Spell_C.h"
 #include "TabardCreationFrame.h"
@@ -2957,7 +2961,6 @@ LPCSTR g_invTypeTokens[27] = {
     "INVTYPE_THROWN",
     "INVTYPE_RANGEDRIGHT"
 };
-static LPSTR compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
 static LPSTR s_spellMissReasons[10] = {"NONE", "PHYSICAL", "RESIST", "IMMUNE", "EVADED", "DODGED", "PARRIED", "BLOCKED", "TEMPIMMUNE", "DEFLECTED"};
 static LPSTR s_combatEvent[9] = {"MISS", "WOUND", "DODGE", "PARRY", "INTERRUPT", "BLOCK", "EVADE", "IMMUNE", "DEFLECT"};
 static const float s_distCullValues[3] = {350.0f, 550.0f, 750.0f};
@@ -3045,6 +3048,7 @@ static int Script_IsAltKeyDown(lua_State *L) {
 }
 
 static int Script_GetDebugStats(lua_State *L) {
+  static LPSTR compasDirStr[8] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
   char               buffer[1024];
   int                counts[32];
   char               tempBuffer[128];

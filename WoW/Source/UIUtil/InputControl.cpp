@@ -33,9 +33,6 @@
 #include <lua.h>
 
 static int         s_joystickID = -1;
-static UINT        s_buttonState;
-static float       s_speed;
-static float       s_delta[2];
 static float       s_rate;
 static const float MOUSE_DRAG_THRESHOLD = 8.0f;
 static const float DELTAX_PER_SECOND = 512.0f;
@@ -284,6 +281,9 @@ CGInputControl *CGInputControl::GetActive() {
 }
 
 void CGInputControl::OnUpdate(float elapsedSec) {
+  static UINT s_buttonState;
+  static float s_speed;
+  static float s_delta[2];
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || s_joystickID == -1) {

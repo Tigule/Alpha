@@ -8,6 +8,7 @@
 
 #include <storm.h>
 #include <string.h>
+#include <stdio.h>
 
 static ObjDataDescriptor s_objBaseDescriptors[5] = {
     {   "OBJECT_FIELD_GUID", 0, 2, 4, 1},
@@ -181,7 +182,7 @@ static ObjDataDescriptor s_gameObjectDescriptors[20];
 static ObjDataDescriptor s_dynamicObjectDescriptors[16];
 static ObjDataDescriptor s_corpseDescriptors[36];
 
-static ObjDataDescriptor *const s_descriptors[8] = {
+static ObjDataDescriptor *s_descriptors[8] = {
     s_objDescriptors,    s_itemDescriptors,       s_containerDescriptors,     s_unitDescriptors,
     s_playerDescriptors, s_gameObjectDescriptors, s_dynamicObjectDescriptors, s_corpseDescriptors,
 };

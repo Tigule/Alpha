@@ -1,6 +1,8 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "Handle.h"
+#include <stdio.h>
 
 void HandleClose(HOBJECT handle) {
   CHandleObject *ptr = HandleDereference(handle);

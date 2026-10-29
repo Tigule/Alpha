@@ -13,5 +13,5 @@ target_include_directories(Game PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Game PRIVATE /Gr /Z7)
+    target_compile_options(Game PRIVATE /Gr /Zi)
 endif()

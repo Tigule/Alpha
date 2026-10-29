@@ -35,5 +35,19 @@ target_include_directories(Gx PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Gx PRIVATE /Gr /Z7)
+    target_compile_options(Gx PRIVATE /Gr /Zi)
+    set(GX_PCH ${CMAKE_CURRENT_BINARY_DIR}/Gx.pch)
+    get_target_property(GX_SOURCES Gx SOURCES)
+    foreach(src IN LISTS GX_SOURCES)
+        if(src STREQUAL "GxApi/GxApi.cpp")
+            set_source_files_properties(${src} PROPERTIES
+                COMPILE_OPTIONS "/FIwindows.h;/FIGx/CGxDevice.h;/YcGx/CGxDevice.h;/Fp${GX_PCH}"
+                OBJECT_OUTPUTS ${GX_PCH})
+        else()
+            set_source_files_properties(${src} PROPERTIES
+                COMPILE_OPTIONS "/FIwindows.h;/FIGx/CGxDevice.h;/YuGx/CGxDevice.h;/Fp${GX_PCH}"
+                OBJECT_DEPENDS ${GX_PCH})
+        endif()
+    endforeach()
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${GX_PCH})
 endif()

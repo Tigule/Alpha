@@ -1,6 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <stdio.h>
+#include <time.h>
 
 enum {
   SMEM_ALLOCATOR_CLASSIC = 0,

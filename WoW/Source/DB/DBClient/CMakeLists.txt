@@ -123,5 +123,18 @@ target_include_directories(DBClient PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(DBClient PRIVATE /Gr /Z7)
+    target_compile_options(DBClient PRIVATE /Gr /Zi)
+    set(DBCLIENT_PCH ${CMAKE_CURRENT_BINARY_DIR}/DBClient.pch)
+    set(DBCLIENT_PCH_FI /FIDB/DBClient/DBClient.h /FIWowConst.h /FIWowSvcs/WowSvcsClient/ClientServices.h)
+
+    set_source_files_properties(DBCacheInstances.cpp DBClient.cpp sdbItemSubclass.cpp sdbWMOAreaTable.cpp PROPERTIES
+        COMPILE_OPTIONS "${DBCLIENT_PCH_FI};/YuWowSvcs/WowSvcsClient/ClientServices.h;/Fp${DBCLIENT_PCH}"
+        OBJECT_DEPENDS ${DBCLIENT_PCH})
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/DBClientPch.cpp "")
+
+    target_sources(DBClient PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/DBClientPch.cpp)
+    set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/DBClientPch.cpp PROPERTIES
+        COMPILE_OPTIONS "${DBCLIENT_PCH_FI};/YcWowSvcs/WowSvcsClient/ClientServices.h;/Fp${DBCLIENT_PCH}"
+        OBJECT_OUTPUTS ${DBCLIENT_PCH})
+    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${DBCLIENT_PCH})
 endif()

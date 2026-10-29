@@ -10,7 +10,6 @@
 #include <new>
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>
 
 TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 CONSOLECOMMANDHANDLER                          g_defaultCommand = 0;

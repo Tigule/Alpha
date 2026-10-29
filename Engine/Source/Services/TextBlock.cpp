@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include "Os/OsTime.h"
 
 #include "TextBlock.h"
 
@@ -6,6 +7,7 @@
 #include <Gxu/IGxuFont.h>
 
 #include <stpl.h>
+#include <stdio.h>
 
 struct FONTHASHOBJ : public TSHashObject<FONTHASHOBJ, HASHKEY_STR>, public CHandleObject {
   CGxFont *font;

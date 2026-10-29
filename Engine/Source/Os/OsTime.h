@@ -1,6 +1,8 @@
 #ifndef ENGINE_SOURCE_OS_OSTIME_H
 #define ENGINE_SOURCE_OS_OSTIME_H
 
+#include <time.h>
+
 struct OSFILETIME;
 struct OSSYSTEMTIME;
 

@@ -7,7 +7,6 @@
 #include "SoundInterface/ISoundInterface.h"
 #include <Os/OsTime.h>
 
-#include <windows.h>
 
 static int    s_lastPlayTime = -1;
 static Sound *s_sound;

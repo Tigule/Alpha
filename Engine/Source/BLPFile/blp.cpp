@@ -1,3 +1,5 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "blp.h"
 
 #include "Base/Status.h"
@@ -6,7 +8,6 @@
 
 #include <storm.h>
 #include <stpl.h>
-
 #include <string.h>
 
 enum {

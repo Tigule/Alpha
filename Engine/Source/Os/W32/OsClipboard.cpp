@@ -1,4 +1,9 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
 
 #include "OsClipboard.h"
 #include "Debugging.h"
@@ -6,8 +11,8 @@
 
 #include <Base/ConvertUTF.h>
 #include <storm.h>
-#include <windows.h>
 #include <malloc.h>
+#include <stdio.h>
 
 static void FailureMessage(LPCSTR title) {
   char *msgBuffer;

@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include "Os/OsTime.h"
 
 #include "ParticleSystem2.h"
 
@@ -7,6 +8,7 @@
 #include "Tempest/c4vector.h"
 
 #include <math.h>
+#include <stdio.h>
 
 CPlaneParticleEmitter::CPlaneParticleEmitter() : m_width(0.0f), m_height(0.0f), m_latitude(0.0f), m_longitude(0.0f) {
   m_emitterType = PET_PLANE_EMITTER;

@@ -3,6 +3,7 @@
 
 #include "Tempest/caabox.h"
 #include "Tempest/c3segment.h"
+#include "Ftol.h"
 
 class CAaBspNode {
  public:

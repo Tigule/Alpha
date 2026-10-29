@@ -5,6 +5,9 @@
 #include <Tempest/cimvector.h>
 #include <Tempest/cirect.h>
 
+typedef void *OsGuiHandle;
+typedef void *OsGuiTreeItem;
+
 #define OSGUI_LISTBOX_MULTISEL 0x10000
 
 enum {
@@ -228,7 +231,7 @@ class COsControl {
 
  public:
   COsControl(COsDialog *inDialog, int inType, short inID, UINT inFlags);
-  COsControl(LPVOID inWindow, int inType, short inID, UINT inFlags);
+  COsControl(OsGuiHandle inWindow, int inType, short inID, UINT inFlags);
   virtual ~COsControl();
 
   virtual void OnDestroy() {
@@ -353,7 +356,7 @@ class COsControl {
   }
 
  protected:
-  void Initialize(LPVOID inWindow, int inType, short inID, UINT inFlags);
+  void Initialize(OsGuiHandle inWindow, int inType, short inID, UINT inFlags);
   BOOL SendEvent(int inEvent, int inCode);
 
   UINT       mFlags;
@@ -370,7 +373,7 @@ class COsControl {
 
 class COsDialog {
  public:
-  COsDialog(LPVOID inWindowHandle, UINT inFlags);
+  COsDialog(OsGuiHandle inWindowHandle, UINT inFlags);
   ~COsDialog();
   void        AddControl(COsControl *inControl);
   void        DeleteControl(COsControl *inControl);
@@ -474,7 +477,7 @@ class COsButton : public COsControl {
 class COsImageButton : public COsControl {
  public:
   COsImageButton(COsDialog *inDialog, short inID, UINT inFlags);
-  COsImageButton(LPVOID inWindow, short inID, UINT inFlags);
+  COsImageButton(OsGuiHandle inWindow, short inID, UINT inFlags);
   virtual ~COsImageButton();
 
   virtual void OnDestroy();
@@ -517,7 +520,7 @@ class COsStaticBox : public COsControl {
  public:
   COsStaticBox(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 12, inID, inFlags) {
   }
-  COsStaticBox(LPVOID inWindow, short inID, UINT inFlags) : COsControl(inWindow, 12, inID, inFlags) {
+  COsStaticBox(OsGuiHandle inWindow, short inID, UINT inFlags) : COsControl(inWindow, 12, inID, inFlags) {
   }
   virtual BOOL OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inRect);
 
@@ -531,7 +534,7 @@ class COsStaticBox : public COsControl {
 class COsCheckbox : public COsControl {
  public:
   COsCheckbox(COsDialog *inDialog, short inID);
-  COsCheckbox(LPVOID inWindow, short inID);
+  COsCheckbox(OsGuiHandle inWindow, short inID);
   virtual void SetValue(int inVal);
   virtual BOOL GetValue();
   void SetMaxWidth(int inWidth);
@@ -549,7 +552,7 @@ class COsCheckbox : public COsControl {
 class COsStaticText : public COsControl {
  public:
   COsStaticText(COsDialog *inDialog, short inID, UINT inFlags);
-  COsStaticText(LPVOID inWindow, short inID, UINT inFlags);
+  COsStaticText(OsGuiHandle inWindow, short inID, UINT inFlags);
   void SetJustification(int inJust);
   void SetTextColor(const NTempest::CImVector &inColor);
   virtual LPVOID OnSetColors(LPVOID inContext);
@@ -574,7 +577,7 @@ class COsStaticImage : public COsControl {
 class COsEditBox : public COsControl {
  public:
   COsEditBox(COsDialog *inDialog, short inID, UINT inFlags);
-  COsEditBox(LPVOID inWindow, short inID, UINT inFlags);
+  COsEditBox(OsGuiHandle inWindow, short inID, UINT inFlags);
   virtual BOOL OnReturn();
   void         SetTextLimit(int inSize);
   void         SelectAll();
@@ -668,7 +671,7 @@ class COsListView : public COsControl {
 class COsToolBar : public COsControl {
  public:
   COsToolBar(COsDialog *inDialog, short inID, UINT inFlags);
-  COsToolBar(LPVOID inWindow, short inID, UINT inFlags);
+  COsToolBar(OsGuiHandle inWindow, short inID, UINT inFlags);
   virtual ~COsToolBar();
   void SetButtonSize(int inW, int inH);
   void GetButtonSize(int *outW, int *outH);
@@ -744,7 +747,7 @@ class COsSlider : public COsControl {
 class COsScrollBar : public COsControl {
  public:
   COsScrollBar(COsDialog *inDialog, short inID, UINT inFlags);
-  COsScrollBar(LPVOID inWindow, short inID, UINT inFlags);
+  COsScrollBar(OsGuiHandle inWindow, short inID, UINT inFlags);
   void SetRange(int inMin, int inMax);
   void SetPageSize(int inVal);
   virtual void SetValue(int inVal);
@@ -764,7 +767,7 @@ class COsScrollBar : public COsControl {
 class COsDivider : public COsControl {
  public:
   COsDivider(COsDialog *inDialog, short inID, UINT inFlags);
-  COsDivider(LPVOID inWindow, short inID, UINT inFlags);
+  COsDivider(OsGuiHandle inWindow, short inID, UINT inFlags);
   virtual ~COsDivider();
 
   void SetPositionRange(int inMin, int inMax);
@@ -789,45 +792,45 @@ class COsDivider : public COsControl {
 class COsTreeView : public COsControl {
  public:
   COsTreeView(COsDialog *inDialog, short inID, UINT inFlags);
-  COsTreeView(LPVOID inWindow, short inID, UINT inFlags);
+  COsTreeView(OsGuiHandle inWindow, short inID, UINT inFlags);
   virtual ~COsTreeView();
   void                SetBackgroundColor(const NTempest::CImVector &inColor);
   virtual void OnSizeChange();
   void                ClearItems();
-  void                DeleteItem(LPVOID inItem);
+  void                DeleteItem(OsGuiTreeItem inItem);
   LPVOID              InsertItem(LPVOID inParent, LPVOID inAfter, LPCSTR inText);
-  void                SetItemText(LPVOID inItem, LPCSTR inText);
-  void                GetItemText(LPVOID inItem, char *inBuf, int inBufSize);
-  void                SetItemParam(LPVOID inItem, LPVOID inParam);
-  LPVOID              GetItemParam(LPVOID inItem);
-  void                SetItemColor(LPVOID inItem, const NTempest::CImVector &inColor);
-  void                ResetItemColor(LPVOID inItem);
-  NTempest::CImVector GetItemColor(LPVOID inItem);
-  LPVOID              GetItemParent(LPVOID inItem);
-  BOOL                GetItemNumChildren(LPVOID inItem);
-  LPVOID              GetItemChild(LPVOID inItem, int inIndex);
-  void                SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID inData);
-  void                ExpandItem(LPVOID inItem, int inVal);
+  void                SetItemText(OsGuiTreeItem inItem, LPCSTR inText);
+  void                GetItemText(OsGuiTreeItem inItem, char *inBuf, int inBufSize);
+  void                SetItemParam(OsGuiTreeItem inItem, LPVOID inParam);
+  LPVOID              GetItemParam(OsGuiTreeItem inItem);
+  void                SetItemColor(OsGuiTreeItem inItem, const NTempest::CImVector &inColor);
+  void                ResetItemColor(OsGuiTreeItem inItem);
+  NTempest::CImVector GetItemColor(OsGuiTreeItem inItem);
+  LPVOID              GetItemParent(OsGuiTreeItem inItem);
+  BOOL                GetItemNumChildren(OsGuiTreeItem inItem);
+  LPVOID              GetItemChild(OsGuiTreeItem inItem, int inIndex);
+  void                SetItemImage(OsGuiTreeItem inItem, int inWidth, int inHeight, LPVOID inData);
+  void                ExpandItem(OsGuiTreeItem inItem, int inVal);
 
-  void                CollapseItem(LPVOID inItem) {
+  void                CollapseItem(OsGuiTreeItem inItem) {
     ExpandItem(inItem, 0);
   }
 
-  BOOL             IsItemExpanded(LPVOID inItem);
-  void             OnExpandedItem(LPVOID inItem);
-  void             EnsureItemVisible(LPVOID inItem);
-  void             EditItem(LPVOID inItem);
-  NTempest::CiRect GetItemRect(LPVOID inItem);
-  void             RefreshItem(LPVOID inItem);
+  BOOL             IsItemExpanded(OsGuiTreeItem inItem);
+  void             OnExpandedItem(OsGuiTreeItem inItem);
+  void             EnsureItemVisible(OsGuiTreeItem inItem);
+  void             EditItem(OsGuiTreeItem inItem);
+  NTempest::CiRect GetItemRect(OsGuiTreeItem inItem);
+  void             RefreshItem(OsGuiTreeItem inItem);
   LPVOID           GetFirstVisibleItem();
-  void             SetFirstVisibleItem(LPVOID inItem);
+  void             SetFirstVisibleItem(OsGuiTreeItem inItem);
   void             EnumerateItems(LPVOID inParent, void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam);
   void             EnumerateAllItems(void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam);
-  void             SelectItem(LPVOID inItem, int inVal);
-  BOOL             IsItemSelected(LPVOID inItem);
+  void             SelectItem(OsGuiTreeItem inItem, int inVal);
+  BOOL             IsItemSelected(OsGuiTreeItem inItem);
   LPVOID           GetSelectedItem();
 
-  void             DeselectItem(LPVOID inItem) {
+  void             DeselectItem(OsGuiTreeItem inItem) {
     SelectItem(inItem, 0);
   }
 
@@ -845,8 +848,8 @@ class COsTreeView : public COsControl {
   }
 
   void SetDragDropHandler(int (*inFunc)(const OsGuiTVDDInfo &, LPVOID), LPVOID inParam);
-  void SetDropTarget(LPVOID inItem);
-  void SetInsertionMark(LPVOID inItem, int inAfter);
+  void SetDropTarget(OsGuiTreeItem inItem);
+  void SetInsertionMark(OsGuiTreeItem inItem, int inAfter);
 
   int  OnClick() {
     return SendEvent(2, 0);
@@ -858,11 +861,11 @@ class COsTreeView : public COsControl {
   virtual BOOL OnEscape();
   virtual int  OnNotify(int inCode, LPVOID inParam);
   virtual BOOL IsHandleFromControl(LPVOID inHandle);
-  void OnBeginDrag(LPVOID inItem, int inX, int inY);
+  void OnBeginDrag(OsGuiTreeItem inItem, int inX, int inY);
   virtual void OnMouseMove(int inX, int inY);
   void OnEndDrag();
-  int  OnBeginEdit(LPVOID inItem);
-  BOOL OnEndEdit(LPVOID inItem, LPCSTR inNewText);
+  int  OnBeginEdit(OsGuiTreeItem inItem);
+  BOOL OnEndEdit(OsGuiTreeItem inItem, LPCSTR inNewText);
   void SetTextLimit(int inSize);
   void EnableFilters(int inVal);
 
@@ -878,14 +881,14 @@ class COsTreeView : public COsControl {
  protected:
   void                 InitializeTreeView();
   LPVOID               GetEditControl();
-  void                 CreateDragImage(LPVOID inItem);
+  void                 CreateDragImage(OsGuiTreeItem inItem);
   void                 DestroyDragImage();
   int                  RunDragHandler();
   LPVOID               FindItemUnderCursor();
-  void                 OnDeleteItem(LPVOID inItem);
+  void                 OnDeleteItem(OsGuiTreeItem inItem);
   int                  FindUnusedParams();
-  void                 InitParams(LPVOID inItem);
-  OsGuiTreeItemParams *GetParams(LPVOID inItem);
+  void                 InitParams(OsGuiTreeItem inItem);
+  OsGuiTreeItemParams *GetParams(OsGuiTreeItem inItem);
 
   LPVOID               mImages;
   TSGrowableArray<int> mUnusedImageIDs;
@@ -907,7 +910,7 @@ class COsTreeView : public COsControl {
 class COsSpinButton : public COsControl {
  public:
   COsSpinButton(COsDialog *inDialog, short inID, UINT inFlags);
-  COsSpinButton(LPVOID inWindow, short inID, UINT inFlags);
+  COsSpinButton(OsGuiHandle inWindow, short inID, UINT inFlags);
   void SetValueRange(int inMinVal, int inMaxVal);
   virtual void SetValue(int inVal);
   virtual int  GetValue();
@@ -931,7 +934,7 @@ class COsTabControl : public COsControl {
 
 class COsWindow {
  public:
-  COsWindow(LPVOID inWindow);
+  COsWindow(OsGuiHandle inWindow);
   virtual ~COsWindow();
 
   void SetMinSize(int inW, int inH);
@@ -949,7 +952,7 @@ class COsWindow {
 
 class COsMenuBar {
  public:
-  COsMenuBar(LPVOID inWindowHandle);
+  COsMenuBar(OsGuiHandle inWindowHandle);
   ~COsMenuBar();
 
   void Set(TSGrowableArray<COsMenu *> &inMenus);
@@ -985,27 +988,27 @@ void                OsGuiSetCursor(int inCursor);
 void                OsGuiShowCursor(int inVal);
 void                OsGuiGetCursorPosition(int *outX, int *outY);
 void                OsGuiBeep();
-LPVOID              OsGuiGetWindow(int inWindowType);
-int                 OsGuiMessageBox(LPVOID inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR inTitle);
+OsGuiHandle         OsGuiGetWindow(int inWindowType);
+int                 OsGuiMessageBox(OsGuiHandle inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR inTitle);
 BOOL                OsGuiProcessMessage(LPVOID inMsgData);
 BOOL                OsGuiIsModifierKeyDown(int inKey);
-void                OsGuiSetGxWindow(LPVOID window);
-void                OsGuiSetWindowTitle(LPVOID inWindow, LPCSTR inText);
-void                OsGuiSetWindowIcon(LPVOID inWindow, LPCSTR inName);
-void                OsGuiSetWindowRect(LPVOID inWindow, const NTempest::CiRect &inRect);
-void                OsGuiBringWindowToFront(LPVOID inWindow);
-void                OsGuiShowWindow(LPVOID inWindow, int inVal);
-void                OsGuiEnableWindow(LPVOID inWindow, int inVal);
-int                 OsGuiWindowEnabled(LPVOID inWindow);
-void                OsGuiMaximizeWindow(LPVOID inWindow, int inVal);
-BOOL                OsGuiWindowMaximized(LPVOID inWindow);
-void                OsGuiMinimizeWindow(LPVOID inWindow, int inVal);
-BOOL                OsGuiWindowMinimized(LPVOID inWindow);
-NTempest::CiRect    OsGuiGetWindowRect(LPVOID inWindow, int inClientOnly);
-NTempest::CiRect    OsGuiGetWindowRestoredRect(LPVOID inWindow);
-void                OsGuiSetWindowRestoredRect(LPVOID inWindow, const NTempest::CiRect &inRect);
-BOOL                OsGuiWindowIsCursorInside(LPVOID inWindow, int inClientOnly);
+void                OsGuiSetGxWindow(OsGuiHandle window);
+void                OsGuiSetWindowTitle(OsGuiHandle inWindow, LPCSTR inText);
+void                OsGuiSetWindowIcon(OsGuiHandle inWindow, LPCSTR inName);
+void                OsGuiSetWindowRect(OsGuiHandle inWindow, const NTempest::CiRect &inRect);
+void                OsGuiBringWindowToFront(OsGuiHandle inWindow);
+void                OsGuiShowWindow(OsGuiHandle inWindow, int inVal);
+void                OsGuiEnableWindow(OsGuiHandle inWindow, int inVal);
+int                 OsGuiWindowEnabled(OsGuiHandle inWindow);
+void                OsGuiMaximizeWindow(OsGuiHandle inWindow, int inVal);
+BOOL                OsGuiWindowMaximized(OsGuiHandle inWindow);
+void                OsGuiMinimizeWindow(OsGuiHandle inWindow, int inVal);
+BOOL                OsGuiWindowMinimized(OsGuiHandle inWindow);
+NTempest::CiRect    OsGuiGetWindowRect(OsGuiHandle inWindow, int inClientOnly);
+NTempest::CiRect    OsGuiGetWindowRestoredRect(OsGuiHandle inWindow);
+void                OsGuiSetWindowRestoredRect(OsGuiHandle inWindow, const NTempest::CiRect &inRect);
+BOOL                OsGuiWindowIsCursorInside(OsGuiHandle inWindow, int inClientOnly);
 NTempest::CiRect    OsGuiGetScreenBounds();
 NTempest::CImVector OsGuiGetColor(int inColor);
 void                OsGuiGetHotkeyText(const OsGuiMenuHotkey &inHotkey, char *inBuf, int inBufSize);
-long                OsGuiWindowProc(LPVOID inWindow, UINT inMessage, UINT inWParam, long inLParam);
+long                OsGuiWindowProc(OsGuiHandle inWindow, UINT inMessage, UINT inWParam, long inLParam);

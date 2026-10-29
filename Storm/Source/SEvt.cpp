@@ -1,6 +1,10 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
 #include "W32/ISThread.h"
+#include <stdio.h>
+#include <time.h>
 
 typedef struct _IDHASHENTRY {
   DWORD         id;

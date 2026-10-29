@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/NPCText.h"
+#include <stdio.h>
 
 void NPCText::Pack(CDataStore *msg) {
   msg->PutString(m_text);

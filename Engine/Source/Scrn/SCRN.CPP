@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 
 #include "Scrn.h"
+#include <Os/OsTime.h>
 
 static int consoleInitialized;
 

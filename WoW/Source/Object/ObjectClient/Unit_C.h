@@ -2,7 +2,7 @@
 
 #include <Model/IModel.h>
 
-#include "Object/ObjectClient/AnimCompiles.h"
+#include "Object/ObjectClient/AnimStateCompiles.h"
 #include "Object/ObjectClient/IUnitEffects.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/MovementData.h"

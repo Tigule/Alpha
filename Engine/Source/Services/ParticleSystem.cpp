@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 #include <Gx/Gx.h>
 #include <BLPFile/blp.h>
+#include "Os/OsTime.h"
 
 #include "Services/ParticleSystem.h"
 #include "Services/ParticleSystem2.h"
@@ -9,6 +10,7 @@
 #include "Base/Activity.h"
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
+#include <stdio.h>
 
 static NTempest::CRndSeed s_randSeed;
 

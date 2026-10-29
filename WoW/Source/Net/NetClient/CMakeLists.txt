@@ -12,5 +12,5 @@ target_include_directories(NetClient PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(NetClient PRIVATE /Gr /Z7)
+    target_compile_options(NetClient PRIVATE /Gr /Zi)
 endif()

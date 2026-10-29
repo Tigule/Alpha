@@ -4,6 +4,9 @@
 #include <Base/CDataRecycler.h>
 #include <Base/InstanceId.h>
 #include "EvtApi.h"
+#include "Os/OsTime.h"
+
+#include <Tempest/crect.h>
 
 struct EvtContext;
 struct EvtHandler;
@@ -433,10 +436,6 @@ void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton)
 void IEvtInputSetConfirmCloseCallback(EVENTCONFIRMCLOSEHANDLER inFunc, LPVOID inParam);
 void IEvtInputGetMousePosition(float *x, float *y);
 void IEvtInputSetMousePosition(float x, float y);
-
-namespace NTempest {
-  class CRect;
-}
 
 void IEvtInputSetMouseBoundingRect(NTempest::CRect *rect);
 

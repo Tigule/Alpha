@@ -77,6 +77,17 @@ void SoundInterfaceDoodadDestroy() {
   }
 }
 
+BOOL LOOPEDDOODADDESC::FindFreeSlot() const {
+  for (int slot = 0; slot < 8; ++slot) {
+    if (!((1 << slot) & posInUseFlags)) {
+      return slot;
+    }
+  }
+
+  ASSERT(false);
+  return 0;
+}
+
 void LOOPEDDOODADDESC::Update(const NTempest::C3Vector &lPos) {
   if (!posInUseFlags) {
     soundID = -1;
@@ -128,17 +139,6 @@ int LOOPEDDOODADDESC::GetClosestIndex(const NTempest::C3Vector &listener) {
     }
   }
   return closestIndex;
-}
-
-BOOL LOOPEDDOODADDESC::FindFreeSlot() const {
-  for (int slot = 0; slot < 8; ++slot) {
-    if (!((1 << slot) & posInUseFlags)) {
-      return slot;
-    }
-  }
-
-  ASSERT(false);
-  return 0;
 }
 
 int SndInterfaceHandleDoodadLoopStart(UINT soundID, const NTempest::C3Vector &pos) {

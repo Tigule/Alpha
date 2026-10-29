@@ -497,7 +497,9 @@ void CMapEntity::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup)
   NTempest::C3Vector  start = NTempest::C3Vector(pos.x, pos.y, pos.z + 2.0f / 3.0f) * mapObjDef->invMat;
   NTempest::C3Vector  end = NTempest::C3Vector(pos.x, pos.y, pos.z - 4.0f / 3.0f) * mapObjDef->invMat;
   if (mapObjGroup->QueryLightmap(NTempest::C3Segment(start, end), lmColor)) {
-    AdjustLightmap(lmColor, interiorDirColor, 168, ambientTarget, 96);
+    static const BYTE MIN_DIRCOLOR = 168;
+    static const BYTE MAX_AMBIENT = 96;
+    AdjustLightmap(lmColor, interiorDirColor, MIN_DIRCOLOR, ambientTarget, MAX_AMBIENT);
   }
 }
 

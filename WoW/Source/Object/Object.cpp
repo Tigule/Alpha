@@ -9,10 +9,10 @@
 #include "Base/UnrealConstants.h"
 #include "Os/OsTime.h"
 
-#include <windows.h>
 
 #include <float.h>
 #include <math.h>
+#include <stdio.h>
 
 void CClientMoveUpdate::Skip(CDataStore *packet) {
   UINT   flags = CMovementStatus::Skip(packet);

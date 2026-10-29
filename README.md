@@ -3,21 +3,20 @@
 
 <a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/implemented.svg"></a> <a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/code-functions.svg"></a>
 
-This project has 3 goals: to **understand and document**, **recompile**, and **preserve** an alpha version of World of Warcraft - version 0.5.3 (build 3368) released on 2003-12-11.
+This project has 3 goals: to understand and document, reconstruct, and preserve the earliest archived alpha version of  
+World of Warcraft (version 0.5.3, build 3368)
 </div>
+
+**Disclaimer**:
+*You cannot play retail World of Warcraft with this*. The code only communicates with an early protocol and assets. This is simply a time capsule for those after us.
 
 ## Contribution Guide
 
-This isn't a reimplementation project taking advantage of modern standards. We're supporting the original toolchain and following every bit of original information we can use. This version came with pdb/map files.
-
 1. C/C++ standards must be restricted to the features available in Visual C++ 6.0 (1998)
-2. Use [Windows datatypes](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types). All platforms used the same datatypes at the time.
-3. All of the original source file paths have been created. You do not need to add any new files.
+2. Use [Windows datatypes](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types). Non-windows targets can use the same datatypes through `otherwin32.h`
+3. Validate your output to check if it's a measurable improvement
 
-As far as how to get it "right" - I use IDA Pro to disassemble code and separately I'll parse the PDB for extra information. I don't have any tools I can provide you.
-
-Supporting a variety of OS and architecture targets is reserved for after completing the 32-bit VC6 Windows target.  
-We will source functions from **0.5.5 (build 3494)** (OS X) and **0.7.0 (build 3694)** (Linux) to derive an authentic multiplatform implementation.
+We are aiming to achieve ~100% accuracy before supporting other OS and architecture targets.
 
 ## Building
 
@@ -80,10 +79,10 @@ The Alpha Project stores credentials in wow.ses, bypassing the original launcher
 ## Notes
 
 Original executables:
-* `WoW.exe`: This was produced from UpdateClient.cpp, it was called WoW due to the update process during the alpha/early beta. The map file is UpdateClient.map
-* `WoWClient.exe`: This was produced from Client.cpp, it was called WoWClient due to the update process during the alpha/early beta. The pdb file is Wowae.pdb (Wow + Assertions Enabled build)
-* `WowError.exe`: todo explanation
-* `WowUpdateHelper.exe`: todo explanation
+* `WoW.exe`: Launcher and patcher
+* `WoWClient.exe`: Game client
+* `WowError.exe`: Crash reporter and log viewer
+* `WowUpdateHelper.exe`: Helps the patcher update itself
 
 Toolchain:
 * Visual C++ 6.0 SP5

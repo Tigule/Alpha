@@ -14,7 +14,7 @@ set_target_properties(WowError PROPERTIES
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WowError PRIVATE /Gr /Z7 /YX)
+    target_compile_options(WowError PRIVATE /Gr /Zi /YX)
     target_link_libraries(WowError PRIVATE unicows msvcrt)
 endif()
 

@@ -11,6 +11,10 @@
 #include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Item_C.h"
+#include <regex/regex.h>
 
 #include "UIBindings.h"
 #include <Os/OsTime.h>
@@ -162,12 +166,13 @@ BOOL CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) 
   return 1;
 }
 
+static char charBuf[8];
+
 LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
-  static char charBuf[8];
-  LPCSTR      result = string;
-  LPCSTR      keyString;
-  UINT        metaKeyState = evt.metaKeyState;
-  KEY         key = evt.key;
+  LPCSTR result = string;
+  LPCSTR keyString;
+  UINT   metaKeyState = evt.metaKeyState;
+  KEY    key = evt.key;
 
   if (evt.repeat > 1) {
     return 0;

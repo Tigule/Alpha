@@ -2,6 +2,7 @@
 
 #include "CInputObserver.h"
 #include "CMouseEvent.h"
+#include <stdio.h>
 
 static const float EVENT_PRIORITY_BELOW_NORMAL = -1.0f;
 static const float EVENT_PRIORITY_ABOVE_NORMAL = 1.0f;

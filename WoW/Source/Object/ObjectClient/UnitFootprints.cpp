@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "UnitFootprintsI.h"
 
@@ -67,10 +76,6 @@ static int                                s_currentTime;
 static NTempest::C3Vector                 s_currentCamera;
 static NTempest::C44Matrix                s_currentWorld;
 static const float                        s_maxPurgeDist = 100.0f;
-static const int                          FADEIN = 50;
-static const int                          FADEDONE = 12050;
-static const int                          FADEOUT = 7050;
-static const float                        MAXALPHA = 128.0f;
 static const NTempest::C2Vector           s_splatSizes[5] = {
     NTempest::C2Vector(0.44444445f), NTempest::C2Vector(0.6666667f), NTempest::C2Vector(1.1666666f), NTempest::C2Vector(1.3333334f),
     NTempest::C2Vector(1.7777778f)
@@ -195,7 +200,11 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
     int        alpha = (1.0 - progress) * MAXALPHA;
     color.a = alpha <= 0 ? 0 : alpha;
   } else {
-    int elapsed = s_currentTime - startTime;
+    static const int   FADEIN = 50;
+    static const int   FADEDONE = 12050;
+    static const int   FADEOUT = 7050;
+    static const float MAXALPHA = 128.0f;
+    int                elapsed = s_currentTime - startTime;
     if (elapsed < 0 || elapsed > FADEDONE) {
       nuke = 1;
       return 1;

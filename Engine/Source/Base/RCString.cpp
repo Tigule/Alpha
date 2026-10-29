@@ -1,12 +1,10 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "RCString.h"
 
 #include <storm.h>
-
-void TRefCnt::DeleteSelf() {
-  DEL(this);
-}
+#include <stdio.h>
 
 CStringRep      CStringRep::s_nullRep;
 RCString        RCString::s_nullString;

@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 #include <Gx/Gx.h>
 #include <BLPFile/blp.h>
+#include "Os/OsTime.h"
 
 #include "SysMessage.h"
 

@@ -1,6 +1,23 @@
 #ifndef STORM_H_SFILE2_H
 #define STORM_H_SFILE2_H
 
+typedef DWORD HZIPARCHIVE;
+
+enum SFILE2_OPEN_FLAGS {
+  SFILE2_LOAD_MD5 = 0x10000
+};
+
+HZIPARCHIVE  ZipFileOpenArchive(LPCSTR archivename);
+BOOL         ZipFileCloseArchive(HZIPARCHIVE handle);
+ZipFileFCB  *ZipFileOpenFile(LPCSTR filename, HZIPARCHIVE archive);
+BOOL         ZipFileCloseFile(ZipFileFCB *fcb);
+int          ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *bytesRead);
+int          ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
+DWORD        ZipFileGetFilePointer(ZipFileFCB *fcb);
+DWORD        ZipFileGetFileSize(ZipFileFCB *fcb);
+int          ZipFileFileExists(LPCSTR filename);
+BOOL         ZipFileList(HZIPARCHIVE archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
+
 class MD5 {
  public:
   MD5() {

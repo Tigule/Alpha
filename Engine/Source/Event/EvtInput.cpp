@@ -7,6 +7,7 @@
 #include <Tempest/crect.h>
 
 #include <string.h>
+#include <stdio.h>
 
 void IEvtInputSetMouseMode(EvtContext *context, MOUSEMODE mode, UINT holdButton);
 static void PostMouseUp(EvtContext *context, int button, int x, int y, UINT flags, int time);

@@ -1,5 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <W32/ISThread.h>
+#include <stdio.h>
+#include <time.h>
 
 #define STHREAD_CREATE_SUSPENDED 0x00000004
 #define STHREAD_MAX_TRACKED      128

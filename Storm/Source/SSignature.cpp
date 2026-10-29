@@ -1,6 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <malloc.h>
+#include <stdio.h>
+#include <time.h>
 
 #define SIGNATURE_MAGIC 'SIGN'
 

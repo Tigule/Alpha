@@ -9,5 +9,5 @@ target_include_directories(SRP PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(SRP PRIVATE /Gr /Z7)
+    target_compile_options(SRP PRIVATE /Gr /Zi)
 endif()

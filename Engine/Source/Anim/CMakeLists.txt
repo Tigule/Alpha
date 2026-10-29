@@ -14,5 +14,5 @@ target_include_directories(Anim PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Anim PRIVATE /Gr /Z7)
+    target_compile_options(Anim PRIVATE /Gr /Zi)
 endif()

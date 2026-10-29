@@ -1,7 +1,8 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <Base/Base.h>
 
 #include "WowConnectionNet.h"
-
 #include "Console/ConsoleClient.h"
 
 WowConnectionNet::WowConnectionNet(int numThreads, void (*threadinit)()) : m_stopEvent(0, 0), m_workerSem(0, numThreads) {

@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object/ObjectClient/Unit_C.h"
 
@@ -95,8 +104,6 @@ static HASHKEY_NONE                       s_nullHashKey;
 static BYTE                               s_didHitConnect[NUM_VICTIMSTATES] = {0, 1, 0, 0, 1, 1, 0, 0, 1};
 static ANIM_STATE                         s_attackAnimHitStates[NUMHANDS] = {ANIM_STATE_ATTACK_HIT, ANIM_STATE_ATTACKOFF_HIT};
 static ANIM_STATE                         s_attackAnimMissStates[NUMHANDS] = {ANIM_STATE_ATTACK_MISS, ANIM_STATE_ATTACKOFF_MISS};
-static const ANIMENUMERATION              s_unarmedSequences[NUMHANDS] = {ANIM_ATTACKUNARMED, ANIM_ATTACKUNARMEDOFF};
-static int                                COMBATSWINGIGNORES = (1 << VS_DODGE) | (1 << VS_PARRY) | (1 << VS_BLOCK) | (1 << VS_EVADE) | (1 << VS_IMMUNE);
 static const struct {
   LPCSTR          animName;
   ANIMENUMERATION anim;
@@ -546,6 +553,14 @@ void CGUnit_C::SetDebugHitRolls(const ATTACKROUNDINFO &info) {
   m_hitInformation.attackInfo = info;
 }
 
+void CGUnit_C::StopAttack() {
+  CDataStore message;
+  message.Put(CMSG_ATTACKSTOP);
+  message.Finalize();
+  ClientServices_Send(&message);
+  m_combat.SetStopSent(1);
+}
+
 BOOL CGUnit_C::IsPreemptableWoundAnimState(UINT state) {
   return state == ANIM_STATE_WOUND || state == ANIM_STATE_CRITICALWOUND || state == ANIM_STATE_PARRY || state == ANIM_STATE_DODGE ||
          state == ANIM_STATE_BLOCK;
@@ -556,7 +571,8 @@ BOOL CGUnit_C::IsAttackAnimState(UINT state) {
 }
 
 bool CGUnit_C::QueueVictimAnim(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration) {
-  if (((1 << newState) & 0x2E) && IsPreemptableWoundAnimState(m_currentTorsoAnimState)) {
+  static const UINT WOUNDSTATES = (1 << VS_WOUND) | (1 << VS_DODGE) | (1 << VS_PARRY) | (1 << VS_BLOCK);
+  if (((1 << newState) & WOUNDSTATES) && IsPreemptableWoundAnimState(m_currentTorsoAnimState)) {
     UINT midpoint = m_currentWoundStartTime + (m_currentWoundAnimDuration >> 1);
     int  elapsed = OsGetAsyncTimeMs() - midpoint;
     return !m_currentWoundAnimDuration || elapsed <= 0;
@@ -731,7 +747,8 @@ UINT CGUnit_C::GetAttackerAnimEx(COMBATHAND hand, const VirtualItemInfo *itemInf
 
 UINT CGUnit_C::DetermineAttackerSequence(COMBATHAND hand) const {
   FATALASSERT(hand < NUMHANDS);
-  static ANIMENUMERATION s_anims[NUM_WEAPONATTACKSEQS] = {
+  static const ANIMENUMERATION s_unarmedSequences[NUMHANDS] = {ANIM_ATTACKUNARMED, ANIM_ATTACKUNARMEDOFF};
+  static ANIMENUMERATION       s_anims[NUM_WEAPONATTACKSEQS] = {
       ANIM_ATTACK2HTIGHT, ANIM_ATTACK2HLOOSE, ANIM_ATTACKBOW, ANIM_ATTACK1H, ANIM_ATTACKRIFLE, ANIM_ATTACKTHROWN
   };
 
@@ -894,7 +911,8 @@ UINT CGUnit_C::DetermineWoundSequence() const {
 }
 
 void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempest::C3Vector &position) {
-  CGUnit_C *victimPtr = 0;
+  static const UINT PREANIMSTATES = (1 << VS_DODGE) | (1 << VS_PARRY) | (1 << VS_EVADE) | (1 << VS_DEFLECT);
+  CGUnit_C         *victimPtr = 0;
   if (m_currentDamageInfo) {
     victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_currentDamageInfo->roundInfo.victim, __FILE__, __LINE__));
   }
@@ -932,7 +950,7 @@ void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempe
         roundInfo = &m_currentDamageInfo->roundInfo;
       }
 
-      bool showAnimation = roundInfo && ((1 << roundInfo->newVictimState) & 0x14C);
+      bool showAnimation = roundInfo && ((1 << roundInfo->newVictimState) & PREANIMSTATES);
       if (victimPtr && roundInfo && showAnimation && (roundInfo->flags & 2)) {
         victimPtr->SetVictimAnimation(roundInfo->newVictimState, roundInfo->flags & 4, roundInfo->flags & 8, roundInfo->victimRoundDuration, 0);
         roundInfo->flags &= ~2u;
@@ -980,14 +998,6 @@ void CGUnit_C::OnAttackSwing(DWORDLONG victimGUID, UINT clientTimeStamp) {
     ClientServices_Send(&msg);
     m_combat.SetAttackSent(victimGUID);
   }
-}
-
-void CGUnit_C::StopAttack() {
-  CDataStore message;
-  message.Put(CMSG_ATTACKSTOP);
-  message.Finalize();
-  ClientServices_Send(&message);
-  m_combat.SetStopSent(1);
 }
 
 void CGUnit_C::OnAttackStart(DWORDLONG victim) {
@@ -1061,22 +1071,43 @@ void CGUnit_C::OnAttackerStateChange(const ATTACKROUNDINFO &roundInfo) {
   }
 }
 
-void CGUnit_C::HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log) {
-  UnitCombatLog(log);
-}
-
-void CGUnit_C::PlayDeathThudCameraShake() const {
-  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
-  if (worldFrame) {
-    CGCamera *camera = worldFrame->Camera();
-    if (camera) {
-      FATALASSERT(m_modelData);
-      int shakeSize = m_modelData->m_deathThudShakeSize;
-      if (shakeSize) {
-        camera->AddShake(shakeSize, GetPosition());
-      }
+void CGUnit_C::AdjustVictimState(ATTACKROUNDINFO *roundInfo) {
+  if (roundInfo->newVictimState == VS_PARRY) {
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_MAINHAND);
+    const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
+    if (!item || !display) {
+      roundInfo->flags |= 0x40000;
+      roundInfo->newVictimState = VS_DEFLECT;
+    }
+  } else if (roundInfo->newVictimState == VS_BLOCK) {
+    const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 1);
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_OFFHAND);
+    if (!item || !display) {
+      roundInfo->flags &= ~0x40000u;
+      roundInfo->newVictimState = VS_DEFLECT;
     }
   }
+}
+
+MISS_REASON CGUnit_C::AdjustVictimState(MISS_REASON reason) {
+  if (reason == MISS_PARRIED) {
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_MAINHAND);
+    const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
+    if (!item || !display) {
+      return MISS_DEFLECTED;
+    }
+  } else if (reason == MISS_BLOCKED) {
+    const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 1);
+    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_OFFHAND);
+    if (!item || !display) {
+      return MISS_DEFLECTED;
+    }
+  }
+  return reason;
+}
+
+void CGUnit_C::HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log) {
+  UnitCombatLog(log);
 }
 
 void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimation) {
@@ -1141,42 +1172,8 @@ void CGUnit_C::DoVictimFeedback(const ATTACKROUNDINFO *roundInfo, int showAnimat
   }
 }
 
-void CGUnit_C::AdjustVictimState(ATTACKROUNDINFO *roundInfo) {
-  if (roundInfo->newVictimState == VS_PARRY) {
-    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_MAINHAND);
-    const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
-    if (!item || !display) {
-      roundInfo->flags |= 0x40000;
-      roundInfo->newVictimState = VS_DEFLECT;
-    }
-  } else if (roundInfo->newVictimState == VS_BLOCK) {
-    const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 1);
-    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_OFFHAND);
-    if (!item || !display) {
-      roundInfo->flags &= ~0x40000u;
-      roundInfo->newVictimState = VS_DEFLECT;
-    }
-  }
-}
-
-MISS_REASON CGUnit_C::AdjustVictimState(MISS_REASON reason) {
-  if (reason == MISS_PARRIED) {
-    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_MAINHAND);
-    const VirtualItemInfo *item = GetAttackingWeapon(COMBAT_MAINHAND);
-    if (!item || !display) {
-      return MISS_DEFLECTED;
-    }
-  } else if (reason == MISS_BLOCKED) {
-    const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 1);
-    int                    display = GetVirtualItemDisplayID(VIRTUAL_MONSTER_SLOT_OFFHAND);
-    if (!item || !display) {
-      return MISS_DEFLECTED;
-    }
-  }
-  return reason;
-}
-
 void CGUnit_C::ShowWorldText(const ATTACKROUNDINFO *roundInfo) {
+  static int COMBATSWINGIGNORES = (1 << VS_DODGE) | (1 << VS_PARRY) | (1 << VS_BLOCK) | (1 << VS_EVADE) | (1 << VS_IMMUNE);
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (activePlayer != roundInfo->attacker) {
     return;
@@ -1449,6 +1446,20 @@ void UnitCombatClientShutdown() {
   ClientServices_ClearMessageHandler(SMSG_DEBUG_PLAYER_RANGE);
   UnitCombatLogShutdown();
   s_animKitTable.Clear();
+}
+
+void CGUnit_C::PlayDeathThudCameraShake() const {
+  CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+  if (worldFrame) {
+    CGCamera *camera = worldFrame->Camera();
+    if (camera) {
+      FATALASSERT(m_modelData);
+      int shakeSize = m_modelData->m_deathThudShakeSize;
+      if (shakeSize) {
+        camera->AddShake(shakeSize, GetPosition());
+      }
+    }
+  }
 }
 
 inline float CGUnit::LinearDistanceSquared(const NTempest::C3Vector &position) const {

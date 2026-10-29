@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include "Os/OsTime.h"
 
 #include "Profile.h"
 
@@ -15,14 +16,8 @@
 #include <stdarg.h>
 #include <string.h>
 
-static const char SECTION_OPEN_CHAR = '[';
-static const char SECTION_CLOSE_CHAR = ']';
-static const char ASSIGNMENT_CHAR = '=';
-
 namespace ProfileInternal {
 
-  static const char COMMENT_BEGIN[] = "//";
-  static const char NEWLINE_CHARS[] = "\r\n";
   static char       buf[256];
   static const char TRUESTR[] = "true";
   static const char FALSESTR[] = "false";
@@ -192,6 +187,12 @@ namespace ProfileInternal {
     stringBlock->m_data[bufferBytes] = 0;
     stringBlock->m_dataUsed = stringBlock->m_dataSize;
     profile->stringBlockList.LinkNode(stringBlock, LIST_TAIL, 0);
+
+    static const char SECTION_OPEN_CHAR = '[';
+    static const char SECTION_CLOSE_CHAR = ']';
+    static const char ASSIGNMENT_CHAR = '=';
+    static const char NEWLINE_CHARS[] = "\r\n";
+    static const char COMMENT_BEGIN[] = "//";
 
     LPCSTR sectionName = 0;
     LPCSTR lastSection = 0;

@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "ObjectMgrClient/ObjectMgrClient.h"
 
@@ -94,14 +103,14 @@ LPVOID MovementGetGlobals() {
   return ClntObjMgrGetMovementGlobals();
 }
 
+void MovementClearClobals() {
+  ClntObjMgrSetMovementGlobals(0);
+}
+
 NTempest::C3Vector MovementGetTransportVector(DWORDLONG transportGUID) {
   CGGameObject_C *transport = static_cast<CGGameObject_C *>(ClntObjMgrObjectPtr(transportGUID, __FILE__, __LINE__));
   FATALASSERT(transport);
   return transport->GetCurrentMoveVector();
-}
-
-void MovementClearClobals() {
-  ClntObjMgrSetMovementGlobals(0);
 }
 
 int MovementGameObjIsTransport(DWORDLONG transportGUID) {

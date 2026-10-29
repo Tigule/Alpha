@@ -41,8 +41,6 @@ static int iIndiciesP[4][2] = {
     { 1, 18}
 };
 
-static WORD idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
-
 static int s_vertexIndex[4][3] = {
     {17,  9,  0},
     { 9,  1,  0},
@@ -866,6 +864,7 @@ void CMap::TestQueryAdd(const NTempest::CFacet &facet, NTempest::CImVector color
 }
 
 void CMap::TestQueryAdd(const CWFrustum &frustum, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
+  static WORD idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
   UINT                       sub = testQueryVerts.Count();
   NTempest::C44Matrix        id;
   const NTempest::C44Matrix *mtx = basis ? basis : &id;
@@ -883,6 +882,7 @@ void CMap::TestQueryAdd(const CWFrustum &frustum, NTempest::CImVector color, con
 }
 
 void CMap::TestQueryAdd(const NTempest::CAaBox &aabox, NTempest::CImVector color, const NTempest::C44Matrix *basis) {
+  static WORD idxoffs[36] = {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 1, 3, 7, 4, 3, 4, 0, 2, 6, 7, 2, 7, 3, 2, 6, 5, 2, 5, 1, 4, 5, 6, 4, 6, 7};
   UINT                       sub = testQueryVerts.Count();
   NTempest::C44Matrix        id;
   const NTempest::C44Matrix *mtx = basis ? basis : &id;

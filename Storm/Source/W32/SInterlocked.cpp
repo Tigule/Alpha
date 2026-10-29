@@ -1,4 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
+#include <stdio.h>
+#include <time.h>
 
 LPVOID SInterlockedExchangePointer(LPVOID *destPtr, LPVOID exchange) {
   return (LPVOID)InterlockedExchange((LPLONG)destPtr, (LONG)exchange);

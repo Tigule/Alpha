@@ -1,9 +1,12 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
 #include "W32/ISThread.h"
-
 #include "../Pkware/pkware.h"
 #include "../Zlib/zlib.h"
+#include <stdio.h>
+#include <time.h>
 
 #define SOURCESYMBOLS   256
 #define EOS             256

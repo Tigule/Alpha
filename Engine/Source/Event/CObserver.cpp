@@ -448,3 +448,5 @@ BOOL EventReg::DispatchEvent(CEvent &event) {
   DecLock();
   return handled;
 }
+
+#include <stdio.h>

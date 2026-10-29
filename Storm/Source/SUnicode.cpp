@@ -1,4 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
+#include <stdio.h>
+#include <time.h>
 
 typedef DWORD UCS4;
 

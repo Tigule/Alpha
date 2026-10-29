@@ -1,6 +1,7 @@
 #include "EvtInt.h"
 
 #include "Os/OsTime.h"
+#include <stdio.h>
 
 BOOL IEvtTimerDispatch(EvtContext *context) {
   EvtIdTable<EvtTimer *> *table;

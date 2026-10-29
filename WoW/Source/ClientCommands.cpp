@@ -2,24 +2,51 @@
 #include <Gx/Gx.h>
 #include <WowConst.h>
 
-#include "Client.h"
+#include <Event/EvtApi.h>
 #include <Base/CDataStore.h>
+#include <Base/CmdLine.h>
+#include <Base/Status.h>
+#include <FrameScript/FrameScript.h>
+#include <Os/W32/Debugging.h>
+#include <Os/W32/OsGui.h>
+#include <Os/W32/OsFile.h>
+#include <Os/W32/OsMemory.h>
+#include <Os/OsTime.h>
+#include <Scrn/Scrn.h>
+#include <Services/AsyncFileRead.h>
+#include <Services/SysMessage.h>
+#include <Tempest/c3vector.h>
+#include <Tempest/crandom.h>
+#include <storm.h>
 
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
+#include "Console/ConsoleVar.h"
+#include "Client.h"
 #include "Glue/CGlueMgr.h"
 #include "UIUtil/Tooltip.h"
 #include "Ui/ChatFrame.h"
 #include "Ui/WorldFrame.h"
 #include "UIUtil/InputControl.h"
-#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WowSvcs/WowSvcsClient/ClientConnection.h"
 #include <MapDefs.h>
+#include <Gxu/IGxuLight.h>
+#include "SoundInterface/SoundInterface.h"
+#include "DB/DBClient/DBCacheInstances.h"
 #include "DB/DBClient/AutoCode/MapRec.h"
+#include "Game/GameTime.h"
 #include "Object/MovementData.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/GameObject_C.h"
+#include "Object/ObjectClient/Object_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "Object/ObjectClient/Unit_C.h"
+#include "Object/ObjectClient/ZoneDebug.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/GameUI.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include "WowSvcs/WowSvcsClient/FriendList.h"
+#include "WorldClient/AreaList.h"
 #include "WorldClient/World.h"
 
 #include <Model/IModel.h>
@@ -54,7 +81,6 @@ struct CMemCmdDump {
 
 char            *OsGetLastErrorStr();
 void             OsFreeLastErrorStr(char *msgBuf);
-static DWORDLONG s_lastTarget;
 
 int  ModelRenderSceneLogToggle(LPCSTR fileName);
 int  ModelAnimateLogToggle(LPCSTR fileName);
@@ -166,6 +192,7 @@ static BOOL CCommand_DLoc(LPCSTR command, LPCSTR arguments) {
 }
 
 static BOOL CCommand_TargetLoc(LPCSTR, LPCSTR) {
+  static DWORDLONG s_lastTarget;
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
     CGObject_C *target = ClntObjMgrObjectPtr(player->GetLocalTarget(), __FILE__, __LINE__);

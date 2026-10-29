@@ -1,8 +1,10 @@
 #include <Base/Base.h>
+#include "Os/OsTime.h"
 
 #include "Services/ParticleSystem2.h"
 
 #include <math.h>
+#include <stdio.h>
 
 using NTempest::CMath;
 

@@ -1,13 +1,17 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
 
 #include "OsGui.h"
+
 #include "OsIME.h"
 #include "Input.h"
 
 #include "Base/ConvertUTF.h"
 
-#include <windows.h>
 #include <imm.h>
+#include <stdio.h>
 
 struct HIMC__;
 static HIMC__ *s_IMC;

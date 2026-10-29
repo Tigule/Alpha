@@ -1,16 +1,21 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
+
 #include <Gx/Gx.h>
 #include <BLPFile/blp.h>
 
-#include "OsGui.h"
 #include "Input.h"
 #include "Debugging.h"
 
 #include <storm.h>
 #include <Tempest/cirect.h>
-#include <windows.h>
 #include <commctrl.h>
 #include <malloc.h>
+#include <stdio.h>
 
 #pragma pack(push, 2)
 class CBasicDlgTemplate {
@@ -44,8 +49,6 @@ static int                           sMasterTooltipsEnabled = 1;
 static HWND                          sGlobalTips;
 static int                           sIdleTimerID;
 static LPCSTR const                  OsGuiPointerProp = "OsGuiPointer";
-static const UINT                    SelectedState = 3;
-static const UINT                    lvExtStyle = 0x20;
 
 enum {
   OSGUI_CONTROL_ID_BASE = 10
@@ -1980,7 +1983,8 @@ BOOL COsListBox::OnReturn() {
 }
 
 COsListView::COsListView(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 16, inID, inFlags) {
-  SendMessageA((HWND)mHandle, LVM_SETEXTENDEDLISTVIEWSTYLE, LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+  static const UINT lvExtStyle = LVS_EX_FULLROWSELECT;
+  SendMessageA((HWND)mHandle, LVM_SETEXTENDEDLISTVIEWSTYLE, lvExtStyle, lvExtStyle);
 
   HWND header = (HWND)SendMessageA((HWND)mHandle, LVM_GETHEADER, 0, 0);
   sSetOsGuiPointer(header, this);
@@ -2134,12 +2138,13 @@ void COsListView::SetValue(int inVal) {
     inVal = -1;
   }
 
-  LVITEMA item;
+  static const UINT SelectedState = LVIS_FOCUSED | LVIS_SELECTED;
+  LVITEMA           item;
   item.iItem = inVal;
   item.iSubItem = 0;
   item.mask = LVIF_STATE;
-  item.stateMask = LVIS_FOCUSED | LVIS_SELECTED;
-  item.state = inVal == -1 ? 0 : LVIS_FOCUSED | LVIS_SELECTED;
+  item.stateMask = SelectedState;
+  item.state = inVal == -1 ? 0 : SelectedState;
   SendMessageA((HWND)mHandle, LVM_SETITEMSTATE, inVal, (LPARAM)&item);
 }
 

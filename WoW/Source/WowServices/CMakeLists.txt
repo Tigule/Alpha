@@ -14,5 +14,5 @@ target_include_directories(WowServices PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WowServices PRIVATE /Gr /Z7)
+    target_compile_options(WowServices PRIVATE /Gr /Zi)
 endif()

@@ -1,6 +1,8 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include <Base/UnrealConstants.h>
+#include <stdio.h>
 
 const unreal u_n2_5 = unreal::fromBits(0xC0200000);
 const unreal u_n2 = unreal::fromInt(-2);

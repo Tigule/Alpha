@@ -1,10 +1,12 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include <Base/CDataStore.h>
 #include <Base/CUnreal.h>
 #include <Base/ConvertUTF.h>
 
 #include <string.h>
+#include <stdio.h>
 
 void CDataStore::InternalInitialize(BYTE *&data, UINT &base, UINT &alloc) {
 }

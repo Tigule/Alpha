@@ -1,7 +1,7 @@
 #include <Base/Base.h>
 #include <WowConst.h>
 #include <MapDefs.h>
-
+#include <Ftol.h>
 #include "WorldCommon/WorldMath.h"
 
 #include <math.h>
@@ -129,6 +129,72 @@ void CWorldMath::TransformAABox(const NTempest::C44Matrix &m, const NTempest::CA
   const NTempest::C3Vector &row1 = *(const NTempest::C3Vector *)&m.b0;
   const NTempest::C3Vector &row2 = *(const NTempest::C3Vector *)&m.c0;
   ::TransformAABox(&row0, &row1, &row2, box, nBox);
+}
+
+BOOL CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
+  NTempest::C3Vector dir = end - start;
+  DWORD              i;
+  int                Inside = 1;
+  NTempest::C3Vector maxT(-1.0f, -1.0f, -1.0f);
+  float              coord[3];
+  const float       *fStart = &start.x;
+  const float       *fEnd = &end.x;
+  const float       *fMin = &box.b.x;
+  const float       *fMax = &box.t.x;
+
+  for (i = 0; i < 3; ++i) {
+    if (fStart[i] < fMin[i]) {
+      if (fEnd[i] < fMin[i]) {
+        return 0;
+      }
+
+      coord[i] = fMin[i];
+      Inside = 0;
+
+      if (*(DWORD *)&(&dir.x)[i]) {
+        (&maxT.x)[i] = (fMin[i] - fStart[i]) / (&dir.x)[i];
+      }
+    } else if (fStart[i] > fMax[i]) {
+      if (fEnd[i] > fMax[i]) {
+        return 0;
+      }
+
+      coord[i] = fMax[i];
+      Inside = 0;
+
+      if (*(DWORD *)&(&dir.x)[i]) {
+        (&maxT.x)[i] = (fMax[i] - fStart[i]) / (&dir.x)[i];
+      }
+    }
+  }
+
+  if (Inside) {
+    return 1;
+  }
+
+  DWORD WhichPlane = 0;
+  if ((&maxT.x)[1] > (&maxT.x)[WhichPlane]) {
+    WhichPlane = 1;
+  }
+  if ((&maxT.x)[2] > (&maxT.x)[WhichPlane]) {
+    WhichPlane = 2;
+  }
+
+  if (*(DWORD *)&(&maxT.x)[WhichPlane] & 0x80000000) {
+    return 0;
+  }
+
+  for (i = 0; i < 3; ++i) {
+    if (i != WhichPlane) {
+      coord[i] = fStart[i] + (&maxT.x)[WhichPlane] * (&dir.x)[i];
+
+      if (coord[i] < fMin[i] - 0.00001f || coord[i] > fMax[i] + 0.00001f) {
+        return 0;
+      }
+    }
+  }
+
+  return 1;
 }
 
 BOOL CWorldMath::SphereIntersectAABox(const NTempest::CAaBox &box, const NTempest::C3Vector &center, float radius) {
@@ -343,72 +409,6 @@ float CWorldMath::TriSqrDistance(
   }
 
   return fabs(squaredDistance);
-}
-
-BOOL CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Vector &start, const NTempest::C3Vector &end) {
-  NTempest::C3Vector dir = end - start;
-  DWORD              i;
-  int                Inside = 1;
-  NTempest::C3Vector maxT(-1.0f, -1.0f, -1.0f);
-  float              coord[3];
-  const float       *fStart = &start.x;
-  const float       *fEnd = &end.x;
-  const float       *fMin = &box.b.x;
-  const float       *fMax = &box.t.x;
-
-  for (i = 0; i < 3; ++i) {
-    if (fStart[i] < fMin[i]) {
-      if (fEnd[i] < fMin[i]) {
-        return 0;
-      }
-
-      coord[i] = fMin[i];
-      Inside = 0;
-
-      if (*(DWORD *)&(&dir.x)[i]) {
-        (&maxT.x)[i] = (fMin[i] - fStart[i]) / (&dir.x)[i];
-      }
-    } else if (fStart[i] > fMax[i]) {
-      if (fEnd[i] > fMax[i]) {
-        return 0;
-      }
-
-      coord[i] = fMax[i];
-      Inside = 0;
-
-      if (*(DWORD *)&(&dir.x)[i]) {
-        (&maxT.x)[i] = (fMax[i] - fStart[i]) / (&dir.x)[i];
-      }
-    }
-  }
-
-  if (Inside) {
-    return 1;
-  }
-
-  DWORD WhichPlane = 0;
-  if ((&maxT.x)[1] > (&maxT.x)[WhichPlane]) {
-    WhichPlane = 1;
-  }
-  if ((&maxT.x)[2] > (&maxT.x)[WhichPlane]) {
-    WhichPlane = 2;
-  }
-
-  if (*(DWORD *)&(&maxT.x)[WhichPlane] & 0x80000000) {
-    return 0;
-  }
-
-  for (i = 0; i < 3; ++i) {
-    if (i != WhichPlane) {
-      coord[i] = fStart[i] + (&maxT.x)[WhichPlane] * (&dir.x)[i];
-
-      if (coord[i] < fMin[i] - 0.00001f || coord[i] > fMax[i] + 0.00001f) {
-        return 0;
-      }
-    }
-  }
-
-  return 1;
 }
 
 BOOL CWorldMath::VectorIntersectAABox2(const NTempest::CAaBox &box, const NTempest::C3Segment &seg) {

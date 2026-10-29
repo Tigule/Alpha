@@ -1,7 +1,12 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
 
 #include <storm.h>
-#include <windows.h>
+#include <stdio.h>
 
 static struct {
   DWORD     m_id;

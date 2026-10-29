@@ -6,6 +6,8 @@
 #include "GameObject.h"
 
 #include "Tempest/c3vector.h"
+#include <stdio.h>
+#include <time.h>
 
 #define MAX_CHAIR_SLOTS 5
 

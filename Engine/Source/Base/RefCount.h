@@ -5,7 +5,9 @@
 
 class TRefCnt {
  public:
-  virtual void DeleteSelf();
+  virtual void DeleteSelf() {
+    DEL(this);
+  }
 
   void IncrRef() {
     ++m_refcnt;

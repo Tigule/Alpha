@@ -1,4 +1,7 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <storm.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include "../../Common/WowConst.h"

@@ -1,5 +1,6 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "dxt.h"
-
 #include <storm.h>
 
 UINT GetBitDepth(UINT fourCC) {

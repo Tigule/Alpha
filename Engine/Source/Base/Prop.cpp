@@ -1,4 +1,6 @@
-#include "Base.h"
+#include <Base/Base.h>
+#include <time.h>
+#include <stdio.h>
 
 static DWORD s_tlsIndex;
 

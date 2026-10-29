@@ -17,6 +17,8 @@
 #include <Frame/CSimpleRender.h>
 #include <Tempest/cimvector.h>
 
+static const float HPBAR_RED_THRESHOLD = 0.2f;
+
 static BOOL SimpleHealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID data, LPVOID parameter) {
   FATALASSERT(parameter);
 
@@ -55,7 +57,8 @@ void CGSimpleHealthBar::SetUnit(CGUnit_C *unit) {
 void CGSimpleHealthBar::SetValue(float value) {
   CSimpleStatusBar::SetValue(value);
   if (m_scaleColor) {
-    NTempest::CImVector color(GetAnimValue() <= 0.2f ? 0xFFFF0000 : 0xFF00FF00);
+    float               animValue = GetAnimValue();
+    NTempest::CImVector color(0xFF, animValue > HPBAR_RED_THRESHOLD ? 0 : 0xFF, animValue > HPBAR_RED_THRESHOLD ? 0xFF : 0, 0);
     SetStatusBarColor(color);
     m_scaleColor = 1;
   }

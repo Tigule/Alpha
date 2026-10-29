@@ -1,9 +1,11 @@
 #include <Base/Base.h>
+#include "Os/OsTime.h"
 
 #include "Services/Camera.h"
 #include "Base/Color.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/cimvector.h"
+#include <stdio.h>
 
 float CAngle::ClampTo2Pi(float angle) {
   float wrapped = (int)(OO_TWO_PI * angle) * TWO_PI;

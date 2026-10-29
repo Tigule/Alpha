@@ -10,10 +10,19 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object_C.h"
 
-#include "AnimCompiles.h"
+#include "AnimStateCompiles.h"
 #include "Container_C.h"
 #include "Corpse_C.h"
 #include "DynamicObject_C.h"
@@ -316,13 +325,6 @@ void CGObject_C::SetStorage(DWORD *storage) {
   m_obj = (CGObjectData *)storage;
 }
 
-CGObject_C::~CGObject_C() {
-  RemoveWorldObject();
-  if (m_model) {
-    HandleClose(m_model);
-  }
-}
-
 CGObject_C::CGObject_C(DWORD *storage, DWORD, CClientObjCreate *)
     : CGObject(storage),
       m_renderScale(1.0f),
@@ -364,6 +366,13 @@ void CGObject_C::PostInit(const CClientObjCreate &init) {
   m_flags |= 8;
   m_renderScale = 1.0f;
   DoFade(255, ShouldFadeIn() ? 2000 : 0);
+}
+
+CGObject_C::~CGObject_C() {
+  RemoveWorldObject();
+  if (m_model) {
+    HandleClose(m_model);
+  }
 }
 
 void CGObject_C::AddWorldObject() {
@@ -498,12 +507,12 @@ void CGObject_C::ReportMissingAnimObj(LPCSTR message, UINT objectID, LPCSTR mode
   SysMsgPrintf(SYSMSG_WARNING, 8, "%s|%s|%s|%d", message, modelName, s_boneNames[objectID], objectID);
 }
 
-void CGObject_C::ReportMissingAttachment(UINT objectID, LPCSTR modelName) const {
-  ReportMissingAnimObj("MODELMISSINGCONNECTION", objectID, modelName);
-}
-
 void CGObject_C::ReportMissingEventObject(UINT objectID, LPCSTR modelName) const {
   ReportMissingAnimObj("MODELMISSINGEVENTOBJ", objectID, modelName);
+}
+
+void CGObject_C::ReportMissingAttachment(UINT objectID, LPCSTR modelName) const {
+  ReportMissingAnimObj("MODELMISSINGCONNECTION", objectID, modelName);
 }
 
 void CGObject_C::ReportMissingBone(UINT objectID, LPCSTR modelName) const {
@@ -621,7 +630,7 @@ void CGObject_C::Initialize() {
     GxTexDestroy(s_fadeTex);
   }
 
-  static UINT       FADETEX_WIDTH = Gx_MaxTexAspect * 8.0f;
+  static const UINT FADETEX_WIDTH = Gx_MaxTexAspect * 8.0f;
   static const UINT FADETEX_HEIGHT = 8;
   GxTexCreate(FADETEX_WIDTH, FADETEX_HEIGHT, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), 0, s_BlobFadeTex, s_fadeTex);
 
@@ -743,19 +752,6 @@ BOOL CGObject_C::UpdateAttachmentLoadStatus() {
   return 1;
 }
 
-void CGObject_C::SetCircleRenderStates() const {
-  if (!s_selectionTexture || !s_fadeTex) {
-    return;
-  }
-
-  GxRsSet(GxRs_Blend, 3);
-  GxRsSet(GxRs_Culling, 0);
-  GxRsSet(GxRs_Lighting, 0);
-  GxRsSet(GxRs_DepthWrite, 0);
-  GxRsSet(GxRs_Texture0, TextureGetGxTex(s_selectionTexture, 1, 0));
-  GxRsSet(GxRs_Texture1, s_fadeTex);
-}
-
 BOOL CGObject_C::UpdateModelLoadStatus() {
   if ((m_flags & 0x20) || !m_model || !ModelIsLoaded(m_model, 0)) {
     return 0;
@@ -777,6 +773,19 @@ void CGObject_C::UpdateObjectHeight(HMODEL model) {
   NTempest::CAaBox extents;
   ModelGetExtents(model, &extents);
   m_objectHeight = extents.t.z - extents.b.z;
+}
+
+void CGObject_C::SetCircleRenderStates() const {
+  if (!s_selectionTexture || !s_fadeTex) {
+    return;
+  }
+
+  GxRsSet(GxRs_Blend, 3);
+  GxRsSet(GxRs_Culling, 0);
+  GxRsSet(GxRs_Lighting, 0);
+  GxRsSet(GxRs_DepthWrite, 0);
+  GxRsSet(GxRs_Texture0, TextureGetGxTex(s_selectionTexture, 1, 0));
+  GxRsSet(GxRs_Texture1, s_fadeTex);
 }
 
 void CGObject_C::PostReenable() {

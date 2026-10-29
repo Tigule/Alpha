@@ -1,10 +1,15 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
 
 #include "OsFile.h"
 
 #include <malloc.h>
 #include <storm.h>
-#include <windows.h>
+#include <stdio.h>
 
 enum {
   OS_CREATE_NEW = 1,

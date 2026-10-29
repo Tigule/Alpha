@@ -76,7 +76,7 @@ set_target_properties(Wow PROPERTIES
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Wow PRIVATE /Gr /Z7)
+    target_compile_options(Wow PRIVATE /Gr /Zi)
 endif()
 
 if(MSVC)

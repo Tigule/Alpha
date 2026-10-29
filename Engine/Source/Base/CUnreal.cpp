@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include <Base/CUnreal.h>
 #include <Base/CDataStore.h>

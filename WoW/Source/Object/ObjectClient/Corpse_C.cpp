@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Corpse_C.h"
 
@@ -20,7 +29,7 @@
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "Game/GameClient/GuildClient.h"
 #include "Net/NetClient/NetClient.h"
-#include "Object/ObjectClient/AnimCompiles.h"
+#include "Object/ObjectClient/AnimStateCompiles.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/WorldFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
@@ -187,42 +196,6 @@ LPCSTR CGCorpse_C::GetModelFileName() const {
   return modelData->m_ModelName;
 }
 
-BOOL CGCorpse_C::ShouldRender(DWORD worldStatus) {
-  if (m_texComponent && !TexComponentCheckSections(m_texComponent, 0)) {
-    worldStatus &= ~1u;
-  }
-
-  BOOL shouldRender = CGObject_C::ShouldRender(worldStatus);
-  if (m_texComponent && shouldRender) {
-    CommitTexture(0);
-  }
-  return shouldRender;
-}
-
-void CGCorpse_C::CommitTexture(int force) {
-  char    errorString[512];
-  CStatus status;
-  TexComponentCommitSections(&status, m_texComponent, force);
-  if (!status.IsEmpty()) {
-    status.GetErrorStr(errorString, sizeof(errorString), STATUS_INFO);
-    FATALERROR(("corpse GUID 0x%I64X: %s", GetGUID(), errorString));
-  }
-}
-
-void CGCorpse_C::InitPreferredGeosets() {
-  memset(m_preferredGeosets, 0, sizeof(m_preferredGeosets));
-  m_preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(GetRaceID(), GetSex(), GetHairStyleID());
-
-  BEARDSTYLEDATA beardStyleData;
-  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(GetRaceID(), GetSex(), GetFacialHairStyleID(), &beardStyleData);
-  m_preferredGeosets[CHARGEOSET_EAR] = 2;
-  if (hasFacialInfo) {
-    m_preferredGeosets[CHARGEOSET_BEARD] = beardStyleData.beardGeoset;
-    m_preferredGeosets[CHARGEOSET_SIDEBURN] = beardStyleData.sideBurnGeoset;
-    m_preferredGeosets[CHARGEOSET_MOUSTACHE] = beardStyleData.moustacheGeoset;
-  }
-}
-
 void CGCorpse_C::InitComponents() {
   const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_corpse->m_displayID);
   if (!displayInfo || !g_creatureModelDataDB.GetRecord(displayInfo->m_modelID)) {
@@ -267,6 +240,55 @@ void CGCorpse_C::InitComponents() {
     );
   }
   CharCustomizationResetHairGeoset(m_geosetHandle, GetRaceID(), GetSex(), GetHairStyleID());
+}
+
+BOOL CGCorpse_C::ShouldRender(DWORD worldStatus) {
+  if (m_texComponent && !TexComponentCheckSections(m_texComponent, 0)) {
+    worldStatus &= ~1u;
+  }
+
+  BOOL shouldRender = CGObject_C::ShouldRender(worldStatus);
+  if (m_texComponent && shouldRender) {
+    CommitTexture(0);
+  }
+  return shouldRender;
+}
+
+void CGCorpse_C::CommitTexture(int force) {
+  char    errorString[512];
+  CStatus status;
+  TexComponentCommitSections(&status, m_texComponent, force);
+  if (!status.IsEmpty()) {
+    status.GetErrorStr(errorString, sizeof(errorString), STATUS_INFO);
+    FATALERROR(("corpse GUID 0x%I64X: %s", GetGUID(), errorString));
+  }
+}
+
+void CGCorpse_C::InitPreferredGeosets() {
+  memset(m_preferredGeosets, 0, sizeof(m_preferredGeosets));
+  m_preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(GetRaceID(), GetSex(), GetHairStyleID());
+
+  BEARDSTYLEDATA beardStyleData;
+  BOOL           hasFacialInfo = CharCustomizationGetBeardStyle(GetRaceID(), GetSex(), GetFacialHairStyleID(), &beardStyleData);
+  m_preferredGeosets[CHARGEOSET_EAR] = 2;
+  if (hasFacialInfo) {
+    m_preferredGeosets[CHARGEOSET_BEARD] = beardStyleData.beardGeoset;
+    m_preferredGeosets[CHARGEOSET_SIDEBURN] = beardStyleData.sideBurnGeoset;
+    m_preferredGeosets[CHARGEOSET_MOUSTACHE] = beardStyleData.moustacheGeoset;
+  }
+}
+
+void CGCorpse_C::OnLeftClick() {
+}
+
+void CGCorpse_C::OnRightClick() {
+  if (m_corpse->m_owner == ClntObjMgrGetActivePlayer()) {
+    CDataStore msg;
+    msg.Put(CMSG_RECLAIM_CORPSE);
+    msg.Put(GetGUID());
+    msg.Finalize();
+    ClientServices_Send(&msg);
+  }
 }
 
 void CGCorpse_C::AddComponents() {
@@ -318,19 +340,6 @@ void CGCorpse_C::AddComponent(int displayID, UINT inventoryType, int slot, int c
   ObjComponentAdd(
       GetSex(), GetRaceID(), 1, GetObjectModel(), g_itemDisplayInfoDB.GetRecord(displayID), inventoryType, 0, 0, 0, 0, slot
   );
-}
-
-void CGCorpse_C::OnLeftClick() {
-}
-
-void CGCorpse_C::OnRightClick() {
-  if (m_corpse->m_owner == ClntObjMgrGetActivePlayer()) {
-    CDataStore msg;
-    msg.Put(CMSG_RECLAIM_CORPSE);
-    msg.Put(GetGUID());
-    msg.Finalize();
-    ClientServices_Send(&msg);
-  }
 }
 
 void CGCorpse_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {

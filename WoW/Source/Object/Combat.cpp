@@ -6,6 +6,7 @@
 #include "Object/UnitCombat.h"
 
 #include "Object/Object.h"
+#include <stdio.h>
 
 void CCombat::GetClientInitData(CClientObjCreate *init) const {
   init->victim = m_victim;

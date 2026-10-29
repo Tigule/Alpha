@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/GameObjectStats.h"
+#include <stdio.h>
 
 void GameObjectStats::Pack(CDataStore *msg) {
   int i;

@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "Activity.h"
 
@@ -7,6 +8,7 @@
 #include <string.h>
 #include <storm.h>
 #include <stpl.h>
+#include <stdio.h>
 
 const UINT MAX_STACK_DEPTH = 100;
 

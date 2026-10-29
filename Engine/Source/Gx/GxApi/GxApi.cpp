@@ -14,19 +14,6 @@ typedef WORD uint16;
 
 CGxDevice *g_theGxDevicePtr;
 
-static DWORD      vtxBufSize[GxVertexBufferFormats_Last] = {0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x18, 0x10, 0x1C};
-static const UINT F = ~0u;
-static const UINT s_vtxBufOffset[GxVertexBufferFormats_Last][GxVertexMembers_Last] = {
-    {0, 12,  F,  F,  F, F, F},
-    {0, 12, 24,  F,  F, F, F},
-    {0, 12,  F, 24,  F, F, F},
-    {0, 12, 24, 28,  F, F, F},
-    {0, 12,  F, 24, 32, F, F},
-    {0, 12, 24, 28, 36, F, F},
-    {0,  F, 12, 16,  F, F, F},
-    {0,  F, 12,  F,  F, F, F},
-    {0,  F,  F, 12, 20, F, F}
-};
 static EGxTexFormat gxTexTable[BlitFormats_Last] = {GxTex_Unknown, GxTex_Argb8888, GxTex_Argb4444, GxTex_Argb1555,
                                                     GxTex_Rgb565,  GxTex_Dxt1,     GxTex_Dxt3,     GxTex_Dxt5};
 static BlitFormat   blitTable[GxTexFormats_Last] = {BlitFormat_Unknown, BlitFormat_Argb8888, BlitFormat_Argb4444, BlitFormat_Argb1555,
@@ -487,6 +474,7 @@ void GxVertexShaderSelect(EGxVertexShader shader) {
 }
 
 UINT GxVertexSize(EGxVertexBufferFormat format) {
+  static DWORD vtxBufSize[GxVertexBufferFormats_Last] = {0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x18, 0x10, 0x1C};
   VALIDATEBEGIN;
   VALIDATE(format < GxVertexBufferFormats_Last);
   VALIDATEEND;
@@ -495,6 +483,19 @@ UINT GxVertexSize(EGxVertexBufferFormat format) {
 }
 
 UINT GxVertexMemberOffset(EGxVertexBufferFormat format, EGxVertexMember member) {
+  static const UINT F = ~0u;
+  static const UINT s_vtxBufOffset[GxVertexBufferFormats_Last][GxVertexMembers_Last] = {
+      {0, 12,  F,  F,  F, F, F},
+      {0, 12, 24,  F,  F, F, F},
+      {0, 12,  F, 24,  F, F, F},
+      {0, 12, 24, 28,  F, F, F},
+      {0, 12,  F, 24, 32, F, F},
+      {0, 12, 24, 28, 36, F, F},
+      {0,  F, 12, 16,  F, F, F},
+      {0,  F, 12,  F,  F, F, F},
+      {0,  F,  F, 12, 20, F, F}
+  };
+
   ASSERT(format < GxVertexBufferFormats_Last);
   ASSERT(member < GxVertexMembers_Last);
   return s_vtxBufOffset[format][member];

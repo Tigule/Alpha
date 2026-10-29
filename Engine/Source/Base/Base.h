@@ -51,3 +51,43 @@ void BaseInitializeGlobal();
 void BaseDestroyGlobal();
 void BaseInitializeContext();
 void BaseDestroyContext();
+
+class CHandleObject {
+ private:
+  int m_refcount;
+
+ public:
+  CHandleObject() : m_refcount(0) {
+  }
+
+  CHandleObject(const CHandleObject &) : m_refcount(0) {
+  }
+
+  CHandleObject &operator=(const CHandleObject &) {
+    m_refcount = 0;
+    return *this;
+  }
+
+  virtual ~CHandleObject() {
+  }
+
+  void DecRef() {
+    ASSERT(m_refcount > 0);
+
+    if (!--m_refcount) {
+      DEL(this);
+    }
+  }
+
+  void IncRef() {
+    ++m_refcount;
+  }
+
+  int GetRefCount() const {
+    return m_refcount;
+  }
+
+  virtual LPCSTR GetObjectName() {
+    return 0;
+  }
+};

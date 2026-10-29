@@ -8,7 +8,6 @@
 
 #include <storm.h>
 #include <stpl.h>
-#include <windows.h>
 
 static float D3dCeil(float f) {
   return ceilf(floorf(f * 16.0f + 0.5) * 0.0625f);

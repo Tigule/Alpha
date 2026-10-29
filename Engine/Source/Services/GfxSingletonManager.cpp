@@ -1,9 +1,11 @@
 #include <Base/Base.h>
+#include "Os/OsTime.h"
 
 #include "RibbonEmitter.h"
 #include "IParticleMisc.h"
 #include "ParticleSystem.h"
 #include "ParticleSystem2.h"
+#include <stdio.h>
 
 ParticleSystemManager *ParticleSystemManager::manager = 0;
 float                  ParticleSystemManager::scaler = 1.0f;

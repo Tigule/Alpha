@@ -1,6 +1,10 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
 #include "W32/ISThread.h"
+#include <stdio.h>
+#include <time.h>
 
 #define SF_ADDING    0x00000001
 #define SF_OVERLAPS  0x00000002

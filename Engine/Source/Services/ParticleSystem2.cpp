@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 #include <Gx/Gx.h>
 #include <BLPFile/blp.h>
+#include "Os/OsTime.h"
 
 #include "ParticleSystem2.h"
 
@@ -11,19 +12,8 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-static float tc[4][2] = {
-    {0.0f, 0.0f},
-    {0.0f, 1.0f},
-    {1.0f, 0.0f},
-    {1.0f, 1.0f}
-};
-static float vc[4][2] = {
-    {-1.0f,  1.0f},
-    {-1.0f, -1.0f},
-    { 1.0f,  1.0f},
-    { 1.0f, -1.0f}
-};
 static const float s_maxTimeStep = 0.1f;
 
 static NTempest::C3Vector s_particleNormal(0.0f, 0.0f, 1.0f);
@@ -391,6 +381,18 @@ BOOL CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
 }
 
 BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
+  static float vc[4][2] = {
+      {-1.0f,  1.0f},
+      {-1.0f, -1.0f},
+      { 1.0f,  1.0f},
+      { 1.0f, -1.0f}
+  };
+  static float tc[4][2] = {
+      {0.0f, 0.0f},
+      {0.0f, 1.0f},
+      {1.0f, 0.0f},
+      {1.0f, 1.0f}
+  };
   UINT randomIndex = 0;
   if (m_twinkleOnOff < 1.0f || m_twinkleScaleRange != 0.0f) {
     randomIndex = (((DWORD)&p >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;

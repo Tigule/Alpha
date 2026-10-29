@@ -141,6 +141,40 @@ static BOOL WaterHandler(LPCVOID dataPtr, LPVOID param) {
   return 1;
 }
 
+BOOL LIQUIDINFO::Update(const NTempest::C3Vector &listenerPos) {
+  UINT subType;
+  for (subType = 0; subType < 3 && !m_subTypes[subType]; ++subType) {
+  }
+  if (subType >= 3) {
+    StopSound(0);
+    return 0;
+  }
+  if (m_sound && m_currentPlayingSound != subType) {
+    StopSound(0);
+  }
+  StartSound(subType, listenerPos);
+  Tick();
+  return 1;
+}
+
+void LIQUIDINFO::UpdateVolume() {
+  if (m_sound && m_currentRecord) {
+    SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(m_currentRecord->GetID());
+    if (definition) {
+      definition->SetFrequencyAndVolume(m_sound, 1.0f, false);
+      definition->Set3DParams(m_sound, 0);
+    }
+  }
+}
+
+void LIQUIDINFO::Tick() {
+  if (m_sound && m_currentRecord) {
+    FATALASSERT(m_currentPlayingSound < (sizeof(m_positionOffset) / sizeof(m_positionOffset[0])));
+    NTempest::C3Vector offset = m_positionOffset[m_currentPlayingSound];
+    m_sound->SetPanning(1.0f - offset.SquaredMag() / PANNING_DIST_SQUARED);
+  }
+}
+
 void LIQUIDINFO::StartSound(UINT subType, const NTempest::C3Vector &listenerPos) {
   FATALASSERT(subType < (sizeof(m_subTypes) / sizeof(m_subTypes[0])));
   if (m_sound) {
@@ -180,40 +214,6 @@ void LIQUIDINFO::StartSound(UINT subType, const NTempest::C3Vector &listenerPos)
       }
     }
     m_currentPlayingSound = subType;
-  }
-}
-
-BOOL LIQUIDINFO::Update(const NTempest::C3Vector &listenerPos) {
-  UINT subType;
-  for (subType = 0; subType < 3 && !m_subTypes[subType]; ++subType) {
-  }
-  if (subType >= 3) {
-    StopSound(0);
-    return 0;
-  }
-  if (m_sound && m_currentPlayingSound != subType) {
-    StopSound(0);
-  }
-  StartSound(subType, listenerPos);
-  Tick();
-  return 1;
-}
-
-void LIQUIDINFO::UpdateVolume() {
-  if (m_sound && m_currentRecord) {
-    SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(m_currentRecord->GetID());
-    if (definition) {
-      definition->SetFrequencyAndVolume(m_sound, 1.0f, false);
-      definition->Set3DParams(m_sound, 0);
-    }
-  }
-}
-
-void LIQUIDINFO::Tick() {
-  if (m_sound && m_currentRecord) {
-    FATALASSERT(m_currentPlayingSound < (sizeof(m_positionOffset) / sizeof(m_positionOffset[0])));
-    NTempest::C3Vector offset = m_positionOffset[m_currentPlayingSound];
-    m_sound->SetPanning(1.0f - offset.SquaredMag() / PANNING_DIST_SQUARED);
   }
 }
 

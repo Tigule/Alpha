@@ -8,5 +8,5 @@ target_include_directories(Magic PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Magic PRIVATE /Gr /Z7)
+    target_compile_options(Magic PRIVATE /Gr /Zi)
 endif()

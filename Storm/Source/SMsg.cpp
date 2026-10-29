@@ -1,5 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
+#include <stdio.h>
+#include <time.h>
 
 #define REGISTERTYPE_BASE       'SMSG'
 #define REGISTERTYPE_MESSAGE    (REGISTERTYPE_BASE + 0)

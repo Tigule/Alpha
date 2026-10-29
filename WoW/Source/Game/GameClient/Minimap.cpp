@@ -42,9 +42,6 @@ struct MINIMAPMD5NAME : public TSHashObject<MINIMAPMD5NAME, HASHKEY_STRI> {
 extern CVar *s_minimapZoomCVar;
 extern CVar *s_minimapInsideZoomCVar;
 
-static float                                     angle = 90.0f;
-static float                                     boxHeight = 1066.6666f;
-static float                                     boxWidth = 1066.6666f;
 static const float                               AREA_WORLD_SIZE_X = 533.33331f;
 static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
 static const float                               HALF_AREA_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 0.5f;
@@ -324,6 +321,7 @@ static void SetupQuad(const UINT groupNum, QUADDATA &quadData, const CWorld::Min
 }
 
 static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
+  static float angle = 90.0f;
   LPCSTR       wmoName;
   LPCSTR const kWorld = "World\\";
 
@@ -543,6 +541,8 @@ BOOL MinimapUpdate(
 }
 
 BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads) {
+  static float boxHeight = 1066.6666f;
+  static float boxWidth = 1066.6666f;
   FATALASSERT(radius);
   FATALASSERT(centerPoint);
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && pos.z == s_currentPosition.z &&

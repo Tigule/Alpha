@@ -1,9 +1,17 @@
 #include "Os/W32/OsTcp.h"
 
+#include <winsock2.h>
+#include <windows.h>
+#include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
+
 #include <stdarg.h>
 
 #include "Os/OsTime.h"
 #include "Os/W32/Debugging.h"
+#include <stdio.h>
 
 namespace OsNet {
 

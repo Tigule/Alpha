@@ -15,5 +15,5 @@ target_include_directories(Gxu PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Gxu PRIVATE /Gr /Z7)
+    target_compile_options(Gxu PRIVATE /Gr /Zi)
 endif()

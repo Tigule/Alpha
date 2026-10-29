@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/Petition.h"
+#include <stdio.h>
 
 void CGPetition::Pack(CDataStore *msg) {
   int i;

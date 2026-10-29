@@ -14,6 +14,22 @@
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "Ui/GameUI.h"
 #include "Ui/ChatFrame.h"
+#include "Client.h"
+#include "DB/DBClient/AutoCode/MapRec.h"
+#include "DB/DBClient/AutoCode/SpellRec.h"
+#include "Game/ValidateName.h"
+#include "Glue/CGlueMgr.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Unit_C.h"
+#include "ObjectMgrClient/ObjectMgrClient.h"
+#include "Os/OsTime.h"
+#include "SRP/SHA.h"
+#include "SRP/SRP6.h"
+#include "UIUtil/InputControl.h"
+#include "Os/W32/OSSystem.h"
+#include "WowServices/WDataStore.h"
+#include "WowSvcs/WowSvcsClient/ClientConnection.h"
+#include <regex/regex.h>
 
 #include <Base/CDataStore.h>
 #include <FrameScript/FrameScript.h>

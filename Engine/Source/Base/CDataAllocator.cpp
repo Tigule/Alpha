@@ -1,8 +1,10 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "CDataAllocator.h"
 
 #include <string.h>
+#include <stdio.h>
 
 CDataAllocator::CDataAllocator(DWORD bytesPerData, DWORD dataPerBlock) {
   m_bytesPerData = bytesPerData < 4 ? 4 : bytesPerData;

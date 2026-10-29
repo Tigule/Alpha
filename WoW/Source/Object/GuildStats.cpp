@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/GuildStats.h"
+#include <stdio.h>
 
 void GuildStats::Pack(CDataStore *msg) {
   ASSERT(msg);

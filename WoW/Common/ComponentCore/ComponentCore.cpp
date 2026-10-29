@@ -11,7 +11,7 @@
 #include "DB/DBClient/AutoCode/ItemVisualEffectsRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/AutoCode/HelmetGeosetVisDataRec.h"
-#include "Object/ObjectClient/AnimCompiles.h"
+#include "Object/ObjectClient/AnimStateCompiles.h"
 
 #include <string.h>
 #include <storm.h>
@@ -346,7 +346,6 @@ static const int             s_underwearHideSections[INDEX_NUMSLOTS][NUM_UNDERWE
     {0, 0},
     {0, 0}
 };
-static const UINT s_tabardSectionFlags = 0x60;
 
 MipBits    *CTexturePiece::m_destImage;
 TEXTUREINFO CTexturePiece::m_destTextureInfo;
@@ -794,6 +793,7 @@ BOOL CTexComponent::CheckSections(BOOL bForce) {
 }
 
 bool CTexComponent::IsTabardSectionLayerAndPriority(TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS layer, LAYERPRIORITY priority) const {
+  static const UINT s_tabardSectionFlags = 0x60;
   if (!HasTabard() || !((1 << section) & s_tabardSectionFlags)) {
     return false;
   }

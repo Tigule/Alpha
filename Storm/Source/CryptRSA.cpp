@@ -1,23 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
-BigNum &BigNum::PowMod(const BigNum &b, const BigNum &c, const BigNum &d) {
-  SBigPowMod(m_data, *b.m_data, *c.m_data, *d.m_data);
-  return *this;
-}
-
-LPVOID BigNum::ToBinaryBuffer(LPVOID data, UINT bytes) const {
-  UINT actual;
-
-  SBigToBinaryBuffer(*m_data, data, bytes, &actual);
-  if (actual < bytes) {
-    memset((BYTE *)data + actual, 0, bytes - actual);
-  }
-  return data;
-}
-
-void BigNum::FromBinary(LPCVOID data, UINT bytes) {
-  SBigFromBinary(m_data, data, bytes);
-}
+#include <stdio.h>
+#include <time.h>
 
 namespace Crypt {
 

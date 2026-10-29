@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/CreatureStats.h"
+#include <stdio.h>
 
 void CreatureStats::Pack(CDataStore *msg) {
   int i;

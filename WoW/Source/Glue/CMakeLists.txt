@@ -15,5 +15,5 @@ target_include_directories(Glue PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Glue PRIVATE /Gr /Z7)
+    target_compile_options(Glue PRIVATE /Gr /Zi)
 endif()

@@ -1,13 +1,15 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
 #include <W32/ISThread.h>
 #include "../Pkware/pkware.h"
-
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* MPQ names retained by the current client and corroborated by Hellfire. */
 #define HASH_INDEX       0
@@ -308,53 +310,6 @@ typedef _ARCHIVEHEADER SFileArchiveHeaderData;
 typedef _HASHENTRY     SFileHashEntryData;
 typedef _BLOCKENTRY    SFileBlockEntryData;
 
-struct SFileDirectSoundBufferVtbl {
-  LPVOID QueryInterface;
-  LPVOID AddRef;
-  ULONG(STDMETHODCALLTYPE *Release)(IDirectSoundBuffer *buffer);
-  LPVOID GetCaps;
-  HRESULT(STDMETHODCALLTYPE *GetCurrentPosition)(IDirectSoundBuffer *buffer, DWORD *currentplaycursor, DWORD *currentwritecursor);
-  LPVOID GetFormat;
-  HRESULT(STDMETHODCALLTYPE *GetVolume)(IDirectSoundBuffer *buffer, LONG *volume);
-  HRESULT(STDMETHODCALLTYPE *GetPan)(IDirectSoundBuffer *buffer, LONG *pan);
-  LPVOID GetFrequency;
-  LPVOID GetStatus;
-  LPVOID Initialize;
-  HRESULT(STDMETHODCALLTYPE *Lock)(
-      IDirectSoundBuffer *buffer,
-      DWORD               offset,
-      DWORD               bytes,
-      LPVOID             *audioPtr1,
-      DWORD              *audioBytes1,
-      LPVOID             *audioPtr2,
-      DWORD              *audioBytes2,
-      DWORD               flags
-  );
-  HRESULT(STDMETHODCALLTYPE *Play)(IDirectSoundBuffer *buffer, DWORD reserved1, DWORD reserved2, DWORD flags);
-  HRESULT(STDMETHODCALLTYPE *SetCurrentPosition)(IDirectSoundBuffer *buffer, DWORD newPosition);
-  LPVOID SetFormat;
-  HRESULT(STDMETHODCALLTYPE *SetVolume)(IDirectSoundBuffer *buffer, LONG volume);
-  HRESULT(STDMETHODCALLTYPE *SetPan)(IDirectSoundBuffer *buffer, LONG pan);
-  LPVOID SetFrequency;
-  HRESULT(STDMETHODCALLTYPE *Stop)(IDirectSoundBuffer *buffer);
-  HRESULT(STDMETHODCALLTYPE *Unlock)(IDirectSoundBuffer *buffer, LPVOID audioPtr1, DWORD audioBytes1, LPVOID audioPtr2, DWORD audioBytes2);
-};
-
-struct SFileDirectSoundVtbl {
-  LPVOID QueryInterface;
-  LPVOID AddRef;
-  LPVOID Release;
-  HRESULT(STDMETHODCALLTYPE *CreateSoundBuffer)(IDirectSound *sound, LPVOID desc, IDirectSoundBuffer **buffer, LPVOID outer);
-};
-
-struct _DSBUFFERDESC {
-  DWORD          dwSize;
-  DWORD          dwFlags;
-  DWORD          dwBufferBytes;
-  DWORD          dwReserved;
-  tWAVEFORMATEX *lpwfxFormat;
-};
-
 struct CKINFO {
   DWORD size;
   DWORD offset;
@@ -421,8 +376,7 @@ typedef LIST(SFileRecData) SFileRecList;
 Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
   Storm::SFile::RemoveFileRef(file);
   if (soundbuffer && soundbufferlocal) {
-    SFileDirectSoundBufferVtbl *vtbl = *(SFileDirectSoundBufferVtbl **)soundbuffer;
-    vtbl->Release(soundbuffer);
+    soundbuffer->Release();
   }
 }
 
@@ -1254,7 +1208,7 @@ static DWORD UpdateAudioStreamPos(SFileAudioStreamData *curr) {
 
   playpos = 0;
   writepos = 0;
-  if ((*(SFileDirectSoundBufferVtbl **)curr->soundbuffer)->GetCurrentPosition(curr->soundbuffer, &playpos, &writepos) < 0) {
+  if (curr->soundbuffer->GetCurrentPosition(&playpos, &writepos) < 0) {
     return 0xFFFFFFFF;
   }
 
@@ -1304,7 +1258,7 @@ static void CheckAudioStreams(int &parent_header) {
           DWORD playpos = UpdateAudioStreamPos(stream);
           if (playpos != 0xFFFFFFFF) {
             if (stream->playcursor >= stream->wavedatasize) {
-              (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->Stop(stream->soundbuffer);
+              stream->soundbuffer->Stop();
               stream->fillstatus = 4;
             } else {
               DWORD soundoffset = stream->nextwrite;
@@ -1322,13 +1276,12 @@ static void CheckAudioStreams(int &parent_header) {
                 }
 
                 buffer = NULL;
-                if ((*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)
-                        ->Lock(stream->soundbuffer, soundoffset, bytes, &buffer, &bytes, NULL, NULL, 0) >= 0)
+                if (stream->soundbuffer->Lock(soundoffset, bytes, &buffer, &bytes, NULL, NULL, 0) >= 0)
                 {
                   if (buffer && bytes) {
                     memset(buffer, stream->fillvalue, bytes);
                   }
-                  (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->Unlock(stream->soundbuffer, buffer, bytes, NULL, 0);
+                  stream->soundbuffer->Unlock(buffer, bytes, NULL, 0);
                   stream->writecursor += bytes;
                   stream->bytespastend += bytes;
                   stream->nextwrite += bytes;
@@ -1574,7 +1527,7 @@ static DWORD WINAPI CdThreadProc(LPVOID) {
       if (Storm::SFile::s_cdrequest->bytesread) {
         FillSoundBuffer(Storm::SFile::s_cdrequest);
       } else if (Storm::SFile::s_cdrequest->bytestoread) {
-        (*(SFileDirectSoundBufferVtbl **)Storm::SFile::s_cdrequest->soundbuffer)->Stop(Storm::SFile::s_cdrequest->soundbuffer);
+        Storm::SFile::s_cdrequest->soundbuffer->Stop();
         if (Storm::SFile::s_cdrequest->stream) {
           Storm::SFile::s_cdrequest->stream->fillstatus = 4;
         }
@@ -1664,8 +1617,7 @@ static void FillSoundBuffer(SFileRequestData *request) {
   }
   ASSERT(request->stream->soundbuffersize - request->soundbufferoffset >= WAVECHUNKSIZE);
 
-  if ((*(SFileDirectSoundBufferVtbl **)request->soundbuffer)
-              ->Lock(request->soundbuffer, request->soundbufferoffset, WAVECHUNKSIZE, &request->buffer, &locksize, NULL, NULL, 0) < 0 ||
+  if (request->soundbuffer->Lock(request->soundbufferoffset, WAVECHUNKSIZE, &request->buffer, &locksize, NULL, NULL, 0) < 0 ||
       locksize != WAVECHUNKSIZE)
   {
     return;
@@ -1677,7 +1629,7 @@ static void FillSoundBuffer(SFileRequestData *request) {
     memset((BYTE *)request->buffer + copyBytes, request->stream->fillvalue, locksize - copyBytes);
   }
 
-  (*(SFileDirectSoundBufferVtbl **)request->soundbuffer)->Unlock(request->soundbuffer, request->buffer, locksize, NULL, 0);
+  request->soundbuffer->Unlock(request->buffer, locksize, NULL, 0);
 
   ASSERT(request->location - request->stream->waveheadersize == 0 || request->stream->writecursor <= (request->location - request->stream->waveheadersize) + locksize);
 
@@ -1694,7 +1646,7 @@ static void FillSoundBuffer(SFileRequestData *request) {
     }
     playthreshold = min(playthreshold, request->stream->soundbuffersize);
     if (bytesbuffered >= playthreshold) {
-      (*(SFileDirectSoundBufferVtbl **)request->stream->soundbuffer)->Play(request->stream->soundbuffer, 0, 0, 1);
+      request->stream->soundbuffer->Play(0, 0, 1);
       request->stream->fillstatus = 2;
     }
   }
@@ -2512,7 +2464,7 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
     desc.lpwfxFormat = &format;
 
     Storm::SFile::s_cdlock.Enter();
-    (*(SFileDirectSoundVtbl **)Storm::SFile::s_directsound)->CreateSoundBuffer(Storm::SFile::s_directsound, &desc, &soundbuffer, NULL);
+    Storm::SFile::s_directsound->CreateSoundBuffer(&desc, &soundbuffer, NULL);
     Storm::SFile::s_cdlock.Leave();
     if (!soundbuffer) {
       return FALSE;
@@ -2520,10 +2472,10 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
   }
 
   if (volume && volume != 0x7FFFFFFF) {
-    (*(SFileDirectSoundBufferVtbl **)soundbuffer)->SetVolume(soundbuffer, volume);
+    soundbuffer->SetVolume(volume);
   }
   if (pan && pan != 0x7FFFFFFF) {
-    (*(SFileDirectSoundBufferVtbl **)soundbuffer)->SetPan(soundbuffer, pan);
+    soundbuffer->SetPan(pan);
   }
 
   Storm::SFile::s_streamlock.Enter();
@@ -2544,7 +2496,7 @@ SFileDdaBeginEx(HSFILE handle, DWORD buffersize, DWORD flags, DWORD offset, LONG
   stream->soundbufferlocal = soundbufferlocal;
   stream->fillvalue = (format.wBitsPerSample == 8) ? 0x80 : 0;
   Storm::SFile::AddStreamRef(stream);
-  (*(SFileDirectSoundBufferVtbl **)soundbuffer)->SetCurrentPosition(soundbuffer, 0);
+  soundbuffer->SetCurrentPosition(0);
   Storm::SFile::s_streamlock.Leave();
 
   Storm::SFile::s_filelock.Enter();
@@ -2698,10 +2650,10 @@ extern "C" BOOL APIENTRY SFileDdaGetVolume(HSFILE handle, LONG *volume, LONG *pa
   }
 
   if (stream->volume == 0x7FFFFFFF) {
-    (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->GetVolume(stream->soundbuffer, &stream->volume);
+    stream->soundbuffer->GetVolume(&stream->volume);
   }
   if (stream->pan == 0x7FFFFFFF) {
-    (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->GetPan(stream->soundbuffer, &stream->pan);
+    stream->soundbuffer->GetPan(&stream->pan);
   }
   if (volume) {
     *volume = stream->volume;
@@ -2745,11 +2697,11 @@ extern "C" BOOL APIENTRY SFileDdaSetVolume(HSFILE handle, LONG volume, LONG pan)
 
   if (volume != 0x7FFFFFFF && volume != stream->volume) {
     stream->volume = volume;
-    (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->SetVolume(stream->soundbuffer, volume);
+    stream->soundbuffer->SetVolume(volume);
   }
   if (pan != 0x7FFFFFFF && pan != stream->pan) {
     stream->pan = pan;
-    (*(SFileDirectSoundBufferVtbl **)stream->soundbuffer)->SetPan(stream->soundbuffer, pan);
+    stream->soundbuffer->SetPan(pan);
   }
   Storm::SFile::s_streamlock.Leave();
   return TRUE;

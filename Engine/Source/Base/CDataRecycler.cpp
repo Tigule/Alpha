@@ -1,6 +1,8 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "CDataRecycler.h"
+#include <stdio.h>
 
 CDataRecycler::CDataRecycler(UINT nodesPerBlock, long maxNodes) : m_nodeBlockList(0), m_nodeFullList(0), m_nodeEmptyList(0) {
   m_nodesRecyclable = max(maxNodes, 1);

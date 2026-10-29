@@ -1,24 +1,13 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
 
 #include "../Zlib/zlib.h"
-
 #include <limits.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
-struct ZipFileFCB;
-
-DWORD        ZipFileOpenArchive(LPCSTR archivename);
-BOOL         ZipFileCloseArchive(DWORD handle);
-ZipFileFCB  *ZipFileOpenFile(LPCSTR filename, DWORD archive);
-BOOL         ZipFileCloseFile(ZipFileFCB *fcb);
-int          ZipFileReadFile(ZipFileFCB *fcb, LPVOID buffer, UINT bytesToRead, UINT *bytesRead);
-int          ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin);
-DWORD        ZipFileGetFilePointer(ZipFileFCB *fcb);
-DWORD        ZipFileGetFileSize(ZipFileFCB *fcb);
-int          ZipFileFileExists(LPCSTR filename);
-BOOL         ZipFileList(DWORD archive, int (*cb)(LPCSTR filename, LPVOID param), LPVOID param);
 void __cdecl SOutputDebugString(LPCSTR format, ...);
 
 NODEDECL(ASYNCREAD) {
@@ -619,7 +608,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
             return FALSE;
           }
           (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-          if (flags & 0x10000) {
+          if (flags & SFILE2_LOAD_MD5) {
             if (!SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) || (*file)->m_md5 == MD5(0, 0, 0, 0)) {
               (*file)->m_haveMD5 = FALSE;
             } else {
@@ -636,7 +625,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
             return FALSE;
           }
           (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-          if (flags & 0x10000) {
+          if (flags & SFILE2_LOAD_MD5) {
             if (!SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) || (*file)->m_md5 == MD5(0, 0, 0, 0)) {
               (*file)->m_haveMD5 = FALSE;
             } else {
@@ -654,7 +643,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
             return FALSE;
           }
           (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-          if (flags & 0x10000) {
+          if (flags & SFILE2_LOAD_MD5) {
             char md5filename[MAX_PATH];
             SStrCopy(md5filename, filename, INT_MAX);
             SStrPack(md5filename, ".md5", INT_MAX);
@@ -678,7 +667,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
         *file = NEW(SFile)(SFILE_OLD_SFILE);
         (*file)->m_hsfile = sfile;
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-        if (flags & 0x10000) {
+        if (flags & SFILE2_LOAD_MD5) {
           if (!SFileGetFileMD5((HSFILE)(*file)->m_hsfile, (BYTE *)&(*file)->m_md5) || (*file)->m_md5 == MD5(0, 0, 0, 0)) {
             (*file)->m_haveMD5 = FALSE;
           } else {
@@ -697,7 +686,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
           return FALSE;
         }
         (*file)->m_filename = SStrDupA(filename, __FILE__, __LINE__);
-        if (flags & 0x10000) {
+        if (flags & SFILE2_LOAD_MD5) {
           char md5filename[MAX_PATH];
           SStrCopy(md5filename, filename, INT_MAX);
           SStrPack(md5filename, ".md5", INT_MAX);

@@ -4,6 +4,7 @@
 #include <Base/CDataRecycler.h>
 
 #include <string.h>
+#include <stdio.h>
 
 static TExtraInstanceRecycler<EvtMessage> s_messageRecycler(0x40, 0x40, 0x100);
 

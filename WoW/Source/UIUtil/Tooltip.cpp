@@ -53,6 +53,7 @@
 #include "Ui/WorldFrame.h"
 #include "WorldClient/AreaList.h"
 #include "DB/DBClient/DBCacheInstances.h"
+#include <regex/regex.h>
 #include <Base/CDataStore.h>
 #include <Base/Coordinate.h>
 #include <Frame/CBackdropGenerator.h>

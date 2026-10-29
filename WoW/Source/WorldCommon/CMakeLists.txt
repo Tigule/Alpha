@@ -11,5 +11,5 @@ target_include_directories(WorldCommon PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(WorldCommon PRIVATE /Gr /Z7)
+    target_compile_options(WorldCommon PRIVATE /Gr /Zi)
 endif()

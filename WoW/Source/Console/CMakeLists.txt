@@ -15,5 +15,5 @@ target_include_directories(ConsoleClient PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(ConsoleClient PRIVATE /Gr /Z7)
+    target_compile_options(ConsoleClient PRIVATE /Gr /Zi)
 endif()

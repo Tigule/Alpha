@@ -1,8 +1,10 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "CmdLine.h"
 
 #include <storm.h>
+#include <stdio.h>
 
 static char buffer[MAX_PATH];
 

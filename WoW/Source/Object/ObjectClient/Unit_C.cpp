@@ -11,6 +11,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object/ObjectClient/Unit_C.h"
 #include "Magic/MagicClient/Spell_C.h"
@@ -179,19 +188,6 @@ NODEDECL(BLOODSPLATNODE) {
   NTempest::C3Vector m_position;
 };
 
-static const char  NONAME[7] = "NoName";
-static UINT        FADEOUT_TIME = 400;
-static UINT        FADEIN_TIME = 200;
-static const float MIN_SCALE = 0.75f;
-static const float MAX_SCALE = 2.0f;
-static float       IPT2_SCALE = 1.1f;
-static float       IPT1_SCALE = 1.1f;
-static float       OPT1_SCALE = 0.875f;
-static float       OPT2_SCALE = 0.875f;
-static const float MAX_SHORT_RANGE_TELEPORT = 30.0f;
-static const float COS_1 = 0.99984771f;
-static const UINT  allEmoteFlags = 7;
-static const UINT  STEALTHFADETIME = 1000;
 static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
 static UINT        s_lootCooldownTime;
 static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
@@ -439,7 +435,6 @@ DECLARE_UNIT_MIRROR_HANDLER(EmoteStateChangeHandler);
 DECLARE_UNIT_MIRROR_HANDLER(ChannelSpellChangeHandler);
 #undef DECLARE_UNIT_MIRROR_HANDLER
 
-static const REPLACEABLE_MATERIAL_IDS s_materialIDs[3] = {TEX_COMPONENT_MONSTER_1, TEX_COMPONENT_MONSTER_2, TEX_COMPONENT_MONSTER_3};
 
 enum OBJATTACHMENTPOINTS {
   OBJATTACH_HELMET = 0,
@@ -450,10 +445,6 @@ enum OBJATTACHMENTPOINTS {
   OBJATTACH_NUM = 5
 };
 
-static int s_invSlotToObjAttachSlot[EQUIPPED_LAST + 1] = {
-    OBJATTACH_HELMET, -1, OBJATTACH_SHOULDERPAD, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, OBJATTACH_MAINHAND, OBJATTACH_OFFHAND,
-    OBJATTACH_RANGED, -1
-};
 
 static const UINT          s_shoulderBones[NUMHANDS] = {3, 2};
 static const UINT          s_hands[NUMHANDS] = {INVSLOT_MAINHAND, INVSLOT_OFFHAND};
@@ -518,9 +509,6 @@ AuraDecayNode::~AuraDecayNode() {
   visual.Clear();
 }
 
-static const ANIM_STATE                   s_standStateAnims[9] = {ANIM_STATE_IDLE,         ANIM_STATE_SITTING,     ANIM_STATE_IDLE,
-                                                                  ANIM_STATE_SLEEPING,     ANIM_STATE_SITCHAIRLOW, ANIM_STATE_SITCHAIRMEDIUM,
-                                                                  ANIM_STATE_SITCHAIRHIGH, ANIM_STATE_DEAD,        ANIM_STATE_KNEELING};
 static LISTDECL(AuraDecayNode, s_activeAuraDecays);
 static TInstanceAllocator<SPELLEFFECTDESC>      s_spellEffectFreeList(100);
 static TInstanceAllocator<ANIMENDDATA>          s_animEndDataPool(1024);
@@ -530,9 +518,6 @@ static TInstanceAllocator<ACTIVEATTACHMENTINFO> s_activeAttachmentFreeList(100);
 static TInstanceAllocator<AuraDecayNode>        s_auraDecayFreeList(100);
 static TInstanceAllocator<IMPACTEFFECTDESC>     s_freeImpactEffectDescs(100);
 static CVar                                    *s_showBreathCvar;
-static UINT                                     s_currentGlobalClickCount;
-static DWORD                                   s_lastTargetFlashTime;
-static int                                      s_targetPulseDirection;
 
 DWORDLONG                                  CGUnit_C::m_activeMover;
 static UINT                                s_moveHeartBeatTimer;
@@ -646,6 +631,10 @@ static TSGrowableArray<NTempest::C3Vector> s_bowStringVerts;
 static TSGrowableArray<WORD>               s_bowStringIndices;
 
 int InvSlotToObjAttachSlot(int invSlot) {
+  static int s_invSlotToObjAttachSlot[EQUIPPED_LAST + 1] = {
+      OBJATTACH_HELMET, -1, OBJATTACH_SHOULDERPAD, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, OBJATTACH_MAINHAND, OBJATTACH_OFFHAND,
+      OBJATTACH_RANGED, -1
+  };
   if (invSlot > EQUIPPED_LAST) {
     return -1;
   }
@@ -758,6 +747,8 @@ static void SpellProcScaleHandler(
     UINT                     spellID,
     float                    elapsed
 ) {
+  static UINT FADEIN_TIME = 200;
+  static UINT FADEOUT_TIME = 400;
   switch (action) {
     case SPELLPROCADD:
       newDesc->startTime = newDesc->curTime = OsGetAsyncTimeMs();
@@ -793,6 +784,8 @@ static void SpellProcScaleHandler(
 }
 
 static float GetDesiredRenderScale(SpellEffectList &list) {
+  static const float MAX_SCALE = 2.0f;
+  static const float MIN_SCALE = 0.75f;
   float currentScale = 1.0f;
   ITERATELIST(SPELLEFFECTDESC, list, desc) {
     currentScale *= GetSpellEffectDescScale(desc);
@@ -803,6 +796,8 @@ static float GetDesiredRenderScale(SpellEffectList &list) {
 static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
   float scale = desc->scale;
   if (desc->fadeInTime != desc->startTime && desc->curTime < desc->fadeInTime) {
+    static float IPT1_SCALE = 1.1f;
+    static float IPT2_SCALE = 1.1f;
     static NTempest::C3Vector pts[4] = {
         NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.1f, 1.0f, 0.0f), NTempest::C3Vector(0.2f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
     };
@@ -817,6 +812,8 @@ static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
     spline.Pos(scalar, pt, NTempest::C3Spline::EVAL_ARCLENGTH);
     scale = pt.y;
   } else if (desc->fadeOutTime != desc->endTime && desc->curTime > desc->fadeOutTime) {
+    static float OPT1_SCALE = 0.875f;
+    static float OPT2_SCALE = 0.875f;
     static NTempest::C3Vector pts[4] = {
         NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.25f, 1.0f, 0.0f), NTempest::C3Vector(0.5f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
     };
@@ -1860,6 +1857,7 @@ void CGUnit_C::SetupFootprints() {
 }
 
 void CGUnit_C::InitializeTextureVariations(const CreatureDisplayInfoRec *displayInfo, HMODEL theModel, const CreatureModelDataRec *modelData) {
+  static const REPLACEABLE_MATERIAL_IDS s_materialIDs[3] = {TEX_COMPONENT_MONSTER_1, TEX_COMPONENT_MONSTER_2, TEX_COMPONENT_MONSTER_3};
   char textureFile[MAX_PATH];
   char texturePath[MAX_PATH];
 
@@ -1911,6 +1909,9 @@ BOOL CGUnit_C::IsWalking() const {
 }
 
 UINT CGUnit_C::GetAnimationState() {
+  static const ANIM_STATE s_standStateAnims[9] = {ANIM_STATE_IDLE,         ANIM_STATE_SITTING,     ANIM_STATE_IDLE,
+                                                                    ANIM_STATE_SLEEPING,     ANIM_STATE_SITCHAIRLOW, ANIM_STATE_SITCHAIRMEDIUM,
+                                                                    ANIM_STATE_SITCHAIRHIGH, ANIM_STATE_DEAD,        ANIM_STATE_KNEELING};
   int inAttackMode = 0;
 
   if (m_unit->health <= 0 && ((m_animFlags & 0x2000) || !(m_flags & 4))) {
@@ -3081,6 +3082,7 @@ void CGUnit_C::HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos) 
 }
 
 LPCSTR CGUnit_C::GetModelFileName() const {
+  static const char NONAME[7] = "NoName";
   const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_unit->displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOCREATUREDISPLAYIDFOUND|%d", m_unit->displayID);
@@ -3978,6 +3980,7 @@ inline float CGUnit::LinearDistanceSquared(const NTempest::C3Vector &position) c
 }
 
 void CGUnit_C::OnTeleportAck(DWORD eventTime, const CMovementStatus &update) {
+  static const float MAX_SHORT_RANGE_TELEPORT = 30.0f;
   (void)ClntObjMgrGetPlayerType();
   NTempest::C3Vector oldPos = GetPosition();
   FATALASSERT(GetGUID() == CGUnit_C::GetActiveMover());
@@ -4027,6 +4030,7 @@ inline void CMovement::UpdateLastSentRedirection() {
 }
 
 void CGUnit_C::SendRedirectionMessage() {
+  static const float COS_1 = 0.99984771f;
   if (NTempest::CMath::fequal_(m_move.GetLastSentRedirection().SquaredMag(), 0.0f) ||
       !(NTempest::C3Vector::Dot(m_move.GetRedirection(), m_move.GetLastSentRedirection()) > COS_1))
   {
@@ -5883,6 +5887,8 @@ inline void NTempest::CImVector::SetG(BYTE green) {
 }
 
 void CGUnit_C::PreAnimate(CGWorldFrame *worldFrame) {
+  static DWORD s_lastTargetFlashTime;
+  static int s_targetPulseDirection;
   FATALASSERT(worldFrame);
   UINT currentTime = OsGetAsyncTimeMs();
 
@@ -7732,8 +7738,9 @@ void CGUnit_C::ProcessEmoteQueue() {
 }
 
 BOOL CGUnit_C::EmoteProcType(UINT emoteID, EMOTESPECPROCS &proc) const {
-  const EmotesRec *rec = g_emotesDB.GetRecord(emoteID);
-  if (!rec || ((1 << rec->m_EmoteSpecProc) & 7) == 0) {
+  const EmotesRec  *rec = g_emotesDB.GetRecord(emoteID);
+  static const UINT allEmoteFlags = 7;
+  if (!rec || ((1 << rec->m_EmoteSpecProc) & allEmoteFlags) == 0) {
     return 0;
   }
   proc = (EMOTESPECPROCS)rec->m_EmoteSpecProc;
@@ -7758,6 +7765,7 @@ BOOL CGUnit_C::CanHighlight() const {
 }
 
 void CGUnit_C::OnLeftClick() {
+  static UINT s_currentGlobalClickCount;
   if (IsA(ID_PLAYER) || !m_NPCSoundsRec || !m_numNPCPissedSounds) {
     ++s_currentGlobalClickCount;
     return;
@@ -8836,7 +8844,8 @@ BOOL CGUnit_C::SetCastingSpell(int spellID, bool force, bool precastAnimSuccessf
 }
 
 void CGUnit_C::UpdateUnitAlpha() {
-  BYTE alpha = m_displayInfo ? (BYTE)m_displayInfo->m_creatureModelAlpha : 255;
+  static const UINT STEALTHFADETIME = 1000;
+  BYTE              alpha = m_displayInfo ? (BYTE)m_displayInfo->m_creatureModelAlpha : 255;
   if (IsStealthed() || IsInvisible()) {
     alpha /= 3;
   }

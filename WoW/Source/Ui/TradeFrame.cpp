@@ -11,6 +11,10 @@
 #include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Item_C.h"
+#include <regex/regex.h>
 
 #include <string.h>
 

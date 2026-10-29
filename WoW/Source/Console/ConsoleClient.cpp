@@ -22,7 +22,6 @@
 #include <new>
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>
 
 struct HLAYER__;
 struct HTEXTFONT__;
@@ -60,7 +59,6 @@ NODEDECL(CONSOLELINE) {
 CGxFont     *TextBlockGetFontPtr(HTEXTFONT__ *fontHandle);
 HTEXTFONT__ *TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeight);
 
-static LPCSTR     formatToInt[CGxFormat::Formats_Last] = {"16", "24", "24", "30", "16", "24", "24", "32"};
 static int        s_rates[11] = {60, 70, 72, 75, 85, 90, 100, 120, 160, 180, 200};
 static const char s_apis[2][16] = {"OpenGL", "Direct3D"};
 static UINT       s_FormatTobpp[4] = {16, 32, 32, 32};
@@ -1321,6 +1319,7 @@ static void UpdateGxCVars() {
 }
 
 static void SetGxCVars(const CGxFormat &format) {
+  static LPCSTR formatToInt[CGxFormat::Formats_Last] = {"16", "24", "24", "30", "16", "24", "24", "32"};
   char string[0x400];
 
   s_cvGxColorBits->Set(formatToInt[format.colorFormat], true, false, false);

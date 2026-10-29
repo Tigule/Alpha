@@ -1,6 +1,8 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "ConvertUTF.h"
+#include <stdio.h>
 
 typedef DWORD UCS4;
 

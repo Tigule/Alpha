@@ -9,6 +9,7 @@
 #include <Frame/CSimpleModel.h>
 #include "SoundInterface/SoundInterface.h"
 #include <Gx/CGxDevice.h>
+#include <regex/regex.h>
 #include "Object/ObjectClient/Unit_C.h"
 
 #include "Glue/CharSelectInfo.h"
@@ -29,7 +30,7 @@
 #include "Game/GameClient/GuildClient.h"
 #include "Glue/CharCreateInfo.h"
 #include "Glue/CGlueMgr.h"
-#include "Object/ObjectClient/AnimCompiles.h"
+#include "Object/ObjectClient/AnimStateCompiles.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -80,6 +81,101 @@ inline CHARINFO::~CHARINFO() {
   }
 }
 
+void CHARINFO::ChangeSkinTexture() {
+  BOOL                      hasFacialInfo;
+  HCHARGEOSET               geosetHandle;
+  const ItemDisplayInfoRec *displayInfoRec;
+  int                       i;
+
+  if (m_characterComponent) {
+    HandleClose(m_characterComponent);
+    m_characterComponent = 0;
+  }
+
+  HTEXTURE skinTexture = CharCustomizationSetSkin(m_characterModel, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.skinID, 0);
+  if (skinTexture) {
+    m_characterComponent = TexComponentCreate(skinTexture, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.skinID, 0, 1);
+    HandleClose(skinTexture);
+  }
+
+  if (m_characterComponent) {
+    CharCustomizationSetFaceTexture(
+        m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.faceID, m_characterInfo.skinID, 0
+    );
+    CharCustomizationSetFacialTexture(
+        m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.facialHairStyleID,
+        m_characterInfo.hairColorID
+    );
+  }
+
+  BEARDSTYLEDATA facialData;
+  hasFacialInfo = CharCustomizationGetBeardStyle(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.facialHairStyleID, &facialData);
+  geosetHandle = CharCustomizationCreateGeosetHandle(m_characterModel);
+  if (!geosetHandle) {
+    return;
+  }
+
+  CharCustomizationInitBaseCharacter(
+      geosetHandle, hasFacialInfo ? facialData.beardGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_BEARD],
+      hasFacialInfo ? facialData.sideBurnGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_SIDEBURN],
+      hasFacialInfo ? facialData.moustacheGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_MOUSTACHE], 2
+  );
+  CharCustomizationResetHairGeoset(geosetHandle, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
+  CharCustomizationSetHairTexture(
+      m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID, m_characterInfo.hairColorID
+  );
+
+  for (i = 0; i < 20; ++i) {
+    if (i == 17 || !m_characterInfo.inventoryItemDisplayID[i]) {
+      continue;
+    }
+
+    displayInfoRec = g_itemDisplayInfoDB.GetRecord(m_characterInfo.inventoryItemDisplayID[i]);
+    if (!displayInfoRec) {
+      SysMsgPrintf(SYSMSG_WARNING, 0x10, "ITEMDISPLAYNOTFOUND|%d", m_characterInfo.inventoryItemDisplayID[i]);
+      continue;
+    }
+
+    int inventoryType = m_characterInfo.inventoryItemType[i];
+    ObjComponentAdd(
+        m_characterInfo.sexID, m_characterInfo.raceID, 1, m_characterModel, displayInfoRec, inventoryType, (1 << i) & 0x10000, 0, 0, 0, 0
+    );
+    SetHandsState(m_characterModel, i, inventoryType);
+
+    if ((1 << i) & 0x403F8) {
+      if (m_characterComponent) {
+        CStatus status;
+        TexComponentAdd(&status, m_characterInfo.sexID, m_characterComponent, displayInfoRec, inventoryType, 1);
+      } else {
+        ReportMissingComponentTextures(m_characterInfo.raceID, m_characterInfo.sexID);
+      }
+    }
+
+    if (!i) {
+      UINT        preferredGeosets[NUM_CHARGEOSETS];
+      const UINT *geosets = 0;
+      UINT        numGeosets = 0;
+      if (hasFacialInfo) {
+        memset(preferredGeosets, 0, sizeof(preferredGeosets));
+        preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
+        preferredGeosets[CHARGEOSET_BEARD] = facialData.beardGeoset;
+        preferredGeosets[CHARGEOSET_SIDEBURN] = facialData.sideBurnGeoset;
+        preferredGeosets[CHARGEOSET_MOUSTACHE] = facialData.moustacheGeoset;
+        preferredGeosets[CHARGEOSET_EAR] = 2;
+        geosets = preferredGeosets;
+        numGeosets = NUM_CHARGEOSETS;
+      }
+      HeadGeosetHideCharGeosets(geosetHandle, displayInfoRec, m_characterInfo.raceID, geosets, numGeosets);
+    }
+    CharCustomizationAddItemGeosets(geosetHandle, displayInfoRec, inventoryType, m_characterComponent, m_characterInfo.raceID, 1);
+  }
+
+  CharCustomizationCommitItemGeosets(geosetHandle, 1);
+  CommitTexture(1);
+  CharCustomizationCommitGeosets(geosetHandle);
+  HandleClose(geosetHandle);
+}
+
 void CHARINFO::CommitTexture(int force) {
   char    errorString[512];
   CStatus status;
@@ -98,6 +194,44 @@ void CHARINFO::UpdateTabardTexture() {
   {
     ComponentApplyTabardTexture(m_characterComponent, m_eStyle, m_eColor, m_bStyle, m_bColor, m_background);
     CommitTexture(0);
+  }
+}
+
+void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
+  if (m_characterModel) {
+    HandleClose(m_characterModel);
+  }
+  if (m_petModel) {
+    HandleClose(m_petModel);
+  }
+  if (m_characterComponent) {
+    HandleClose(m_characterComponent);
+  }
+
+  m_characterModel = 0;
+  m_petModel = 0;
+  m_characterComponent = 0;
+
+  m_characterModel = ObjectModelCreate(modelName, HIER_TYPE_PLAYER, 0x100800);
+
+  ModelSetSequence(m_characterModel, ANIM_STAND, 4);
+
+  const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_characterInfo.petDisplayInfoID);
+  const CreatureModelDataRec   *modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : 0;
+
+  m_petModel = modelData ? ObjectModelCreate(modelData->m_ModelName, HIER_TYPE_UNIT, 0x100800) : 0;
+
+  if (backgroundModel) {
+    if (ModelAddLink(backgroundModel, 0, m_characterModel, 1.0f)) {
+      ChangeSkinTexture();
+      UpdateTabardTexture();
+    }
+
+    if (m_petModel) {
+      ModelAddLink(backgroundModel, 1, m_petModel, 1.0f);
+      ModelSetSequence(m_petModel, ANIM_STAND, 4);
+      CGUnit_C::InitializeTextureVariations(displayInfo, m_petModel, modelData);
+    }
   }
 }
 
@@ -219,137 +353,34 @@ void CCharSelectInfo::UpdateCharacterList() {
   FrameScript_SignalEvent(6);
 }
 
-void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
-  if (m_characterModel) {
-    HandleClose(m_characterModel);
-  }
-  if (m_petModel) {
-    HandleClose(m_petModel);
-  }
-  if (m_characterComponent) {
-    HandleClose(m_characterComponent);
-  }
-
-  m_characterModel = 0;
-  m_petModel = 0;
-  m_characterComponent = 0;
-
-  m_characterModel = ObjectModelCreate(modelName, HIER_TYPE_PLAYER, 0x100800);
-
-  ModelSetSequence(m_characterModel, ANIM_STAND, 4);
-
-  const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_characterInfo.petDisplayInfoID);
-  const CreatureModelDataRec   *modelData = displayInfo ? g_creatureModelDataDB.GetRecord(displayInfo->m_modelID) : 0;
-
-  m_petModel = modelData ? ObjectModelCreate(modelData->m_ModelName, HIER_TYPE_UNIT, 0x100800) : 0;
-
-  if (backgroundModel) {
-    if (ModelAddLink(backgroundModel, 0, m_characterModel, 1.0f)) {
-      ChangeSkinTexture();
-      UpdateTabardTexture();
-    }
-
-    if (m_petModel) {
-      ModelAddLink(backgroundModel, 1, m_petModel, 1.0f);
-      ModelSetSequence(m_petModel, ANIM_STAND, 4);
-      CGUnit_C::InitializeTextureVariations(displayInfo, m_petModel, modelData);
-    }
-  }
-}
-
-void CHARINFO::ChangeSkinTexture() {
-  BOOL                      hasFacialInfo;
-  HCHARGEOSET               geosetHandle;
-  const ItemDisplayInfoRec *displayInfoRec;
-  int                       i;
-
-  if (m_characterComponent) {
-    HandleClose(m_characterComponent);
-    m_characterComponent = 0;
-  }
-
-  HTEXTURE skinTexture = CharCustomizationSetSkin(m_characterModel, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.skinID, 0);
-  if (skinTexture) {
-    m_characterComponent = TexComponentCreate(skinTexture, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.skinID, 0, 1);
-    HandleClose(skinTexture);
-  }
-
-  if (m_characterComponent) {
-    CharCustomizationSetFaceTexture(
-        m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.faceID, m_characterInfo.skinID, 0
-    );
-    CharCustomizationSetFacialTexture(
-        m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.facialHairStyleID,
-        m_characterInfo.hairColorID
-    );
-  }
-
-  BEARDSTYLEDATA facialData;
-  hasFacialInfo = CharCustomizationGetBeardStyle(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.facialHairStyleID, &facialData);
-  geosetHandle = CharCustomizationCreateGeosetHandle(m_characterModel);
-  if (!geosetHandle) {
+void CCharSelectInfo::UpdateCharacterInfo() {
+  if (m_selectionIndex < 0 || m_selectionIndex >= (int)s_charList.Count()) {
     return;
   }
 
-  CharCustomizationInitBaseCharacter(
-      geosetHandle, hasFacialInfo ? facialData.beardGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_BEARD],
-      hasFacialInfo ? facialData.sideBurnGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_SIDEBURN],
-      hasFacialInfo ? facialData.moustacheGeoset : g_defaultGeosetIDOffsets[CHARGEOSET_MOUSTACHE], 2
-  );
-  CharCustomizationResetHairGeoset(geosetHandle, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
-  CharCustomizationSetHairTexture(
-      m_characterModel, m_characterComponent, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID, m_characterInfo.hairColorID
-  );
+  CHARINFO                   *info = &s_charList[m_selectionIndex];
+  const CreatureModelDataRec *rec = Player_C_GetModelName(info->m_characterInfo.raceID, info->m_characterInfo.sexID);
 
-  for (i = 0; i < 20; ++i) {
-    if (i == 17 || !m_characterInfo.inventoryItemDisplayID[i]) {
-      continue;
-    }
+  ASSERT(rec);
 
-    displayInfoRec = g_itemDisplayInfoDB.GetRecord(m_characterInfo.inventoryItemDisplayID[i]);
-    if (!displayInfoRec) {
-      SysMsgPrintf(SYSMSG_WARNING, 0x10, "ITEMDISPLAYNOTFOUND|%d", m_characterInfo.inventoryItemDisplayID[i]);
-      continue;
-    }
-
-    int inventoryType = m_characterInfo.inventoryItemType[i];
-    ObjComponentAdd(
-        m_characterInfo.sexID, m_characterInfo.raceID, 1, m_characterModel, displayInfoRec, inventoryType, (1 << i) & 0x10000, 0, 0, 0, 0
-    );
-    SetHandsState(m_characterModel, i, inventoryType);
-
-    if ((1 << i) & 0x403F8) {
-      if (m_characterComponent) {
-        CStatus status;
-        TexComponentAdd(&status, m_characterInfo.sexID, m_characterComponent, displayInfoRec, inventoryType, 1);
-      } else {
-        ReportMissingComponentTextures(m_characterInfo.raceID, m_characterInfo.sexID);
-      }
-    }
-
-    if (!i) {
-      UINT        preferredGeosets[NUM_CHARGEOSETS];
-      const UINT *geosets = 0;
-      UINT        numGeosets = 0;
-      if (hasFacialInfo) {
-        memset(preferredGeosets, 0, sizeof(preferredGeosets));
-        preferredGeosets[CHARGEOSET_HAIR] = CharCustomizationGetHairGeoset(m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.hairStyleID);
-        preferredGeosets[CHARGEOSET_BEARD] = facialData.beardGeoset;
-        preferredGeosets[CHARGEOSET_SIDEBURN] = facialData.sideBurnGeoset;
-        preferredGeosets[CHARGEOSET_MOUSTACHE] = facialData.moustacheGeoset;
-        preferredGeosets[CHARGEOSET_EAR] = 2;
-        geosets = preferredGeosets;
-        numGeosets = NUM_CHARGEOSETS;
-      }
-      HeadGeosetHideCharGeosets(geosetHandle, displayInfoRec, m_characterInfo.raceID, geosets, numGeosets);
-    }
-    CharCustomizationAddItemGeosets(geosetHandle, displayInfoRec, inventoryType, m_characterComponent, m_characterInfo.raceID, 1);
+  if (!rec->m_ModelName) {
+    return;
   }
 
-  CharCustomizationCommitItemGeosets(geosetHandle, 1);
-  CommitTexture(1);
-  CharCustomizationCommitGeosets(geosetHandle);
-  HandleClose(geosetHandle);
+  ClearCharacterModel();
+  ClearPetModel();
+
+  HMODEL backgroundModel = m_modelFrame ? m_modelFrame->GetModel() : 0;
+
+  info = &s_charList[m_selectionIndex];
+  info->UpdateCharacterInfo(rec->m_ModelName, backgroundModel);
+}
+
+void CCharSelectInfo::ChangeSkinTexture() {
+  if (m_selectionIndex < 0 && m_selectionIndex >= (int)s_charList.Count()) {
+    return;
+  }
+  s_charList[m_selectionIndex].ChangeSkinTexture();
 }
 
 static void SetFingersSeq(HMODEL model, UINT sequence, UINT startFinger, UINT lastFinger) {
@@ -393,36 +424,6 @@ void SetHandsState(HMODEL model, int itemSlot, int itemInventoryType) {
     return;
   }
   SetHandState(model, itemInventoryType, 8, 12);
-}
-
-void CCharSelectInfo::UpdateCharacterInfo() {
-  if (m_selectionIndex < 0 || m_selectionIndex >= (int)s_charList.Count()) {
-    return;
-  }
-
-  CHARINFO                   *info = &s_charList[m_selectionIndex];
-  const CreatureModelDataRec *rec = Player_C_GetModelName(info->m_characterInfo.raceID, info->m_characterInfo.sexID);
-
-  ASSERT(rec);
-
-  if (!rec->m_ModelName) {
-    return;
-  }
-
-  ClearCharacterModel();
-  ClearPetModel();
-
-  HMODEL backgroundModel = m_modelFrame ? m_modelFrame->GetModel() : 0;
-
-  info = &s_charList[m_selectionIndex];
-  info->UpdateCharacterInfo(rec->m_ModelName, backgroundModel);
-}
-
-void CCharSelectInfo::ChangeSkinTexture() {
-  if (m_selectionIndex < 0 && m_selectionIndex >= (int)s_charList.Count()) {
-    return;
-  }
-  s_charList[m_selectionIndex].ChangeSkinTexture();
 }
 
 void CCharSelectInfo::SelectCharacter(int index) {

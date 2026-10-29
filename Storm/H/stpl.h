@@ -5,6 +5,33 @@
 #include <new>
 #include <string.h>
 
+#ifdef _MSC_VER
+#ifdef _INC_TYPEINFO
+#define INTERNALRAWNAME raw_name
+#else
+#define INTERNALRAWNAME internal_raw_name
+class type_info {
+ public:
+  virtual ~type_info();
+  LPCSTR name() const;
+  LPCSTR internal_raw_name() const {
+    return _m_d_name;
+  };
+
+ private:
+  LPVOID _m_data;
+  char   _m_d_name[1];
+  type_info(const type_info &rhs);
+  type_info &operator=(const type_info &rhs);
+};
+#endif
+#else
+#if defined(MAC) && !defined(__typeinfo__)
+#include <typeinfo>
+#endif
+#define INTERNALRAWNAME name
+#endif
+
 class CSBasePriorityQueue;
 
 template <class T>

@@ -11,6 +11,10 @@
 #include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Item_C.h"
+#include <regex/regex.h>
 
 #include "WorldFrame.h"
 #include <Os/OsTime.h>
@@ -142,10 +146,6 @@ enum SPELLSHADOWSTYLE {
 };
 
 static SPELLSHADOWSTYLE                          s_spellShadowStyle = SPELL_NONE;
-static const DWORD                               AUTO_SIT_IDLE_TIME = 300000;
-static const DWORD                               PLAYER_MOVE_TUTORIAL_TIME = 90000;
-static const DWORD                               CAMERA_MOVE_TUTORIAL_TIME = 120000;
-static const DWORD                               AUTO_LOGOUT_IDLE_TIME = 1800000;
 static NTempest::C3Vector                        s_spellShadowPos;
 static float                                     s_spellShadowSize;
 static HTEXTURE                                  s_spellShadowTexture[2];
@@ -1047,8 +1047,10 @@ void CGWorldFrame::RenderWorld(LPVOID param) {
 void CGWorldFrame::OnWorldUpdate() {
   float elapsedSec = m_elapsedSec;
 
-  UINT idleTime = OsGetAsyncTimeMs() - m_top->m_eventTime;
+  static const DWORD AUTO_SIT_IDLE_TIME = 300000;
+  UINT               idleTime = OsGetAsyncTimeMs() - m_top->m_eventTime;
   if ((int)(idleTime - AUTO_SIT_IDLE_TIME) >= 0) {
+    static const DWORD AUTO_LOGOUT_IDLE_TIME = 1800000;
     if ((int)(idleTime - AUTO_LOGOUT_IDLE_TIME) >= 0) {
       if (!ClientServices_CharacterLoggingOut()) {
         CGChat::AddChatMessage(FrameScript_GetText("IDLE_MESSAGE", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
@@ -1062,7 +1064,9 @@ void CGWorldFrame::OnWorldUpdate() {
     }
   }
 
-  CGInputControl *inputControl = CGInputControl::GetActive();
+  static const DWORD PLAYER_MOVE_TUTORIAL_TIME = 90000;
+  static const DWORD CAMERA_MOVE_TUTORIAL_TIME = 120000;
+  CGInputControl    *inputControl = CGInputControl::GetActive();
   FATALASSERT(inputControl);
   if (!inputControl->HasPlayerMoved() && (int)(OsGetAsyncTimeMs() - inputControl->GetInitializeTime() - PLAYER_MOVE_TUTORIAL_TIME) >= 0) {
     CGTutorial::TriggerTutorial(TUTORIAL_MOVEMENT);

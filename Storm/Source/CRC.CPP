@@ -1,4 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
+#include <stdio.h>
+#include <time.h>
 
 static DWORD crctable[256] = {
     0x00000000UL, 0x77073096UL, 0xEE0E612CUL, 0x990951BAUL, 0x076DC419UL, 0x706AF48FUL, 0xE963A535UL, 0x9E6495A3UL, 0x0EDB8832UL, 0x79DCB8A4UL,

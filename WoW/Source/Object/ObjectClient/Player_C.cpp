@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object/ObjectClient/Player_C.h"
 #include "Magic/MagicClient/Spell_C.h"
@@ -358,9 +367,6 @@ struct RandomRollInfo {
   int result;
 };
 
-static const char  coinToken[3][16] = {"COPPER", "SILVER", "GOLD"};
-static const char  NONAME[7] = "NoName";
-static const UINT  DEATHBINDSOUNDID = 1141;
 static int         BROADCASTTO = 5;
 static const float AUTOMOVE_WALK_THRESHOLD_DISTANCE = 0.16666667f;
 static const float AUTOMOVE_WALK_THRESHOLD_DISTANCE_SQ = AUTOMOVE_WALK_THRESHOLD_DISTANCE * AUTOMOVE_WALK_THRESHOLD_DISTANCE;
@@ -624,11 +630,6 @@ static LPCSTR s_actionsArray[18] = {
     "DEBUGCOMBAT_NEVERDODGEMELEE",
     "DEBUGCOMBAT_NEVERPARRYMELEE",
     "DEBUGCOMBAT_NEVERBLOCKMELEE"
-};
-static const GAME_ERROR_TYPE s_playerBankErrors[3] = {
-  GERR_BANKSLOT_FAILED_TOO_MANY,
-  GERR_BANKSLOT_INSUFFICIENT_FUNDS,
-  GERR_BANKSLOT_NOTBANKER
 };
 static GAME_ERROR_TYPE s_mountResultGameErrors[11] = {
     GERR_MOUNT_INVALIDMOUNTEE,
@@ -1124,10 +1125,11 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       return 1;
 
     case SMSG_PLAYERBOUND: {
-      DWORDLONG binderID;
+      static const UINT DEATHBINDSOUNDID = 1141;
+      DWORDLONG         binderID;
       msg->Get(binderID);
       s_lastBinderID = binderID;
-      SndInterfacePlaySound(0x475, -1);
+      SndInterfacePlaySound(DEATHBINDSOUNDID, -1);
       CGChat::AddChatMessage(FrameScript_GetText("DEATHBIND_SUCCESSFUL", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
       return 1;
     }
@@ -1144,6 +1146,11 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
     }
 
     case SMSG_BUY_BANK_SLOT_RESULT: {
+      static const GAME_ERROR_TYPE s_playerBankErrors[3] = {
+        GERR_BANKSLOT_FAILED_TOO_MANY,
+        GERR_BANKSLOT_INSUFFICIENT_FUNDS,
+        GERR_BANKSLOT_NOTBANKER
+      };
       UINT error;
       msg->Get(error);
       if (error < 3) {
@@ -2672,6 +2679,7 @@ static void QuestRewardItemCallback(int id, const DWORDLONG &, LPVOID, bool gran
 }
 
 BOOL CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
+  static const char coinToken[3][16] = {"COPPER", "SILVER", "GOLD"};
   char        buf[128];
   char        coinBuf[3][64];
   int         itemsQty[5];
@@ -3624,6 +3632,7 @@ void CGPlayer_C::AcceptResurrectRequest(int accept) {
 }
 
 LPCSTR CGPlayer_C::GetModelFileName() const {
+  static const char NONAME[7] = "NoName";
   const CreatureDisplayInfoRec *displayInfo = g_creatureDisplayInfoDB.GetRecord(m_unit->displayID);
   if (!displayInfo) {
     SysMsgPrintf(SYSMSG_WARNING, 16, "INVALIDPLAYERDISPLAYID|%d|%d|%d", m_unit->displayID, m_unit->race, m_unit->sex);

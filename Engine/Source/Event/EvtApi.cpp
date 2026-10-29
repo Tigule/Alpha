@@ -1,4 +1,5 @@
 #include "EvtInt.h"
+#include <stdio.h>
 
 void ObserverInitialize();
 void ObserverDestroy();

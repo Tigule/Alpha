@@ -1,8 +1,10 @@
 #include "RibbonEmitter.h"
+#include "Os/OsTime.h"
 
 #include "Tempest/c44matrix.h"
 
 #include <math.h>
+#include <stdio.h>
 
 static const float MIN_EDGE_LIFE_SPAN = 0.25f;
 static const float NORMAL_SCALE = 1.0f;

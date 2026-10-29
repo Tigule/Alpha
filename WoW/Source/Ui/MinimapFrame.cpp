@@ -11,6 +11,10 @@
 #include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Item_C.h"
+#include <regex/regex.h>
 
 #include "MinimapFrame.h"
 #include <Os/OsTime.h>
@@ -132,7 +136,6 @@ static NTempest::C3Vector s_blipVertices[4] = {
 static TSGrowableArray<POIDIRECTIONDATA> s_POIDirectionData;
 static TSGrowableArray<OBJINFO> s_miniMapObjects[5];
 static PARTYMEMBERINFO          s_partyDirectionData[5];
-static WORD                     idx[4] = {0, 1, 3, 2};
 
 inline NTempest::CRect &NTempest::CRect::operator-=(const NTempest::CRect &value) {
   t -= value.t;
@@ -214,6 +217,34 @@ NTempest::CRect QUADDATA::NormalizeToQuad(UINT quad, NTempest::CRect clippedRect
   FATALASSERT(quad < MAX_QUADDATA);
   clippedRect -= NTempest::CRect(s_mapBoxExtents[quad].m_UL.y, s_mapBoxExtents[quad].m_UL.x, s_mapBoxExtents[quad].m_UL.y, s_mapBoxExtents[quad].m_UL.x);
   return NTempest::CRect(2.0f * clippedRect.t, 2.0f * clippedRect.l, 2.0f * clippedRect.b, 2.0f * clippedRect.r);
+}
+
+void QUADDATA::Render(UINT quad, const NTempest::CImVector &color) const {
+  FATALASSERT(quad < MAX_QUADDATA);
+
+  if (!(m_flags & 1) || !m_texture) {
+    return;
+  }
+
+  CGxTex *texture = TextureGetGxTex(m_texture, 0, 0);
+  if (!texture) {
+    return;
+  }
+
+  GxRsSet(GxRs_Texture0, texture);
+  GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
+  GxRsSet(GxRs_Texture1, TextureGetGxTex(s_minimapMaskTexture, 1, 0));
+  GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
+
+  NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
+  static WORD        vertIndices[4] = {0, 1, 2, 3};
+  GxPrimLockVertexPtrs(
+      4, verts, sizeof(NTempest::C3Vector), &normal, 0, &color, 0, 0, 0, texCoords, sizeof(NTempest::C2Vector), maskTexCoords,
+      sizeof(NTempest::C2Vector)
+  );
+  GxPrimDrawElements(GxPrim_TriangleStrip, 4, vertIndices);
+  GxPrimUnlockVertexPtrs();
+  GxRsSet(GxRs_Texture1, 0);
 }
 
 void QUADDATA::UpdateData(UINT quad, const NTempest::C2Vector centerPoint, float radius, float layoutScale) {
@@ -511,6 +542,7 @@ void CGMinimapFrame::RenderInsideSortQuads(QUADDATA *&rHead) {
 }
 
 void CGMinimapFrame::RenderInsideQuad(QUADDATA *q) {
+  static WORD idx[4] = {0, 1, 3, 2};
   NTempest::C3Vector t(q->aaBox.b.x, q->aaBox.b.y, q->sortz);
   NTempest::C3Vector geo[4] = {
       t, NTempest::C3Vector(q->aaBox.t.x, q->aaBox.b.y, q->sortz), NTempest::C3Vector(q->aaBox.t.x, q->aaBox.t.y, q->sortz),
@@ -649,75 +681,6 @@ void CGMinimapFrame::MinimapTextureCallback(
     RenderInsideTexture();
     GxDevSetRenderTarget(GxBuffers_Color, 0, 0);
     GxXformSetViewport(vp.b.x, vp.t.x, vp.b.y, vp.t.y, vp.b.z, vp.t.z);
-  }
-}
-
-void QUADDATA::Render(UINT quad, const NTempest::CImVector &color) const {
-  FATALASSERT(quad < MAX_QUADDATA);
-
-  if (!(m_flags & 1) || !m_texture) {
-    return;
-  }
-
-  CGxTex *texture = TextureGetGxTex(m_texture, 0, 0);
-  if (!texture) {
-    return;
-  }
-
-  GxRsSet(GxRs_Texture0, texture);
-  GxRsSet(GxRs_TexBlend0, GxTexBlend_Mod);
-  GxRsSet(GxRs_Texture1, TextureGetGxTex(s_minimapMaskTexture, 1, 0));
-  GxRsSet(GxRs_TexBlend1, GxTexBlend_Mod);
-
-  NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
-  static WORD        vertIndices[4] = {0, 1, 2, 3};
-  GxPrimLockVertexPtrs(
-      4, verts, sizeof(NTempest::C3Vector), &normal, 0, &color, 0, 0, 0, texCoords, sizeof(NTempest::C2Vector), maskTexCoords,
-      sizeof(NTempest::C2Vector)
-  );
-  GxPrimDrawElements(GxPrim_TriangleStrip, 4, vertIndices);
-  GxPrimUnlockVertexPtrs();
-  GxRsSet(GxRs_Texture1, 0);
-}
-
-void CGMinimapFrame::Initialize(int continentID) {
-  s_initialized = 1;
-  MinimapInitialize(continentID);
-
-  CStatus status;
-
-  s_minimapMaskTexture = TextureCreate("Textures\\MinimapMask", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
-  FATALASSERT(s_minimapMaskTexture);
-
-  s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
-  FATALASSERT(s_iconTexture);
-
-  s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
-  FATALASSERT(s_blipTexture);
-
-  s_minimapTexParams.size = 10.0f;
-
-  EGxTexFormat format = GxTex_Unknown;
-  if (GxCaps().m_rttFormat[GxTex_Argb8888]) {
-    format = GxTex_Argb8888;
-  } else if (GxCaps().m_rttFormat[GxTex_Rgb565]) {
-    format = GxTex_Rgb565;
-  } else {
-    FATALASSERT(!("CGMinimapFrame::Initialize(): can't get render target for minimap"));
-  }
-
-  GxTexCreate(256, 256, format, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1), 0, MinimapTextureCallback, s_minimapTexParams.texture);
-
-  for (int icon = 0; icon < sizeof(s_iconCoords) / sizeof(s_iconCoords[0]); ++icon) {
-    s_iconCoords[icon][0].Set((icon % 4) * 32, (icon / 4 + 1) * 32);
-    s_iconCoords[icon][1].Set((icon % 4 + 1) * 32, (icon / 4 + 1) * 32);
-    s_iconCoords[icon][2].Set((icon % 4) * 32, (icon / 4) * 32);
-    s_iconCoords[icon][3].Set((icon % 4 + 1) * 32, (icon / 4) * 32);
-
-    s_iconCoords[icon][0] *= NTempest::C2Vector(0.0078125f);
-    s_iconCoords[icon][1] *= NTempest::C2Vector(0.0078125f);
-    s_iconCoords[icon][2] *= NTempest::C2Vector(0.0078125f);
-    s_iconCoords[icon][3] *= NTempest::C2Vector(0.0078125f);
   }
 }
 
@@ -952,6 +915,47 @@ void CGMinimapFrame::Render() {
   GxXformSetProjection(saved_proj);
   GxXformSetView(saved_view);
   GxXformSetViewport(minX, maxX, minY, maxY, minZ, maxZ);
+}
+
+void CGMinimapFrame::Initialize(int continentID) {
+  s_initialized = 1;
+  MinimapInitialize(continentID);
+
+  CStatus status;
+
+  s_minimapMaskTexture = TextureCreate("Textures\\MinimapMask", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
+  FATALASSERT(s_minimapMaskTexture);
+
+  s_iconTexture = TextureCreate("Interface\\Minimap\\POIIcons", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
+  FATALASSERT(s_iconTexture);
+
+  s_blipTexture = TextureCreate("Interface\\Minimap\\ObjectIcons", CGxTexFlags(GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0);
+  FATALASSERT(s_blipTexture);
+
+  s_minimapTexParams.size = 10.0f;
+
+  EGxTexFormat format = GxTex_Unknown;
+  if (GxCaps().m_rttFormat[GxTex_Argb8888]) {
+    format = GxTex_Argb8888;
+  } else if (GxCaps().m_rttFormat[GxTex_Rgb565]) {
+    format = GxTex_Rgb565;
+  } else {
+    FATALASSERT(!("CGMinimapFrame::Initialize(): can't get render target for minimap"));
+  }
+
+  GxTexCreate(256, 256, format, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 1, 1), 0, MinimapTextureCallback, s_minimapTexParams.texture);
+
+  for (int icon = 0; icon < sizeof(s_iconCoords) / sizeof(s_iconCoords[0]); ++icon) {
+    s_iconCoords[icon][0].Set((icon % 4) * 32, (icon / 4 + 1) * 32);
+    s_iconCoords[icon][1].Set((icon % 4 + 1) * 32, (icon / 4 + 1) * 32);
+    s_iconCoords[icon][2].Set((icon % 4) * 32, (icon / 4) * 32);
+    s_iconCoords[icon][3].Set((icon % 4 + 1) * 32, (icon / 4) * 32);
+
+    s_iconCoords[icon][0] *= NTempest::C2Vector(0.0078125f);
+    s_iconCoords[icon][1] *= NTempest::C2Vector(0.0078125f);
+    s_iconCoords[icon][2] *= NTempest::C2Vector(0.0078125f);
+    s_iconCoords[icon][3] *= NTempest::C2Vector(0.0078125f);
+  }
 }
 
 void CGMinimapFrame::Shutdown() {

@@ -1,8 +1,12 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
 
 #include "Debugging.h"
 
-#include <windows.h>
 #include <stdarg.h>
 #include <stdio.h>
 

@@ -1,7 +1,8 @@
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "tga.h"
 
 #include <Os/W32/OsFile.h>
-
 #include <string.h>
 void CTgaFile::Close() {
   FREEIFUSED(m_image);

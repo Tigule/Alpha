@@ -15,6 +15,7 @@
 #include <stpl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 class HASHKEY_TEXTUREFILE {
  private:

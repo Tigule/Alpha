@@ -1,7 +1,10 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <ctype.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <time.h>
 
 typedef union _SSTR_PACKED {
   DWORD dword;

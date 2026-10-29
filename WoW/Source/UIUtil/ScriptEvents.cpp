@@ -27,7 +27,6 @@
 #include <lauxlib.h>
 #include <lua.h>
 #include <storm.h>
-#include <windows.h>
 
 struct lua_State;
 static int Script_HasFullControl(lua_State *L);

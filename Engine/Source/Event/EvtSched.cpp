@@ -5,6 +5,7 @@
 #include <new>
 #include <string.h>
 #include <stpl.h>
+#include <stdio.h>
 
 UINT OsGetProcessorCount();
 void OsNetPump(DWORD timeout);

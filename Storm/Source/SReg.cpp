@@ -1,4 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
+#include <stdio.h>
+#include <time.h>
 
 #define SREG_FLAG_HKLM    0x04
 #define SREG_FLAG_NO_BASE 0x10

@@ -1,6 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <stdarg.h>
+#include <stdio.h>
+#include <time.h>
 
 #define STORM_SERVICE_SMEM_GET_ALLOCATOR   1
 #define STORM_SERVICE_SMEM_GENERATE_REPORT 2

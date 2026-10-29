@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object/ObjectClient/Bag_C.h"
 
@@ -28,8 +37,6 @@ struct FindItemClassData {
   int classID;
   int subclassMask;
 };
-
-static const UINT inventoryFlags = 7;
 
 static BOOL GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
   GetItemTypeCountData *data = (GetItemTypeCountData *)param;
@@ -94,6 +101,7 @@ CGItem_C *CGBag_C::FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param
 }
 
 CGItem_C *CGBag_C::FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param, DWORDLONG &bagGUID, UINT &slot, UINT flags) const {
+  static const UINT inventoryFlags = 7;
   FATALASSERT(func);
 
   UINT index;

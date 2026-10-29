@@ -1,6 +1,7 @@
 #include <Base/Base.h>
 #include <Gx/Gx.h>
 #include <BLPFile/blp.h>
+#include "Os/OsTime.h"
 
 #include "Services/Lightning.h"
 
@@ -9,6 +10,7 @@
 #include "Tempest/crandom.h"
 
 #include <math.h>
+#include <stdio.h>
 
 static NTempest::CRndSeed sRandSeed;
 

@@ -145,10 +145,6 @@ void CGameTime::GameTimeSync(const WowTime &time, bool reset) {
   }
 }
 
-float CGameTime::GameTimeGetMinutesPerSecond() {
-  return m_gameMinutesPerRealSecond;
-}
-
 void CGameTime::GameTimeSync(bool reset) {
   time_t seconds;
 
@@ -170,6 +166,17 @@ void CGameTime::GameTimeSync(bool reset) {
   } else {
     GameTimeSync(time, false);
   }
+}
+
+float CGameTime::GameTimeGetMinutesPerSecond() {
+  return m_gameMinutesPerRealSecond;
+}
+
+float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {
+  float oldMinutesPerSecond = m_gameMinutesPerRealSecond;
+  m_gameMinutesPerRealSecond = min(MAXMINUTES_PER_SECOND, max(1.0f / 60.0f, minutesPerSecond));
+
+  return oldMinutesPerSecond;
 }
 
 HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, LPVOID), LPVOID user) {
@@ -201,13 +208,6 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
 
 void CGameTime::GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle) {
   HandleClose(callbackHandle);
-}
-
-float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {
-  float oldMinutesPerSecond = m_gameMinutesPerRealSecond;
-  m_gameMinutesPerRealSecond = min(MAXMINUTES_PER_SECOND, max(1.0f / 60.0f, minutesPerSecond));
-
-  return oldMinutesPerSecond;
 }
 
 float CGameTime::GameTimeGetDayProgression() {

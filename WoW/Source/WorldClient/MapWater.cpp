@@ -94,8 +94,6 @@ CGxPixelShader           *CMap::psOcean0;
 static UINT                       s_lodSubdivs[5] = {0, 1, 3, 7, 15};
 static TSGrowableArray<LODArrays> s_lodArrays;
 static const UINT                 MAX_SUBDIVS = s_lodSubdivs[4];
-static NTempest::CImVector       *pixels;
-static const float                kDeepDarken = 0.75f;
 static const float                MD_AREA_POLY_SIZE = 533.33331f;
 static const float                MD_RIVER_DEPTH_SCALE = 1.0f / 9.0f;
 static const float                MD_LIQUID_POLY_SIZE = 4.1666665f;
@@ -273,6 +271,8 @@ void CMapArea::InitWater() {
 }
 
 void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels) {
+  static NTempest::CImVector *pixels;
+  static const float kDeepDarken = 0.75f;
   ASSERT(mipLevel == 0);
   ASSERT(h == 64);
 
@@ -547,11 +547,11 @@ static void fft2(float data[], DWORD nn[], int ndim, float isign);
 
 static WaterVert          sWave2(NTempest::C3Vector(1.414f, 1.414f, 0.0f), 0.5f, 1.0f / 18.0f, 0.0f);
 static NTempest::C2Vector oceanfft[4096];
-static float              phase;
-static DWORD              nn[2] = {64, 64};
-static float              phase2;
 
 void CMap::OceanFFT() {
+  static float phase;
+  static DWORD nn[2] = {64, 64};
+  static float phase2;
   phase += CWorld::tickTimeSec * 0.2f;
   phase2 += CWorld::tickTimeSec * 0.92000002f;
   memset(oceanfft, 0, sizeof(oceanfft));

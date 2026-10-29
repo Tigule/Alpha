@@ -224,13 +224,6 @@ static const float MIN_PITCH_ANGLE = -0.34906584f;
 static const float MAX_CAMERA_DIST = 15.0f;
 static const float MIN_CAMERA_DIST = 0.0f;
 static const float CAMERA_BUMP_DIST = 0.11111111f;
-static const float m_maxSmoothZ = 2.7777777f;
-static const float ROTATION_SPEED = 0.09f;
-static const float MAX_DELTA = 0.2617994f;
-static const DWORD DELTA_Z_FREQUENCY = 100;
-static const float FOCAL_DISTANCE = 3.3333333f;
-static const float WAIST_HEIGHT = 1.6666666f;
-static const float minSmoothAngle = 0.17453292f;
 static const float minAngle = -1.5533431f;
 static const float fadeAngle = -1.1868238f;
 
@@ -522,6 +515,41 @@ BOOL CGCamera::FinishLoadingModel() {
   return 1;
 }
 
+BOOL CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param) {
+  ClearModelCamera();
+
+  CStatus status;
+  m_model = ModelCreate(modelFile, 0, &status);
+  SysMsgAdd(status, 0x10);
+  if (!m_model) {
+    return 0;
+  }
+
+  ModelSetSeqFinishedHandler(m_model, 0, ModelCameraFinished, param);
+  m_modelMatrix.Identity();
+  m_modelMatrix.Translate(origin);
+  m_modelMatrix.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
+
+  while (!ModelIsLoaded(m_model, 1)) {
+    AsyncFileReadWaitAll();
+  }
+
+  if (!ModelIsLoaded(m_model, 1)) {
+    m_flags &= ~0x40u;
+  } else if (!FinishLoadingModel()) {
+    return 0;
+  }
+
+  ResetModelCamera();
+  return 1;
+}
+
+void CGCamera::ResetModelCamera() {
+  if (m_model) {
+    ModelSetSequence(m_model, 0, 8u);
+  }
+}
+
 void CGCamera::ClearModelCamera() {
   if (m_model) {
     m_flags &= ~0x40U;
@@ -579,6 +607,17 @@ void CGCamera::SetTarget(CGObject_C *target) {
   }
 }
 
+void CGCamera::SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
+  NTempest::C3Vector facing(target.x - position.x, target.y - position.y, target.z - position.z);
+  float              magnitude = facing.Mag();
+  if (NTempest::CMath::fnotequal_(magnitude, 0.0f)) {
+    facing *= 1.0f / magnitude;
+  }
+
+  m_position = position;
+  CSimpleCamera::SetFacing(facing);
+}
+
 void CGCamera::SetPositionAndTargetWithRoll(const NTempest::C3Vector &position, const NTempest::C3Vector &target, float roll) {
   NTempest::C3Vector facing = target - position;
   float              magnitude = facing.Mag();
@@ -589,6 +628,11 @@ void CGCamera::SetPositionAndTargetWithRoll(const NTempest::C3Vector &position, 
   m_position = position;
   NTempest::C3Vector up(0.0f, NTempest::CMath::sin_(roll), NTempest::CMath::cos_(roll));
   SetFacing(facing, up);
+}
+
+void CGCamera::SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing) {
+  m_position = position;
+  CSimpleCamera::SetFacing(facing);
 }
 
 void CGCamera::ClampAngles() {
@@ -602,7 +646,30 @@ void CGCamera::ClampAngles() {
   }
 }
 
+float CGCamera::GetSmoothedHeight(float z, int moving) {
+  static const float m_maxSmoothZ = 2.7777777f;
+  if (m_savedTargetZ == 0.0f) {
+    m_savedTargetZ = z;
+    return z;
+  }
+
+  if (!moving) {
+    return m_savedTargetZ;
+  }
+
+  float delta = z - m_savedTargetZ;
+  if (NTempest::CMath::fabs_(delta) < m_maxSmoothZ) {
+    delta /= m_maxSmoothZ;
+    delta *= NTempest::CMath::fabs_(delta);
+    delta *= m_maxSmoothZ;
+  }
+  m_savedTargetZ += delta;
+  return m_savedTargetZ;
+}
+
 float CGCamera::GetSmoothedYawAngle(float yaw, int moving) {
+  static const float ROTATION_SPEED = 0.09f;
+  static const float MAX_DELTA = 0.2617994f;
   if (s_cameraSmooth->GetInt() && moving) {
     float deltaFacing = yaw - m_lastFacing;
     if (NTempest::CMath::fabs_(deltaFacing) > ROTATION_SPEED) {
@@ -635,6 +702,98 @@ float CGCamera::GetSmoothedYawAngle(float yaw, int moving) {
 
   m_lastFacing = yaw;
   return yaw;
+}
+
+void CGCamera::PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly) {
+  static const DWORD DELTA_Z_FREQUENCY = 100;
+  static const float FOCAL_DISTANCE = 3.3333333f;
+  static const float WAIST_HEIGHT = 1.6666666f;
+  int                quickly;
+  static const struct {
+    float slope;
+    float angle;
+  } tanTable[10] = {
+      {0.00f, 0.00000000f},
+      {0.09f, 0.08726646f},
+      {0.18f, 0.17453292f},
+      {0.27f, 0.26179939f},
+      {0.36f, 0.34906584f},
+      {0.47f, 0.43633231f},
+      {0.58f, 0.52359879f},
+      {0.70f, 0.61086523f},
+      {0.84f, 0.69813168f},
+      {1.00f, 0.78539818f},
+  };
+  static const float minSmoothAngle = 0.17453292f;
+
+  if (!s_cameraSmooth->GetInt()) {
+    return;
+  }
+  if ((m_flags & 0x8) || (m_flags & 0x7) != 1) {
+    return;
+  }
+
+  DWORD nextUpdate;
+  if (moving || !turning) {
+    quickly = 0;
+    nextUpdate = m_lastDeltaZ + DELTA_Z_FREQUENCY;
+  } else {
+    quickly = 1;
+    nextUpdate = m_lastDeltaZ + 25;
+  }
+
+  if (!updateOnly && (long)(timestamp - nextUpdate) < 0) {
+    return;
+  }
+  m_lastDeltaZ = timestamp;
+
+  NTempest::C3Vector pos[5];
+  position.z += WAIST_HEIGHT;
+  pos[0] = position;
+
+  NTempest::C3Vector direction(NTempest::CMath::cos_(facing), NTempest::CMath::sin_(facing), 0.0f);
+  pos[1] = position + direction * FOCAL_DISTANCE;
+  pos[2] = pos[1];
+
+  float dist = 1.0f;
+  CWorld::Intersect(&pos[0], &pos[1], 0.0f, &pos[2], &dist, 0x111);
+
+  pos[2] = NTempest::C3Vector(pos[2].x - direction.x * 0.27777779f, pos[2].y - direction.y * 0.27777779f, pos[2].z);
+  pos[3] = NTempest::C3Vector(pos[2].x, pos[2].y, pos[2].z - 7.1111112f);
+  pos[4] = pos[3];
+  dist = 1.0f;
+  CWorld::Intersect(&pos[2], &pos[3], 0.0f, &pos[4], &dist, 0x111);
+
+  float slope = (pos[4].z - pos[2].z + WAIST_HEIGHT)
+              / NTempest::CMath::sqrt_((pos[2].y - pos[0].y) * (pos[2].y - pos[0].y) + (pos[2].x - pos[0].x) * (pos[2].x - pos[0].x));
+
+  float sign;
+  if (slope < 0.0f) {
+    slope = -slope;
+    sign = 1.0f;
+  } else {
+    sign = -1.0f;
+  }
+
+  float smoothingAngle = 0.0f;
+  int   index = 10;
+  do {
+    --index;
+    if (slope >= tanTable[index].slope) {
+      float angle = tanTable[index].angle;
+      if (angle > minSmoothAngle) {
+        smoothingAngle = (angle - minSmoothAngle) * sign;
+      } else {
+        smoothingAngle = 0.0f;
+      }
+      break;
+    }
+  } while (index);
+  if (updateOnly) {
+    m_smoothingAngle = smoothingAngle;
+  } else {
+    SetSmoothingAngle(smoothingAngle, timestamp, quickly);
+  }
 }
 
 float CGCamera::GetCameraDistance(float cameraDist, const NTempest::C3Vector &targetPosition) {
@@ -910,25 +1069,6 @@ void CGCamera::EnableFreeLook() {
   SetModeFreeLook();
 }
 
-void CGCamera::SetModeFreeLook() {
-  if (!(m_flags & 0x8)) {
-    m_flags |= 0x8;
-    CGGameUI::HideCursor();
-    EventSetMouseMode(MOUSE_MODE_RELATIVE, 0);
-    CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
-    FATALASSERT(worldFrame);
-    worldFrame->OnMouseModeRelative();
-    SysMsgAdd("Camera FREELOOK", SYSMSG_INFO, 4);
-    m_previousPitch = m_pitch;
-    if (!(m_flags & 0x7)) {
-      CGObject_C *target = ClntObjMgrObjectPtr(m_target, __FILE__, __LINE__);
-      FATALASSERT(target);
-      m_yaw = target->GetFacing();
-    }
-    m_yawFreelookStart = m_yaw;
-  }
-}
-
 void CGCamera::DisableFreeLook(int sticky) {
   SetModeNormal();
   m_distance = m_desiredDistance;
@@ -969,18 +1109,6 @@ void CGCamera::DisableFreeLook(int sticky) {
   m_desiredPitch = m_pitch;
 }
 
-void CGCamera::SetModeNormal() {
-  if (m_flags & 0x8) {
-    m_flags &= ~0x8;
-    CGGameUI::ShowCursor();
-    EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
-    CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
-    FATALASSERT(worldFrame);
-    worldFrame->OnMouseModeNormal();
-    SysMsgAdd("Camera NORMAL", SYSMSG_INFO, 4);
-  }
-}
-
 void CGCamera::CreateViewFromParams(int view, float dist, float pitch, float yaw) {
   FATALASSERT((view > 0) && (view < MAX_CAMERA_VIEWS));
   m_views[view].dist = dist;
@@ -990,6 +1118,18 @@ void CGCamera::CreateViewFromParams(int view, float dist, float pitch, float yaw
 
 void CGCamera::CreateViewFromCamera(int view) {
   CreateViewFromParams(view, m_desiredDistance, m_desiredPitch - m_smoothingAngle, m_desiredYaw);
+}
+
+void CGCamera::CycleView() {
+  int view = (m_flags & 0x7) + m_cycleDirection;
+  if (view >= MAX_CAMERA_VIEWS) {
+    view = 3;
+    m_cycleDirection = -m_cycleDirection;
+  } else if (view < 0) {
+    m_cycleDirection = -m_cycleDirection;
+    view = 1;
+  }
+  SetView(view);
 }
 
 void CGCamera::NextView() {
@@ -1089,6 +1229,37 @@ void CGCamera::StopMotion(CGCameraMotion move, DWORD timestamp) {
   if (m_motionMask & motion) {
     m_motionStop[move] = timestamp;
     m_motionMask |= 1 << (2 * move + 1);
+  }
+}
+
+void CGCamera::SetModeNormal() {
+  if (m_flags & 0x8) {
+    m_flags &= ~0x8;
+    CGGameUI::ShowCursor();
+    EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
+    CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+    FATALASSERT(worldFrame);
+    worldFrame->OnMouseModeNormal();
+    SysMsgAdd("Camera NORMAL", SYSMSG_INFO, 4);
+  }
+}
+
+void CGCamera::SetModeFreeLook() {
+  if (!(m_flags & 0x8)) {
+    m_flags |= 0x8;
+    CGGameUI::HideCursor();
+    EventSetMouseMode(MOUSE_MODE_RELATIVE, 0);
+    CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
+    FATALASSERT(worldFrame);
+    worldFrame->OnMouseModeRelative();
+    SysMsgAdd("Camera FREELOOK", SYSMSG_INFO, 4);
+    m_previousPitch = m_pitch;
+    if (!(m_flags & 0x7)) {
+      CGObject_C *target = ClntObjMgrObjectPtr(m_target, __FILE__, __LINE__);
+      FATALASSERT(target);
+      m_yaw = target->GetFacing();
+    }
+    m_yawFreelookStart = m_yaw;
   }
 }
 
@@ -1258,6 +1429,8 @@ void CGCamera::CheckUnderwater() {
   }
 }
 
+static char *modeText[5] = {"FIRST_PERSON", "THIRD_PERSON_A", "THIRD_PERSON_B", "THIRD_PERSON_C", "THIRD_PERSON_D"};
+
 BOOL CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
   if (param) {
     CGCamera *camera = (CGCamera *)param;
@@ -1366,111 +1539,6 @@ NTempest::C3Vector CGCamera::Up() const {
   return CSimpleCamera::Up() * ParentToWorld();
 }
 
-static char *modeText[5] = {"FIRST_PERSON", "THIRD_PERSON_A", "THIRD_PERSON_B", "THIRD_PERSON_C", "THIRD_PERSON_D"};
-
-void CGCamera::SetView(int newView) {
-  FATALASSERT(newView < MAX_CAMERA_VIEWS);
-
-  if ((m_flags & 0x7) == newView) {
-    m_zoomSmoothingTimestamp = 0;
-    if (!(m_flags & 0x10)) {
-      m_pitchSmoothingTimestamp = 0;
-    }
-    m_yawSmoothingTimestamp = 0;
-    return;
-  }
-
-  SysMsgPrintf(SYSMSG_INFO, 4, "Camera view %s", modeText[newView]);
-  DWORD timestamp = OsGetAsyncTimeMs();
-  m_flags = (m_flags & ~0x7) | newView;
-  SetDesiredDistance(m_views[newView].dist, timestamp);
-  SetDesiredPitchAngle(m_views[newView].pitch, 0.0f, timestamp);
-  SetDesiredYawAngle(m_views[newView].yaw, 0.0f, timestamp);
-}
-
-void CGCamera::CycleView() {
-  int view = (m_flags & 0x7) + m_cycleDirection;
-  if (view >= MAX_CAMERA_VIEWS) {
-    view = 3;
-    m_cycleDirection = -m_cycleDirection;
-  } else if (view < 0) {
-    m_cycleDirection = -m_cycleDirection;
-    view = 1;
-  }
-  SetView(view);
-}
-
-void CGCamera::ResetModelCamera() {
-  if (m_model) {
-    ModelSetSequence(m_model, 0, 8u);
-  }
-}
-
-BOOL CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param) {
-  ClearModelCamera();
-
-  CStatus status;
-  m_model = ModelCreate(modelFile, 0, &status);
-  SysMsgAdd(status, 0x10);
-  if (!m_model) {
-    return 0;
-  }
-
-  ModelSetSeqFinishedHandler(m_model, 0, ModelCameraFinished, param);
-  m_modelMatrix.Identity();
-  m_modelMatrix.Translate(origin);
-  m_modelMatrix.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
-
-  while (!ModelIsLoaded(m_model, 1)) {
-    AsyncFileReadWaitAll();
-  }
-
-  if (!ModelIsLoaded(m_model, 1)) {
-    m_flags &= ~0x40u;
-  } else if (!FinishLoadingModel()) {
-    return 0;
-  }
-
-  ResetModelCamera();
-  return 1;
-}
-
-void CGCamera::SetPositionAndTarget(const NTempest::C3Vector &position, const NTempest::C3Vector &target) {
-  NTempest::C3Vector facing(target.x - position.x, target.y - position.y, target.z - position.z);
-  float              magnitude = facing.Mag();
-  if (NTempest::CMath::fnotequal_(magnitude, 0.0f)) {
-    facing *= 1.0f / magnitude;
-  }
-
-  m_position = position;
-  CSimpleCamera::SetFacing(facing);
-}
-
-void CGCamera::SetPositionAndFacing(const NTempest::C3Vector &position, const NTempest::C3Vector &facing) {
-  m_position = position;
-  CSimpleCamera::SetFacing(facing);
-}
-
-float CGCamera::GetSmoothedHeight(float z, int moving) {
-  if (m_savedTargetZ == 0.0f) {
-    m_savedTargetZ = z;
-    return z;
-  }
-
-  if (!moving) {
-    return m_savedTargetZ;
-  }
-
-  float delta = z - m_savedTargetZ;
-  if (NTempest::CMath::fabs_(delta) < m_maxSmoothZ) {
-    delta /= m_maxSmoothZ;
-    delta *= NTempest::CMath::fabs_(delta);
-    delta *= m_maxSmoothZ;
-  }
-  m_savedTargetZ += delta;
-  return m_savedTargetZ;
-}
-
 void CGCamera::SetDesiredDistance(float desiredDistance, DWORD timestamp) {
   if (NTempest::CMath::fnotequal_(m_desiredDistance, desiredDistance)) {
     m_zoomTime = NTempest::CMath::fabs_((desiredDistance - m_distance) / (desiredDistance - m_desiredDistance)) * s_cameraSmoothingTime->GetFloat();
@@ -1544,90 +1612,22 @@ void CGCamera::SetSmoothingAngle(float smoothingAngle, DWORD timestamp, int quic
   m_smoothingAngle = smoothingAngle;
 }
 
-void CGCamera::PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, float facing, int moving, int turning, int updateOnly) {
-  int quickly;
-  static const struct {
-    float slope;
-    float angle;
-  } tanTable[10] = {
-      {0.00f, 0.00000000f},
-      {0.09f, 0.08726646f},
-      {0.18f, 0.17453292f},
-      {0.27f, 0.26179939f},
-      {0.36f, 0.34906584f},
-      {0.47f, 0.43633231f},
-      {0.58f, 0.52359879f},
-      {0.70f, 0.61086523f},
-      {0.84f, 0.69813168f},
-      {1.00f, 0.78539818f},
-  };
+void CGCamera::SetView(int newView) {
+  FATALASSERT(newView < MAX_CAMERA_VIEWS);
 
-  if (!s_cameraSmooth->GetInt()) {
-    return;
-  }
-  if ((m_flags & 0x8) || (m_flags & 0x7) != 1) {
-    return;
-  }
-
-  DWORD nextUpdate;
-  if (moving || !turning) {
-    quickly = 0;
-    nextUpdate = m_lastDeltaZ + DELTA_Z_FREQUENCY;
-  } else {
-    quickly = 1;
-    nextUpdate = m_lastDeltaZ + 25;
-  }
-
-  if (!updateOnly && (long)(timestamp - nextUpdate) < 0) {
-    return;
-  }
-  m_lastDeltaZ = timestamp;
-
-  NTempest::C3Vector pos[5];
-  position.z += WAIST_HEIGHT;
-  pos[0] = position;
-
-  NTempest::C3Vector direction(NTempest::CMath::cos_(facing), NTempest::CMath::sin_(facing), 0.0f);
-  pos[1] = position + direction * FOCAL_DISTANCE;
-  pos[2] = pos[1];
-
-  float dist = 1.0f;
-  CWorld::Intersect(&pos[0], &pos[1], 0.0f, &pos[2], &dist, 0x111);
-
-  pos[2] = NTempest::C3Vector(pos[2].x - direction.x * 0.27777779f, pos[2].y - direction.y * 0.27777779f, pos[2].z);
-  pos[3] = NTempest::C3Vector(pos[2].x, pos[2].y, pos[2].z - 7.1111112f);
-  pos[4] = pos[3];
-  dist = 1.0f;
-  CWorld::Intersect(&pos[2], &pos[3], 0.0f, &pos[4], &dist, 0x111);
-
-  float slope = (pos[4].z - pos[2].z + WAIST_HEIGHT)
-              / NTempest::CMath::sqrt_((pos[2].y - pos[0].y) * (pos[2].y - pos[0].y) + (pos[2].x - pos[0].x) * (pos[2].x - pos[0].x));
-
-  float sign;
-  if (slope < 0.0f) {
-    slope = -slope;
-    sign = 1.0f;
-  } else {
-    sign = -1.0f;
-  }
-
-  float smoothingAngle = 0.0f;
-  int   index = 10;
-  do {
-    --index;
-    if (slope >= tanTable[index].slope) {
-      float angle = tanTable[index].angle;
-      if (angle > minSmoothAngle) {
-        smoothingAngle = (angle - minSmoothAngle) * sign;
-      } else {
-        smoothingAngle = 0.0f;
-      }
-      break;
+  if ((m_flags & 0x7) == newView) {
+    m_zoomSmoothingTimestamp = 0;
+    if (!(m_flags & 0x10)) {
+      m_pitchSmoothingTimestamp = 0;
     }
-  } while (index);
-  if (updateOnly) {
-    m_smoothingAngle = smoothingAngle;
-  } else {
-    SetSmoothingAngle(smoothingAngle, timestamp, quickly);
+    m_yawSmoothingTimestamp = 0;
+    return;
   }
+
+  SysMsgPrintf(SYSMSG_INFO, 4, "Camera view %s", modeText[newView]);
+  DWORD timestamp = OsGetAsyncTimeMs();
+  m_flags = (m_flags & ~0x7) | newView;
+  SetDesiredDistance(m_views[newView].dist, timestamp);
+  SetDesiredPitchAngle(m_views[newView].pitch, 0.0f, timestamp);
+  SetDesiredYawAngle(m_views[newView].yaw, 0.0f, timestamp);
 }

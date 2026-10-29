@@ -31,6 +31,7 @@
 #include "Ui/GameUI.h"
 #include "WowServices/WDataStore.h"
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
+#include <regex/regex.h>
 
 void BotClientSetAccount(LPCSTR accountName, LPCSTR password);
 

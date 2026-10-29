@@ -1,8 +1,12 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
 
 #include "OsMemory.h"
-
-#include <windows.h>
+#include <stdio.h>
 
 COsSharedMemory::COsSharedMemory() : m_data(0), m_size(0) {
   *(HANDLE *)m_opaqueData = 0;

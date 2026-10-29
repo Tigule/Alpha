@@ -18,14 +18,6 @@ LISTDECL(IGXUTEXTLINE, g_freeTextLines);
 LISTDECL(CGxString, g_freeStrings);
 LISTDECL(CGxString, g_strings);
 
-static float                                        leftPixelAdjustment;
-static float                                        rightPixelAdjustment;
-static float                                        bottomPixelAdjustment;
-static float                                        topPixelAdjustment;
-static int                                          adjustmentsInitialized;
-static int                                          pixelCenterOnEdge;
-static int                                          initialized;
-static const BYTE                                   pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
 static const float                                  ONEOVERTEXSIZE = 1.0f / 256.0f;
 static const float                                  ONEHALFONEOVERTEXSIZE = ONEOVERTEXSIZE * 0.5f;
 static TSHashTable<STRINGVIEWMATRICES, HASHKEY_PTR> s_stringViewMatrices;
@@ -425,6 +417,11 @@ void CGxString::InitializeTextLine(
     UINT                     *texturePagesUsedFlag,
     HYPERLINKPARSEINFO       &info
 ) {
+  static float leftPixelAdjustment;
+  static float rightPixelAdjustment;
+  static float bottomPixelAdjustment;
+  static float topPixelAdjustment;
+  static int adjustmentsInitialized;
   ASSERT(m_currentFace);
   ASSERT(currentText);
   ASSERT(texturePagesUsedFlag);
@@ -739,6 +736,8 @@ GLYPHBITMAPDATA::~GLYPHBITMAPDATA() {
 }
 
 void CHARCODEDESC::GenerateTextureCoords(UINT rowNumber, UINT glyphSide) {
+  static int pixelCenterOnEdge;
+  static int initialized;
   ASSERT(bitmapData);
   ASSERT(glyphSide);
 
@@ -954,6 +953,7 @@ void TEXTURECACHE::PasteGlyphNonOutlinedMonochrome(GLYPHBITMAPDATA *glyphData, D
 }
 
 void TEXTURECACHE::PasteGlyphOutlinedAA(GLYPHBITMAPDATA *glyphData, DWORD *dst, int thick) {
+  static const BYTE pixelsLitLevels[10] = {0x00, 0x1F, 0x1F, 0x3F, 0x5F, 0x7F, 0x9F, 0xBF, 0xDF, 0xFF};
   ASSERT(glyphData);
   ASSERT(dst);
   ASSERT(glyphData->m_data);

@@ -331,7 +331,9 @@ CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vecto
 
 CMapDoodadDef *
 CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileName, UINT mapObjDefId, NTempest::C44Matrix &mapObjDefMat) {
-  CMapDoodadDef *doodadDef = doodadDefHash.Ptr(doodadRef, HASHKEY_DWORD(mapObjDefId));
+  static const BYTE MIN_DIRCOLOR = 112;
+  static const BYTE MAX_AMBIENT = 96;
+  CMapDoodadDef    *doodadDef = doodadDefHash.Ptr(doodadRef, HASHKEY_DWORD(mapObjDefId));
   if (doodadDef) {
     return doodadDef;
   }
@@ -357,7 +359,7 @@ CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileNam
   doodadDef->mat.Scale(doodadDef->scale);
   doodadDef->lMat = doodadDef->mat;
   doodadDef->mat *= mapObjDefMat;
-  doodadDef->AdjustLightmap(smoDoodadDef.color, doodadDef->interiorDirColor, 112, doodadDef->ambient, 96);
+  doodadDef->AdjustLightmap(smoDoodadDef.color, doodadDef->interiorDirColor, MIN_DIRCOLOR, doodadDef->ambient, MAX_AMBIENT);
   return doodadDef;
 }
 

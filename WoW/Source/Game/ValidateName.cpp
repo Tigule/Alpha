@@ -13,7 +13,6 @@
 #include <storm.h>
 #include <stpl.h>
 
-static const char GRAVE = '`';
 static WORD Valid_Korean[0x92E] = {
 #include "Game/ValidKorean.inl"
 };
@@ -60,6 +59,7 @@ static VALIDATE_NAME_RESULT ValidateName(WOW_LOCALE locale, WORD *validChars, LP
     return NAME_FAILURE;
   }
 
+  static const char GRAVE = '`';
   if (*name == GRAVE) {
     return NAME_STARTS_WITH_GRAVE;
   }

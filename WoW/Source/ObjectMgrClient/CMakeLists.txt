@@ -10,5 +10,5 @@ target_include_directories(ObjectMgrClient PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(ObjectMgrClient PRIVATE /Gr /Z7)
+    target_compile_options(ObjectMgrClient PRIVATE /Gr /Zi)
 endif()

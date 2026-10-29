@@ -17,6 +17,45 @@ typedef char            *pointer;
 
 namespace NTempest {
 
+  enum ETempestError {
+    eSuccess = 0,
+    eFailure = 1,
+    eFatalErr = 1,
+    eIOErr = 100,
+    eEndOfFileErr = 101,
+    eFileNotFoundErr = 102,
+    eDirNotFoundErr = 103,
+    eDiskFullErr = 104,
+    ePathErr = 105,
+    ePermissionErr = 106,
+    eFormatErr = 200,
+    eVersionErr = 201,
+    eTagcodeErr = 202,
+    eKeycodeErr = 203,
+    eNotFoundErr = 204,
+    eDuplicatedErr = 205,
+    eDamagedErr = 206,
+    eMemoryErr = 207,
+    eMemManagErr = 208,
+    eExpansionErr = 209,
+    eCreationErr = 210,
+    eWrongTypeErr = 211,
+    eStatusErr = 212,
+    eParamErr = 213,
+    eInUseErr = 214,
+    eBusyErr = 215,
+    eTooManyErr = 216,
+    eNotEnoughErr = 217,
+    eBufferErr = 218,
+    eSizeErr = 219,
+    eNestingErr = 220,
+    eCanceledErr = 300,
+    eCompletedErr = 301,
+    eHandledErr = 302,
+    eUnimplemErr = 303,
+    eErrBaseU_ = 4095
+  };
+
   class CMath {
    protected:
     static DWORD left1_(DWORD x) {
@@ -66,15 +105,15 @@ namespace NTempest {
       return (float)exp(x);
     }
 
-    static short ftol_round_n32768_32767_(float x) {
+    static int16 ftol_round_n32768_32767_(real x) {
       return (short)(x + (x < 0.0f ? -0.5f : 0.5f));
     }
 
-    static short ftol_n32767_32767_(float x) {
+    static int16 ftol_n32767_32767_(real x) {
       return (short)x;
     }
 
-    static BYTE ftol_round_0_256_(float x) {
+    static uint8 ftol_round_0_256_(real x) {
       if (!(x >= -0.5f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= -0.5f", "x", x);
       }
@@ -85,7 +124,7 @@ namespace NTempest {
       return (BYTE)(*(DWORD *)&x >> 14);
     }
 
-    static BYTE ftol_0_256_(float x) {
+    static uint8 ftol_0_256_(real x) {
       if (!(x >= 0.0f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x >= 0.0f", "x", x);
       }
@@ -96,39 +135,39 @@ namespace NTempest {
       return (BYTE)(*(DWORD *)&x >> 14);
     }
 
-    static BYTE ftol_0_1_(float x) {
+    static uint8 ftol_0_1_(real x) {
       if (x < 0.0f) x = 0.0f; if (x > 1.0f) x = 1.0f; return ftol_0_256_(x * 255.0f);
     }
 
-    static char iabs_(char x) {
+    static int8 iabs_(int8 x) {
       return x < 0 ? -x : x;
     }
 
-    static short iabs_(short x) {
+    static int16 iabs_(int16 x) {
       return x < 0 ? -x : x;
     }
 
-    static long iabs_(long x) {
+    static int32 iabs_(int32 x) {
       return x > 0 ? x : -x;
     }
 
-    static LONGLONG iabs_(LONGLONG x) {
+    static int64 iabs_(int64 x) {
       return x < 0 ? -x : x;
     }
 
-    static char inabs_(char x) {
+    static int8 inabs_(int8 x) {
       return x > 0 ? -x : x;
     }
 
-    static short inabs_(short x) {
+    static int16 inabs_(int16 x) {
       return x > 0 ? -x : x;
     }
 
-    static long inabs_(long x) {
+    static int32 inabs_(int32 x) {
       return x > 0 ? -x : x;
     }
 
-    static LONGLONG inabs_(LONGLONG x) {
+    static int64 inabs_(int64 x) {
       return x > 0 ? -x : x;
     }
 
@@ -252,21 +291,21 @@ namespace NTempest {
       return fequal8_(x, y) ? y : x;
     }
 
-    static DWORD fuint_n(float r) {
+    static uint32 fuint_n(real r) {
       if (!(r >= .0f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "r >= .0f", "r", r);
       }
       return r + 0.5f;
     }
 
-    static DWORD fuint_(float r) {
+    static uint32 fuint_(real r) {
       if (!(r >= .0f)) {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "r >= .0f", "r", r);
       }
       return (DWORD)r;
     }
 
-    static DWORD fuint_pi(float r) {
+    static uint32 fuint_pi(real r) {
       return (DWORD)(r + 0.5f);
     }
 
@@ -290,19 +329,19 @@ namespace NTempest {
       return (long)(x + (x < 0.0f ? -0.5f : 0.5f));
     }
 
-    static float int32asreal_(long x) {
+    static real int32asreal_(int32 x) {
       return *(float *)&x;
     }
 
-    static long realasint32_(float x) {
+    static int32 realasint32_(real x) {
       return *(long *)&x;
     }
 
-    static double int64aslreal_(LONGLONG x) {
+    static lreal int64aslreal_(int64 x) {
       return *(double *)&x;
     }
 
-    static LONGLONG lrealasint64_(double x) {
+    static int64 lrealasint64_(lreal x) {
       return *(LONGLONG *)&x;
     }
 

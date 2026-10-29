@@ -1,7 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <stdarg.h>
 #include <stdio.h>
+#include <time.h>
 
 void __cdecl SOutputDebugString(LPCSTR format, ...) {
   char    buffer[0x100];

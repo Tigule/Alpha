@@ -1,7 +1,10 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <malloc.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 
 static BYTE pads[64] = {0x80};
 

@@ -1,6 +1,8 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <sys/stat.h>
+#include <stdio.h>
 
 SDIR *APIENTRY SFile::OpenDir(LPCSTR name) {
   SDIR *dir = NEW(SDIR);

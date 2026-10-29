@@ -1,5 +1,8 @@
-#include "Base.h"
+#include <Base/Base.h>
+#include <time.h>
+
 #include "RCString.h"
+#include <stdio.h>
 
 void BaseFileInitialize();
 void BaseFileDestroy();

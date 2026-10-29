@@ -10,5 +10,5 @@ target_include_directories(ObjectAlloc PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(ObjectAlloc PRIVATE /Gr /Z7)
+    target_compile_options(ObjectAlloc PRIVATE /Gr /Zi)
 endif()

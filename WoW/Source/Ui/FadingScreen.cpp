@@ -11,6 +11,10 @@
 #include "UIUtil/InputControl.h"
 #include "WorldFrame.h"
 #include "GameUI.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "Object/ObjectClient/Item_C.h"
+#include <regex/regex.h>
 
 #include <Base/Handle.h>
 #include <Event/EvtApi.h>
@@ -21,7 +25,6 @@
 #include <Tempest/c3vector.h>
 #include <Tempest/cimvector.h>
 
-static WORD indices[4] = {0, 1, 2, 3};
 
 enum {
   FADING_NONE = 0,
@@ -75,6 +78,7 @@ static void FadingScreenCleanup() {
 }
 
 static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
+  static WORD indices[4] = {0, 1, 2, 3};
   static NTempest::C3Vector position[4] = {
       NTempest::C3Vector(0.0f, 0.0f, 0.0f), NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(0.0f, 1.0f, 0.0f),
       NTempest::C3Vector(1.0f, 1.0f, 0.0f)

@@ -258,9 +258,11 @@ void CMapDoodadDef::Update(const NTempest::C44Matrix &newMat) {
 }
 
 void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) {
-  static NTempest::C3Vector dirs[6] = {NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f),
-                                       NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
-                                       NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f)};
+  static const NTempest::C3Vector dirs[6] = {NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, -1.0f),
+                                             NTempest::C3Vector(1.0f, 0.0f, 0.0f), NTempest::C3Vector(-1.0f, 0.0f, 0.0f),
+                                             NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.0f, -1.0f, 0.0f)};
+  static const BYTE  MIN_DIRCOLOR = 112;
+  static const BYTE  MAX_AMBIENT = 96;
   CMapObj           *mapObj = mapObjDef->mapObj;
   NTempest::C3Vector localPos = pos * mapObjDef->invMat;
   float              invScale = 1.0f / lMat.Row0AsVec3()->Mag();
@@ -289,7 +291,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
       }
 
       if (closestT != FLT_MAX) {
-        AdjustLightmap(closestC, interiorDirColor, 112, ambient, 96);
+        AdjustLightmap(closestC, interiorDirColor, MIN_DIRCOLOR, ambient, MAX_AMBIENT);
         return;
       }
     }

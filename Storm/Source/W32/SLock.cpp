@@ -1,5 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include "ISThread.h"
+#include <stdio.h>
+#include <time.h>
 
 void __cdecl SOutputDebugString(LPCSTR format, ...);
 
@@ -59,7 +63,6 @@ struct CDebugLockEntry {
 #define SRW_EVENT_SLOT_COUNT 2048
 #define SRW_EVENT_VALUE_MASK 0xFFE00000UL
 
-static long          s_dupcount;
 static CInitCritSect s_initCritsect;
 static long          s_initCount;
 static DWORD         s_spinCount = 1;
@@ -205,6 +208,7 @@ void SRWLock::IOsRWLockDecRef() {
 }
 
 BOOL SRWLock::IWaitAndCheckForDeadlock(LPVOID hevent) {
+  static long s_dupcount;
   if (WaitForSingleObject(hevent, 60000) != WAIT_OBJECT_0) {
     SInterlockedIncrement(&s_dupcount);
     CDebugSCritSect::DumpAllEntries();

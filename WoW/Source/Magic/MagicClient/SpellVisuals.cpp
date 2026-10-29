@@ -18,7 +18,7 @@
 #include "DB/DBClient/AutoCode/SpellVisualPrecastTransitionsRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualRec.h"
 #include "Client.h"
-#include "Object/ObjectClient/AnimCompiles.h"
+#include "Object/ObjectClient/AnimStateCompiles.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
@@ -1366,8 +1366,9 @@ void SpellVisualsHandleSpellStartMisses(
     for (UINT i = 0; i < targets.Count(); ++i) {
       CGObject_C *targetObject = ClntObjMgrObjectPtr(targets[i], __FILE__, __LINE__);
       if (targetObject && targetObject->IsA(TYPE_UNIT) && caster->GetGUID() == ClntObjMgrGetActivePlayer()) {
-        CGUnit_C *target = (CGUnit_C *)targetObject;
-        if (srec->m_attributes & 0x404) {
+        CGUnit_C        *target = (CGUnit_C *)targetObject;
+        static const int COMBATSWINGSPELL = 0x404;
+        if (srec->m_attributes & COMBATSWINGSPELL) {
           CGPlayer_C::AddDeferredSpellMiss(targets[i], target->AdjustVictimState(missReasons[i]), spellID);
         } else {
           target->AddWorldText(missReasons[i]);

@@ -1,4 +1,5 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "FileCache.h"
 
@@ -6,6 +7,7 @@
 #include <stpl.h>
 
 #include <new>
+#include <stdio.h>
 
 struct PrefetchNode;
 

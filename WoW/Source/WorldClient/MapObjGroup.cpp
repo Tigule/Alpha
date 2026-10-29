@@ -33,7 +33,6 @@ const EGxTexFormat      CMapObjGroup::LIGHTMAP_FORMAT = GxTex_Dxt1;
 UINT                    CMapObjGroup::rDrawSharedLiquidFirst;
 UINT                    CMapObjGroup::rDrawSharedLiquidToggle;
 
-static float *t[16];
 
 CGxBuf *CMapObjGroup::AllocExtGxBuf(UINT nVerts, UINT nIndices) {
   if (!extGxBufFreeList.Count()) {
@@ -447,6 +446,7 @@ UINT CMapObjGroup::SphereIntersectPoly(const NTempest::CAaSphere &sphere, const 
 }
 
 bool CMapObjGroup::PointInPoly(const NTempest::C3Vector *p, const UINT numIndicies, const WORD *indicies, const NTempest::C3Vector *n) {
+  static float *t[16];
   ASSERT(p);
   ASSERT(indicies);
 

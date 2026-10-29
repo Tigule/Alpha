@@ -14,7 +14,7 @@ set_target_properties(UpdateClient PROPERTIES
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(UpdateClient PRIVATE /Gr /Z7)
+    target_compile_options(UpdateClient PRIVATE /Gr /Zi)
     target_link_libraries(UpdateClient PRIVATE unicows msvcrt)
 endif()
 

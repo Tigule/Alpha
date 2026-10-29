@@ -1,7 +1,11 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <SAPIEXTEND.H>
 #include <ctype.h>
 #include <imagehlp.h>
+#include <stdio.h>
+#include <time.h>
 
 enum {
   LOG_DEFAULT_OPTIONS_ONLY = 0,

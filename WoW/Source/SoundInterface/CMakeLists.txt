@@ -24,5 +24,5 @@ target_include_directories(SoundInterface PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(SoundInterface PRIVATE /Gr /Z7)
+    target_compile_options(SoundInterface PRIVATE /Gr /Zi)
 endif()

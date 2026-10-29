@@ -25,7 +25,6 @@ int  CGxDeviceOpenGl::s_convertDataType[8] = {
     0, GL_UNSIGNED_INT_8_8_8_8_REV_EXT, GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT, GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT, GL_UNSIGNED_SHORT_5_6_5_EXT, 0, 0, 0
 };
 
-static CGxTex *tex;
 
 void CGxDeviceOpenGl::BindTexture(CGxTex *texId, UINT tmu) {
   UINT tmuToUse = tmu;
@@ -262,6 +261,7 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, UINT tmu) {
 }
 
 void CGxDeviceOpenGl::ITexForceRecreation() {
+  static CGxTex *tex;
   UINT ndx = m_textures.Count();
 
   while (ndx) {

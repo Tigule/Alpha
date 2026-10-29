@@ -2,29 +2,7 @@
 #define STORM_SOURCE_W32_ISTHREAD_H
 
 #include <windows.h>
-
-class CCritSect {
- private:
-  CRITICAL_SECTION m_critsect;
-
- public:
-  CCritSect() throw();
-  CCritSect(const CCritSect &);
-  ~CCritSect();
-  CCritSect &operator=(const CCritSect &);
-
-  void Enter();
-
-  void Enter(int) {
-    EnterCriticalSection(&m_critsect);
-  }
-
-  void Leave();
-
-  void Leave(int) {
-    LeaveCriticalSection(&m_critsect);
-  }
-};
+#include <sclass.h>
 
 class CInitCritSect {
  private:
@@ -36,8 +14,6 @@ class CInitCritSect {
   BOOL Enter();
   void Leave();
 };
-
-#include <sclass.h>
 
 inline BOOL CInitCritSect::Enter() {
   int initialized = 0;

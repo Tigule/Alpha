@@ -36,10 +36,6 @@ namespace NTempest {
 
 using namespace NTempest;
 
-LPCSTR CHandleObject::GetObjectName() {
-  return 0;
-}
-
 void           AnimInitialize();
 void           AnimDestroy();
 void           MDLFileInitialize();

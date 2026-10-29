@@ -1,9 +1,11 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "Base/MsgBuffer.h"
 
 #include <storm.h>
 #include <string.h>
+#include <stdio.h>
 
 #define CMB_TCHARSTR_MAX_LONG_LEN 0x3FFF
 

@@ -1,9 +1,11 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #define PRINTF_DEFAULT_LIMIT 0x100000
 

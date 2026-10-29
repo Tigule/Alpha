@@ -34,5 +34,5 @@ target_include_directories(ObjectClient PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(ObjectClient PRIVATE /Gr /Z7)
+    target_compile_options(ObjectClient PRIVATE /Gr /Zi)
 endif()

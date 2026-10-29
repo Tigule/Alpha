@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/ItemStats.h"
+#include <stdio.h>
 
 void ItemStats::Pack(CDataStore *msg) {
   int i;

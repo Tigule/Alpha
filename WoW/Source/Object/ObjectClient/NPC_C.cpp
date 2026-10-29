@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object/ObjectClient/NPC_C.h"
 
@@ -26,6 +35,15 @@ static int       s_questRewardQueriesPending;
 static BYTE      s_numQuestsOffered;
 static DWORDLONG s_npcGUID;
 static int       s_pendingNPCQuest;
+
+void NPC_C_OfferItem(DWORDLONG npc, DWORDLONG itemGUID) {
+  CDataStore msg;
+  msg.Put(CMSG_NPC_OFFER_ITEM);
+  msg.Put(npc);
+  msg.Put(itemGUID);
+  msg.Finalize();
+  ClientServices_Send(&msg);
+}
 
 static BOOL NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG npcGUID;
@@ -54,13 +72,4 @@ void NPC_C_Initialize() {
 void NPC_C_Destroy() {
   ClientServices_ClearMessageHandler(SMSG_NPC_HYPERTEXT);
   ClientServices_ClearMessageHandler(SMSG_NPC_WONT_TALK);
-}
-
-void NPC_C_OfferItem(DWORDLONG npc, DWORDLONG itemGUID) {
-  CDataStore msg;
-  msg.Put(CMSG_NPC_OFFER_ITEM);
-  msg.Put(npc);
-  msg.Put(itemGUID);
-  msg.Finalize();
-  ClientServices_Send(&msg);
 }

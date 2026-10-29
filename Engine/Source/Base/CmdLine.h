@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+#include <storm.h>
 
 enum CMDOPT {
   CMD_D3D = 0,

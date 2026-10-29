@@ -38,5 +38,5 @@ target_include_directories(MDLFile PRIVATE
 set_source_files_properties(lexout.cpp PROPERTIES OBJECT_NAME lex)
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(MDLFile PRIVATE /Gr /Z7)
+    target_compile_options(MDLFile PRIVATE /Gr /Zi)
 endif()

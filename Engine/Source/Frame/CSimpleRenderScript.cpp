@@ -234,39 +234,6 @@ static FrameScript_Method SimpleTextureMethods[] = {
 
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CSimpleTexture::s_scriptMethods;
 
-static int CSimpleFontString_SetAlphaGradient(lua_State *L) {
-  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
-
-  if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
-    int start = lua_tonumber(L, 2);
-    int length = lua_tonumber(L, 3);
-    if (object->SetAlphaGradient(start, length)) {
-      lua_pushnumber(L, 1.0);
-    } else {
-      lua_pushnil(L);
-    }
-
-    return 1;
-  }
-
-  luaL_error(L, "Usage: SetAlphaGradient(start, length)");
-  return 0;
-}
-
-static int CSimpleFontString_SetText(lua_State *L) {
-  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
-
-  object->SetText(lua_tostring(L, 2));
-  return 0;
-}
-
-static int CSimpleFontString_GetText(lua_State *L) {
-  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
-
-  lua_pushstring(L, object->GetText());
-  return 1;
-}
-
 static int CSimpleFontString_GetName(lua_State *L) {
   CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
   LPCSTR             name = object->GetName();
@@ -306,15 +273,22 @@ static int CSimpleFontString_SetAlpha(lua_State *L) {
   return 0;
 }
 
-static int CSimpleFontString_SetTextHeight(lua_State *L) {
+static int CSimpleFontString_SetAlphaGradient(lua_State *L) {
   CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
 
-  if (lua_isnumber(L, 2)) {
-    object->SetTextHeight(0.8f * ((float)lua_tonumber(L, 2) * 0.0009765625f));
-    return 0;
+  if (lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
+    int start = lua_tonumber(L, 2);
+    int length = lua_tonumber(L, 3);
+    if (object->SetAlphaGradient(start, length)) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+
+    return 1;
   }
 
-  luaL_error(L, "Usage: SetTextHeight(pixelHeight)");
+  luaL_error(L, "Usage: SetAlphaGradient(start, length)");
   return 0;
 }
 
@@ -340,6 +314,47 @@ static int CSimpleFontString_IsVisible(lua_State *L) {
   return 1;
 }
 
+static int CSimpleFontString_SetText(lua_State *L) {
+  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
+
+  object->SetText(lua_tostring(L, 2));
+  return 0;
+}
+
+static int CSimpleFontString_GetText(lua_State *L) {
+  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
+
+  lua_pushstring(L, object->GetText());
+  return 1;
+}
+
+static int CSimpleFontString_SetTextColor(lua_State *L) {
+  CSimpleFontString  *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
+  NTempest::CImVector color;
+  float               red = lua_tonumber(L, 2);
+  float               green = lua_tonumber(L, 3);
+  float               blue = lua_tonumber(L, 4);
+  float               alpha = 1.0f;
+  if (lua_isnumber(L, 5)) {
+    alpha = lua_tonumber(L, 5);
+  }
+  color.Set(alpha, red, green, blue);
+  object->SetVertexColor(color);
+  return 0;
+}
+
+static int CSimpleFontString_SetTextHeight(lua_State *L) {
+  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
+
+  if (lua_isnumber(L, 2)) {
+    object->SetTextHeight(0.8f * ((float)lua_tonumber(L, 2) * 0.0009765625f));
+    return 0;
+  }
+
+  luaL_error(L, "Usage: SetTextHeight(pixelHeight)");
+  return 0;
+}
+
 static int CSimpleFontString_SetWidth(lua_State *L) {
   CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
 
@@ -359,21 +374,6 @@ static int CSimpleFontString_GetWidth(lua_State *L) {
   return 1;
 }
 
-static int CSimpleFontString_SetTextColor(lua_State *L) {
-  CSimpleFontString  *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
-  NTempest::CImVector color;
-  float               red = lua_tonumber(L, 2);
-  float               green = lua_tonumber(L, 3);
-  float               blue = lua_tonumber(L, 4);
-  float               alpha = 1.0f;
-  if (lua_isnumber(L, 5)) {
-    alpha = lua_tonumber(L, 5);
-  }
-  color.Set(alpha, red, green, blue);
-  object->SetVertexColor(color);
-  return 0;
-}
-
 static int CSimpleFontString_SetHeight(lua_State *L) {
   CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
 
@@ -391,36 +391,6 @@ static int CSimpleFontString_GetHeight(lua_State *L) {
 
   lua_pushnumber(L, 1.25f * (object->GetHeight() * 1024.0f));
   return 1;
-}
-
-static int CSimpleFontString_SetJustifyH(lua_State *L) {
-  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
-
-  UINT flag;
-  if (lua_isstring(L, 2) && StringToJustify(lua_tostring(L, 2), flag)) {
-    object->SetHorizontalAlignment(flag);
-    return 0;
-  }
-
-  luaL_error(L, "Usage(SetJustifyH(\"justify\")");
-  return 0;
-}
-
-static int CSimpleFontString_SetJustifyV(lua_State *L) {
-  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
-
-  UINT flag;
-  if (lua_isstring(L, 2) && StringToJustify(lua_tostring(L, 2), flag)) {
-    object->SetVerticalAlignment(flag);
-    return 0;
-  }
-
-  luaL_error(L, "Usage(SetJustifyV(\"justify\")");
-  return 0;
-}
-
-void CSimpleTexture::RegisterScriptMethods() {
-  FrameScript_Object::FillScriptMethodTable(SimpleTextureMethods, sizeof(SimpleTextureMethods) / sizeof(SimpleTextureMethods[0]), s_scriptMethods);
 }
 
 static int CSimpleFontString_SetPoint(lua_State *L) {
@@ -469,6 +439,36 @@ static int CSimpleFontString_ClearAllPoints(lua_State *L) {
   CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
   object->ClearAllPoints(1);
   return 0;
+}
+
+static int CSimpleFontString_SetJustifyH(lua_State *L) {
+  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
+
+  UINT flag;
+  if (lua_isstring(L, 2) && StringToJustify(lua_tostring(L, 2), flag)) {
+    object->SetHorizontalAlignment(flag);
+    return 0;
+  }
+
+  luaL_error(L, "Usage(SetJustifyH(\"justify\")");
+  return 0;
+}
+
+static int CSimpleFontString_SetJustifyV(lua_State *L) {
+  CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
+
+  UINT flag;
+  if (lua_isstring(L, 2) && StringToJustify(lua_tostring(L, 2), flag)) {
+    object->SetVerticalAlignment(flag);
+    return 0;
+  }
+
+  luaL_error(L, "Usage(SetJustifyV(\"justify\")");
+  return 0;
+}
+
+void CSimpleTexture::RegisterScriptMethods() {
+  FrameScript_Object::FillScriptMethodTable(SimpleTextureMethods, sizeof(SimpleTextureMethods) / sizeof(SimpleTextureMethods[0]), s_scriptMethods);
 }
 
 void CSimpleTexture::UnregisterScriptMethods() {

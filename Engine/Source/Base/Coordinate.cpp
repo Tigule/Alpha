@@ -1,6 +1,8 @@
 #include <Base/Base.h>
+#include <time.h>
 
 #include "Coordinate.h"
+#include <stdio.h>
 
 void NDCToDDC(float ndcx, float ndcy, float *ddcx, float *ddcy) {
   if (ddcx) {

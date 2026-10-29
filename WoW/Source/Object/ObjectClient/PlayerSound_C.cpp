@@ -10,6 +10,15 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 #include "Ui/GameUI.h"
+#include "Base/CDataStore.h"
+#include "Console/ConsoleClient.h"
+#include "Console/ConsoleCommand.h"
+#include "DB/DBClient/DBCacheInstances.h"
+#include "Object/ObjectClient/Item_C.h"
+#include "Object/ObjectClient/Bag_C.h"
+#include "Object/ObjectClient/Player_C.h"
+#include "WowSvcs/WowSvcsClient/ClientServices.h"
+#include <FrameScript/FrameScript.h>
 
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
@@ -27,6 +36,12 @@ int  GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType);
 BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType);
 
 static UINT s_playerSoundChances[16] = {35, 100, 30, 100, 100, 100, 40, 100, 100, 100, 100, 100, 100, 100, 100, 100};
+
+void PlayerInitializeSounds() {
+}
+
+void PlayerShutdownSounds() {
+}
 
 static BOOL CheckPlayerPlaySound(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
@@ -97,10 +112,4 @@ UINT CGPlayer_C::GetImpactType() const {
     return 2;
   }
   return (material->m_flags & 4) >> 2;
-}
-
-void PlayerInitializeSounds() {
-}
-
-void PlayerShutdownSounds() {
 }

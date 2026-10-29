@@ -1,8 +1,11 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
-
 #include <ctype.h>
 #include <new>
+#include <stdio.h>
+#include <time.h>
 
 class BigBuffer {
  private:

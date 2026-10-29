@@ -6,6 +6,7 @@
 #include <Base/CDataStore.h>
 
 #include "Object/PageTextCache.h"
+#include <stdio.h>
 
 void PageTextCache::Pack(CDataStore *msg) {
   msg->PutString(m_text);

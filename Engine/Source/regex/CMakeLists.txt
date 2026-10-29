@@ -5,5 +5,5 @@ add_library(regex STATIC
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(regex PRIVATE /Gr /Oy /Z7)
+    target_compile_options(regex PRIVATE /Gr /Oy /Zi)
 endif()

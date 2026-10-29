@@ -1,8 +1,11 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
-
 #include <malloc.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <time.h>
 
 #define MAX_ERR_THREADS 64
 

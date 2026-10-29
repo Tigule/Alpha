@@ -1,6 +1,9 @@
+#include <windows.h>
+#include <dsound.h>
 #include <storm.h>
-
 #include <stdarg.h>
+#include <stdio.h>
+#include <time.h>
 
 #define BUFFERSIZE 0x10000
 #define FLUSHMARK  0xC000

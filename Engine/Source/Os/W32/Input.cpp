@@ -1,14 +1,20 @@
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0500
+#define _WIN32_WINNT 0x0401
 #endif
 
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
+
 #include "Input.h"
 #include "Os/OsTime.h"
 
-#include <windows.h>
 #include <imm.h>
 #include <string.h>
+#include <stdio.h>
 
 #ifndef WM_XBUTTONDOWN
 #define WM_XBUTTONDOWN 0x020B

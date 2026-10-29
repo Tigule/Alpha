@@ -1,11 +1,16 @@
+#include <winsock2.h>
+#include <windows.h>
 #include <Base/Base.h>
+#include <time.h>
+
+#include "OsGui.h"
+
 #include <Gx/Gx.h>
-
 #include "OsJoystick.h"
-
 #include <storm.h>
 #include <stpl.h>
 #include <mmsystem.h>
+#include <stdio.h>
 
 struct W32Joystick {
   UINT       id;

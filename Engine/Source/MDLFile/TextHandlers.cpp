@@ -64,19 +64,19 @@ namespace MDL {
                                        WriteHitTests,          WriteCollision};
 
   void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...) {
-    static char line[1024];
+    static char buf[1024];
     va_list     args;
     va_start(args, format);
-    int numchars = _vsnprintf(line, sizeof(line), format, args);
+    int numchars = _vsnprintf(buf, sizeof(buf), format, args);
     va_end(args);
 
-    if (numchars == sizeof(line)) {
-      numchars = sizeof(line) - 1;
-      line[numchars] = 0;
+    if (numchars == sizeof(buf)) {
+      numchars = sizeof(buf) - 1;
+      buf[numchars] = 0;
     } else if (numchars <= 0) {
       return;
     }
-    buffer.Add(numchars, line);
+    buffer.Add(numchars, buf);
   }
 
   int CallTextReadHandler(UINT token, mdl_scan &scanner, MDLDATA &data, CMDLStatus *status) {

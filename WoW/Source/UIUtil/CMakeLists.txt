@@ -21,5 +21,5 @@ target_include_directories(UIUtil PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(UIUtil PRIVATE /Gr /Z7)
+    target_compile_options(UIUtil PRIVATE /Gr /Zi)
 endif()

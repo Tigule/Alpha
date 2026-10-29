@@ -40,5 +40,5 @@ target_include_directories(Frame PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Frame PRIVATE /Gr /Z7)
+    target_compile_options(Frame PRIVATE /Gr /Zi)
 endif()

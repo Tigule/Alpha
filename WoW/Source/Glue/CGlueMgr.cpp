@@ -9,7 +9,7 @@
 #include <Frame/CSimpleModel.h>
 #include "SoundInterface/SoundInterface.h"
 #include <Gx/CGxDevice.h>
-#include "Object/ObjectClient/Unit_C.h"
+#include <regex/regex.h>
 
 #include "CGlueMgr.h"
 
