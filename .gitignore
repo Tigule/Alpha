@@ -46,3 +46,6 @@ __pycache__/
 
 # Node
 node_modules/
+
+# Game client resources
+WoW/Source/BlizzardIcon.ico

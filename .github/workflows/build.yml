@@ -61,6 +61,12 @@ jobs:
           file_path: PSDK2001.zip
           extract_dir: PSDK
 
+      - name: Download game client resources
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/Resources.zip" -OutFile "Resources.zip"
+          Expand-Archive -Path "Resources.zip" -DestinationPath "." -Force
+
       - name: Replace VCVARS32 absolute paths
         uses: richardrigutins/replace-in-files@v3
         with:
@@ -173,6 +179,12 @@ jobs:
         with:
           file_path: DXSDK2010.zip
           extract_dir: DXSDK2010
+
+      - name: Download game client resources
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/Resources.zip" -OutFile "Resources.zip"
+          Expand-Archive -Path "Resources.zip" -DestinationPath "." -Force
 
       - name: Build solution
         shell: cmd
