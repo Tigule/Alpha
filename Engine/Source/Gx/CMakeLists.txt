@@ -36,6 +36,7 @@ target_include_directories(Gx PRIVATE
 
 if(MSVC_VERSION EQUAL 1200)
     target_compile_options(Gx PRIVATE /Gr /Zi)
+
     set(GX_PCH ${CMAKE_CURRENT_BINARY_DIR}/Gx.pch)
     get_target_property(GX_SOURCES Gx SOURCES)
     foreach(src IN LISTS GX_SOURCES)
@@ -50,4 +51,6 @@ if(MSVC_VERSION EQUAL 1200)
         endif()
     endforeach()
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES ${GX_PCH})
+elseif(MSVC)
+    target_compile_options(Gx PRIVATE /FIwindows.h)
 endif()
