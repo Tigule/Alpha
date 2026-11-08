@@ -69,9 +69,7 @@ HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeigh
 }
 
 LPCSTR TextBlockGetFontName(HTEXTFONT fontHandle) {
-  VALIDATEBEGIN;
-  VALIDATE(fontHandle);
-  VALIDATEEND;
+  VALIDATE2(fontHandle);
 
   return GxuFontGetFontName(((FONTHASHOBJ *)fontHandle)->font);
 }
@@ -80,9 +78,7 @@ UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
   UINT flags;
   UINT textFlags;
 
-  VALIDATEBEGIN;
-  VALIDATE(fontHandle);
-  VALIDATEEND;
+  VALIDATE2(fontHandle);
 
   flags = GxuFontGetFontFlags(((FONTHASHOBJ *)fontHandle)->font);
   textFlags = 0;
@@ -103,17 +99,13 @@ UINT TextBlockGetFontFlags(HTEXTFONT fontHandle) {
 }
 
 CGxFont *TextBlockGetFontPtr(HTEXTFONT fontHandle) {
-  VALIDATEBEGIN;
-  VALIDATE(fontHandle);
-  VALIDATEEND;
+  VALIDATE2(fontHandle);
 
   return ((FONTHASHOBJ *)fontHandle)->font;
 }
 
 CGxString *TextBlockGetStringPtr(HTEXTBLOCK text) {
-  VALIDATEBEGIN;
-  VALIDATE(text);
-  VALIDATEEND;
+  VALIDATE2(text);
 
   return ((TEXTBLOCK *)text)->string;
 }
@@ -128,9 +120,7 @@ float TextBlockGetOneToOneHeight(HTEXTFONT__ *fontHandle) {
 }
 
 void TextBlockAddShadow(HTEXTBLOCK text, NTempest::CImVector color, const NTempest::C2Vector &shadowOffset) {
-  VALIDATEBEGIN;
-  VALIDATE(text);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(text);
 
   NTempest::C2Vector offset = shadowOffset;
   DDCToNDC(offset.x, offset.y, &offset.x, &offset.y);
@@ -228,9 +218,7 @@ HTEXTBLOCK TextBlockCreate(
 }
 
 void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
-  VALIDATEBEGIN;
-  VALIDATE(htb);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(htb);
 
   NTempest::C3Vector position;
   position.z = pos.z;
@@ -239,24 +227,18 @@ void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
 }
 
 void TextBlockRender(HTEXTBLOCK__ *htb) {
-  VALIDATEBEGIN;
-  VALIDATE(htb);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(htb);
   GxuFontRender(((TEXTBLOCK *)htb)->string);
 }
 
 void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) {
-  VALIDATEBEGIN;
-  VALIDATE(htb);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(htb);
 
   GxuFontSetStringColor(((TEXTBLOCK *)htb)->string, textColor);
 }
 
 float TextBlockGetHeight(HTEXTBLOCK__ *htb) {
-  VALIDATEBEGIN;
-  VALIDATE(htb);
-  VALIDATEEND;
+  VALIDATE2(htb);
   float height = GxuFontGetStringHeight(((TEXTBLOCK *)htb)->string);
   NDCToDDC(0.0f, height, 0, &height);
   return height;
@@ -266,14 +248,12 @@ void TextBlockGetTextExtent(HTEXTFONT font, LPCSTR text, UINT numChars, float fo
   FONTHASHOBJ *fontPtr;
   UINT         gxFlags;
 
-  VALIDATEBEGIN;
-  VALIDATE(font);
-  VALIDATE(text);
-  VALIDATE(extent);
+  VALIDATE2VOID(font);
+  VALIDATE2VOID(text);
+  VALIDATE2VOID(extent);
   *extent = 0.0f;
   fontPtr = (FONTHASHOBJ *)font;
-  VALIDATE(fontPtr->font);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fontPtr->font);
 
   DDCToNDC(0.0f, fontHeight, 0, &fontHeight);
   gxFlags = 0;
@@ -347,13 +327,11 @@ float TextBlockGetWrappedTextHeight(HTEXTFONT font, LPCSTR text, float fontHeigh
   UINT         gxFlags;
   float        height;
 
-  VALIDATEBEGIN;
-  VALIDATE(font);
+  VALIDATE2(font);
 
-  VALIDATE(text);
+  VALIDATE2(text);
   fontPtr = (FONTHASHOBJ *)font;
-  VALIDATE(fontPtr->font);
-  VALIDATEEND;
+  VALIDATE2(fontPtr->font);
 
   fontHeight = DDCToNDCHeight(fontHeight);
   blockWidth = DDCToNDCWidth(blockWidth);
@@ -410,13 +388,11 @@ UINT TextBlockGetMaxCharsWithinWidth(
   FONTHASHOBJ *fontPtr;
   UINT         gxFlags;
 
-  VALIDATEBEGIN;
-  VALIDATE(font);
-  VALIDATE(text);
+  VALIDATE2(font);
+  VALIDATE2(text);
 
   fontPtr = (FONTHASHOBJ *)font;
-  VALIDATE(fontPtr->font);
-  VALIDATEEND;
+  VALIDATE2(fontPtr->font);
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);
@@ -474,13 +450,11 @@ UINT TextBlockGetMaxCharsWithinWidthFromEnd(
   UINT         gxFlags;
   UINT         chars;
 
-  VALIDATEBEGIN;
-  VALIDATE(font);
+  VALIDATE2(font);
 
-  VALIDATE(text);
+  VALIDATE2(text);
   fontPtr = (FONTHASHOBJ *)font;
-  VALIDATE(fontPtr->font);
-  VALIDATEEND;
+  VALIDATE2(fontPtr->font);
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);
@@ -537,13 +511,11 @@ UINT TextBlockWrapText(
   FONTHASHOBJ *fontPtr;
   UINT         gxFlags;
 
-  VALIDATEBEGIN;
-  VALIDATE(font);
-  VALIDATE(text);
+  VALIDATE2(font);
+  VALIDATE2(text);
 
   fontPtr = (FONTHASHOBJ *)font;
-  VALIDATE(fontPtr->font);
-  VALIDATEEND;
+  VALIDATE2(fontPtr->font);
 
   DDCToNDC(0.0f, height, 0, &height);
   DDCToNDC(maxWidth, 0.0f, &maxWidth, 0);

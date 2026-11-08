@@ -14,7 +14,6 @@
 #include <Frame/CSimpleFrame.h>
 #include <Gx/Gx.h>
 #include <Model/IModel.h>
-#include <Model/ModelInternal.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <Tempest/c2vector.h>

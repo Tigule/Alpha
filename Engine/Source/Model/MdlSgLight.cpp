@@ -1,6 +1,6 @@
 #include <Base/Base.h>
 
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 
 #include "Gx/CGxDevice.h"
 #include "Gxu/IGxuLight.h"

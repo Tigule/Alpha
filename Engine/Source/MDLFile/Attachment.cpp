@@ -89,11 +89,9 @@ BOOL MDL::WriteAttachments(const MDLDATA &data, TSGrowableArray<char> &buffer, C
 }
 
 static UINT GetBinAttachmentSize(const MDLATTACHMENTSECTION &section) {
-  UINT size = GetBinGenObjectSize(section) + 269;
-  if (section.visibilityKeys.keys.Count()) {
-    UINT values = section.visibilityKeys.type > TRACK_LINEAR ? 3 : 1;
-    size += 16 + section.visibilityKeys.keys.Count() * (4 + 4 * values);
-  }
+  UINT size = GetBinGenObjectSize(section);
+  size += 269;
+  size += GetBinFloatKeyFramesSize(section.visibilityKeys);
   return size;
 }
 

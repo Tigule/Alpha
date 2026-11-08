@@ -72,9 +72,7 @@ CGNamePlateFrame::CGNamePlateFrame(CSimpleFrame *parent) : CSimpleButton(parent)
 }
 
 void CGNamePlateFrame::Initialize(CGUnit_C *unit) {
-  VALIDATEBEGIN;
-  VALIDATE(unit);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(unit);
   m_unit = unit->GetGUID();
 
   char level[32];

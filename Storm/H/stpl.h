@@ -14,9 +14,7 @@ class type_info {
  public:
   virtual ~type_info();
   LPCSTR name() const;
-  LPCSTR internal_raw_name() const {
-    return _m_d_name;
-  };
+  LPCSTR internal_raw_name() const { return _m_d_name; };
 
  private:
   LPVOID _m_data;
@@ -154,7 +152,7 @@ class TSStackArray {
   }
 
   T *New(const T &value) {
-    if (m_count >= m_maxCount) {
+    if (m_count + 1 > m_maxCount) {
       FatalArrayBounds();
     }
     T *result = &m_data[m_count++];
@@ -330,9 +328,7 @@ class TSBaseArray {
     return m_count ? &m_data[m_count - 1] : 0;
   }
 
-  UINT NumElements() const {
-    return Count();
-  }
+  UINT NumElements() const { return Count(); }
 };
 
 template <class T>
@@ -481,9 +477,7 @@ class TSGrowableArray : public TSFixedArray<T> {
     if (count < maxChunk) {
       while ((count - 1) & count)
         count = (count - 1) & count;
-      if (count < 1)
-        count = 1;
-      return count;
+      return count < 1 ? 1 : count;
     }
 
     m_chunk = maxChunk;
@@ -499,16 +493,13 @@ class TSGrowableArray : public TSFixedArray<T> {
 
   void Reserve(UINT count, int round) {
     count += this->m_count;
-    if (count <= this->m_alloc) {
+    if (count <= this->m_alloc)
       return;
-    }
 
     if (round) {
       UINT chunk = m_chunk;
-
-      if (!chunk) {
+      if (!chunk)
         chunk = CalcChunkSize(count);
-      }
       count = RoundToChunk(count, chunk);
     }
 
@@ -542,9 +533,7 @@ class TSGrowableArray : public TSFixedArray<T> {
     return this->m_count - count;
   }
 
-  UINT Add(const T *data) {
-    return Add(1, data);
-  }
+  UINT Add(const T *data) { return Add(1, data); }
 
   void GrowToFit(UINT index, int zero) {
     if (index < this->m_count)
@@ -589,10 +578,11 @@ class TSGrowableArray : public TSFixedArray<T> {
       Reserve(count - this->m_count, 1);
       for (UINT index = this->m_count; index < count; ++index)
         new (&this->m_data[index]) T;
-    } else if (count < this->m_count)
+    }
+    else if (count < this->m_count) {
       for (UINT index = count; index < this->m_count; ++index)
         (this->m_data + index)->~T();
-
+    }
     this->m_count = count;
   }
 
@@ -600,21 +590,10 @@ class TSGrowableArray : public TSFixedArray<T> {
     this->ReallocData(this->m_count);
   }
 
-  UINT AddElement(const T *data) {
-    return Add(data);
-  }
-
-  UINT AddElements(UINT count, const T *data) {
-    return Add(count, data);
-  }
-
-  T *NewElement() {
-    return New();
-  }
-
-  void SetNumElements(UINT count) {
-    SetCount(count);
-  }
+  UINT AddElement(const T *data) { return Add(data); }
+  UINT AddElements(UINT count, const T *data) { return Add(count, data); }
+  T *NewElement() { return New(); }
+  void SetNumElements(UINT count) { SetCount(count); }
 };
 
 template <class T, UINT TAG, int LINE>
@@ -633,13 +612,8 @@ class TSFixedArray_ : public TSFixedArray<T> {
   }
 
  protected:
-  virtual LPCSTR MemFileName() const {
-    return s_name;
-  }
-
-  virtual int MemLineNo() const {
-    return LINE;
-  }
+  virtual LPCSTR MemFileName() const { return s_name; }
+  virtual int MemLineNo() const { return LINE; }
 };
 
 template <class T, UINT TAG, int LINE>
@@ -664,13 +638,8 @@ class TSGrowableArray_ : public TSGrowableArray<T> {
   }
 
  protected:
-  virtual LPCSTR MemFileName() const {
-    return s_name;
-  }
-
-  virtual int MemLineNo() const {
-    return LINE;
-  }
+  virtual LPCSTR MemFileName() const { return s_name; }
+  virtual int MemLineNo() const { return LINE; }
 };
 
 template <class T, UINT TAG, int LINE>
@@ -1284,7 +1253,6 @@ class TSList {
 
   void UnlinkAll() {
     T *instance;
-
     while ((instance = Head()) != 0)
       UnlinkNode(instance);
   }
@@ -1462,8 +1430,7 @@ class HASHKEY_STR {
   }
 
   ~HASHKEY_STR() {
-    if (m_str)
-      SMemFree(m_str, __FILE__, __LINE__, 0);
+    if (m_str) SMemFree(m_str, __FILE__, __LINE__, 0);
   }
 
   HASHKEY_STR &operator=(const HASHKEY_STR &key) {
@@ -1472,9 +1439,7 @@ class HASHKEY_STR {
 
   HASHKEY_STR &operator=(LPCSTR str) {
     if (m_str != str) {
-      if (m_str) {
-        SMemFree(m_str, __FILE__, __LINE__, 0);
-      }
+      if (m_str) SMemFree(m_str, __FILE__, __LINE__, 0);
       m_str = SStrDupA(str, __FILE__, __LINE__);
     }
     return *this;
@@ -1495,8 +1460,7 @@ class HASHKEY_STR {
 
 class HASHKEY_STRI : public HASHKEY_STR {
  public:
-  HASHKEY_STRI() {
-  }
+  HASHKEY_STRI() {}
 
   HASHKEY_STRI(const HASHKEY_STRI &key) : HASHKEY_STR(key) {
   }
@@ -1654,9 +1618,8 @@ class TSHashTable {
 
     templist.ChangeLinkOffset(linkoffset);
     for (loop = 0; loop < oldarraysize; ++loop) {
-      while ((ptr = m_slotlistarray[loop].Head()) != 0) {
+      while ((ptr = m_slotlistarray[loop].Head()) != 0)
         templist.LinkNode(ptr, LIST_TAIL, 0);
-      }
     }
 
     m_slotlistarray.SetCount(newarraysize);
@@ -1720,8 +1683,7 @@ class TSHashTable {
     }
 
     ITERATELIST(T, m_slotlistarray[slot], ptr) {
-      ++m_fullnessIndicator;
-      if (m_fullnessIndicator > 13) {
+      if (++m_fullnessIndicator > 13) {
         m_fullnessIndicator = 0;
         GrowListArray((m_slotmask + 1) * 2);
         return 1;
@@ -1790,9 +1752,7 @@ class TSHashTable {
   void Delete(UINT hashval, const KEY &key) {
     T *ptr = Ptr(hashval, key);
 
-    VALIDATEBEGIN;
-    VALIDATE(ptr);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(ptr);
 
     Delete(ptr);
   }
@@ -1800,9 +1760,7 @@ class TSHashTable {
   void Delete(UINT hashval, LPCSTR key) {
     T *ptr = Ptr(hashval, key);
 
-    VALIDATEBEGIN;
-    VALIDATE(ptr);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(ptr);
 
     Delete(ptr);
   }
@@ -1810,9 +1768,7 @@ class TSHashTable {
   void Delete(LPCSTR key) {
     T *ptr = Ptr(key);
 
-    VALIDATEBEGIN;
-    VALIDATE(ptr);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(ptr);
 
     Delete(ptr);
   }
@@ -1957,10 +1913,10 @@ class TSHashTable {
   }
 
   void Unlink(T *ptr) {
-    if (ptr->m_linktoslot.IsLinked()) {
-      ptr->m_linktoslot.Unlink();
-      ptr->m_linktofull.Unlink();
-    }
+    if (!ptr->m_linktoslot.IsLinked())
+      return;
+    ptr->m_linktoslot.Unlink();
+    ptr->m_linktofull.Unlink();
   }
 
   void SetTableSize(UINT count) {

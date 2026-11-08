@@ -1,4 +1,4 @@
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Services/ParticleSystem2.h"
 #include "Base/Status.h"
 #include "MDLFile/MDLTypes.h"
@@ -60,6 +60,56 @@ static EGxTextureShader GetTextureShader(UINT transformId, UINT createFlags) {
   return transformId != (UINT)-1 && !(createFlags & 0x100) ? GxTS_Affine : GxTS_PassThru;
 }
 
+static inline EGxBlend GetBlendMode(UINT blendMode) {
+  EGxBlend gxBlend;
+  switch (blendMode) {
+    case TEXOP_TRANSPARENT:
+      gxBlend = GxBlend_AlphaKey;
+      break;
+    case TEXOP_BLEND:
+      gxBlend = GxBlend_Alpha;
+      break;
+    case TEXOP_ADD:
+    case TEXOP_ADD_ALPHA:
+      gxBlend = GxBlend_Add;
+      break;
+    case TEXOP_MODULATE:
+      gxBlend = GxBlend_Mod;
+      break;
+    case TEXOP_MODULATE2X:
+      gxBlend = GxBlend_Mod2x;
+      break;
+    case TEXOP_LOAD:
+      gxBlend = GxBlend_Opaque;
+      break;
+    default:
+      gxBlend = GxBlend_Opaque;
+      break;
+  }
+  return gxBlend;
+}
+
+static inline void SetLayerDisables(CTexLayer *layer, UINT blendMode, UINT flags) {
+  if (blendMode >= TEXOP_BLEND && blendMode <= TEXOP_MODULATE2X) {
+    layer->disables |= 0x8;
+  }
+  if (flags & 0x1) {
+    layer->disables |= 0x1;
+  }
+  if (flags & 0x10) {
+    layer->disables |= 0x10;
+  }
+  if (flags & 0x20) {
+    layer->disables |= 0x2;
+  }
+  if (flags & 0x40) {
+    layer->disables |= 0x4;
+  }
+  if (flags & 0x80) {
+    layer->disables |= 0x8;
+  }
+}
+
 static void ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *unique, CMaterialShared *shared, UINT createFlags, UINT *layerId) {
   UINT numLayers = sectionData.texLayers.Count();
   unique->layers.SetCount(numLayers);
@@ -75,51 +125,14 @@ static void ProcessTexLayers(const MDLMATERIALSECTION &sectionData, CMaterial *u
     sharedLayer.tmuPass[0].textureShader = GetTextureShader(source.transformId, createFlags);
     sharedLayer.tmuPass[0].flags = GetTmuPassFlags(createFlags, source.flags);
 
-    switch (source.blendMode) {
-      case TEXOP_TRANSPARENT:
-        sharedLayer.blendMode = GxBlend_AlphaKey;
-        break;
-      case TEXOP_BLEND:
-        sharedLayer.blendMode = GxBlend_Alpha;
-        break;
-      case TEXOP_ADD:
-      case TEXOP_ADD_ALPHA:
-        sharedLayer.blendMode = GxBlend_Add;
-        break;
-      case TEXOP_MODULATE:
-        sharedLayer.blendMode = GxBlend_Mod;
-        break;
-      case TEXOP_MODULATE2X:
-        sharedLayer.blendMode = GxBlend_Mod2x;
-        break;
-      default:
-        sharedLayer.blendMode = GxBlend_Opaque;
-        break;
-    }
+    sharedLayer.blendMode = GetBlendMode(source.blendMode);
 
     uniqueLayer.tmuPass[0].textureId = source.textureId;
     uniqueLayer.tmuPass[0].combiner = GxTexBlend_Mod;
     uniqueLayer.blendMode = sharedLayer.blendMode;
     uniqueLayer.vertexFormat = source.coordId == (UINT)-1 ? GxVBF_PN : GxVBF_PNT0;
 
-    if (source.blendMode >= TEXOP_BLEND && source.blendMode <= TEXOP_MODULATE2X) {
-      uniqueLayer.disables |= 0x8;
-    }
-    if (source.flags & 0x1) {
-      uniqueLayer.disables |= 0x1;
-    }
-    if (source.flags & 0x10) {
-      uniqueLayer.disables |= 0x10;
-    }
-    if (source.flags & 0x20) {
-      uniqueLayer.disables |= 0x2;
-    }
-    if (source.flags & 0x40) {
-      uniqueLayer.disables |= 0x4;
-    }
-    if (source.flags & 0x80) {
-      uniqueLayer.disables |= 0x8;
-    }
+    SetLayerDisables(&uniqueLayer, source.blendMode, source.flags);
   }
 
   *layerId += numLayers;
@@ -505,31 +518,7 @@ static void ProcessAttachments(
 }
 
 static void LoadLayerData(BYTE *materialData, CTexLayer *unique, CTexLayerShared *shared, UINT createFlags) {
-  EGxBlend blendMode;
-  switch (*(UINT *)materialData) {
-    case TEXOP_TRANSPARENT:
-      blendMode = GxBlend_AlphaKey;
-      break;
-    case TEXOP_BLEND:
-      blendMode = GxBlend_Alpha;
-      break;
-    case TEXOP_ADD:
-    case TEXOP_ADD_ALPHA:
-      blendMode = GxBlend_Add;
-      break;
-    case TEXOP_MODULATE:
-      blendMode = GxBlend_Mod;
-      break;
-    case TEXOP_MODULATE2X:
-      blendMode = GxBlend_Mod2x;
-      break;
-    case TEXOP_LOAD:
-      blendMode = GxBlend_Opaque;
-      break;
-    default:
-      blendMode = GxBlend_Opaque;
-      break;
-  }
+  EGxBlend blendMode = GetBlendMode(*(UINT *)materialData);
   shared->blendMode = blendMode;
   materialData += 4;
   unique->blendMode = blendMode;
@@ -592,6 +581,69 @@ static HMATERIAL LoadMaterialData(BYTE *materialData, UINT createFlags, BYTE *to
   return CREATEHANDLE(HMATERIAL, unique);
 }
 
+template <class T>
+static BYTE *LoadAllGeosets(BYTE *data, UINT fileBytes, T *modelptr, CModelShared *shared, UINT flags) {
+  data = MDLFileBinarySeek(data, fileBytes, 'SOEG');
+  if (!data) {
+    return 0;
+  }
+
+  UINT sectionBytes = *(UINT *)data;
+  data += 4;
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numGeosets = *(UINT *)data;
+  data += 4;
+  ASSERT(numGeosets <= 0xff);
+  shared->numGeosets = numGeosets;
+  modelptr->m_geosets.SetCount(numGeosets);
+  shared->geosets.SetCount(numGeosets);
+  modelptr->m_geosetColor.SetCount(numGeosets);
+
+  for (UINT i = 0; i < numGeosets; ++i) {
+    UINT bytesThisGeo = *(UINT *)data;
+    ASSERT(dataDone >= (data + bytesThisGeo));
+    LoadGeosetData(data + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
+    data += bytesThisGeo;
+  }
+  ASSERT(data == dataDone);
+  return data;
+}
+
+template <class T>
+static BYTE *LoadAllGeosetAnims(BYTE *data, UINT fileBytes, T *modelptr) {
+  data = MDLFileBinarySeek(data, fileBytes, 'AOEG');
+  if (!data) {
+    return 0;
+  }
+
+  UINT sectionBytes = *(UINT *)data;
+  data += 4;
+  UINT numGeosetAnims = *(UINT *)data;
+  data += 4;
+  sectionBytes -= 4;
+  for (; numGeosetAnims > 0; --numGeosetAnims) {
+    BYTE *animData = data;
+    UINT  bytesThisAnim = *(UINT *)animData;
+    animData += 4;
+    UINT geosetId = *(UINT *)animData;
+    animData += 4;
+    CGeosetColor &color = modelptr->m_geosetColor[geosetId];
+    color.animatedAlpha = *(float *)animData;
+    animData += 4;
+    color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
+    color.animatedColor.r = NTempest::CMath::ftol_0_256_(*(float *)animData * 255.0f);
+    animData += 4;
+    color.animatedColor.g = NTempest::CMath::ftol_0_256_(*(float *)animData * 255.0f);
+    animData += 4;
+    color.animatedColor.b = NTempest::CMath::ftol_0_256_(*(float *)animData * 255.0f);
+    data += bytesThisAnim;
+    ASSERT(sectionBytes >= bytesThisAnim);
+    sectionBytes -= bytesThisAnim;
+  }
+  ASSERT(sectionBytes == 0);
+  return data;
+}
+
 static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attachment, CStatus *status) {
   data += *(UINT *)data;
   UINT attachmentId = *(UINT *)data;
@@ -616,6 +668,40 @@ static UINT LoadAttachment(BYTE *data, UINT loadFlags, LISTPTR(LINKUNIQUE) attac
   }
 
   return attachmentId;
+}
+
+template <class T>
+inline void MdxReadMaterialsA(BYTE *data, UINT fileBytes, UINT flags, T *modelptr, CModelShared *shared) {
+  data = MDLFileBinarySeek(data, fileBytes, 'SLTM');
+  if (!data) {
+    return;
+  }
+
+  UINT sectionBytes = *(UINT *)data;
+  data += 4;
+  BYTE *dataDone = data + sectionBytes;
+  UINT  numMaterials = *(UINT *)data;
+  data += 4;
+  data += 4;
+  shared->numLayers = 0;
+  modelptr->m_materials.SetCount(numMaterials);
+  for (UINT i = 0; i < numMaterials; ++i) {
+    UINT bytesThisMaterial = *(UINT *)data;
+    modelptr->m_materials[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
+    data += bytesThisMaterial;
+    ASSERT(data <= dataDone);
+  }
+  ASSERT(data == dataDone);
+}
+
+template <class T>
+inline void MdxReadGeosetsA(BYTE *data, UINT fileBytes, UINT flags, T *modelptr, CModelShared *modelShared) {
+  ASSERT(modelptr);
+  ASSERT(modelShared);
+  BYTE *section = LoadAllGeosets(data, fileBytes, modelptr, modelShared, flags);
+  if (section) {
+    LoadAllGeosetAnims(section, fileBytes - (section - data), modelptr);
+  }
 }
 
 void MdlReadLoadGlobalProperties(const MDLDATA &data, CModelShared *shared, UINT *loadFlags) {
@@ -725,165 +811,19 @@ void MdxReadTextures(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *model
 }
 
 void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
-  data = MDLFileBinarySeek(data, fileBytes, 'SLTM');
-  if (!data) {
-    return;
-  }
-
-  UINT sectionBytes = *(UINT *)data;
-  data += 4;
-  BYTE *dataDone = data + sectionBytes;
-  UINT  numMaterials = *(UINT *)data;
-  data += 4;
-  data += 4;
-  shared->numLayers = 0;
-  modelptr->m_materials.SetCount(numMaterials);
-  for (UINT i = 0; i < numMaterials; ++i) {
-    UINT bytesThisMaterial = *(UINT *)data;
-    modelptr->m_materials[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
-    data += bytesThisMaterial;
-    ASSERT(data <= dataDone);
-  }
-  ASSERT(data == dataDone);
+  MdxReadMaterialsA(data, fileBytes, flags, modelptr, shared);
 }
 
 void MdxReadMaterials(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
-  data = MDLFileBinarySeek(data, fileBytes, 'SLTM');
-  if (!data) {
-    return;
-  }
-
-  UINT sectionBytes = *(UINT *)data;
-  data += 4;
-  BYTE *dataDone = data + sectionBytes;
-  UINT  numMaterials = *(UINT *)data;
-  data += 4;
-  data += 4;
-  shared->numLayers = 0;
-  modelptr->m_materials.SetCount(numMaterials);
-  for (UINT i = 0; i < numMaterials; ++i) {
-    UINT bytesThisMaterial = *(UINT *)data;
-    modelptr->m_materials[i] = LoadMaterialData(data + 4, flags, &shared->numLayers);
-    data += bytesThisMaterial;
-    ASSERT(data <= dataDone);
-  }
-  ASSERT(data == dataDone);
+  MdxReadMaterialsA(data, fileBytes, flags, modelptr, shared);
 }
 
 void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared) {
-  ASSERT(modelptr);
-  CModelShared *modelShared = shared;
-  ASSERT(modelShared);
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SOEG');
-  if (!section) {
-    return;
-  }
-
-  UINT sectionBytes = *(UINT *)section;
-  section += 4;
-  BYTE *dataDone = section + sectionBytes;
-  UINT  numGeosets = *(UINT *)section;
-  section += 4;
-  ASSERT(numGeosets <= 0xff);
-  shared->numGeosets = numGeosets;
-  modelptr->m_geosets.SetCount(numGeosets);
-  shared->geosets.SetCount(numGeosets);
-  modelptr->m_geosetColor.SetCount(numGeosets);
-
-  UINT i;
-  for (i = 0; i < numGeosets; ++i) {
-    UINT bytesThisGeo = *(UINT *)section;
-    ASSERT(dataDone >= (section + bytesThisGeo));
-    LoadGeosetData(section + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
-    section += bytesThisGeo;
-  }
-  ASSERT(section == dataDone);
-
-  section = MDLFileBinarySeek(section, fileBytes - (section - data), 'AOEG');
-  if (!section) {
-    return;
-  }
-
-  sectionBytes = *(UINT *)section - 4;
-  section += 4;
-  UINT numGeosetAnims = *(UINT *)section;
-  section += 4;
-  for (i = 0; i < numGeosetAnims; ++i) {
-    BYTE *animData = section;
-    UINT  bytesThisAnim = *(UINT *)animData;
-    animData += 4;
-    UINT geosetId = *(UINT *)animData;
-    animData += 4;
-    CGeosetColor &color = modelptr->m_geosetColor[geosetId];
-    color.animatedAlpha = *(float *)animData;
-    animData += 4;
-    color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
-    color.animatedColor.r = NTempest::CMath::ftol_0_256_(((float *)animData)[0] * 255.0f);
-    color.animatedColor.g = NTempest::CMath::ftol_0_256_(((float *)animData)[1] * 255.0f);
-    color.animatedColor.b = NTempest::CMath::ftol_0_256_(((float *)animData)[2] * 255.0f);
-    section += bytesThisAnim;
-    ASSERT(sectionBytes >= bytesThisAnim);
-    sectionBytes -= bytesThisAnim;
-  }
-  ASSERT(sectionBytes == 0);
+  MdxReadGeosetsA(data, fileBytes, flags, modelptr, shared);
 }
 
 void MdxReadGeosets(BYTE *data, UINT fileBytes, UINT flags, CModelSimple *modelptr, CModelShared *shared) {
-  ASSERT(modelptr);
-  CModelShared *modelShared = shared;
-  ASSERT(modelShared);
-  BYTE *section = MDLFileBinarySeek(data, fileBytes, 'SOEG');
-  if (!section) {
-    return;
-  }
-
-  UINT sectionBytes = *(UINT *)section;
-  section += 4;
-  BYTE *dataDone = section + sectionBytes;
-  UINT  numGeosets = *(UINT *)section;
-  section += 4;
-  ASSERT(numGeosets <= 0xff);
-  shared->numGeosets = numGeosets;
-  modelptr->m_geosets.SetCount(numGeosets);
-  shared->geosets.SetCount(numGeosets);
-  modelptr->m_geosetColor.SetCount(numGeosets);
-
-  UINT i;
-  for (i = 0; i < numGeosets; ++i) {
-    UINT bytesThisGeo = *(UINT *)section;
-    ASSERT(dataDone >= (section + bytesThisGeo));
-    LoadGeosetData(section + 4, bytesThisGeo - 4, flags, i, &shared->geosets[i]);
-    section += bytesThisGeo;
-  }
-  ASSERT(section == dataDone);
-
-  section = MDLFileBinarySeek(section, fileBytes - (section - data), 'AOEG');
-  if (!section) {
-    return;
-  }
-
-  sectionBytes = *(UINT *)section - 4;
-  section += 4;
-  UINT numGeosetAnims = *(UINT *)section;
-  section += 4;
-  for (i = 0; i < numGeosetAnims; ++i) {
-    BYTE *animData = section;
-    UINT  bytesThisAnim = *(UINT *)animData;
-    animData += 4;
-    UINT geosetId = *(UINT *)animData;
-    animData += 4;
-    CGeosetColor &color = modelptr->m_geosetColor[geosetId];
-    color.animatedAlpha = *(float *)animData;
-    animData += 4;
-    color.animatedColor.a = NTempest::CMath::ftol_0_256_(color.animatedAlpha * 255.0f);
-    color.animatedColor.r = NTempest::CMath::ftol_0_256_(((float *)animData)[0] * 255.0f);
-    color.animatedColor.g = NTempest::CMath::ftol_0_256_(((float *)animData)[1] * 255.0f);
-    color.animatedColor.b = NTempest::CMath::ftol_0_256_(((float *)animData)[2] * 255.0f);
-    section += bytesThisAnim;
-    ASSERT(sectionBytes >= bytesThisAnim);
-    sectionBytes -= bytesThisAnim;
-  }
-  ASSERT(sectionBytes == 0);
+  MdxReadGeosetsA(data, fileBytes, flags, modelptr, shared);
 }
 
 void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status) {

@@ -77,19 +77,15 @@ BOOL OsDirectoryExists(LPCSTR dirName) {
 }
 
 BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
-  VALIDATEBEGIN;
-  VALIDATE(buffer);
-  VALIDATE(bytesRead);
-  VALIDATEEND;
+  VALIDATE2(buffer);
+  VALIDATE2(bytesRead);
 
   return ReadFile(fileHandle, buffer, bytesToRead, bytesRead, 0);
 }
 
 BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
-  VALIDATEBEGIN;
-  VALIDATE(buffer);
-  VALIDATE(bytesWritten);
-  VALIDATEEND;
+  VALIDATE2(buffer);
+  VALIDATE2(bytesWritten);
 
   return WriteFile(fileHandle, buffer, bytesToWrite, bytesWritten, 0);
 }
@@ -159,9 +155,7 @@ int OsSetEndOfFile(HOSFILE__ *fileHandle) {
 DWORD OsGetFileAttributes(LPCSTR fileName) {
   WORD fileName16[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(fileName);
-  VALIDATEEND;
+  VALIDATE2(fileName);
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
   return GetFileAttributesW(fileName16);
@@ -170,9 +164,7 @@ DWORD OsGetFileAttributes(LPCSTR fileName) {
 int OsSetFileAttributes(LPCSTR fileName, DWORD attributes) {
   WORD fileName16[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(fileName);
-  VALIDATEEND;
+  VALIDATE2(fileName);
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
   return SetFileAttributesW(fileName16, attributes);
@@ -182,10 +174,8 @@ BOOL OsMoveFile(LPCSTR existingFileName, LPCSTR newFileName) {
   WORD existingFileName16[MAX_PATH];
   WORD newFileName16[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(existingFileName);
-  VALIDATE(newFileName);
-  VALIDATEEND;
+  VALIDATE2(existingFileName);
+  VALIDATE2(newFileName);
 
   SUniConvertUTF8to16(newFileName16, MAX_PATH, newFileName, 0x7FFFFFFF, 0, 0);
   SUniConvertUTF8to16(existingFileName16, MAX_PATH, existingFileName, 0x7FFFFFFF, 0, 0);
@@ -203,9 +193,7 @@ int OsCopyFile(LPCSTR existingFileName, LPCSTR newFileName, int failIfExists) {
 BOOL OsDeleteFile(LPCSTR fileName) {
   WORD fileName16[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(fileName);
-  VALIDATEEND;
+  VALIDATE2(fileName);
 
   SUniConvertUTF8to16(fileName16, MAX_PATH, fileName, 0x7FFFFFFF, 0, 0);
   return DeleteFileW(fileName16);
@@ -215,9 +203,7 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
   char tempName[MAX_PATH];
   WORD pathName16[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(pathName);
-  VALIDATEEND;
+  VALIDATE2(pathName);
 
   if (recursive) {
     SStrCopy(tempName, pathName, MAX_PATH);
@@ -239,9 +225,7 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
 int OsRemoveDirectory(LPCSTR pathName) {
   WORD pathName16[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(pathName);
-  VALIDATEEND;
+  VALIDATE2(pathName);
 
   SUniConvertUTF8to16(pathName16, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
   return RemoveDirectoryW(pathName16);
@@ -324,9 +308,7 @@ static BOOL EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
 }
 
 int OsRemoveDirectoryRecurse(LPCSTR pathName, DWORD flags) {
-  VALIDATEBEGIN;
-  VALIDATE(pathName);
-  VALIDATEEND;
+  VALIDATE2(pathName);
   char pathSlash[MAX_PATH];
   SStrCopy(pathSlash, pathName, sizeof(pathSlash));
   SStrPack(pathSlash, "\\", 0x7FFFFFFF);
@@ -338,9 +320,7 @@ int OsRemoveDirectoryRecurse(LPCSTR pathName, DWORD flags) {
 BOOL OsSetCurrentDirectory(LPCSTR pathName) {
   WORD dst[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(pathName);
-  VALIDATEEND;
+  VALIDATE2(pathName);
 
   SUniConvertUTF8to16(dst, MAX_PATH, pathName, 0x7FFFFFFF, 0, 0);
   return SetCurrentDirectoryW(dst);
@@ -349,9 +329,7 @@ BOOL OsSetCurrentDirectory(LPCSTR pathName) {
 BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   WORD pathNameW[MAX_PATH];
 
-  VALIDATEBEGIN;
-  VALIDATE(pathName);
-  VALIDATEEND;
+  VALIDATE2(pathName);
 
   if (!GetCurrentDirectoryW(pathLen, pathNameW)) {
     return 0;
@@ -387,9 +365,7 @@ void OsFileAssocSetIdentifier(LPCSTR inFileExt, LPCSTR inIdentifier) {
 static LPCSTR const sFileAssocKey[NUM_OSFILE_ASSOC] = {"", "\\shell\\open\\command"};
 
 BOOL OsFileAssocGetValue(LPCSTR inFileExt, int inAssocType, char *inBuffer, int inBufSize) {
-  VALIDATEBEGIN;
-  VALIDATE(inAssocType >= 0 && inAssocType < NUM_OSFILE_ASSOC);
-  VALIDATEEND;
+  VALIDATE2(inAssocType >= 0 && inAssocType < NUM_OSFILE_ASSOC);
 
   char ident[MAX_PATH];
   char keyName[MAX_PATH];
@@ -414,9 +390,7 @@ BOOL OsFileAssocGetValue(LPCSTR inFileExt, int inAssocType, char *inBuffer, int 
 }
 
 void OsFileAssocSetValue(LPCSTR inFileExt, int inAssocType, LPCSTR inValue) {
-  VALIDATEBEGIN;
-  VALIDATE(inAssocType >= 0 && inAssocType < NUM_OSFILE_ASSOC);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(inAssocType >= 0 && inAssocType < NUM_OSFILE_ASSOC);
 
   char ident[MAX_PATH];
   if (OsFileAssocGetIdentifier(inFileExt, ident, sizeof(ident))) {

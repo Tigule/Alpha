@@ -198,6 +198,10 @@ namespace NTempest {
     return C4Vector(l.x - r.x, l.y - r.y, l.z - r.z, l.w - r.w);
   }
 
+  inline C4Vector operator*(const C4Vector &l, float r) {
+    return C4Vector(l.x * r, l.y * r, l.z * r, l.w * r);
+  }
+
   inline C4iVector::C4iVector(const C4Vector &vector)
       : x((long)vector.x), y((long)vector.y), z((long)vector.z), w((long)vector.w) {
   }

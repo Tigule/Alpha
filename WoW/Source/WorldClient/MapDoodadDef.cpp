@@ -12,7 +12,7 @@
 #include "WorldClient/CSimpleDoodad.h"
 #include "DayNight.h"
 
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Model/CollisionData.h"
 #include "WorldCommon/WorldMath.h"
 

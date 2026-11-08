@@ -140,11 +140,7 @@
 
   /* qsort callback to sort the unicode map */
   FT_CALLBACK_DEF
-  int
-#ifdef _MSC_VER
-  __cdecl
-#endif
-       compare_uni_maps( const void*  a,
+  int  __cdecl compare_uni_maps( const void*  a,
                          const void*  b )
   {
     PS_UniMap*  map1 = (PS_UniMap*)a;

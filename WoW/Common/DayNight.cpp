@@ -10,7 +10,7 @@
 #include "WorldClient/World.h"
 #include "Tempest/cpriorityq.h"
 #include "Base/Status.h"
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Services/Texture.h"
 #include "Console/ConsoleCommand.h"
 #include "Console/ConsoleClient.h"
@@ -997,18 +997,18 @@ void DNSky::GenSphere(float sphRadius) {
 }
 
 void DNSky::GenTexture(UINT w, UINT h, NTempest::CImVector *texels) {
-  NTempest::CImVector *texptr = texels;
   UINT                 halfh = h >> 1;
+  NTempest::CImVector *texptr = texels;
 
   {
     for (UINT i = 0; i < 5; ++i) {
-      UINT  startY = m_stripSizes[i] * 2.0f * halfh;
-      UINT  endY = m_stripSizes[i + 1] * 2.0f * halfh;
+      UINT  startY = halfh * (m_stripSizes[i] * 2.0f);
+      UINT  endY = halfh * (m_stripSizes[i + 1] * 2.0f);
       float blend = 0.0f;
       float delta = 1.0f / (endY - startY + 1);
       UINT  next = i + 1;
 
-      if (i == 4) {
+      if (next == 5) {
         next = 4;
       }
 

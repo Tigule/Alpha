@@ -33,6 +33,20 @@
 #include "Tempest/crect.h"
 #include "Tempest/tempest_intersect.h"
 
+static inline NTempest::C2Vector unit2V_(float angle) {
+  return NTempest::C2Vector(NTempest::CMath::cos_(angle), NTempest::CMath::sin_(angle));
+}
+
+static inline NTempest::C3Vector unit3V_(float z, float angle) {
+  const float _1 = 1.0f;
+
+  ASSERT(z >= -_1 && z <= _1);
+
+  const float radius = NTempest::CMath::sqrt_(_1 - z * z);
+
+  return NTempest::C3Vector(NTempest::CMath::cos_(angle) * radius, NTempest::CMath::sin_(angle) * radius, z);
+}
+
 static inline DWORD lattice_(long x) {
   x ^= ((ulong(x) >> 11) | (ulong(x) << 21)) ^ ((ulong(x) >> 21) | (ulong(x) << 11));
 
@@ -407,19 +421,14 @@ namespace NTempest {
   }
 
   C2Vector CRandom::C2Vector_(CRndSeed &seed) {
-    return C2Vector::FromAxisAngle(real_(seed) * 6.2831855f, 1.0f);
+    return unit2V_(real_(seed) * 6.2831855f);
   }
 
   C3Vector CRandom::C3Vector_(CRndSeed &seed) {
-    const float _1 = 1.0f;
     const float z = reals_(seed);
     const float angle = real_(seed) * 6.2831855f;
 
-    ASSERT(z >= -_1 && z <= _1);
-
-    const float radius = CMath::sqrt_(_1 - z * z);
-
-    return C3Vector(CMath::cos_(angle) * radius, CMath::sin_(angle) * radius, z);
+    return unit3V_(z, angle);
   }
 
   void CRandom::array_(C2Vector *buf, DWORD count, CRndSeed &seed) {

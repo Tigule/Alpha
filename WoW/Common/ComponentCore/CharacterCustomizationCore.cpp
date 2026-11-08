@@ -9,20 +9,41 @@
 #include <DB/DBClient/AutoCode/ItemDisplayInfoRec.h>
 
 #include <Base/Status.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/Texture.h>
 #include <WorldClient/World.h>
 
 #include <malloc.h>
 #include <string.h>
 
+#include "CharacterCustomizationCoreI.h"
+
+struct INTDATA {
+  int theInt;
+
+  INTDATA() : theInt(0) {
+  }
+
+  operator int &() {
+    return theInt;
+  }
+};
+
+struct VARIATIONS {
+  UINT                     textureHolds[CHARTEXTUREVARIATIONS_NUM];
+  FACIALVARIATIONS         facialVariations;
+  TSGrowableArray<INTDATA> hairGeosets;
+
+  ~VARIATIONS() {
+    hairGeosets.Clear();
+  }
+};
+
 static TSFixedArray<TSFixedArray<VARIATIONS> >  s_characterVariations;
 static TSFixedArray<CAMERAFILENAMES>            s_cameraFileNames;
 static TSGrowableArray<CHARACTERRACEVARIATIONS> s_raceTextureFileNames;
 static const UINT                               NUM_UNDERWEARHIDESECTIONS = 2;
-static const UINT                               s_defaultGeosets[NUM_CHARGEOSETS] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0};
 UINT                                            g_defaultGeosetIDOffsets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-static const UINT                               s_baseGeosets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
 static const CHARACTER_GEOSET_SECTIONS          s_clothingGeosetRanges[9] = {CHARGEOSET_GLOVE,  CHARGEOSET_BOOT,    CHARGEOSET_SLEEVES,
                                                                              CHARGEOSET_PANTS,  CHARGEOSET_DOUBLET, CHARGEOSET_PANTDOUBLET,
                                                                              CHARGEOSET_TABARD, CHARGEOSET_ROBE,    CHARGEOSET_LOINCLOTH};
@@ -258,7 +279,7 @@ CharGeosetInfo::CharGeosetInfo(const CharGeosetInfo &rhs) {
 }
 
 void CharGeosetInfo::UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRec, UINT itemInventoryType, HTEXCOMPONENT component, UINT playerRace) {
-  if (!displayInfoRec || !playerRace || playerRace > (UINT)g_chrRacesDB.GetMaxID()) {
+  if (!displayInfoRec) {
     return;
   }
 
@@ -289,15 +310,18 @@ void CharGeosetInfo::UpdateGeosetDisplay(const ItemDisplayInfoRec *displayInfoRe
     }
   }
 
-  LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
   if (itemInventoryType == INDEX_FEET_TYPE) {
+    LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
     if (legLowerTexture && *legLowerTexture) {
       flags[3] |= 1;
       disabledByFlags[3] |= 1u << INDEX_FEET_TYPE;
     }
-  } else if (itemInventoryType == INDEX_LEGS_TYPE && !flags[3] && legLowerTexture && *legLowerTexture) {
-    flags[3] |= 1;
-    disabledByFlags[3] |= 1u << INDEX_LEGS_TYPE;
+  } else if (itemInventoryType == INDEX_LEGS_TYPE && !flags[3]) {
+    LPCSTR legLowerTexture = CompUtilGetTextureSectionName(displayInfoRec, TCS_LEGLOWER);
+    if (legLowerTexture && *legLowerTexture) {
+      flags[3] |= 1;
+      disabledByFlags[3] |= 1u << INDEX_LEGS_TYPE;
+    }
   }
 
   UINT group;
@@ -349,14 +373,17 @@ void CharGeosetInfo::ShowInventoryTypeTextureHolds(HTEXCOMPONENT component, UINT
   FATALASSERT(inventoryType != INDEX_NON_EQUIP_TYPE);
   UINT i;
   for (i = 0; i < 2; ++i) {
-    const HOLDINFO &hold = s_itemTypeTextureHolds[inventoryType].holdInfo[i];
-    if (hold.geosetGroup != -1 && hold.holdSection != TCS_INVALIDSECTION && (flags[hold.geosetGroup] & 1) &&
-        !(disabledByFlags[hold.geosetGroup] & (1u << inventoryType)) && currentGeosets[hold.geosetGroup] <= 1)
-    {
-      if (adding) {
-        TexComponentAddHold(component, (INVENTORY_TYPES)inventoryType, hold.holdSection);
-      } else {
-        TexComponentRemoveHold(component, (INVENTORY_TYPES)inventoryType, hold.holdSection);
+    CHARACTER_ITEM_GEOSETS geosetGroup = s_itemTypeTextureHolds[inventoryType].holdInfo[i].geosetGroup;
+    if (geosetGroup != -1) {
+      TEXCOMPONENT_SECTIONS holdSection = s_itemTypeTextureHolds[inventoryType].holdInfo[i].holdSection;
+      if (holdSection != TCS_INVALIDSECTION && (flags[geosetGroup] & 1) && !(disabledByFlags[geosetGroup] & (1u << inventoryType)) &&
+          currentGeosets[geosetGroup] <= 1)
+      {
+        if (adding) {
+          TexComponentAddHold(component, (INVENTORY_TYPES)inventoryType, holdSection);
+        } else {
+          TexComponentRemoveHold(component, (INVENTORY_TYPES)inventoryType, holdSection);
+        }
       }
     }
   }
@@ -407,17 +434,20 @@ void CharGeosetInfo::Clear() {
 }
 
 void CCharGeoset::CommitWorkingGeosetInfo() {
-  if (!m_geosetInfo.ShowingSameGeosetsAs(m_workingGeosetInfo)) {
+  if (!m_workingGeosetInfo.ShowingSameGeosetsAs(m_geosetInfo)) {
     UINT group;
     for (group = 0; group < 9; ++group) {
-      UINT workingFlags = m_workingGeosetInfo.flags[group];
-      if (!(workingFlags & 1) || !(m_geosetInfo.flags[group] & 1)) {
-        if (!(workingFlags & 2) || !(m_geosetInfo.flags[group] & 2)) {
-          if (workingFlags & 1) {
+      if (!(m_workingGeosetInfo.flags[group] & 1) || !(m_geosetInfo.flags[group] & 1)) {
+        if (!(m_workingGeosetInfo.flags[group] & 2) || !(m_geosetInfo.flags[group] & 2)) {
+          UINT geosetNumber = m_workingGeosetInfo.currentGeosets[group];
+          if (m_workingGeosetInfo.flags[group] & 1) {
             HideGeosetSection(s_clothingGeosetRanges[group]);
             m_currentGeosets[s_clothingGeosetRanges[group]] = 0;
           } else {
-            ShowGeosetSection(s_clothingGeosetRanges[group], workingFlags & 2 ? 1 : m_workingGeosetInfo.currentGeosets[group], 0);
+            if (m_workingGeosetInfo.flags[group] & 2) {
+              geosetNumber = 1;
+            }
+            ShowGeosetSection(s_clothingGeosetRanges[group], geosetNumber, 0);
           }
         }
       }
@@ -448,17 +478,21 @@ void CCharGeoset::ShowGeosetSection(CHARACTER_GEOSET_SECTIONS section, UINT geos
   ASSERT(m_charModel);
   ASSERT(geosetNumber < 100);
 
-  ShowGeosetSection(m_charModel, section, geosetNumber, hideRemainder);
-  if (m_paperDollModel) {
-    ShowGeosetSection(m_paperDollModel, section, geosetNumber, hideRemainder);
+  if (hideRemainder) {
+    HideGeosetSection(section);
   }
-  if (!geosetNumber) {
-    geosetNumber = !s_defaultGeosets[section];
+  if (!geosetNumber && !g_charGeosetIsOverlay[section]) {
+    geosetNumber = 1;
   }
-
-  if (m_currentGeosets[section] != geosetNumber) {
-    m_currentGeosets[section] = geosetNumber;
+  if (geosetNumber != m_currentGeosets[section]) {
     m_flags |= CHANGED;
+    if (m_currentGeosets[section] && !hideRemainder) {
+      ModelHideGeosets(m_charModel, 100 * section + m_currentGeosets[section], 1);
+      if (m_paperDollModel) {
+        ModelHideGeosets(m_paperDollModel, 100 * section + m_currentGeosets[section], 1);
+      }
+    }
+    m_currentGeosets[section] = geosetNumber;
   }
 }
 
@@ -485,18 +519,19 @@ void CharGeosetInfo::RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, 
   for (group = 0; group < 9; ++group) {
     inventoryTypeGeosets[group][inventoryType] = 0;
     geosetCurrentlyUsedBy[group] = INDEX_NON_EQUIP_TYPE;
-    highestPriority[group] = -1;
-
     UINT bestInventoryType = INDEX_NON_EQUIP_TYPE;
     UINT candidateInventoryType;
+    int  highest = -1;
     for (candidateInventoryType = 0; candidateInventoryType < INDEX_NUMSLOTS; ++candidateInventoryType) {
-      if (inventoryTypeGeosets[group][candidateInventoryType] &&
-          (int)s_itemGeosetPriorities[candidateInventoryType][group] > highestPriority[group])
-      {
-        highestPriority[group] = s_itemGeosetPriorities[candidateInventoryType][group];
-        bestInventoryType = candidateInventoryType;
+      if (inventoryTypeGeosets[group][candidateInventoryType]) {
+        int priority = s_itemGeosetPriorities[candidateInventoryType][group];
+        if (priority > highest) {
+          highest = priority;
+          bestInventoryType = candidateInventoryType;
+        }
       }
     }
+    highestPriority[group] = highest;
 
     if (bestInventoryType != INDEX_NON_EQUIP_TYPE) {
       currentGeosets[group] = inventoryTypeGeosets[group][bestInventoryType];
@@ -512,10 +547,8 @@ void CharGeosetInfo::RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, 
       for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
         if (hideFlags & (1u << disabledGroup)) {
           flags[disabledGroup] &= ~2u;
-          currentGeosets[disabledGroup] = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
-          if (!currentGeosets[disabledGroup]) {
-            currentGeosets[disabledGroup] = 1;
-          }
+          UINT geosetNumber = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
+          currentGeosets[disabledGroup] = geosetNumber ? geosetNumber : 1;
           disabledByFlags[disabledGroup] &= ~(1u << inventoryType);
         }
       }
@@ -527,12 +560,10 @@ void CharGeosetInfo::RemoveGeosetInfo(const ItemDisplayInfoRec *displayInfoRec, 
     }
     if (thisGroupDisablesFlags) {
       UINT disabledGroup;
-      for (disabledGroup = 0; disabledGroup < 9; ++disabledGroup) {
+      for (disabledGroup = 0; disabledGroup < 32; ++disabledGroup) {
         if ((thisGroupDisablesFlags & (1u << disabledGroup)) && (flags[disabledGroup] & 1)) {
-          currentGeosets[disabledGroup] = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
-          if (!currentGeosets[disabledGroup]) {
-            currentGeosets[disabledGroup] = 1;
-          }
+          UINT geosetNumber = inventoryTypeGeosets[disabledGroup][geosetCurrentlyUsedBy[disabledGroup]];
+          currentGeosets[disabledGroup] = geosetNumber ? geosetNumber : 1;
           disabledByFlags[disabledGroup] &= ~(1u << inventoryType);
           if (!disabledByFlags[disabledGroup]) {
             flags[disabledGroup] &= ~1u;
@@ -607,19 +638,17 @@ static void InitializeCameraFileNames() {
   s_cameraFileNames.SetCount(g_chrRacesDB.GetMaxID() + 1);
 
   for (i = 0; i < (UINT)g_chrRacesDB.GetNumRecords(); ++i) {
-    const ChrRacesRec *rec = g_chrRacesDB.GetRecordByIndex(i);
-    UINT               sex;
-
-    ASSERT(rec);
+    UINT sex;
 
     for (sex = 0; sex < UNITSEX_LAST; ++sex) {
-      LPCSTR raceString;
-
       if (sex == UNITSEX_NONE) {
         continue;
       }
 
-      raceString = rec->m_clientFileString;
+      const ChrRacesRec *rec = g_chrRacesDB.GetRecordByIndex(i);
+      ASSERT(rec);
+
+      LPCSTR raceString = rec->m_clientFileString;
       ASSERT(raceString && *raceString);
 
       SStrPrintf(
@@ -721,15 +750,16 @@ static void InitializeHairGeosets() {
   int i;
 
   i = g_charHairGeosetsDB.GetNumRecords();
-  for (; i; --i) {
-    const CharHairGeosetsRec *rec = g_charHairGeosetsDB.GetRecordByIndex(i - 1);
+  while (i) {
+    --i;
+    const CharHairGeosetsRec *rec = g_charHairGeosetsDB.GetRecordByIndex(i);
     int                       geoset;
 
     ASSERT(rec->m_VariationID >= 0);
 
     geoset = rec->m_GeosetID;
     if (rec->m_Showscalp) {
-      geoset = -rec->m_GeosetID;
+      geoset = -geoset;
     }
 
     if ((int)s_characterVariations[rec->m_RaceID][rec->m_SexID].hairGeosets.Count() < rec->m_VariationID + 1) {
@@ -740,22 +770,34 @@ static void InitializeHairGeosets() {
   }
 }
 
+LPCSTR GetCameraFileName(UINT race, UINT sex) {
+  VALIDATEBEGIN;
+  VALIDATE(race < s_cameraFileNames.Count());
+  VALIDATE(sex < UNITSEX_LAST);
+  VALIDATEEND;
+
+  return s_cameraFileNames[race].fileName[sex];
+}
+
 static void InitializeTextureHoldLayers() {
   int i;
 
   i = g_charVariationsDB.GetNumRecords();
-  for (; i; --i) {
-    const CharVariationsRec *rec = g_charVariationsDB.GetRecordByIndex(i - 1);
+  while (i) {
+    --i;
+    const CharVariationsRec *rec = g_charVariationsDB.GetRecordByIndex(i);
     int                      race;
+    int                      sex;
 
     ASSERT(rec);
     race = rec->m_RaceID;
+    sex = rec->m_SexID;
 
-    if (rec->m_SexID < UNITSEX_LAST) {
+    if (sex < UNITSEX_LAST) {
       int variation;
 
       for (variation = 0; variation < CHARTEXTUREVARIATIONS_NUM; ++variation) {
-        s_characterVariations[race][rec->m_SexID].textureHolds[variation] = rec->m_TextureHoldLayer[variation];
+        s_characterVariations[race][sex].textureHolds[variation] = rec->m_TextureHoldLayer[variation];
       }
     }
   }
@@ -768,8 +810,7 @@ static void InitializeFacialHairVariations() {
   int               j;
   int               i;
 
-  j = 0;
-  for (; j < MAX_PLAYER_RACE_ID * 2; ++j) {
+  for (j = 0; j < MAX_PLAYER_RACE_ID * 2; ++j) {
     maxVariationID[j] = -1;
   }
 
@@ -786,12 +827,8 @@ static void InitializeFacialHairVariations() {
   }
 
   for (i = 1; i <= MAX_PLAYER_RACE_ID; ++i) {
-    int sex;
-
-    for (sex = 0; sex < 2; ++sex) {
-      int index = sex + 2 * i - 2;
-
-      s_characterVariations[i][sex].facialVariations.facialGeosets.SetCount(maxVariationID[index] + 1);
+    for (j = 0; j < 2; ++j) {
+      s_characterVariations[i][j].facialVariations.facialGeosets.SetCount(maxVariationID[j + 2 * i - 2] + 1);
     }
   }
 
@@ -799,15 +836,7 @@ static void InitializeFacialHairVariations() {
     const CharacterFacialHairStylesRec *rec = g_characterFacialHairStylesDB.GetRecordByIndex(i);
 
     if (rec->m_RaceID <= MAX_PLAYER_RACE_ID && (UINT)rec->m_SexID < 2) {
-      TSFixedArray<FACIALGEOSETS> &facialGeosets = s_characterVariations[rec->m_RaceID][rec->m_SexID].facialVariations.facialGeosets;
-      FACIALGEOSETS               *facialGeoset;
-
-      ASSERT(rec->m_VariationID < (int)facialGeosets.Count());
-
-      facialGeoset = &facialGeosets[rec->m_VariationID];
-      facialGeoset->beardGeoset = rec->m_BeardGeoset + 1;
-      facialGeoset->sideBurnGeoset = rec->m_SideburnGeoset + 1;
-      facialGeoset->moustacheGeoset = rec->m_MoustacheGeoset + 1;
+      s_characterVariations[rec->m_RaceID][rec->m_SexID].facialVariations.AddVariation(rec);
     }
   }
 }
@@ -816,10 +845,8 @@ void CharCustomizationInitialize() {
   UINT i;
 
   s_characterVariations.SetCount(g_chrRacesDB.GetMaxID() + 1);
-
-  i = s_characterVariations.Count();
-  for (; i; --i) {
-    s_characterVariations[i - 1].SetCount(UNITSEX_LAST);
+  for (i = s_characterVariations.Count(); i--;) {
+    s_characterVariations[i].SetCount(UNITSEX_LAST);
   }
 
   InitializeCameraFileNames();
@@ -882,22 +909,18 @@ HTEXTURE CharCustomizationLoadSkin(HMODEL characterModel, LPCSTR skinName, UINT 
 
   CStatus                 status;
   CHARACTERSEXVARIATIONS &var = s_raceTextureFileNames[raceID].sex[sexID];
+  EGxTexFilter            filter = CWorld::enables & CWorld::Enable_Trilinear ? GxTex_LinearMipLinear : GxTex_LinearMipNearest;
   LPCSTR                  extraSkin = var.GetNames(CHARTEXTURESECTION_SKINEXTRA, variation).GetColor(color).GetString();
 
   if (extraSkin && *extraSkin) {
-    HTEXTURE extraTexture = TextureCreate(
-        extraSkin, CGxTexFlags(CWorld::enables & CWorld::Enable_Trilinear ? GxTex_LinearMipLinear : GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1),
-        &status, 0
-    );
+    HTEXTURE extraTexture = TextureCreate(extraSkin, CGxTexFlags(filter, 0, 0, 0, 0, 0, 1), &status, 0);
     if (extraTexture) {
       ModelReplaceTexture(characterModel, 8, extraTexture, 0);
       HandleClose(extraTexture);
     }
   }
 
-  HTEXTURE texture = TextureCreate(
-      skinName, CGxTexFlags(CWorld::enables & CWorld::Enable_Trilinear ? GxTex_LinearMipLinear : GxTex_LinearMipNearest, 0, 0, 0, 0, 0, 1), &status, 0
-  );
+  HTEXTURE texture = TextureCreate(skinName, CGxTexFlags(filter, 0, 0, 0, 0, 0, 1), &status, 0);
   if (texture) {
     ModelReplaceTexture(characterModel, 1, texture, 0);
   }
@@ -918,8 +941,8 @@ HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID
   CharCustomizationGetNumSkinTextures(raceID, sexID, &numPCVariations, &numNPCVariations);
   FATALASSERT(numPCVariations + numNPCVariations);
 
-  int color = textureNumber;
   int variation = 0;
+  int color = textureNumber;
   if (isNPC && (int)textureNumber >= numPCVariations) {
     color -= numPCVariations;
     variation = 1;
@@ -944,54 +967,12 @@ HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID
   }
 
   HTEXTURE texture = TextureCreate(skin, 256, 256, GxTex_Argb1555, CGxTexFlags(filter, 0, 0, 0, 0, 0, 1));
-  if (texture) {
-    ModelReplaceTexture(characterModel, 1, texture, 0);
+  if (!texture) {
+    return 0;
   }
 
+  ModelReplaceTexture(characterModel, 1, texture, 0);
   return texture;
-}
-
-BOOL CharCustomizationGetNakedSectionName(
-    UINT  raceID,
-    UINT  sexID,
-    UINT  skinID,
-    UINT  underwearSection,
-    char *outBuffer,
-    UINT  outBufferSize,
-    BOOL  isNPC
-) {
-  VALIDATEBEGIN;
-  VALIDATE(raceID != 0);
-  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
-  VALIDATE(sexID < UNITSEX_LAST);
-  VALIDATE(underwearSection < NUM_UNDERWEARHIDESECTIONS);
-  VALIDATE(outBuffer);
-  VALIDATE(outBufferSize);
-  VALIDATEEND;
-
-  int PCSkinVariations;
-  if (isNPC) {
-    CharCustomizationGetNumSkinTextures(raceID, sexID, 0, &PCSkinVariations);
-    if (!PCSkinVariations) {
-      CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, 0);
-      isNPC = 0;
-    }
-  } else {
-    CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, 0);
-  }
-  if (!PCSkinVariations) {
-    return 0;
-  }
-
-  int                  color = skinID % PCSkinVariations;
-  CHARTEXTURESECTIONID section = underwearSection ? CHARTEXTURESECTION_NAKEDSKINPELVIS : CHARTEXTURESECTION_NAKEDSKINTORSO;
-  LPCSTR               name = s_raceTextureFileNames[raceID].sex[sexID].GetNames(section, isNPC).GetColor(color).GetString();
-  if (!name) {
-    return 0;
-  }
-
-  SStrPrintf(outBuffer, outBufferSize, "%s", name);
-  return *name != 0;
 }
 
 void CharCustomizationNumFaces(UINT raceID, UINT sexID, int *pcVars, int *npcVars) {
@@ -1023,31 +1004,42 @@ void CharCustomizationSetFaceTexture(
   VALIDATE(sexID < UNITSEX_LAST);
   VALIDATEENDVOID;
 
+  int PCSkinVariations;
+  int NPCSkinVariations;
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, &NPCSkinVariations);
+  int numSkinVariations = PCSkinVariations;
+
   int pcFaceVars;
   int npcFaceVars;
-  int NPCSkinVariations;
-  CharCustomizationGetNumSkinTextures(raceID, sexID, &NPCSkinVariations, 0);
   CharCustomizationNumFaces(raceID, sexID, &pcFaceVars, &npcFaceVars);
+  int numFaceVariations = pcFaceVars;
 
   if (isNPC) {
     if (colorID >= 100) {
-      colorID += NPCSkinVariations - 100;
+      colorID += numSkinVariations - 100;
     }
+    numSkinVariations += NPCSkinVariations;
     if (varID >= 100) {
-      varID += pcFaceVars - 100;
+      varID += numFaceVariations - 100;
     }
-    pcFaceVars += npcFaceVars;
+    numFaceVariations += npcFaceVars;
   }
 
-  if (!NPCSkinVariations || !pcFaceVars) {
+  if (!numSkinVariations || !numFaceVariations) {
     return;
   }
 
   CHARACTERSEXVARIATIONS &var = s_raceTextureFileNames[raceID].sex[sexID];
-  LPCSTR                  upperTexture = var.GetNames(CHARTEXTURESECTION_FACEUPPER, varID).GetColor(colorID).GetString();
-  TexComponentChangeCharacterHead(
-      texComponent, upperTexture, var.GetNames(CHARTEXTURESECTION_FACELOWER, varID).GetColor(colorID).GetString(), TEXLAYER_SKIN
-  );
+
+  int numVariations = var.NumVariations(CHARTEXTURESECTION_FACEUPPER);
+  if (!numVariations) {
+    return;
+  }
+  varID %= numVariations;
+
+  LPCSTR upperTexture = var.GetNames(CHARTEXTURESECTION_FACEUPPER, varID).GetColor(colorID).GetString();
+  LPCSTR lowerTexture = var.GetNames(CHARTEXTURESECTION_FACELOWER, varID).GetColor(colorID).GetString();
+  TexComponentChangeCharacterHead(texComponent, upperTexture, lowerTexture, TEXLAYER_SKIN);
 }
 
 UINT CharCustomizationNumHairColors(UINT raceID, UINT sexID) {
@@ -1073,13 +1065,19 @@ void CharCustomizationSetHairTexture(HMODEL characterModel, HTEXCOMPONENT texCom
   VALIDATEENDVOID;
 
   CHARACTERSEXVARIATIONS &var = s_raceTextureFileNames[raceID].sex[sexID];
-  if (!var.NumVariations(CHARTEXTURESECTION_HAIR)) {
+  if (!var.NumVariations(CHARTEXTURESECTION_SCALPUPPERHAIR)) {
     return;
   }
+  hairID %= var.NumVariations(CHARTEXTURESECTION_SCALPUPPERHAIR);
+  int numColors = var.GetNames(CHARTEXTURESECTION_SCALPUPPERHAIR, hairID).GetColorCount();
+  if (!numColors) {
+    return;
+  }
+  colorID %= numColors;
 
-  LPCSTR hairTexture = var.GetNames(CHARTEXTURESECTION_HAIR, hairID).GetColor(colorID).GetString();
-  LPCSTR lowerTexture = var.GetNames(CHARTEXTURESECTION_SCALPLOWERHAIR, hairID).GetColor(colorID).GetString();
   LPCSTR upperTexture = var.GetNames(CHARTEXTURESECTION_SCALPUPPERHAIR, hairID).GetColor(colorID).GetString();
+  LPCSTR lowerTexture = var.GetNames(CHARTEXTURESECTION_SCALPLOWERHAIR, hairID).GetColor(colorID).GetString();
+  LPCSTR hairTexture = var.GetNames(CHARTEXTURESECTION_HAIR, hairID).GetColor(colorID).GetString();
 
   if (texComponent) {
     TexComponentChangeCharacterHead(texComponent, upperTexture, lowerTexture, TEXLAYER_ARMOR);
@@ -1091,6 +1089,137 @@ void CharCustomizationSetHairTexture(HMODEL characterModel, HTEXCOMPONENT texCom
     if (texture) {
       ModelReplaceTexture(characterModel, 6, texture, 0);
       HandleClose(texture);
+    }
+  }
+}
+
+void CharCustomizationInitBaseCharacter(HCHARGEOSET geosetHandle, UINT beardGeoset, UINT sideBurnGeoset, UINT moustacheGeoset, UINT earGeoset) {
+  CCharGeoset *handlePtr = (CCharGeoset *)geosetHandle;
+  if (!handlePtr) {
+    return;
+  }
+
+  handlePtr->ShowGeosetSection(CHARGEOSET_BEARD, beardGeoset, 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_SIDEBURN, sideBurnGeoset, 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_MOUSTACHE, moustacheGeoset, 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_EAR, earGeoset, 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_GLOVE, g_defaultGeosetIDOffsets[CHARGEOSET_GLOVE], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_BOOT, g_defaultGeosetIDOffsets[CHARGEOSET_BOOT], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_SLEEVES, g_defaultGeosetIDOffsets[CHARGEOSET_SLEEVES], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_PANTS, g_defaultGeosetIDOffsets[CHARGEOSET_PANTS], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_DOUBLET, g_defaultGeosetIDOffsets[CHARGEOSET_DOUBLET], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_PANTDOUBLET, g_defaultGeosetIDOffsets[CHARGEOSET_PANTDOUBLET], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_TABARD, g_defaultGeosetIDOffsets[CHARGEOSET_TABARD], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_ROBE, g_defaultGeosetIDOffsets[CHARGEOSET_ROBE], 1);
+  handlePtr->ShowGeosetSection(CHARGEOSET_LOINCLOTH, g_defaultGeosetIDOffsets[CHARGEOSET_LOINCLOTH], 1);
+  handlePtr->ClearGeosets();
+}
+
+void CharCustomizationResetHairGeoset(HCHARGEOSET geosetHandle, UINT race, UINT sex, UINT hairStyleID) {
+  CCharGeoset *handlePtr = (CCharGeoset *)geosetHandle;
+  if (handlePtr) {
+    handlePtr->EnableHairGeosets(race, sex, hairStyleID);
+  }
+}
+
+BOOL CharCustomizationGetNakedSectionName(
+    UINT  raceID,
+    UINT  sexID,
+    UINT  skinID,
+    UINT  underwearSection,
+    char *outBuffer,
+    UINT  outBufferSize,
+    BOOL  isNPC
+) {
+  VALIDATEBEGIN;
+  VALIDATE(raceID != 0);
+  VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+  VALIDATE(sexID < UNITSEX_LAST);
+  VALIDATE(underwearSection < NUM_UNDERWEARHIDESECTIONS);
+  VALIDATE(outBuffer);
+  VALIDATE(outBufferSize);
+  VALIDATEEND;
+
+  int PCSkinVariations;
+  int NPCSkinVariations;
+  int color;
+  CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, &NPCSkinVariations);
+  if (isNPC && NPCSkinVariations) {
+    isNPC = 1;
+    color = skinID % NPCSkinVariations;
+  } else {
+    if (!PCSkinVariations) {
+      return 0;
+    }
+    isNPC = 0;
+    color = skinID % PCSkinVariations;
+  }
+
+  CHARTEXTURESECTIONID section = underwearSection ? CHARTEXTURESECTION_NAKEDSKINPELVIS : CHARTEXTURESECTION_NAKEDSKINTORSO;
+  LPCSTR               name = s_raceTextureFileNames[raceID].sex[sexID].GetNames(section, isNPC).GetColor(color).GetString();
+  if (name) {
+    SStrPrintf(outBuffer, outBufferSize, "%s", name);
+    if (*name) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets) {
+  CCharGeoset *geosetPtr = (CCharGeoset *)geosetHandle;
+  if (geosetPtr) {
+    geosetPtr->CommitWorkingGeosetInfo();
+    if (!doNotCommitGeosets) {
+      geosetPtr->Commit();
+    }
+  }
+}
+
+void CharCustomizationClearItemGeosets(HCHARGEOSET geosetHandle) {
+  CCharGeoset *geosetPtr = (CCharGeoset *)geosetHandle;
+  if (geosetPtr) {
+    geosetPtr->ClearGeosets();
+  }
+}
+
+void CharCustomizationAddItemGeosets(
+    HCHARGEOSET               geosetHandle,
+    const ItemDisplayInfoRec *displayInfoRec,
+    UINT                      itemInventoryType,
+    HTEXCOMPONENT             component,
+    UINT                      raceID,
+    int                       doNotCommit
+) {
+  CCharGeoset *geosetPtr = (CCharGeoset *)geosetHandle;
+  if (geosetPtr) {
+    VALIDATEBEGIN;
+    VALIDATE(displayInfoRec);
+    VALIDATE(itemInventoryType != INDEX_NON_EQUIP_TYPE);
+    VALIDATE(raceID != 0);
+    VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
+    VALIDATEENDVOID;
+    if ((1 << itemInventoryType) & 0x1805B0) {
+      geosetPtr->AddItemGeoset(displayInfoRec, itemInventoryType, component, raceID, doNotCommit);
+    }
+  }
+}
+
+void CharCustomizationRemoveItemGeosets(
+    HCHARGEOSET               geosetHandle,
+    const ItemDisplayInfoRec *displayInfoRec,
+    UINT                      itemInventoryType,
+    HTEXCOMPONENT             component
+) {
+  CCharGeoset *geosetPtr = (CCharGeoset *)geosetHandle;
+  if (geosetPtr) {
+    VALIDATEBEGIN;
+    VALIDATE(displayInfoRec);
+    VALIDATE(itemInventoryType != INDEX_NON_EQUIP_TYPE);
+    VALIDATE(component);
+    VALIDATEENDVOID;
+    if ((1 << itemInventoryType) & 0x1805B0) {
+      geosetPtr->RemoveItemGeoset(displayInfoRec, itemInventoryType, component);
     }
   }
 }
@@ -1170,12 +1299,20 @@ void CharCustomizationSetFacialTexture(HMODEL characterModel, HTEXCOMPONENT texC
   VALIDATEENDVOID;
 
   CHARACTERSEXVARIATIONS &sexVar = s_raceTextureFileNames[raceID].sex[sexID];
-  if (!sexVar.NumVariations(CHARTEXTURESECTION_FACIALUPPERHAIR)) {
+  int numVariations = sexVar.NumVariations(CHARTEXTURESECTION_FACIALUPPERHAIR);
+  if (!numVariations) {
     return;
   }
+  facialID %= numVariations;
 
-  LPCSTR lowerTexture = sexVar.GetNames(CHARTEXTURESECTION_FACIALLOWERHAIR, facialID).GetColor(colorID).GetString();
+  int numColors = sexVar.GetNames(CHARTEXTURESECTION_FACIALUPPERHAIR, facialID).GetColorCount();
+  if (!numColors) {
+    return;
+  }
+  colorID %= numColors;
+
   LPCSTR upperTexture = sexVar.GetNames(CHARTEXTURESECTION_FACIALUPPERHAIR, facialID).GetColor(colorID).GetString();
+  LPCSTR lowerTexture = sexVar.GetNames(CHARTEXTURESECTION_FACIALLOWERHAIR, facialID).GetColor(colorID).GetString();
   TexComponentChangeCharacterHead(texComponent, upperTexture, lowerTexture, TEXLAYER_CLOTH);
 }
 
@@ -1190,124 +1327,10 @@ HCHARGEOSET CharCustomizationCreateGeosetHandle(HMODEL characterModel) {
   return CREATEHANDLE(HCHARGEOSET, newObject);
 }
 
-void CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel) {
-  CCharGeoset *geoset = (CCharGeoset *)handle;
-  if (geoset) {
-    if (geoset->m_paperDollModel) {
-      HandleClose(geoset->m_paperDollModel);
-    }
-    geoset->m_paperDollModel = (HMODEL)HandleDuplicate(paperDollModel);
-  }
-}
-
-void CharCustomizationInitBaseCharacter(HCHARGEOSET geosetHandle, UINT beardGeoset, UINT sideBurnGeoset, UINT moustacheGeoset, UINT earGeoset) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (!geoset) {
-    return;
-  }
-
-  geoset->ShowGeosetSection(CHARGEOSET_BEARD, beardGeoset, 1);
-  geoset->ShowGeosetSection(CHARGEOSET_SIDEBURN, sideBurnGeoset, 1);
-  geoset->ShowGeosetSection(CHARGEOSET_MOUSTACHE, moustacheGeoset, 1);
-  geoset->ShowGeosetSection(CHARGEOSET_EAR, earGeoset, 1);
-  geoset->ShowGeosetSection(CHARGEOSET_GLOVE, s_baseGeosets[CHARGEOSET_GLOVE], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_BOOT, s_baseGeosets[CHARGEOSET_BOOT], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_SLEEVES, s_baseGeosets[CHARGEOSET_SLEEVES], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_PANTS, s_baseGeosets[CHARGEOSET_PANTS], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_DOUBLET, s_baseGeosets[CHARGEOSET_DOUBLET], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_PANTDOUBLET, s_baseGeosets[CHARGEOSET_PANTDOUBLET], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_TABARD, s_baseGeosets[CHARGEOSET_TABARD], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_ROBE, s_baseGeosets[CHARGEOSET_ROBE], 1);
-  geoset->ShowGeosetSection(CHARGEOSET_LOINCLOTH, s_baseGeosets[CHARGEOSET_LOINCLOTH], 1);
-  geoset->ClearGeosets();
-}
-
-void CharCustomizationResetHairGeoset(HCHARGEOSET geosetHandle, UINT race, UINT sex, UINT hairStyleID) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (geoset) {
-    geoset->EnableHairGeosets(race, sex, hairStyleID);
-  }
-}
-
-void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (geoset) {
-    geoset->CommitWorkingGeosetInfo();
-    if (!doNotCommitGeosets) {
-      geoset->Commit();
-    }
-  }
-}
-
-void CharCustomizationCommitItemGeosets(HCHARGEOSET geosetHandle, int doNotCommitGeosets, HMODEL paperDollModel) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (geoset) {
-    CharCustomizationCommitItemGeosets(geosetHandle, doNotCommitGeosets);
-    if (paperDollModel) {
-      geoset->CommitGeosets(paperDollModel);
-    }
-  }
-}
-
-void CharCustomizationClearItemGeosets(HCHARGEOSET geosetHandle) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (geoset) {
-    geoset->ClearGeosets();
-  }
-}
-
-void CharCustomizationAddItemGeosets(
-    HCHARGEOSET               geosetHandle,
-    const ItemDisplayInfoRec *displayInfoRec,
-    UINT                      itemInventoryType,
-    HTEXCOMPONENT             component,
-    UINT                      raceID,
-    int                       doNotCommit
-) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (geoset) {
-    VALIDATEBEGIN;
-    VALIDATE(displayInfoRec);
-    VALIDATE(itemInventoryType != INDEX_NON_EQUIP_TYPE);
-    VALIDATE(raceID != 0);
-    VALIDATE(raceID <= (uint)g_chrRacesDB.GetMaxID());
-    VALIDATEENDVOID;
-    if ((1 << itemInventoryType) & 0x1805B0) {
-      geoset->AddItemGeoset(displayInfoRec, itemInventoryType, component, raceID, doNotCommit);
-    }
-  }
-}
-
-void CharCustomizationRemoveItemGeosets(
-    HCHARGEOSET               geosetHandle,
-    const ItemDisplayInfoRec *displayInfoRec,
-    UINT                      itemInventoryType,
-    HTEXCOMPONENT             component
-) {
-  CCharGeoset *geoset = (CCharGeoset *)geosetHandle;
-  if (geoset) {
-    VALIDATEBEGIN;
-    VALIDATE(displayInfoRec);
-    VALIDATE(itemInventoryType != INDEX_NON_EQUIP_TYPE);
-    VALIDATE(component);
-    VALIDATEENDVOID;
-    if ((1 << itemInventoryType) & 0x1805B0) {
-      geoset->RemoveItemGeoset(displayInfoRec, itemInventoryType, component);
-    }
-  }
-}
-
-void CharCustomizationCommitGeosets(HCHARGEOSET handle) {
-  CCharGeoset *geoset = (CCharGeoset *)handle;
-  if (geoset) {
-    geoset->Commit();
-  }
-}
-
 void CharCustomizationShowGeoset(HCHARGEOSET handle, CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber) {
-  CCharGeoset *geoset = (CCharGeoset *)handle;
-  if (geoset) {
-    geoset->ShowGeosetSection(section, geosetNumber, 0);
+  CCharGeoset *charGeosetPtr = (CCharGeoset *)handle;
+  if (charGeosetPtr) {
+    charGeosetPtr->ShowGeosetSection(section, geosetNumber, 0);
   }
 }
 
@@ -1315,6 +1338,13 @@ void CharCustomizationHideGeosetSection(HCHARGEOSET handle, CHARACTER_GEOSET_SEC
   CCharGeoset *geoset = (CCharGeoset *)handle;
   if (geoset) {
     geoset->HideGeosetSection(section);
+  }
+}
+
+void CharCustomizationCommitGeosets(HCHARGEOSET handle) {
+  CCharGeoset *geoset = (CCharGeoset *)handle;
+  if (geoset) {
+    geoset->Commit();
   }
 }
 
@@ -1333,6 +1363,16 @@ void CharCustomizationGetTextureLayerHolds(UINT raceID, UINT sexID, UINT *textur
   }
 }
 
+void CharCustomizationSetPaperDollGeoset(HCHARGEOSET handle, HMODEL paperDollModel) {
+  CCharGeoset *geoset = (CCharGeoset *)handle;
+  if (geoset) {
+    if (geoset->m_paperDollModel) {
+      HandleClose(geoset->m_paperDollModel);
+    }
+    geoset->m_paperDollModel = (HMODEL)HandleDuplicate(paperDollModel);
+  }
+}
+
 void CHARACTERSEXVARIATIONS::GetNumVariations(CHARTEXTURESECTIONID section, int *pcVars, int *npcVars) {
   if (pcVars) {
     *pcVars = firstNPCVar[section] == INT_MAX ? names[section].Count() : firstNPCVar[section];
@@ -1341,26 +1381,4 @@ void CHARACTERSEXVARIATIONS::GetNumVariations(CHARTEXTURESECTIONID section, int 
   if (npcVars) {
     *npcVars = firstNPCVar[section] != INT_MAX ? lastNPCVar[section] - firstNPCVar[section] + 1 : 0;
   }
-}
-
-void CCharGeoset::ShowGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section, UINT geosetNumber, int hideRemainder) const {
-  ASSERT(section < NUM_CHARGEOSETS);
-  ASSERT(model);
-  ASSERT(geosetNumber < 100);
-
-  if (hideRemainder) {
-    HideGeosetSection(model, section);
-  }
-  if (!geosetNumber) {
-    geosetNumber = !s_defaultGeosets[section];
-  }
-  if (m_currentGeosets[section] != geosetNumber && m_currentGeosets[section] && !hideRemainder) {
-    ModelHideGeosets(model, 100 * section + m_currentGeosets[section], 1);
-  }
-}
-
-void CCharGeoset::HideGeosetSection(HMODEL model, CHARACTER_GEOSET_SECTIONS section) const {
-  ASSERT(section < NUM_CHARGEOSETS);
-  ASSERT(model);
-  ModelHideGeosetsRange(model, 100 * section + 1, 100 * section + 99, 1);
 }

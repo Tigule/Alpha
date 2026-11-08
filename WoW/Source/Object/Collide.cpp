@@ -843,10 +843,11 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
 }
 
 static int GetSlidingDirection(DWORDLONG guid, const C3Vector *normalList, UINT numNormals, C3Vector *direction) {
+  CMovement::FallLogWrite("0x%016I64X: Getting slide direction from %u normals\n", guid, numNormals);
+
   C3Vector intermed1;
   C3Vector intermed2;
 
-  CMovement::FallLogWrite("0x%016I64X: Getting slide direction from %u normals\n", guid, numNormals);
   switch (numNormals) {
     case 2:
       CMovement::FallLogWrite(
@@ -881,6 +882,9 @@ static int GetSlidingDirection(DWORDLONG guid, const C3Vector *normalList, UINT 
       *direction = C3Vector::Cross(intermed1, intermed2);
       direction->SafeNormalize();
       break;
+    default:
+      CMovement::FallLogWrite("0x%016I64X: TOO MANY NORMALS, failed to get slide direction!!!\n", guid);
+      break;
     case 1: {
       CMovement::FallLogWrite("0x%016I64X: Normal: (%g,%g,%g)\n", guid, normalList[0].x, normalList[0].y, normalList[0].z);
       C2Vector downCrossSurfaceNorm(-normalList[0].y, normalList[0].x);
@@ -888,9 +892,6 @@ static int GetSlidingDirection(DWORDLONG guid, const C3Vector *normalList, UINT 
       *direction = C3Vector::Cross(downCrossSurfaceNorm, normalList[0]);
       break;
     }
-    default:
-      CMovement::FallLogWrite("0x%016I64X: TOO MANY NORMALS, failed to get slide direction!!!\n", guid);
-      break;
   }
 
   if (CMath::fabs_(direction->z) <= 0.76604444f) {
@@ -922,7 +923,8 @@ float CMovement::CollideWithWaterSurface(const C3Vector &unitMove, const C3Vecto
   m_reDirection = C2Vector(unitMoveWanted);
   m_reDirection.SafeNormalize();
   m_moveFlags |= MOVEFLAG_REDIRECTED;
-  return (m_waterSurfaceElev - m_position.z) / moveVector.z * distanceWanted;
+  float partMoved = (m_waterSurfaceElev - m_position.z) / moveVector.z;
+  return partMoved * distanceWanted;
 }
 
 float CMovement::ExtrudeFlyBoxUp(const C3Vector &unitMove, const C3Vector &unitMoveWanted, float distanceWanted) {
@@ -1419,7 +1421,7 @@ void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &u
     moveVector *= distance;
   }
 
-  C3Vector  position = m_position;
+  C3Vector  position = GetRawPosition();
   C34Matrix transportToWorld;
   if (m_transportGUID) {
     MovementGetTransportMtx(m_transportGUID, &transportToWorld);
@@ -1433,8 +1435,7 @@ void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &u
   start.t.y += m_collisionBoxHalfDepth;
   start.t.z += m_collisionBoxHeight;
   CAaBox end = start;
-  end.b += moveVector;
-  end.t += moveVector;
+  end.Offset(moveVector);
   CAaBox axisAlign(C3Vector::Min(start.b, end.b), C3Vector::Max(start.t, end.t));
 
   if (!IsSwimming()) {
@@ -1442,7 +1443,10 @@ void CMovement::GetMoveFacets(float distance, UINT timeToFall, const C3Vector &u
     axisAlign.b.z -= RelDistanceFallen(timeToFall);
   }
 
-  UINT queryFlags = (GetGUID() & 0xF000000000000000ui64) ? 0x2111 : 0x111;
+  UINT queryFlags = 0x2111;
+  if (!(GetGUID() & 0xF000000000000000ui64)) {
+    queryFlags = 0x111;
+  }
   CWorld::GetFacets(axisAlign, &s_facetData, queryFlags);
   CollisionInfoSetFaces(m_guid, s_facetData.facets);
 
@@ -3059,61 +3063,54 @@ BOOL CMovement::TestStepUp(const C3Vector &destination) {
   return distance >= distWanted;
 }
 
+static inline void NormalizeVectorPair(C3Vector &a, C3Vector &b) {
+  float mag = CMath::sqrt_(a.SquaredMag());
+  if (CMath::fnotequal_(mag, 0.0f)) {
+    a *= 1.0f / mag;
+    b *= 1.0f / mag;
+  }
+}
+
 void CMovement::ExtrudeBoxSideZ(const C3Vector &moveVector, float bottom, C4Plane boxSides[]) {
   int posZ = moveVector.z >= 0.0f;
 
   C4Plane basePlane;
-  if (posZ) {
-    basePlane.n.Set(0.0f, 0.0f, 1.0f);
-    basePlane.d = -(m_collisionBoxHeight + m_position.z);
-  } else {
-    basePlane.n.Set(0.0f, 0.0f, -1.0f);
-    basePlane.d = m_stepUpHeight + m_position.z;
-  }
+  if (posZ) basePlane.Set(0.0f, 0.0f, 1.0f, -(m_collisionBoxHeight + m_position.z));
+  else
+    basePlane.Set(0.0f, 0.0f, -1.0f, m_stepUpHeight + m_position.z);
 
-  float height[2] = {bottom, m_collisionBoxHeight};
-
+  C3Vector leftPoint(m_position), rghtPoint(m_position);
+  float    height[2] = {bottom, m_collisionBoxHeight};
+  C3Vector posXNorm, negXNorm, posYNorm, negYNorm;
   C3Vector moveDir[2];
   moveDir[0] = -moveVector;
   moveDir[1] = moveVector;
 
-  boxSides[0].n = -basePlane.n;
-  boxSides[0].d = -basePlane.d - 0.027777778f;
+  boxSides[0] = -basePlane;
+  boxSides[0].d -= 0.027777778f;
+  boxSides[1] = basePlane;
+  boxSides[1].d -= max(moveDir[posZ].z, 0.027777778f);
 
-  boxSides[1].n = basePlane.n;
-  boxSides[1].d = basePlane.d - (moveDir[posZ].z > 0.027777778f ? moveDir[posZ].z : 0.027777778f);
+  rghtPoint.x += m_collisionBoxHalfDepth;
+  rghtPoint.y += m_collisionBoxHalfDepth;
+  rghtPoint.z += height[posZ];
+  leftPoint.x -= m_collisionBoxHalfDepth;
+  leftPoint.y -= m_collisionBoxHalfDepth;
+  leftPoint.z += height[posZ];
 
-  C3Vector leftPoint(m_position.x - m_collisionBoxHalfDepth, m_position.y - m_collisionBoxHalfDepth, m_position.z + height[posZ]);
-  C3Vector rghtPoint(m_position.x + m_collisionBoxHalfDepth, m_position.y + m_collisionBoxHalfDepth, m_position.z + height[posZ]);
+  posYNorm.Set(0.0f, moveDir[posZ].z, moveDir[!posZ].y);
+  negYNorm.Set(0.0f, moveDir[!posZ].z, moveDir[posZ].y);
+  NormalizeVectorPair(negYNorm, posYNorm);
 
-  C3Vector posYNorm(0.0f, moveDir[posZ].z, -moveDir[posZ].y);
-  C3Vector negYNorm(0.0f, -moveDir[posZ].z, moveDir[posZ].y);
-  float              negYMag = negYNorm.Mag();
-  if (CMath::fabs_(negYMag) >= 0.00000023841858f) {
-    float invMag = 1.0f / negYMag;
-    negYNorm *= invMag;
-    posYNorm *= invMag;
-  }
+  posXNorm.Set(moveDir[posZ].z, 0.0f, moveDir[!posZ].x);
+  negXNorm.Set(moveDir[!posZ].z, 0.0f, moveDir[posZ].x);
+  NormalizeVectorPair(posXNorm, negXNorm);
 
-  C3Vector posXNorm(moveDir[posZ].z, 0.0f, -moveDir[posZ].x);
-  C3Vector negXNorm(-moveDir[posZ].z, 0.0f, moveDir[posZ].x);
-  float              posXMag = posXNorm.Mag();
-  if (CMath::fabs_(posXMag) >= 0.00000023841858f) {
-    float invMag = 1.0f / posXMag;
-    posXNorm *= invMag;
-    negXNorm *= invMag;
-  }
-
-  boxSides[2].n = negYNorm;
-  boxSides[2].d = -C3Vector::Dot(leftPoint, negYNorm);
-  boxSides[3].n = posYNorm;
-  boxSides[3].d = -C3Vector::Dot(rghtPoint, posYNorm);
-  boxSides[4].n = posXNorm;
-  boxSides[4].d = -C3Vector::Dot(rghtPoint, posXNorm);
-  boxSides[5].n = negXNorm;
-  boxSides[5].d = -C3Vector::Dot(leftPoint, negXNorm);
+  boxSides[2].Set(negYNorm, leftPoint);
+  boxSides[3].Set(posYNorm, rghtPoint);
+  boxSides[4].Set(posXNorm, rghtPoint);
+  boxSides[5].Set(negXNorm, leftPoint);
 }
-
 void CMovement::ExtrudeBoxSideY(const C3Vector &moveVector, float bottom, C4Plane boxSides[]) {
   int posY = moveVector.y >= 0.0f;
 
@@ -3251,8 +3248,7 @@ BOOL CMovement::ExtrudePyramidSideX(const C3Vector &unitMove, float distance, C4
   }
   boxSides[3].Set(boxSides[3].n, m_position);
 
-  negPyramidEdge = posPyramidEdge + m_position;
-  boxSides[4].Set(posZNorm, negPyramidEdge);
+  boxSides[4].Set(posZNorm, posPyramidEdge + m_position);
 
   return 1;
 }
@@ -3289,8 +3285,7 @@ BOOL CMovement::ExtrudePyramidSideY(const C3Vector &unitMove, float distance, C4
   }
   boxSides[3].Set(boxSides[3].n, m_position);
 
-  negPyramidEdge = posPyramidEdge + m_position;
-  boxSides[4].Set(posZNorm, negPyramidEdge);
+  boxSides[4].Set(posZNorm, posPyramidEdge + m_position);
 
   return 1;
 }

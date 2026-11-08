@@ -152,9 +152,7 @@ static void sRemoveOsGuiPointer(HWND__ *hwnd) {
 }
 
 static void sDoCallback(int inCB, int type, int subtype) {
-  VALIDATEBEGIN;
-  VALIDATE(inCB >= 0 && inCB < NUM_OSGUI_CALLBACKS);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(inCB >= 0 && inCB < NUM_OSGUI_CALLBACKS);
 
   if (sCallbacks[inCB].function) {
     OsGuiCallbackParams params;
@@ -706,7 +704,9 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
 
 static int CALLBACK sDisableWindow(HWND__ *hwnd, long param) {
   TSGrowableArray<LPVOID> *windows = (TSGrowableArray<LPVOID> *)param;
-  if ((HINSTANCE)GetWindowLongA(hwnd, GWL_HINSTANCE) == sAppInstance && IsWindowEnabled(hwnd)) {
+  if ((HINSTANCE)GetWindowLongA(hwnd, GWL_HINSTANCE) != sAppInstance)
+    return 1;
+  if (IsWindowEnabled(hwnd)) {
     EnableWindow(hwnd, FALSE);
     *windows->New() = hwnd;
   }
@@ -1328,9 +1328,7 @@ COsDialog::~COsDialog() {
 
 void COsDialog::ApplyModality(int inVal) {
   if (inVal) {
-    VALIDATEBEGIN;
-    VALIDATE(mDisabledWindows.Count() == 0);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(mDisabledWindows.Count() == 0);
     if (mFlags & 0x4) {
       HWND parent = (HWND)GetParentWindow();
       if (parent) {
@@ -1871,39 +1869,27 @@ COsListBox::~COsListBox() {
 }
 
 void COsListBox::SetValue(int inVal) {
-  VALIDATEBEGIN;
-  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) == 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID((mFlags & OSGUI_LISTBOX_MULTISEL) == 0);
   SendMessageA((HWND)mHandle, LB_SETCURSEL, inVal, 0);
 }
 
 int COsListBox::GetValue() {
-  if (mFlags & 0x10000) {
-    FATALERROR(("(mFlags & OSGUI_LISTBOX_MULTISEL) == 0"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return -1;
-  }
+  VALIDATE2RETURN((mFlags & OSGUI_LISTBOX_MULTISEL) == 0, -1);
   return SendMessageA((HWND)mHandle, LB_GETCURSEL, 0, 0);
 }
 
 void COsListBox::SelectItem(int inPos, int inVal) {
-  VALIDATEBEGIN;
-  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
   SendMessageA((HWND)mHandle, LB_SETSEL, inVal, inPos);
 }
 
 BOOL COsListBox::IsItemSelected(int inPos) {
-  VALIDATEBEGIN;
-  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
-  VALIDATEEND;
+  VALIDATE2((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
   return SendMessageA((HWND)mHandle, LB_GETSEL, inPos, 0);
 }
 
 void COsListBox::SelectAll(int inVal) {
-  VALIDATEBEGIN;
-  VALIDATE((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID((mFlags & OSGUI_LISTBOX_MULTISEL) != 0);
   int count = GetNumItems();
   for (int i = 0; i < count; ++i) {
     SelectItem(i, inVal);
@@ -1940,9 +1926,7 @@ int COsListBox::GetItemTextLength(int inPos) {
 
 void COsListBox::GetItemText(int inPos, char *inBuf, int inBufSize) {
   int textLen = GetItemTextLength(inPos);
-  VALIDATEBEGIN;
-  VALIDATE(inBufSize > textLen);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(inBufSize > textLen);
   SendMessageA((HWND)mHandle, LB_GETTEXT, inPos, (LPARAM)inBuf);
 }
 
@@ -3096,10 +3080,8 @@ void COsTreeView::EnumerateAllItems(void (*inFunc)(COsTreeView *, LPVOID, LPVOID
 }
 
 void COsTreeView::SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID inData) {
-  VALIDATEBEGIN;
-  VALIDATE(inWidth == 16);
-  VALIDATE(inHeight == 16);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(inWidth == 16);
+  VALIDATE2VOID(inHeight == 16);
 
   HDC     dc = GetDC((HWND)mHandle);
   HBITMAP hbmp = sBitmapFromImageData(16, 16, inData, dc);
@@ -3647,9 +3629,7 @@ OsGuiTreeItemParams *COsTreeView::GetParams(LPVOID inItem) {
   itemInfo.hItem = (HTREEITEM)inItem;
   SendMessageA((HWND)mHandle, TVM_GETITEMA, 0, (LPARAM)&itemInfo);
   int paramID = itemInfo.lParam;
-  VALIDATEBEGIN;
-  VALIDATE(paramID >= 0 && paramID < (int)mItemParams.Count());
-  VALIDATEEND;
+  VALIDATE2(paramID >= 0 && paramID < (int)mItemParams.Count());
   return &mItemParams[paramID];
 }
 
@@ -4013,9 +3993,7 @@ void COsWindow::OnResize() {
 }
 
 HICON__ *sWinCursor(int inCursor) {
-  VALIDATEBEGIN;
-  VALIDATE(inCursor >= 0 && inCursor < OSGUI_NUM_CURSORS);
-  VALIDATEEND;
+  VALIDATE2(inCursor >= 0 && inCursor < OSGUI_NUM_CURSORS);
   LPCSTR cursorName;
   switch (inCursor) {
     case 0:

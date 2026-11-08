@@ -10,7 +10,7 @@
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 BOOL  MDLFileRead(LPCSTR path, MDLDATA *data, CStatus *status);
 
-CAnim *AnimCreate(UINT *const objectCounts, UINT numGeosets, UINT numCameras, UINT numMaterialLayers);
+CAnim *AnimCreate(UINT objectCounts[], UINT numGeosets, UINT numCameras, UINT numMaterialLayers);
 HANIM  AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status);
 static BOOL   AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags);
 
@@ -81,9 +81,7 @@ static TSHashTable<ANIMHASH, HASHKEY_STRI> s_animCache;
 
 static int AnimGetReferenceCount(HANIM__ *anim) {
   CAnim *container = (CAnim *)anim;
-  VALIDATEBEGIN;
-  VALIDATE(container);
-  VALIDATEEND;
+  VALIDATE2(container);
   return container->GetRefCount();
 }
 
@@ -101,8 +99,8 @@ static HANIM__ *GetAnim(LPCSTR modelFName) {
 
 static void HashNewAnim(LPCSTR modelFName, HANIM__ *anim) {
   FATALASSERT(modelFName);
-  ANIMHASH *entry = s_animCache.New(modelFName, 0, 0);
-  entry->anim = (HANIM)HandleDuplicate(anim);
+  ANIMHASH *animHash = s_animCache.New(modelFName, 0, 0);
+  animHash->anim = (HANIM)HandleDuplicate(anim);
 }
 
 static BYTE GetObjectFlags(UINT mdlFlags) {
@@ -885,9 +883,7 @@ HANIM AnimCreate(const MDLDATA &data, UINT flags, CStatus *status) {
 }
 
 HANIM AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(sourcefile);
-  VALIDATEEND;
+  VALIDATE2(sourcefile);
 
   HANIM anim = GetAnim(sourcefile);
   if (anim) {

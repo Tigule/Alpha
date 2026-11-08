@@ -267,6 +267,13 @@ void CGxDeviceOpenGl::IStateSetColorSourceColor(EColorSource source, const NTemp
   m_colorSourceColor[source].m_dirty = 1;
 }
 
+inline void SetGlColor(float *dst, const NTempest::CImVector &src, float scale) {
+  dst[0] = src.r * scale;
+  dst[1] = src.g * scale;
+  dst[2] = src.b * scale;
+  dst[3] = src.a * scale;
+}
+
 void CGxDeviceOpenGl::IStateSyncColorSource() {
   float color4f[4];
 
@@ -274,10 +281,7 @@ void CGxDeviceOpenGl::IStateSyncColorSource() {
     switch (m_colorSource) {
       case Cs_Material:
       case Cs_Constant:
-        color4f[0] = m_colorSourceColor[m_colorSource].m_color.r * oo255;
-        color4f[1] = m_colorSourceColor[m_colorSource].m_color.g * oo255;
-        color4f[2] = m_colorSourceColor[m_colorSource].m_color.b * oo255;
-        color4f[3] = m_colorSourceColor[m_colorSource].m_color.a * oo255;
+        SetGlColor(color4f, m_colorSourceColor[m_colorSource].m_color, oo255);
         glColor4fv(color4f);
         break;
 
@@ -293,44 +297,43 @@ void CGxDeviceOpenGl::IStateSyncColorSource() {
   }
 }
 
+static inline void SetLightColor(float intensity, NTempest::CImVector color, ULONG light, ULONG pname) {
+  float scale = intensity * (1.0f / 255.0f);
+  NTempest::C4Vector glColor(color.r * scale, color.g * scale, color.b * scale, color.a * scale);
+  glLightfv(light, pname, &glColor.x);
+}
+
 void CGxDeviceOpenGl::IStateSyncLights() {
-  NTempest::C44Matrix mwv;
-  BOOL                haveSetView;
-  NTempest::C4Vector  glTmp;
-  int                 updateNeeded;
+  BOOL haveSetView;
+  int  updateNeeded;
 
-  m_worldViewChange |= m_xforms[GxXform_World].m_dirty | m_xforms[GxXform_View].m_dirty;
   haveSetView = 0;
+  m_worldViewChange |= m_xforms[GxXform_World].m_dirty | m_xforms[GxXform_View].m_dirty;
 
-  for (UINT which = 0; which < 8; ++which) {
-    CGxLight &app = m_appState.m_lights[which];
-    CGxLight &hw = m_hwState.m_lights[which];
+  for (UINT which = 0; which != 8; ++which) {
     updateNeeded = m_hwState.m_lightsDirty[which];
-    UINT light = GL_LIGHT0 + which;
-    memset(&glTmp, 0, sizeof(glTmp));
+    CGxLight          &app = m_appState.m_lights[which];
+    CGxLight          &hw = m_hwState.m_lights[which];
+    UINT               light = GL_LIGHT0 + which;
+    NTempest::C4Vector glTmp;
 
-    if (m_worldViewChange ||
-        ((app.m_isOmni != hw.m_isOmni || app.m_dir.x != hw.m_dir.x || app.m_dir.y != hw.m_dir.y || app.m_dir.z != hw.m_dir.z) && updateNeeded))
-    {
-      if (!haveSetView) {
-        IXformSetModelView(m_xforms[GxXform_View].TopConst());
-        haveSetView = 1;
-      }
-
-      if (app.m_enabled) {
-        if (app.m_isOmni) {
-          glTmp.x = app.m_dir.x;
-          glTmp.y = app.m_dir.y;
-          glTmp.z = app.m_dir.z;
-          glTmp.w = 1.0f;
-        } else {
-          glTmp.x = -app.m_dir.x;
-          glTmp.y = -app.m_dir.y;
-          glTmp.z = -app.m_dir.z;
-          glTmp.w = 0.0f;
-          ((NTempest::C3Vector *)&glTmp)->Normalize();
+    if (updateNeeded || m_worldViewChange) {
+      if (m_worldViewChange || hw.m_isOmni != app.m_isOmni || hw.m_dir != app.m_dir) {
+        if (!haveSetView) {
+          IXformSetModelView(m_xforms[GxXform_View].TopConst());
+          haveSetView = 1;
         }
-        glLightfv(light, GL_POSITION, &glTmp.x);
+
+        if (app.m_enabled) {
+          if (app.m_isOmni) {
+            glTmp = NTempest::C4Vector(app.m_dir.x, app.m_dir.y, app.m_dir.z, 1.0f);
+          } else {
+            glTmp = NTempest::C4Vector(-app.m_dir.x, -app.m_dir.y, -app.m_dir.z, 0.0f);
+            if (NTempest::CMath::fnotequal_(glTmp.SquaredMag(), 1.0f))
+              glTmp *= NTempest::CMath::sqrtinv_(glTmp.SquaredMag());
+          }
+          glLightfv(light, GL_POSITION, &glTmp.x);
+        }
       }
     }
 
@@ -338,50 +341,37 @@ void CGxDeviceOpenGl::IStateSyncLights() {
       continue;
     }
 
-    if (app.m_enabled != hw.m_enabled) {
+    if (hw.m_enabled != app.m_enabled) {
       if (app.m_enabled)
         glEnable(light);
       else
         glDisable(light);
     }
 
-    if (*app.m_ambColor.IV_() != *hw.m_ambColor.IV_() || app.m_ambIntensity != hw.m_ambIntensity) {
-      glTmp.x = app.m_ambColor.r * app.m_ambIntensity * oo255;
-      glTmp.y = app.m_ambColor.g * app.m_ambIntensity * oo255;
-      glTmp.z = app.m_ambColor.b * app.m_ambIntensity * oo255;
-      glTmp.w = app.m_ambColor.a * app.m_ambIntensity * oo255;
-      glLightfv(light, GL_AMBIENT, &glTmp.x);
-    }
-    if (*app.m_dirColor.IV_() != *hw.m_dirColor.IV_() || app.m_dirIntensity != hw.m_dirIntensity) {
-      glTmp.x = app.m_dirColor.r * app.m_dirIntensity * oo255;
-      glTmp.y = app.m_dirColor.g * app.m_dirIntensity * oo255;
-      glTmp.z = app.m_dirColor.b * app.m_dirIntensity * oo255;
-      glTmp.w = app.m_dirColor.a * app.m_dirIntensity * oo255;
-      glLightfv(light, GL_DIFFUSE, &glTmp.x);
-    }
-    if (*app.m_specColor.IV_() != *hw.m_specColor.IV_() || app.m_specIntensity != hw.m_specIntensity) {
-      glTmp.x = app.m_specColor.r * app.m_specIntensity * oo255;
-      glTmp.y = app.m_specColor.g * app.m_specIntensity * oo255;
-      glTmp.z = app.m_specColor.b * app.m_specIntensity * oo255;
-      glTmp.w = app.m_specColor.a * app.m_specIntensity * oo255;
-      glLightfv(light, GL_SPECULAR, &glTmp.x);
-    }
-    if (app.m_constantAttenuation != hw.m_constantAttenuation) {
+    if (*hw.m_ambColor.IV_() != *app.m_ambColor.IV_() || hw.m_ambIntensity != app.m_ambIntensity)
+      SetLightColor(app.m_ambIntensity, app.m_ambColor, light, GL_AMBIENT);
+
+    if (*hw.m_dirColor.IV_() != *app.m_dirColor.IV_() || hw.m_dirIntensity != app.m_dirIntensity)
+      SetLightColor(app.m_dirIntensity, app.m_dirColor, light, GL_DIFFUSE);
+
+    if (*hw.m_specColor.IV_() != *app.m_specColor.IV_() || hw.m_specIntensity != app.m_specIntensity)
+      SetLightColor(app.m_specIntensity, app.m_specColor, light, GL_SPECULAR);
+
+    if (hw.m_constantAttenuation != app.m_constantAttenuation)
       glLightf(light, GL_CONSTANT_ATTENUATION, app.m_constantAttenuation);
-    }
-    if (app.m_linearAttenuation != hw.m_linearAttenuation) {
+
+    if (hw.m_linearAttenuation != app.m_linearAttenuation)
       glLightf(light, GL_LINEAR_ATTENUATION, app.m_linearAttenuation);
-    }
-    if (app.m_constantAttenuation != hw.m_quadraticAttenuation) {
+
+    if (hw.m_quadraticAttenuation != app.m_constantAttenuation)
       glLightf(light, GL_QUADRATIC_ATTENUATION, app.m_quadraticAttenuation);
-    }
 
     hw = app;
     m_hwState.m_lightsDirty[which] = 0;
   }
 
   if (m_worldViewChange || haveSetView) {
-    mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
+    NTempest::C44Matrix mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
     IXformSetModelView(mwv);
     m_worldViewChange = 0;
     m_xforms[GxXform_World].m_dirty = 0;
@@ -447,23 +437,21 @@ void CGxDeviceOpenGl::IStateSyncTexTransform(UINT tmu) {
 }
 
 void CGxDeviceOpenGl::IStateSetContextDefaults() {
-  NTempest::C44Matrix mwv;
-  NTempest::C4Vector  opaqueBlack(0.0f);
-  float               rPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
-  float               qPlane[4] = {0.0f, 0.0f, 0.0f, 1.0f};
-  UINT                maxTex;
-  NTempest::C4Vector  glTmp;
-
   DsInit();
+
+  NTempest::C4Vector opaqueBlack(0.0f);
   DsSet(Ds_MatrixMode, GL_MODELVIEW, 1);
   glLoadIdentity();
 
-  for (maxTex = 0; maxTex < m_caps.m_numTmus; ++maxTex) {
-    DsSet(Ds_ActiveTexture, maxTex, 1);
-    glTexGenfv(GL_R, GL_OBJECT_PLANE, rPlane);
-    glTexGenfv(GL_Q, GL_OBJECT_PLANE, qPlane);
+  float rPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
+  float qPlane[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+  UINT  maxTex = m_caps.m_numTmus;
+  for (UINT tmu = 0; tmu != maxTex; ++tmu) {
+    DsSet(Ds_ActiveTexture, tmu, 1);
     glTexGenfv(GL_R, GL_EYE_PLANE, rPlane);
     glTexGenfv(GL_Q, GL_EYE_PLANE, qPlane);
+    glTexGenfv(GL_R, GL_OBJECT_PLANE, rPlane);
+    glTexGenfv(GL_Q, GL_OBJECT_PLANE, qPlane);
   }
 
   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, &opaqueBlack.x);
@@ -471,44 +459,36 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
   glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, 1);
   IXformSetModelView(m_xforms[GxXform_View].TopConst());
 
-  for (UINT which = 0; which < 8; ++which) {
-    const CGxLight &light = m_hwState.m_lights[which];
-    UINT            glLight = GL_LIGHT0 + which;
-    glTmp = NTempest::C4Vector(0.0f);
+  for (UINT which = 0; which != 8; ++which) {
+    const CGxLight    &light = m_hwState.m_lights[which];
+    UINT               glLight = GL_LIGHT0 + which;
+    NTempest::C4Vector glTmp;
+
     glLightfv(glLight, GL_SPECULAR, &opaqueBlack.x);
     if (light.m_isOmni) {
-      glTmp.x = light.m_dir.x;
-      glTmp.y = light.m_dir.y;
-      glTmp.z = light.m_dir.z;
-      glTmp.w = 1.0f;
+      glTmp = NTempest::C4Vector(light.m_dir.x, light.m_dir.y, light.m_dir.z, 1.0f);
     } else {
-      glTmp.x = -light.m_dir.x;
-      glTmp.y = -light.m_dir.y;
-      glTmp.z = -light.m_dir.z;
-      ((NTempest::C3Vector *)&glTmp)->Normalize();
+      glTmp = NTempest::C4Vector(-light.m_dir.x, -light.m_dir.y, -light.m_dir.z, 0.0f);
+      glTmp *= NTempest::CMath::sqrtinv_(glTmp.SquaredMag());
     }
     glLightfv(glLight, GL_POSITION, &glTmp.x);
-    if (light.m_enabled)
-      glEnable(glLight);
-    else
-      glDisable(glLight);
 
-    glTmp.x = light.m_ambColor.r * light.m_ambIntensity * oo255;
-    glTmp.y = light.m_ambColor.g * light.m_ambIntensity * oo255;
-    glTmp.z = light.m_ambColor.b * light.m_ambIntensity * oo255;
-    glTmp.w = light.m_ambColor.a * light.m_ambIntensity * oo255;
+    light.m_enabled ? glEnable(glLight) : glDisable(glLight);
+
+    float scale = oo255 * light.m_ambIntensity;
+    glTmp = NTempest::C4Vector(light.m_ambColor.r, light.m_ambColor.g, light.m_ambColor.b, light.m_ambColor.a) * scale;
     glLightfv(glLight, GL_AMBIENT, &glTmp.x);
-    glTmp.x = light.m_dirColor.r * light.m_dirIntensity * oo255;
-    glTmp.y = light.m_dirColor.g * light.m_dirIntensity * oo255;
-    glTmp.z = light.m_dirColor.b * light.m_dirIntensity * oo255;
-    glTmp.w = light.m_dirColor.a * light.m_dirIntensity * oo255;
+
+    scale = oo255 * light.m_dirIntensity;
+    glTmp = NTempest::C4Vector(light.m_dirColor.r, light.m_dirColor.g, light.m_dirColor.b, light.m_dirColor.a) * scale;
     glLightfv(glLight, GL_DIFFUSE, &glTmp.x);
+
     m_hwState.m_lightsDirty[which] = 1;
     glLightf(glLight, GL_LINEAR_ATTENUATION, m_hwState.m_lightLinearFalloff);
     glLightf(glLight, GL_QUADRATIC_ATTENUATION, m_hwState.m_lightQuadraticFalloff);
   }
 
-  mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
+  NTempest::C44Matrix mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
   IXformSetModelView(mwv);
   m_worldViewChange = 0;
   glEnableClientState(GL_VERTEX_ARRAY);
@@ -547,6 +527,12 @@ void CGxDeviceOpenGl::ISetTexLodBias(UINT tmu, float bias) {
   }
 }
 
+template <class T> inline void TSSwap(T &a, T &b) {
+  T temp = a;
+  a = b;
+  b = temp;
+}
+
 void CGxDeviceOpenGl::ISetTexGen(UINT tmu, EGxTexGen texGen) {
   if (tmu >= m_caps.m_numTmus) {
     return;
@@ -559,10 +545,10 @@ void CGxDeviceOpenGl::ISetTexGen(UINT tmu, EGxTexGen texGen) {
       DsSet((EDeviceState)(Ds_TexGenR0 + tmu), 0, 0);
       DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
-    case GxTexGen_Object:
-      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_OBJECT_LINEAR, 0);
-      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_OBJECT_LINEAR, 0);
-      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_OBJECT_LINEAR, 0);
+    case GxTexGen_SphereMap:
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_SPHERE_MAP, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_SPHERE_MAP, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), 0, 0);
       DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_World:
@@ -570,6 +556,12 @@ void CGxDeviceOpenGl::ISetTexGen(UINT tmu, EGxTexGen texGen) {
       DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_EYE_LINEAR, 0);
       DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_EYE_LINEAR, 0);
       DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_EYE_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
+      break;
+    case GxTexGen_Object:
+      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_OBJECT_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_OBJECT_LINEAR, 0);
+      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_OBJECT_LINEAR, 0);
       DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
     case GxTexGen_ViewReflection:
@@ -584,94 +576,74 @@ void CGxDeviceOpenGl::ISetTexGen(UINT tmu, EGxTexGen texGen) {
       DsSet((EDeviceState)(Ds_TexGenR0 + tmu), GL_NORMAL_MAP_NV, 0);
       DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
       break;
-    case GxTexGen_SphereMap:
-      DsSet((EDeviceState)(Ds_TexGenS0 + tmu), GL_SPHERE_MAP, 0);
-      DsSet((EDeviceState)(Ds_TexGenT0 + tmu), GL_SPHERE_MAP, 0);
-      DsSet((EDeviceState)(Ds_TexGenR0 + tmu), 0, 0);
-      DsSet((EDeviceState)(Ds_TexGenQ0 + tmu), 0, 0);
-      break;
     default:
       FATALASSERT(0);
       break;
   }
 
-  if (texGen == GxTexGen_World) {
-    NTempest::C44Matrix &texMat = m_texGen[tmu].Top();
-    IXformGLModelView(m_xforms[GxXform_View].TopConst(), texMat);
-    float b0 = texMat.b0;
-    float c0 = texMat.c0;
-    float c1 = texMat.c1;
-    texMat.b0 = texMat.a1;
-    texMat.c0 = texMat.a2;
-    texMat.a1 = b0;
-    texMat.c1 = texMat.b2;
-    texMat.a2 = c0;
-    texMat.b2 = c1;
-    texMat.d0 = -texMat.d0;
-    texMat.d1 = -texMat.d1;
-    texMat.d2 = -texMat.d2;
-  } else {
-    m_texGen[tmu].Identity();
+  switch (texGen) {
+    case GxTexGen_World: {
+      NTempest::C44Matrix &texMat = m_texGen[tmu].Top();
+      IXformGLModelView(m_xforms[GxXform_View].TopConst(), texMat);
+      TSSwap(texMat.a1, texMat.b0);
+      TSSwap(texMat.a2, texMat.c0);
+      TSSwap(texMat.b2, texMat.c1);
+      texMat.d0 *= -1.0f;
+      texMat.d1 *= -1.0f;
+      texMat.d2 *= -1.0f;
+      break;
+    }
+    default:
+      m_texGen[tmu].Identity();
+      break;
   }
 }
 
 void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
-  float color4f[4];
-  float floatVal;
-  int   intVal;
+  CGxAppRenderState &state = mAppRenderStates[which];
+  float              floatVal;
+  int                intVal;
+  float              color4f[4];
 
-  floatVal = *(float *)&mAppRenderStates[which].mValue;
-  intVal = *(int *)&mAppRenderStates[which].mValue;
+  intVal = 0;
 
   switch (which) {
-    case GxRs_PolygonOffset: {
-      floatVal *= -16.0f;
-      if (floatVal == 0.0f) {
-        DsSet(Ds_PolygonOffsetEnable, 0, 0);
-      } else {
+    case GxRs_PolygonOffset:
+      floatVal = state.mValue.GetAsFloat() * -16.0f;
+      if (floatVal != 0.0f) {
         DsSet(Ds_PolygonOffset, *(UINT *)&floatVal, 0);
         DsSet(Ds_PolygonOffsetEnable, 1, 0);
+      } else {
+        DsSet(Ds_PolygonOffsetEnable, 0, 0);
       }
       break;
-    }
     case GxRs_MatDiffuse:
       IStateSetColorSource(Cs_Material);
-      IStateSetColorSourceColor(Cs_Material, *(NTempest::CImVector *)&mAppRenderStates[which].mValue);
+      IStateSetColorSourceColor(Cs_Material, state.mValue.GetAsCArgb());
       break;
-    case GxRs_MatEmissive: {
-      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
+    case GxRs_MatEmissive:
+      SetGlColor(color4f, state.mValue.GetAsCArgb(), oo255);
       glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, color4f);
       break;
-    }
-    case GxRs_MatSpecular: {
-      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
+    case GxRs_MatSpecular:
+      SetGlColor(color4f, state.mValue.GetAsCArgb(), oo255);
       glMaterialfv(GL_FRONT, GL_SPECULAR, color4f);
       break;
-    }
     case GxRs_MatSpecularExp:
-      glMaterialf(GL_FRONT, GL_SHININESS, floatVal);
+      glMaterialf(GL_FRONT, GL_SHININESS, state.mValue.GetAsFloat());
       break;
     case GxRs_NormalizeNormals:
-      if (intVal)
+      if (state.mValue.GetAsInt())
         glEnable(GL_NORMALIZE);
       else
         glDisable(GL_NORMALIZE);
       break;
-    case GxRs_SceneAmbient: {
-      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
+    case GxRs_SceneAmbient:
+      SetGlColor(color4f, state.mValue.GetAsCArgb(), oo255);
       glLightModelfv(GL_LIGHT_MODEL_AMBIENT, color4f);
       break;
-    }
     case GxRs_Blend:
+      intVal = state.mValue.GetAsInt();
       if (intVal == GxBlend_Opaque || intVal == GxBlend_AlphaKey) {
         DsSet(Ds_BlendEnable, 0, 0);
       } else {
@@ -680,90 +652,82 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       }
       break;
     case GxRs_AlphaRef:
-      if (intVal <= 0) {
-        DsSet(Ds_AlphaTestEnable, 0, 0);
-      } else {
+      intVal = state.mValue.GetAsInt();
+      if (intVal > 0) {
         glAlphaFunc(GL_GEQUAL, intVal * oo255);
         DsSet(Ds_AlphaTestEnable, 1, 0);
+      } else {
+        DsSet(Ds_AlphaTestEnable, 0, 0);
       }
       break;
     case GxRs_FogStyle:
-      glFogi(GL_FOG_MODE, s_fogStyle[intVal]);
+      glFogi(GL_FOG_MODE, s_fogStyle[state.mValue.GetAsInt()]);
       break;
     case GxRs_FogStart:
-      glFogf(GL_FOG_START, floatVal);
+      glFogf(GL_FOG_START, state.mValue.GetAsFloat());
       break;
     case GxRs_FogEnd:
-      glFogf(GL_FOG_END, floatVal);
+      glFogf(GL_FOG_END, state.mValue.GetAsFloat());
       break;
     case GxRs_FogDensity:
-      glFogf(GL_FOG_DENSITY, floatVal);
+      glFogf(GL_FOG_DENSITY, state.mValue.GetAsFloat());
       break;
     case GxRs_FogColor:
-      color4f[0] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->r * oo255;
-      color4f[1] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->g * oo255;
-      color4f[2] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->b * oo255;
-      color4f[3] = ((NTempest::CImVector *)&mAppRenderStates[which].mValue)->a * oo255;
+      SetGlColor(color4f, state.mValue.GetAsCArgb(), oo255);
       glFogfv(GL_FOG_COLOR, color4f);
       break;
     case GxRs_Lighting:
-      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Lighting)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Lighting)) && state.mValue.GetAsInt()) {
         glEnable(GL_LIGHTING);
       } else {
         glDisable(GL_LIGHTING);
       }
       break;
     case GxRs_Fog:
-      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Fog)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Fog)) && state.mValue.GetAsInt()) {
         glEnable(GL_FOG);
       } else {
         glDisable(GL_FOG);
       }
       break;
     case GxRs_DepthTest:
-      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_DepthTest)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_DepthTest)) && state.mValue.GetAsInt()) {
         glEnable(GL_DEPTH_TEST);
       } else {
         glDisable(GL_DEPTH_TEST);
       }
       break;
     case GxRs_DepthFunc:
-      glDepthFunc(s_cmpFunc[intVal]);
+      glDepthFunc(s_cmpFunc[state.mValue.GetAsInt()]);
       break;
     case GxRs_DepthWrite:
-      DsSet(Ds_DepthMask, (m_appState.m_masterEnables & (1U << GxMasterEnable_DepthWrite)) ? intVal : 0, 0);
+      if (m_appState.m_masterEnables & (1U << GxMasterEnable_DepthWrite))
+        intVal = state.mValue.GetAsInt();
+      DsSet(Ds_DepthMask, intVal, 0);
       break;
     case GxRs_Culling:
-      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Culling)) && intVal) {
+      if ((m_appState.m_masterEnables & (1U << GxMasterEnable_Culling)) && state.mValue.GetAsInt()) {
         glEnable(GL_CULL_FACE);
       } else {
         glDisable(GL_CULL_FACE);
       }
       break;
-    case GxRs_Texture0:
-    case GxRs_Texture1:
-    case GxRs_Texture2:
-    case GxRs_Texture3:
-      ISetTexture(which - GxRs_Texture0, (CGxTex *)intVal);
-      break;
-    case GxRs_TexBlend0:
-    case GxRs_TexBlend1:
-    case GxRs_TexBlend2:
-    case GxRs_TexBlend3:
-      ISetTexBlend(which - GxRs_TexBlend0, (EGxTexBlend)intVal);
-      break;
-    case GxRs_TexLodBias0:
-    case GxRs_TexLodBias1:
-    case GxRs_TexLodBias2:
-    case GxRs_TexLodBias3:
-      ISetTexLodBias(which - GxRs_TexLodBias0, floatVal);
-      break;
-    case GxRs_TexGen0:
-    case GxRs_TexGen1:
-    case GxRs_TexGen2:
-    case GxRs_TexGen3:
-      ISetTexGen(which - GxRs_TexGen0, (EGxTexGen)intVal);
-      break;
+    case GxRs_Texture0: ISetTexture(0, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_Texture1: ISetTexture(1, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_Texture2: ISetTexture(2, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_Texture3: ISetTexture(3, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_TexBlend0: ISetTexBlend(0, (EGxTexBlend)state.mValue.GetAsInt()); break;
+    case GxRs_TexBlend1: ISetTexBlend(1, (EGxTexBlend)state.mValue.GetAsInt()); break;
+    case GxRs_TexBlend2: ISetTexBlend(2, (EGxTexBlend)state.mValue.GetAsInt()); break;
+    case GxRs_TexBlend3: ISetTexBlend(3, (EGxTexBlend)state.mValue.GetAsInt()); break;
+    case GxRs_TexGen0: ISetTexGen(0, (EGxTexGen)state.mValue.GetAsInt()); break;
+    case GxRs_TexGen1: ISetTexGen(1, (EGxTexGen)state.mValue.GetAsInt()); break;
+    case GxRs_TexGen2: ISetTexGen(2, (EGxTexGen)state.mValue.GetAsInt()); break;
+    case GxRs_TexGen3: ISetTexGen(3, (EGxTexGen)state.mValue.GetAsInt()); break;
+    case GxRs_TexLodBias0: ISetTexLodBias(0, state.mValue.GetAsFloat()); break;
+    case GxRs_TexLodBias1: ISetTexLodBias(1, state.mValue.GetAsFloat()); break;
+    case GxRs_TexLodBias2: ISetTexLodBias(2, state.mValue.GetAsFloat()); break;
+    case GxRs_TexLodBias3: ISetTexLodBias(3, state.mValue.GetAsFloat()); break;
     case GxRs_TextureShader0:
     case GxRs_TextureShader1:
     case GxRs_TextureShader2:
@@ -771,7 +735,7 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
     case GxRs_VertexShader:
       return;
     case GxRs_PixelShader:
-      IPixelShaderBind((CGxPixelShader *)intVal);
+      IPixelShaderBind((CGxPixelShader *)state.mValue.GetAsPointer());
       break;
     default:
       FATALASSERT(0);

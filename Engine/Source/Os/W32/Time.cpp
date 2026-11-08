@@ -174,26 +174,20 @@ long OsGetTime(long *timer) {
 }
 
 void OsFileTimeGetCurrent(OSFILETIME *filetime) {
-  VALIDATEBEGIN;
-  VALIDATE(filetime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(filetime);
   SYSTEMTIME systime;
   GetSystemTime(&systime);
   SystemTimeToFileTime(&systime, (FILETIME *)&filetime->m_value);
 }
 
 int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
-  VALIDATEBEGIN;
-  VALIDATE(filetime1);
-  VALIDATE(filetime2);
-  VALIDATEEND;
+  VALIDATE2(filetime1);
+  VALIDATE2(filetime2);
   return CompareFileTime((const FILETIME *)&filetime1->m_value, (const FILETIME *)&filetime2->m_value);
 }
 
 void OsFileTimeAdd(OSFILETIME *filetime, UINT seconds) {
-  VALIDATEBEGIN;
-  VALIDATE(filetime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(filetime);
   filetime->m_value += 10000000ui64 * seconds;
 }
 
@@ -277,37 +271,29 @@ int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTim
 void OsTimeToFileTime(DWORD time, OSFILETIME *fileTime) {
   DWORDLONG value;
 
-  VALIDATEBEGIN;
-  VALIDATE(fileTime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fileTime);
 
   value = ((DWORDLONG)time + 11644473600ui64) * 10000000ui64;
   fileTime->m_value = value;
 }
 
 void OsFileTimeToLocalFileTime(const OSFILETIME *fileTime, OSFILETIME *localFileTime) {
-  VALIDATEBEGIN;
-  VALIDATE(fileTime);
-  VALIDATE(localFileTime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fileTime);
+  VALIDATE2VOID(localFileTime);
 
   FileTimeToLocalFileTime((const FILETIME *)&fileTime->m_value, (FILETIME *)&localFileTime->m_value);
 }
 
 void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
-  VALIDATEBEGIN;
-  VALIDATE(fileTime);
-  VALIDATE(sysTime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fileTime);
+  VALIDATE2VOID(sysTime);
 
   FileTimeToSystemTime((const FILETIME *)&fileTime->m_value, (SYSTEMTIME *)sysTime);
 }
 
 void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {
-  VALIDATEBEGIN;
-  VALIDATE(fileTime);
-  VALIDATE(sysTime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fileTime);
+  VALIDATE2VOID(sysTime);
 
   SystemTimeToFileTime((const SYSTEMTIME *)sysTime, (FILETIME *)&fileTime->m_value);
 }
@@ -316,9 +302,7 @@ void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) {
   OSFILETIME fileTime;
   OSFILETIME localFileTime;
 
-  VALIDATEBEGIN;
-  VALIDATE(localSysTime);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(localSysTime);
 
   OsTimeToFileTime(time, &fileTime);
   OsFileTimeToLocalFileTime(&fileTime, &localFileTime);

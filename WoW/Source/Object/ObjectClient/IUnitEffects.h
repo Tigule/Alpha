@@ -1,55 +1,92 @@
 #pragma once
 
-#include <Tempest/c3vector.h>
+#include "Object/ObjectClient/Unit_C.h"
 
-class CGUnit_C;
+class NODEBASE {
+ public:
+  NODEBASE() : model(0), flags(0), deathHoldTimer(0) {
+  }
+  ~NODEBASE();
+  virtual void ReleaseDeathHolds() = 0;
 
-extern UINT g_specialSpellIDs[43];
+  void ClearDeathHoldTimer();
+  void SetDeathHoldTimer(UINT duration);
+  bool CheckModelLoadStatus();
 
-void LoadUnitDefs();
-
-enum MISS_REASON {
-  MISS_NONE = 0,
-  MISS_PHYSICAL = 1,
-  MISS_RESIST = 2,
-  MISS_IMMUNE = 3,
-  MISS_EVADED = 4,
-  MISS_DODGED = 5,
-  MISS_PARRIED = 6,
-  MISS_BLOCKED = 7,
-  MISS_TEMPIMMUNE = 8,
-  MISS_DEFLECTED = 9,
-  MISS_NUMMISSTYPES = 10
+  LINKDECLEX(NODEBASE, node);
+  HMODEL model;
+  UINT      flags;
+  UINT      deathHoldTimer;
 };
 
-enum SPELL_VISUAL_ATTACHMENT {
-  SPELL_VISUAL_ATTACH_HEAD = 0,
-  SPELL_VISUAL_ATTACH_CHEST = 1,
-  SPELL_VISUAL_ATTACH_BASE = 2,
-  SPELL_VISUAL_ATTACH_LEFT_HAND = 3,
-  SPELL_VISUAL_ATTACH_RIGHT_HAND = 4,
-  SPELL_VISUAL_ATTACH_BREATH = 5,
-  SPELL_VISUAL_ATTACH_SPECIAL1 = 6,
-  SPELL_VISUAL_ATTACH_SPECIAL2 = 7,
-  SPELL_VISUAL_ATTACH_SPECIAL3 = 8,
-  NUM_SPELL_VISUAL_ATTACH = 9
+class ONESHOTEFFECTNODE : public NODEBASE {
+ public:
+  ONESHOTEFFECTNODE() : objectModel(0) {
+  }
+  ~ONESHOTEFFECTNODE();
+  virtual void ReleaseDeathHolds();
+  void         CheckModelLoadStatus();
+
+  HMODEL objectModel;
+  UINT      objectModelAttachmentPoint;
+  DWORDLONG objectGUID;
+  int       spellID;
+  BYTE      isCastEffect;
 };
 
-struct MISSILESTRUCT {
-  CGUnit_C          *caster;
-  UINT               spellID;
-  DWORDLONG          target;
+class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
+ public:
+  ONESHOTSTANDALONEEFFECTNODE() : facing(0.0f), scale(1.0f), worldObject(0) {
+  }
+  ~ONESHOTSTANDALONEEFFECTNODE();
+  virtual void ReleaseDeathHolds();
+  void         CheckModelLoadStatus();
+
+  NTempest::C3Vector      position;
+  TSFixedArray<DWORDLONG> objects;
+  float                   facing;
+  float                   scale;
+  DWORD                   worldObject;
+  int                     expireTime;
+};
+
+NODEDECL(MISSILENODE) {
+  static const float HEIGHT_SCAN_RANGE;
+  static const float MIN_HEIGHT;
+
+  MISSILENODE() : model(0), caster(0), target(0), flags(0), sound(0) {
+  }
+  ~MISSILENODE() {
+    if (model) {
+      HandleClose(model);
+    }
+    if (sound) {
+      sound->Stop(2.0f);
+    }
+    if (target) {
+      CGObject_C *object = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
+      if (object && object->IsA(TYPE_UNIT)) {
+        ((CGUnit_C *)object)->DDDELLOG(caster, "MISSILENODE immaturely freed", __FILE__, __LINE__);
+      }
+    }
+  }
+
+  HMODEL             model;
+  DWORDLONG          caster;
   NTempest::C3Vector startPosition;
-  NTempest::C3Vector destination;
-  float              speed;
-  UINT               ammoDisplayID;
-  int                inventoryType;
-  UINT               missileEffect;
-  UINT               missileVictimEffect;
-  UINT               missilePathType;
-  bool               hits;
-  MISS_REASON        reason;
-  int                sound;
+  NTempest::C3Vector position;
+  NTempest::C3Vector endPosition;
+  NTempest::C3Vector normal;
+  DWORDLONG          target;
+  UINT               startTime;
+  UINT               travelTime;
+  NTempest::C3Vector facing;
+  UINT               spellID;
+  UINT               victimEffect;
+  UINT               pathType;
+  bool               miss;
+  MISS_REASON        missReason;
+  int                flags;
+  void CheckModelLoadStatus();
+  Sound             *sound;
 };
-
-void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);

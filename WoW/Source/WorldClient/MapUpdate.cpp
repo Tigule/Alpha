@@ -16,7 +16,7 @@
 
 #include "WorldCommon/WorldMath.h"
 
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Tempest/cmath.h>
 
 static float       lastUpdateTime;

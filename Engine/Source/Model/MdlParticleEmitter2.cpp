@@ -1,7 +1,7 @@
 #include "Base/Status.h"
 #include "Gx/Gx.h"
 #include "MDLFile/MDLTypes.h"
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Services/ParticleSystem2.h"
 #include "Services/Texture.h"
 #include "Tempest/cmath.h"

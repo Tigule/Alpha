@@ -174,24 +174,6 @@ BOOL ReadBinC3VectorSection(
   return 1;
 }
 
-inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<UINT> *section, UINT *localBytesRead, CMDLStatus *status) {
-  DWORD found = buf.GetDword();
-  *localBytesRead += 4;
-  if (found != title) {
-    status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
-    return 0;
-  }
-  UINT count = buf.GetUint();
-  *localBytesRead += 4;
-  if (!count) {
-    return 1;
-  }
-  section->SetCount(count);
-  buf.GetUintArray(section->Ptr(), count);
-  *localBytesRead += 4 * count;
-  return 1;
-}
-
 void SetVertexGroupIndices(const TSGrowableArray<UINT> &groupVertexCounts, MDLGEOSETSECTION *geoset) {
   geoset->vertGroupIndices.SetCount(geoset->vertices.Count());
   UINT numGroups = groupVertexCounts.Count();
@@ -982,14 +964,8 @@ BOOL MDL::ReadBinGeosetAnim(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLSta
 
 static UINT IGetBinGeosetAnimSectionSize(const MDLGEOSETANIMSECTION &section) {
   UINT size = 28;
-  if (section.alphaKeys.keys.Count()) {
-    UINT values = section.alphaKeys.type > TRACK_LINEAR ? 3 : 1;
-    size += 16 + section.alphaKeys.keys.Count() * (4 + 4 * values);
-  }
-  if (section.colorKeys.keys.Count()) {
-    UINT values = section.colorKeys.type > TRACK_LINEAR ? 9 : 3;
-    size += 16 + section.colorKeys.keys.Count() * (4 + 4 * values);
-  }
+  size += GetBinFloatKeyFramesSize(section.alphaKeys);
+  size += GetBinFloatKeyFramesSize(section.colorKeys);
   return size;
 }
 
@@ -1180,9 +1156,7 @@ static BOOL ReadBinGeoset(CMsgBuffer &buffer, MDLGEOSETSECTION *geoset, CMDLStat
 }
 
 BOOL MDL::ReadBinGeosets(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(status != 0);
-  VALIDATEEND;
+  VALIDATE2(status != 0);
   UINT totalRead = 4;
   UINT numGeosets = buf.GetUint();
   data.geosets.SetCount(0);

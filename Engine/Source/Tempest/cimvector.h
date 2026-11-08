@@ -101,7 +101,7 @@ namespace NTempest {
       DWORD sr;
       DWORD sg;
       DWORD sb;
-      source->Get(sr, sg, sb);
+      Get_(*source->IV_(), sr, sg, sb);
       *IV_() = MakeRGB(BlendC(alpha, sr, dr), BlendC(alpha, sg, dg), BlendC(alpha, sb, db)) | (d & eAlphaMask);
     }
 
@@ -333,6 +333,11 @@ namespace NTempest {
 
   inline CImVector::CImVector(DWORD n) {
     *(DWORD *)this = n;
+  }
+
+  inline void CImVector::BlendRGB(DWORD alpha, DWORD source) {
+    CImVector src(source);
+    BlendRGB_(alpha, &src);
   }
 
   class CRgb565 {

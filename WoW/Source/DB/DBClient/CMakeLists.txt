@@ -127,7 +127,7 @@ if(MSVC_VERSION EQUAL 1200)
     set(DBCLIENT_PCH ${CMAKE_CURRENT_BINARY_DIR}/DBClient.pch)
     set(DBCLIENT_PCH_FI /FIDB/DBClient/DBClient.h /FIWowConst.h /FIWowSvcs/WowSvcsClient/ClientServices.h)
 
-    set_source_files_properties(DBCacheInstances.cpp DBClient.cpp sdbItemSubclass.cpp sdbWMOAreaTable.cpp PROPERTIES
+    set_source_files_properties(DBCache.cpp DBCacheInstances.cpp DBClient.cpp sdbItemSubclass.cpp sdbWMOAreaTable.cpp PROPERTIES
         COMPILE_OPTIONS "${DBCLIENT_PCH_FI};/YuWowSvcs/WowSvcsClient/ClientServices.h;/Fp${DBCLIENT_PCH}"
         OBJECT_DEPENDS ${DBCLIENT_PCH})
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/DBClientPch.cpp "")

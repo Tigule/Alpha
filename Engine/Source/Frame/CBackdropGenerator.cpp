@@ -95,9 +95,7 @@ void CBackdropGenerator::LoadXML(const XMLNode *node, CStatus *status) {
 }
 
 void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
-  VALIDATEBEGIN;
-  VALIDATE(output);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(output);
 
   NTempest::C2Vector texCoords[4];
 
@@ -216,9 +214,7 @@ void CBackdropGenerator::SetOutput(CSimpleFrame *output) {
 }
 
 void CBackdropGenerator::Generate(const NTempest::CRect *rect) {
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(rect);
 
   NTempest::C2Vector texCoords[4];
   float              ooCornerSize = 1.0f / m_cornerSize;

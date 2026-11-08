@@ -242,25 +242,16 @@ BOOL MDL::WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLSt
 }
 
 static UINT GetBinLightSize(const MDLLIGHTSECTION &section) {
-  UINT                      size = GetBinGenObjectSize(section) + 48;
-  const MDLKEYTRACK<float> *floatTracks[5] = {
-      &section.attenstartkeys, &section.attenendkeys, &section.intensitykeys, &section.ambintensitykeys, &section.visibilityKeys
-  };
-  for (UINT i = 0; i < 5; ++i) {
-    const MDLKEYTRACK<float> &track = *floatTracks[i];
-    if (track.keys.Count()) {
-      UINT dataSize = track.type > TRACK_LINEAR ? 12 : 4;
-      size += 16 + track.keys.Count() * (4 + dataSize);
-    }
-  }
-  const MDLKEYTRACK<C3Color> *colorTracks[2] = {&section.colorkeys, &section.ambcolorkeys};
-  for (UINT j = 0; j < 2; ++j) {
-    const MDLKEYTRACK<C3Color> &track = *colorTracks[j];
-    if (track.keys.Count()) {
-      UINT dataSize = track.type > TRACK_LINEAR ? 36 : 12;
-      size += 16 + track.keys.Count() * (4 + dataSize);
-    }
-  }
+  UINT size = GetBinGenObjectSize(section);
+  size += 32;
+  size += GetBinFloatKeyFramesSize(section.attenstartkeys);
+  size += GetBinFloatKeyFramesSize(section.attenendkeys);
+  size += GetBinFloatKeyFramesSize(section.colorkeys);
+  size += GetBinFloatKeyFramesSize(section.intensitykeys);
+  size += GetBinFloatKeyFramesSize(section.visibilityKeys);
+  size += 16;
+  size += GetBinFloatKeyFramesSize(section.ambintensitykeys);
+  size += GetBinFloatKeyFramesSize(section.ambcolorkeys);
   return size;
 }
 

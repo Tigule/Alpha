@@ -180,9 +180,7 @@ float CGameTime::GameTimeSetMinutesPerSecond(float minutesPerSecond) {
 }
 
 HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, LPVOID), LPVOID user) {
-  VALIDATEBEGIN;
-  VALIDATE(callback);
-  VALIDATEEND;
+  VALIDATE2(callback);
 
   if (time.m_hour < 0 || time.m_minute < 0) {
     return 0;

@@ -4,7 +4,7 @@
 
 #include "Anim/WorldMatrix.h"
 #include "Base/Activity.h"
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Os/OsTime.h"
 #include "Services/ParticleSystem2.h"
 #include "Gx/CGxDevice.h"
@@ -616,29 +616,25 @@ DWORD IAnimGetCurrTimeMs() {
 
 void AnimSetTimeScale(HANIM anim, float timeScale) {
   CAnim *unique = (CAnim *)anim;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(unique);
   unique->seq[unique->primarySeq].seqTimeScale = timeScale;
 }
 
 BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
   CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
+  VALIDATE2(unique);
 
   shared = (CAnimData *)unique->hdata;
-  VALIDATE(shared);
-  VALIDATE(objectId < shared->objectOrder.Count());
+  VALIDATE2(shared);
+  VALIDATE2(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
     return 0;
   }
 
-  VALIDATE(objectId < shared->obj.Count());
-  VALIDATEEND;
+  VALIDATE2(objectId < shared->obj.Count());
 
   unique->seq[unique->status[objectId]->base.currSeq].seqTimeScale = timeScale;
   return 1;
@@ -646,25 +642,14 @@ BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
 
 float AnimGetTimeScale(HANIM anim) {
   CAnim *unique = (CAnim *)anim;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
-  if (0) {
-  validatefailed:
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 1.0f;
-  }
+  VALIDATE2RETURN(unique, 1.0f);
   return unique->seq[unique->primarySeq].seqTimeScale;
 }
 
 float AnimGetObjectTimeScale(HANIM anim, UINT objectId) {
   CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
-  if (!unique) {
-    SErrPrepareAppFatal(__FILE__, __LINE__);
-    SErrDisplayAppFatal("unique");
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 1.0f;
-  }
+  VALIDATE2RETURN(unique, 1.0f);
 
   VALIDATEBEGIN;
   shared = (CAnimData *)unique->hdata;
@@ -677,12 +662,7 @@ float AnimGetObjectTimeScale(HANIM anim, UINT objectId) {
     return 1.0f;
   }
 
-  if (!(objectId < shared->obj.Count())) {
-    SErrPrepareAppFatal(__FILE__, __LINE__);
-    SErrDisplayAppFatal("objectId < shared->obj.Count()");
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 1.0f;
-  }
+  VALIDATE2RETURN(objectId < shared->obj.Count(), 1.0f);
 
   return unique->seq[unique->status[objectId]->base.currSeq].seqTimeScale;
 }
@@ -914,20 +894,16 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
 
 void AnimResetGlobalSequenceTimes(HANIM anim) {
   CAnim *unique = (CAnim *)anim;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(unique);
   unique->globalSeqElapsed.Zero();
 }
 
 int AnimAdvanceTime(HANIM anim, UINT currentFrame) {
   CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
+  VALIDATE2(unique);
   shared = (CAnimData *)unique->hdata;
-  VALIDATE(shared);
-  VALIDATEEND;
+  VALIDATE2(shared);
 
   if (currentFrame != s_lastFrame) {
     const DWORD currentTime = OsGetAsyncTimeMsPrecise();
@@ -948,11 +924,9 @@ int IAnimManualAdvanceTime(CAnim *unique, CAnimData *shared, int timeChange) {
 int AnimManualAdvanceTime(HANIM anim, int timeChange) {
   CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
+  VALIDATE2(unique);
   shared = (CAnimData *)unique->hdata;
-  VALIDATE(shared);
-  VALIDATEEND;
+  VALIDATE2(shared);
   return IAnimManualAdvanceTime(unique, shared, timeChange);
 }
 
@@ -962,9 +936,7 @@ UINT AnimGetElapsedTime() {
 
 void AnimPauseTime(HANIM anim, int pause) {
   CAnim *unique = (CAnim *)anim;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(unique);
   if (pause) {
     unique->flags |= 8;
   } else {

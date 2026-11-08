@@ -352,8 +352,7 @@ void CMapLight::Project() {
     buf->UserArgSet((CWTriData::Batch *)&batch);
     buf->CountSet(batch.GetVertexCount(), batch.GetIndexCount());
     GxBufLock(buf);
-    CGxBatch gxBatch(GxPrim_Triangles, batch.GetIndexCount(), 0, -1, -1);
-    GxBufRender(gxBatch);
+    GxBufRender(CGxBatch(GxPrim_Triangles, batch.GetIndexCount(), 0, -1, -1));
     GxBufUnlock();
   }
 }

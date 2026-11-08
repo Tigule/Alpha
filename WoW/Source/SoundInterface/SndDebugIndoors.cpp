@@ -37,28 +37,11 @@ void CHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   FATALASSERT(outFile);
 
   fprintf(outFile, "%s_%s\n", zoneName, subZoneName);
-  fprintf(outFile, "%d\n", desc.Environment);
-  fprintf(outFile, "%0.4f\n", desc.DecayTime);
-  fprintf(outFile, "%0.4f\n", desc.EnvSize);
-  fprintf(outFile, "%0.4f\n", desc.EnvDiffusion);
-  fprintf(outFile, "%d\n", desc.Room);
-  fprintf(outFile, "%d\n", desc.RoomHF);
-  fprintf(outFile, "%0.4f\n", desc.DecayHFRatio);
-  fprintf(outFile, "%d\n", desc.Reflections);
-  fprintf(outFile, "%0.4f\n", desc.ReflectionsDelay);
-  fprintf(outFile, "%d\n", desc.Reverb);
-  fprintf(outFile, "%0.4f\n", desc.ReverbDelay);
-  fprintf(outFile, "%0.4f\n", desc.RoomRolloffFactor);
-  fprintf(outFile, "%0.4f\n", desc.AirAbsorptionHF);
-  fprintf(outFile, "%d\n", desc.RoomLF);
-  fprintf(outFile, "%0.4f\n", desc.DecayLFRatio);
-  fprintf(outFile, "%0.4f\n", desc.EchoTime);
-  fprintf(outFile, "%0.4f\n", desc.EchoDepth);
-  fprintf(outFile, "%0.4f\n", desc.ModulationTime);
-  fprintf(outFile, "%0.4f\n", desc.ModulationDepth);
-  fprintf(outFile, "%0.4f\n", desc.HFReference);
-  fprintf(outFile, "%0.4f\n", desc.LFReference);
-  fprintf(outFile, "%d\n", desc.Environment);
+#define SNDDEBUG_INT(index, name) fprintf(outFile, "%d\n", desc.name);
+#define SNDDEBUG_FLOAT(index, name) fprintf(outFile, "%0.4f\n", desc.name);
+#include "SndDebugCompiles.h"
+#undef SNDDEBUG_INT
+#undef SNDDEBUG_FLOAT
 }
 
 void CHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
@@ -68,28 +51,11 @@ void CHUNKHASHOBJ::DumpInfo(int summary, int newlyCreated) {
 
   ConsolePrintf("[%03d]   \"%s_%s\" %s", chunkNumber, zoneName, subZoneName, chunkNumber == s_currentChunk ? "[CURRENT]" : "");
   if (!summary) {
-    ConsolePrintf("[%02d]: \"%s\": %d", 1, "Environment", desc.Environment);
-    ConsolePrintf("[%02d]: \"%s\": %g", 2, "DecayTime", desc.DecayTime);
-    ConsolePrintf("[%02d]: \"%s\": %g", 3, "EnvSize", desc.EnvSize);
-    ConsolePrintf("[%02d]: \"%s\": %g", 4, "EnvDiffusion", desc.EnvDiffusion);
-    ConsolePrintf("[%02d]: \"%s\": %d", 5, "Room", desc.Room);
-    ConsolePrintf("[%02d]: \"%s\": %d", 6, "RoomHF", desc.RoomHF);
-    ConsolePrintf("[%02d]: \"%s\": %g", 7, "DecayHFRatio", desc.DecayHFRatio);
-    ConsolePrintf("[%02d]: \"%s\": %d", 8, "Reflections", desc.Reflections);
-    ConsolePrintf("[%02d]: \"%s\": %g", 9, "ReflectionsDelay", desc.ReflectionsDelay);
-    ConsolePrintf("[%02d]: \"%s\": %d", 10, "Reverb", desc.Reverb);
-    ConsolePrintf("[%02d]: \"%s\": %g", 11, "ReverbDelay", desc.ReverbDelay);
-    ConsolePrintf("[%02d]: \"%s\": %g", 12, "RoomRolloffFactor", desc.RoomRolloffFactor);
-    ConsolePrintf("[%02d]: \"%s\": %g", 13, "AirAbsorptionHF", desc.AirAbsorptionHF);
-    ConsolePrintf("[%02d]: \"%s\": %d", 14, "RoomLF", desc.RoomLF);
-    ConsolePrintf("[%02d]: \"%s\": %g", 15, "DecayLFRatio", desc.DecayLFRatio);
-    ConsolePrintf("[%02d]: \"%s\": %g", 16, "EchoTime", desc.EchoTime);
-    ConsolePrintf("[%02d]: \"%s\": %g", 17, "EchoDepth", desc.EchoDepth);
-    ConsolePrintf("[%02d]: \"%s\": %g", 18, "ModulationTime", desc.ModulationTime);
-    ConsolePrintf("[%02d]: \"%s\": %g", 19, "ModulationDepth", desc.ModulationDepth);
-    ConsolePrintf("[%02d]: \"%s\": %g", 20, "HFReference", desc.HFReference);
-    ConsolePrintf("[%02d]: \"%s\": %g", 21, "LFReference", desc.LFReference);
-    ConsolePrintf("[%02d]: \"%s\": %d", 22, "Environment", desc.Environment);
+#define SNDDEBUG_INT(index, name) ConsolePrintf("[%02d]: \"%s\": %d", index, #name, desc.name);
+#define SNDDEBUG_FLOAT(index, name) ConsolePrintf("[%02d]: \"%s\": %g", index, #name, desc.name);
+#include "SndDebugCompiles.h"
+#undef SNDDEBUG_INT
+#undef SNDDEBUG_FLOAT
   }
 }
 
@@ -122,7 +88,7 @@ BOOL CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
   }
 
   LPCSTR subZoneName = CWorld::QueryChunkName();
-  LPCSTR zoneName = 0;
+  LPCSTR zoneName;
   CWorld::QueryMapObjFileName(worldObject, zoneName);
   ASSERT(zoneName && *zoneName);
   LPCSTR slash = SStrChrR(zoneName, '\\');
@@ -132,19 +98,20 @@ BOOL CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
 
   char hashName[256];
   SStrPrintf(hashName, sizeof(hashName), "%s%s", subZoneName, zoneName);
-  CHUNKHASHOBJ *chunk = s_chunkHash.Ptr(SStrHashHT(hashName), hashName);
-  if (!chunk) {
-    chunk = s_chunkHash.New(SStrHashHT(hashName), hashName, 0, 0);
-    *s_chunkList.New() = chunk;
-    s_currentChunk = s_chunkList.Count() - 1;
-    chunk->chunkNumber = s_currentChunk;
-    SStrPrintf(chunk->zoneName, sizeof(chunk->zoneName), "%s", zoneName);
-    SStrPrintf(chunk->subZoneName, sizeof(chunk->subZoneName), "%s", subZoneName);
-    chunk->DumpInfo(1, 1);
-  } else {
-    s_currentChunk = chunk->chunkNumber;
+  CHUNKHASHOBJ *chunk = s_chunkHash.Ptr(hashName);
+  if (chunk) {
     chunk->DumpInfo(1, 0);
+    return 1;
   }
+
+  chunk = s_chunkHash.New(hashName, 0, 0);
+  UINT count = s_chunkList.Count();
+  *s_chunkList.New() = chunk;
+  s_currentChunk = count;
+  chunk->chunkNumber = count;
+  SStrPrintf(chunk->zoneName, sizeof(chunk->zoneName), "%s", zoneName);
+  SStrPrintf(chunk->subZoneName, sizeof(chunk->subZoneName), "%s", subZoneName);
+  chunk->DumpInfo(1, 1);
   return 1;
 }
 

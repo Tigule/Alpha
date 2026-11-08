@@ -322,9 +322,7 @@ BOOL GxuTestRayAndSphere(
   using NTempest::IsUnitVector;
 
   distance = INFINITY;
-  VALIDATEBEGIN;
-  VALIDATE(IsUnitVector(rayDirection));
-  VALIDATEEND;
+  VALIDATE2(IsUnitVector(rayDirection));
   float centerDistance = NTempest::C3Vector::Dot(sphereCenter - rayStart, rayDirection);
   if (centerDistance < -sphereRadius) {
     return 0;
@@ -359,9 +357,7 @@ BOOL GxuTestRayAndTriangle(
 
   distance = INFINITY;
 
-  VALIDATEBEGIN;
-  VALIDATE(IsUnitVector(rayDirection));
-  VALIDATEEND;
+  VALIDATE2(IsUnitVector(rayDirection));
 
   NTempest::C3Vector e1 = v1 - v0;
   NTempest::C3Vector e2 = v2 - v0;

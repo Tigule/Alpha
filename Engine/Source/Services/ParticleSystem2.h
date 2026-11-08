@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Services/IParticleMisc.h"
 #include "Services/Texture.h"
 #include "Tempest/c2vector.h"

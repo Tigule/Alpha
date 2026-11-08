@@ -150,11 +150,7 @@
 
   /* compare two kerning pairs */
   FT_CALLBACK_DEF
-  int
-#ifdef _MSC_VER
-  __cdecl
-#endif
-       compare_kern_pairs( const void*  a,
+  int  __cdecl compare_kern_pairs( const void*  a,
                            const void*  b )
   {
     T1_Kern_Pair*  pair1 = (T1_Kern_Pair*)a;

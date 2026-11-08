@@ -272,13 +272,6 @@ void CSimpleEditBox::OnLayerUpdate(float elapsedSec) {
 
   if (textChanged) {
     RunOnTextChangedScript();
-
-    if (m_actions[EVENT_CHANGED].obj) {
-      CEvent event;
-      event.SetId(m_actions[EVENT_CHANGED].id);
-      event.SetParam(this);
-      m_actions[EVENT_CHANGED].obj->OnEvent(event);
-    }
   }
 }
 
@@ -320,13 +313,6 @@ BOOL CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
 
   if (evt.ch == ' ') {
     RunOnSpacePressedScript();
-
-    if (m_actions[EVENT_SPACE].obj) {
-      CEvent event;
-      event.SetId(m_actions[EVENT_SPACE].id);
-      event.SetParam(this);
-      m_actions[EVENT_SPACE].obj->OnEvent(event);
-    }
   }
 
   return 1;
@@ -364,15 +350,6 @@ void CSimpleEditBox::CreateCandidatesFrame() {
 
   m_candidatesHighlight = NEW(CSimpleTexture)(m_candidatesFrame, 2, 1);
   m_candidatesHighlight->SetTexture(NTempest::CImVector(0xFF808080));
-}
-
-void CSimpleEditBox::DispatchAction(int action) {
-  if (m_actions[action].obj) {
-    CEvent evt;
-    evt.SetId(m_actions[action].id);
-    evt.SetParam(this);
-    m_actions[action].obj->OnEvent(evt);
-  }
 }
 
 void CSimpleEditBox::UpdateLanguageIndicator() {
@@ -507,45 +484,42 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
         Insert("\n", 0);
       } else {
         RunOnEnterPressedScript();
-        DispatchAction(EVENT_ENTER);
       }
       break;
 
     case KEY_ESCAPE:
       RunOnEscapePressedScript();
-      DispatchAction(EVENT_ESCAPE);
       break;
 
     case KEY_TAB:
       RunOnTabPressedScript();
-      DispatchAction(EVENT_TAB);
       break;
 
     case KEY_HOME:
-      MoveToStart(EventIsKeyDown(KEY_SHIFT));
+      MoveToStart(evt.IsShiftDown());
       break;
 
     case KEY_END:
-      MoveToEnd(EventIsKeyDown(KEY_SHIFT));
+      MoveToEnd(evt.IsShiftDown());
       break;
 
     case KEY_INSERT:
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         if (IsHighlighted()) {
           CopyToClipboard();
         }
-      } else if (EventIsKeyDown(KEY_SHIFT)) {
+      } else if (evt.IsShiftDown()) {
         PasteFromClipboard();
       }
       break;
 
     case KEY_DELETE:
-      if (EventIsKeyDown(KEY_SHIFT)) {
+      if (evt.IsShiftDown()) {
         if (IsHighlighted()) {
           CopyToClipboard();
           DeleteHighlight();
         }
-      } else if (EventIsKeyDown(KEY_CONTROL)) {
+      } else if (evt.IsControlDown()) {
         DeleteForwardWord();
       } else {
         DeleteForward();
@@ -553,7 +527,7 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
       break;
 
     case KEY_BACKSPACE:
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         DeleteBackwardWord();
       } else {
         DeleteBackward();
@@ -561,24 +535,24 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
       break;
 
     case KEY_RIGHT:
-      if (EventIsKeyDown(KEY_CONTROL)) {
-        MoveForwardWord(EventIsKeyDown(KEY_SHIFT));
+      if (evt.IsControlDown()) {
+        MoveForwardWord(evt.IsShiftDown());
       } else {
-        MoveForward(EventIsKeyDown(KEY_SHIFT));
+        MoveForward(evt.IsShiftDown());
       }
       break;
 
     case KEY_LEFT:
-      if (EventIsKeyDown(KEY_CONTROL)) {
-        MoveBackwardWord(EventIsKeyDown(KEY_SHIFT));
+      if (evt.IsControlDown()) {
+        MoveBackwardWord(evt.IsShiftDown());
       } else {
-        MoveBackward(EventIsKeyDown(KEY_SHIFT));
+        MoveBackward(evt.IsShiftDown());
       }
       break;
 
     case KEY_UP:
       if (m_multiline) {
-        MoveBackwardLine(EventIsKeyDown(KEY_SHIFT));
+        MoveBackwardLine(evt.IsShiftDown());
       } else {
         BackwardHistory();
       }
@@ -586,7 +560,7 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
 
     case KEY_DOWN:
       if (m_multiline) {
-        MoveForwardLine(EventIsKeyDown(KEY_SHIFT));
+        MoveForwardLine(evt.IsShiftDown());
       } else {
         ForwardHistory();
       }
@@ -594,63 +568,63 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
 
     case KEY_A:
     case (KEY)(KEY_A + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         HighlightText();
       }
       break;
 
     case KEY_F:
     case (KEY)(KEY_F + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
-        MoveForward(EventIsKeyDown(KEY_SHIFT));
+      if (evt.IsControlDown()) {
+        MoveForward(evt.IsShiftDown());
       }
       break;
 
     case KEY_B:
     case (KEY)(KEY_B + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
-        MoveBackward(EventIsKeyDown(KEY_SHIFT));
+      if (evt.IsControlDown()) {
+        MoveBackward(evt.IsShiftDown());
       }
       break;
 
     case KEY_D:
     case (KEY)(KEY_D + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         DeleteForward();
       }
       break;
 
     case KEY_W:
     case (KEY)(KEY_W + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         DeleteBackwardWord();
       }
       break;
 
     case KEY_U:
     case (KEY)(KEY_U + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         DeleteToStart();
       }
       break;
 
     case KEY_K:
     case (KEY)(KEY_K + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         DeleteToEnd();
       }
       break;
 
     case KEY_P:
     case (KEY)(KEY_P + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         BackwardHistory();
       }
       break;
 
     case KEY_N:
     case (KEY)(KEY_N + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         ForwardHistory();
       }
       break;
@@ -659,7 +633,7 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
     case (KEY)(KEY_C + 32):
     case KEY_X:
     case (KEY)(KEY_X + 32):
-      if (EventIsKeyDown(KEY_CONTROL) && IsHighlighted()) {
+      if (evt.IsControlDown() && IsHighlighted()) {
         CopyToClipboard();
 
         if (evt.key == KEY_X || evt.key == (KEY)(KEY_X + 32)) {
@@ -670,7 +644,7 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
 
     case KEY_V:
     case (KEY)(KEY_V + 32):
-      if (EventIsKeyDown(KEY_CONTROL)) {
+      if (evt.IsControlDown()) {
         PasteFromClipboard();
       }
       break;
@@ -959,13 +933,6 @@ void CSimpleEditBox::SetText(LPCSTR text) {
   m_textLength = 0;
   Insert(text, 0);
   RunOnTextSetScript();
-
-  if (m_actions[EVENT_SET].obj) {
-    CEvent evt;
-    evt.SetId(m_actions[EVENT_SET].id);
-    evt.SetParam(this);
-    m_actions[EVENT_SET].obj->OnEvent(evt);
-  }
 }
 
 void CSimpleEditBox::Insert(LPCSTR utf8string, BOOL isIME) {
@@ -1048,9 +1015,7 @@ void CSimpleEditBox::Insert(UINT utf16) {
 }
 
 void CSimpleEditBox::Delete(int amount) {
-  VALIDATEBEGIN;
-  VALIDATE(amount);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(amount);
 
   int length = GetNumToLen(m_cursorPos, amount, 1);
   if (amount < 0) {
@@ -1163,9 +1128,7 @@ void CSimpleEditBox::DeleteSubstring(int left, int right) {
 }
 
 void CSimpleEditBox::Move(int distance, int highlight) {
-  VALIDATEBEGIN;
-  VALIDATE(distance);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(distance);
 
   int length = GetNumToLen(m_cursorPos, distance, 1);
   if (distance < 0) {

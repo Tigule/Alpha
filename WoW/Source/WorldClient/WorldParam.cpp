@@ -16,7 +16,7 @@
 
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/IParticleMisc.h>
 #include <storm.h>
 

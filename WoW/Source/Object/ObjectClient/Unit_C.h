@@ -1,9 +1,8 @@
 #pragma once
 
-#include <Model/IModel.h>
+#include <Model/Model.h>
 
-#include "Object/ObjectClient/AnimStateCompiles.h"
-#include "Object/ObjectClient/IUnitEffects.h"
+#include "Object/ObjectClient/AnimCompiles.h"
 #include "Object/ObjectClient/Object_C.h"
 #include "Object/MovementData.h"
 #include "Object/Unit.h"
@@ -30,6 +29,57 @@ typedef HCHARGEOSET__ *HCHARGEOSET;
 template <class T>
 class TSStackArray;
 class CDataStore;
+class CGUnit_C;
+
+extern UINT g_specialSpellIDs[43];
+
+void LoadUnitDefs();
+
+enum MISS_REASON {
+  MISS_NONE = 0,
+  MISS_PHYSICAL = 1,
+  MISS_RESIST = 2,
+  MISS_IMMUNE = 3,
+  MISS_EVADED = 4,
+  MISS_DODGED = 5,
+  MISS_PARRIED = 6,
+  MISS_BLOCKED = 7,
+  MISS_TEMPIMMUNE = 8,
+  MISS_DEFLECTED = 9,
+  MISS_NUMMISSTYPES = 10
+};
+
+enum SPELL_VISUAL_ATTACHMENT {
+  SPELL_VISUAL_ATTACH_HEAD = 0,
+  SPELL_VISUAL_ATTACH_CHEST = 1,
+  SPELL_VISUAL_ATTACH_BASE = 2,
+  SPELL_VISUAL_ATTACH_LEFT_HAND = 3,
+  SPELL_VISUAL_ATTACH_RIGHT_HAND = 4,
+  SPELL_VISUAL_ATTACH_BREATH = 5,
+  SPELL_VISUAL_ATTACH_SPECIAL1 = 6,
+  SPELL_VISUAL_ATTACH_SPECIAL2 = 7,
+  SPELL_VISUAL_ATTACH_SPECIAL3 = 8,
+  NUM_SPELL_VISUAL_ATTACH = 9
+};
+
+struct MISSILESTRUCT {
+  CGUnit_C          *caster;
+  UINT               spellID;
+  DWORDLONG          target;
+  NTempest::C3Vector startPosition;
+  NTempest::C3Vector destination;
+  float              speed;
+  UINT               ammoDisplayID;
+  int                inventoryType;
+  UINT               missileEffect;
+  UINT               missileVictimEffect;
+  UINT               missilePathType;
+  bool               hits;
+  MISS_REASON        reason;
+  int                sound;
+};
+
+void UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOffset);
 
 void UnitUpdateMovementAnim(const DWORDLONG &unit);
 BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
@@ -264,19 +314,6 @@ enum TALKANIMATION {
   TALKANIM_NUMTALKANIMS = 5
 };
 
-enum UNITAFFILIATION {
-  AFFILIATION_YOURSELF = 0,
-  AFFILIATION_YOURPET = 1,
-  AFFILIATION_PARTYMEMBER = 2,
-  AFFILIATION_OTHER = 3,
-  AFFILIATION_YOURCONTROLLER = 4,
-  AFFILIATION_NUMAFFILIATIONS = 5
-};
-enum COMBATHAND {
-  COMBAT_MAINHAND = 0,
-  COMBAT_OFFHAND = 1,
-  NUMHANDS = 2
-};
 
 enum VIRTUAL_MONSTER_SLOT {
   VIRTUAL_MONSTER_SLOT_MAINHAND = 0,
@@ -464,12 +501,6 @@ enum AI_REACTION {
   NUM_AI_REACTIONS = 4
 };
 
-enum WEAPONMODE {
-  WEAPONMODE_NORMALMODE = 0,
-  WEAPONMODE_SHEATHEDMODE = 1,
-  WEAPONMODE_RANGEDMODE = 2,
-  WEAPONMODE_NUMMODES = 3
-};
 
 enum SHEATHEREASONS {
   SHEATHE_PLAYEREXPLICIT = 0,
@@ -569,439 +600,7 @@ NODEDECL(ACTIVEAURAINFO) {
   }
 };
 
-struct CGUnitData {
-  DWORDLONG       charm;
-  DWORDLONG       summon;
-  DWORDLONG       charmedBy;
-  DWORDLONG       summonedBy;
-  DWORDLONG       createdBy;
-  DWORDLONG       target;
-  DWORDLONG       comboTarget;
-  DWORDLONG       channelObject;
-  int             health;
-  int             power[4];
-  int             maxHealth;
-  int             maxPower[4];
-  int             level;
-  int             factionTemplate;
-  BYTE            race;
-  BYTE            classId;
-  BYTE            sex;
-  BYTE            displayPower;
-  int             stats[5];
-  int             baseStats[5];
-  UINT            virtualItemDisplay[3];
-  VirtualItemInfo virtualItemInfo[3];
-  UINT            flags;
-  UINT            coinage;
-  int             auras[56];
-  BYTE            auraFlags[28];
-  UINT            auraState;
-  int             modDamageDone[6];
-  int             modDamageTaken[6];
-  int             modCreatureDamageDone[8];
-  UINT            attackRoundBaseTime[2];
-  int             resistances[6];
-  float           boundingRadius;
-  float           combatReach;
-  float           weaponReach;
-  int             displayID;
-  int             mountDisplayID;
-  WORD            minDamage;
-  WORD            maxDamage;
-  int             resistanceBuffModsPositive[6];
-  int             resistanceBuffModsNegative[6];
-  int             resistanceItemMods[6];
-  BYTE            standState;
-  BYTE            npcFlags;
-  BYTE            shapeshiftForm;
-  BYTE            weaponMode;
-  UINT            petNumber;
-  UINT            petNameTimestamp;
-  UINT            petExperience;
-  UINT            petNextLevelExperience;
-  UINT            dynamicFlags;
-  UINT            emoteState;
-  int             channelSpell;
-  int             modCastingSpeed;
-  int             createdBySpell;
-  BYTE            comboPoints;
-  BYTE            bytepad1;
-  BYTE            bytepad2;
-  BYTE            bytepad3;
-  UINT            pad;
-};
 
-class CGUnit {
-  friend class CGCamera;
-  friend class CGGameObject_C_Type_Chair;
-  friend class CGInputControl;
-  friend void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
-  friend BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
-  friend int  Player_C_AppFocusMovementHandler(int focus);
-
- public:
-  UINT GetUnitFlags() const {
-    return m_unit->flags;
-  }
-  BYTE GetUnitNPCFlags() const {
-    return m_unit->npcFlags;
-  }
-  BYTE IsAlive() const;
-  BYTE IsDead() const {
-    return m_unit->health <= 0;
-  }
-  int GetHealth() const {
-    return m_unit->health;
-  }
-  float GetHealthPercent() const {
-    return (float)m_unit->health / m_unit->maxHealth;
-  }
-  int GetPower(POWER_TYPE powerType) const {
-    return powerType == -2 ? m_unit->health : m_unit->power[powerType];
-  }
-  int GetMaxPower(POWER_TYPE powerType) const {
-    return powerType == -2 ? m_unit->maxHealth : m_unit->maxPower[powerType];
-  }
-  float GetPowerPercent(POWER_TYPE powerType) const;
-  POWER_TYPE GetDisplayPower() const {
-    return (POWER_TYPE)m_unit->displayPower;
-  }
-  __forceinline int GetMaxHealth() const {
-    return m_unit->maxHealth;
-  }
-  UINT GetMoney() const {
-    return m_unit->coinage;
-  }
-  int GetLevel() const {
-    return m_unit->level;
-  }
-  UINT GetMinDamage() const {
-    return m_unit->minDamage;
-  }
-  UINT GetMaxDamage() const {
-    return m_unit->maxDamage;
-  }
-  BOOL IsCombatLoggingActive() const;
-  int GetCurrentStat(UINT statNumber) const {
-    FATALASSERT(statNumber < (sizeof(m_unit->stats) / sizeof(m_unit->stats[0])));
-    return m_unit->stats[statNumber];
-  }
-  int GetEffectiveStat(UINT stat) const;
-  int GetBaseStat(UINT statNumber) const {
-    FATALASSERT(statNumber < (sizeof(m_unit->baseStats) / sizeof(m_unit->baseStats[0])));
-    return m_unit->baseStats[statNumber];
-  }
-  int GetResistance(UINT resistance) const {
-    FATALASSERT(resistance < (sizeof(m_unit->resistances) / sizeof(m_unit->resistances[0])));
-    return m_unit->resistances[resistance];
-  }
-  int GetEffectiveResistance(UINT resistance) const {
-    FATALASSERT(resistance < (sizeof(m_unit->resistances) / sizeof(m_unit->resistances[0])));
-    return m_unit->resistances[resistance] < 0 ? 0 : m_unit->resistances[resistance];
-  }
-  int GetResistanceBuffModPositive(UINT resistance) const {
-    FATALASSERT(resistance < (sizeof(m_unit->resistanceBuffModsPositive) / sizeof(m_unit->resistanceBuffModsPositive[0])));
-    return m_unit->resistanceBuffModsPositive[resistance];
-  }
-  int GetResistanceBuffModNegative(UINT resistance) const {
-    FATALASSERT(resistance < (sizeof(m_unit->resistanceBuffModsNegative) / sizeof(m_unit->resistanceBuffModsNegative[0])));
-    return m_unit->resistanceBuffModsNegative[resistance];
-  }
-  int GetResistanceItemMod(UINT school) const;
-  UINT GetRace() const {
-    return m_unit->race;
-  }
-  UINT GetClass() const {
-    return m_unit->classId;
-  }
-  UNIT_SEX GetSex() const {
-    return (UNIT_SEX)m_unit->sex;
-  }
-  int GetModDamageDone(UINT school) const {
-    return m_unit->modDamageDone[school];
-  }
-  int      GetModDamageTaken(UINT school) const;
-  int      GetModCreatureDamageDone(UINT creatureType) const;
-  const DWORDLONG &GetCharm() const {
-    return m_unit->charm;
-  }
-  const DWORDLONG &GetSummon() const {
-    return m_unit->summon;
-  }
-  const DWORDLONG &GetControlledGUID() const {
-    return m_unit->charm ? m_unit->charm : m_unit->summon;
-  }
-  const DWORDLONG &GetCharmedBy() const {
-    return m_unit->charmedBy;
-  }
-  BYTE             IsCharmedBy(const DWORDLONG &guid) const;
-  BYTE IsCharmed() const {
-    return m_unit->charmedBy != 0;
-  }
-  const DWORDLONG &GetSummonedBy() const {
-    return m_unit->summonedBy;
-  }
-  BYTE             IsSummonedBy(const DWORDLONG &guid) const;
-  BYTE             IsSummoned() const;
-  const DWORDLONG &GetCreatedBy() const {
-    return m_unit->createdBy;
-  }
-  BYTE             IsCreatedBy(const DWORDLONG &guid) const;
-  BYTE             IsCreated() const;
-  int GetCreatedBySpell() const {
-    return m_unit->createdBySpell;
-  }
-  const DWORDLONG &GetControlGUID() const {
-    return m_unit->charmedBy ? m_unit->charmedBy : m_unit->summonedBy;
-  }
-  const DWORDLONG &GetOwnerGUID() const {
-    return m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
-  }
-  BYTE IsPossessedBy(const DWORDLONG &guid) const {
-    return IsPossessed() && guid == GetOwnerGUID();
-  }
-  BYTE IsPossessed() const {
-    return (GetUnitFlags() >> 24) & 1;
-  }
-  float GetBoundingRadius() const;
-  float GetCombatReach() const {
-    return m_unit->weaponReach + m_unit->combatReach;
-  }
-  int GetDisplayID() const {
-    return m_unit->displayID;
-  }
-  UINT                   GetMonsterItemDisplay(UINT slot) const;
-  const VirtualItemInfo *GetMonsterItemInfo(UINT slot) const;
-  UINT GetShapeshiftForm() const {
-    return m_unit->shapeshiftForm;
-  }
-  UINT                   GetShapeshiftBit() const;
-  BYTE                   IsChannelling() const;
-  int GetChannelSpell() const {
-    return m_unit->channelSpell;
-  }
-  DWORDLONG GetChannelObject() const {
-    return m_unit->channelObject;
-  }
-  int ModCastSpeed() const {
-    return m_unit->modCastingSpeed;
-  }
-  DWORDLONG GetComboTarget() const {
-    return m_unit->comboTarget;
-  }
-  UINT GetComboPoints() const {
-    return m_unit->comboPoints;
-  }
-  NTempest::C3Vector     GetPosition() const {
-    return m_move.GetPosition();
-  }
-  void               GetPosition(NTempest::C3Vector &position) const;
-  NTempest::C3Vector GetRawPosition() const {
-    return m_move.GetRawPosition();
-  }
-  float              GetFacing() const;
-  float              GetRawFacing() const;
-  NTempest::C3Vector GetAnchorPosition() const;
-  void               GetAnchorPosition(NTempest::C3Vector &position) const;
-  float              GetAnchorFacing() const;
-  float GetPitch() const {
-    return m_move.GetPitch();
-  }
-  NTempest::C3Vector GetGroundNormal() const {
-    return m_move.GetGroundNormal();
-  }
-  float              GetRunSpeed() const;
-  float              GetWalkSpeed() const;
-  float              GetSwimSpeed() const;
-  float              GetTurnRate() const;
-  UINT                   GetMoveFlags() const {
-    return m_move.GetMoveFlags();
-  }
-  BOOL IsInMotion() const;
-  BOOL IsMovingOrTurning() const;
-  BOOL IsMovingOrFalling() const;
-  BOOL IsMoving() const;
-  BOOL IsMovingOrStrafing() const;
-  BOOL IsMovingTurningOrStrafing() const;
-  BOOL IsMovingStrafingOrFalling() const;
-  BOOL IsMovingForward() const;
-  BOOL IsMovingBackwards() const;
-  BOOL IsWalking() const;
-  BOOL IsRunning() const;
-  BOOL IsTurning() const;
-  BOOL IsTurningLeft() const;
-  BOOL IsTurningRight() const;
-  BOOL IsStrafingLeft() const;
-  BOOL IsStrafingRight() const;
-  BOOL IsStrafing() const;
-  BOOL IsFalling() const;
-  BOOL IsImmobilized() const;
-  int  Moved() const;
-  DWORD GetMoveStartTime() const {
-    return m_move.GetMoveStartTime();
-  }
-  NTempest::C3Vector GetRedirection() const;
-  int                MoveTimeIsValid() const;
-  BOOL               IsSwimming() const;
-  BOOL               IsSwimmingOrFalling() const;
-  BOOL               IsMovingStrafingOrSwimming() const;
-  BOOL               IsMovingStrafingFallingOrSwimming() const;
-  float GetCollisionBoxHeight() const {
-    return m_move.GetCollisionBoxHeight();
-  }
-  int   IgnoresCollision() const;
-  BOOL  IsHalted() const;
-  void  BuildMovementUpdate(CDataStore *msg) const;
-  float LinearDistanceSquared(const NTempest::C3Vector &position) const;
-  int GetAura(int index) const {
-    return m_unit->auras[index];
-  }
-  BYTE GetAuraFlags(int index) const {
-    return (m_unit->auraFlags[index / 2] >> (4 * (index % 2))) & 0xF;
-  }
-  UINT GetAuraState() const {
-    return m_unit->auraState;
-  }
-  BYTE  HasAuraState(UINT state) const;
-  BYTE               IsDisconnected() const {
-    return GetUnitFlags() & 1;
-  }
-  BYTE               IsSpawning() const {
-    return (GetUnitFlags() >> 1) & 1;
-  }
-  BYTE IsClientLocked() const {
-    return !IsSpawning() && (GetUnitFlags() & 0xC00004);
-  }
-  BYTE IsOnTaxi() const {
-    return (GetUnitFlags() >> 20) & 1;
-  }
-  BYTE               IsPlayerControlled() const {
-    return (GetUnitFlags() >> 3) & 1;
-  }
-  BYTE IsPlusMob() const {
-    return (GetUnitFlags() >> 6) & 1;
-  }
-  BYTE IsBeastmaster() const;
-  BYTE               IsImmunePC() const {
-    return (GetUnitFlags() >> 8) & 1;
-  }
-  BYTE               IsImmuneNPC() const {
-    return (GetUnitFlags() >> 9) & 1;
-  }
-  BYTE               IsLooting() const {
-    return (GetUnitFlags() >> 10) & 1;
-  }
-  BYTE IsInCombat() const;
-  BYTE               IsMounted() const {
-    return (GetUnitFlags() >> 13) & 1;
-  }
-  BYTE      IsPureMountActive() const {
-    return (GetUnitFlags() >> 12) & 1;
-  }
-  BYTE IsPureMountMounted() const;
-  BYTE IsFeignDeath() const {
-    return (GetUnitFlags() >> 14) & 1;
-  }
-  BYTE IsStealthed() const {
-    return (GetUnitFlags() >> 15) & 1;
-  }
-  BYTE IsInvisible() const {
-    return (GetUnitFlags() >> 16) & 1;
-  }
-  BYTE IsConfused() const;
-  BYTE IsFleeing() const;
-  BYTE IsAffectingCombat() const {
-    return (GetUnitFlags() >> 19) & 1;
-  }
-  BYTE IsMerchant() const {
-    return m_unit->npcFlags & 1;
-  }
-  BYTE IsQuestGiver() const {
-    return m_unit->npcFlags & 2;
-  }
-  BYTE IsTaxiNode() const {
-    return m_unit->npcFlags & 4;
-  }
-  BYTE IsTrainer() const {
-    return m_unit->npcFlags & 8;
-  }
-  BYTE IsBinder() const {
-    return m_unit->npcFlags & 0x10;
-  }
-  BYTE IsBanker() const {
-    return m_unit->npcFlags & 0x20;
-  }
-  BYTE IsNpcPetition() const {
-    return m_unit->npcFlags & 0x80;
-  }
-  BYTE IsTabardVendor() const {
-    return m_unit->npcFlags & 0x40;
-  }
-  BYTE IsGuildRegistrar() const {
-    return IsNpcPetition() && IsTabardVendor();
-  }
-  BYTE IsNPC() const {
-    return IsMerchant() || IsQuestGiver() || IsTaxiNode() || IsTrainer() || IsBinder() || IsBanker() || IsNpcPetition() || IsTabardVendor();
-  }
-  int  GetMountDisplayID() const;
-  DWORDLONG GetTarget() const {
-    return m_unit->target;
-  }
-  UINT GetStandState() const {
-    return m_unit->standState;
-  }
-  int  StandStateValid(UNITSTANDSTATE newState) const;
-  BYTE IsSitting() const;
-  BYTE IsSleeping() const;
-  UINT GetEmoteState() const;
-  UINT      GetPetNumber() const {
-    return m_unit->petNumber;
-  }
-  UINT      GetPetNameTimestamp() const {
-    return m_unit->petNameTimestamp;
-  }
-  BYTE       *GetData(UINT offset);
-  static UINT GetDataSize();
-  static UINT GetBaseOffset();
-  static __forceinline UINT TotalFields() {
-    return 184;
-  }
-  static UINT GetUpdateMaskBytes();
-  static UINT GetUpdateMaskBlocks();
-  void      SetStorage(DWORD *storage) {
-    m_unit = (CGUnitData *)storage;
-  }
-  UINT GetAttackRoundTime(COMBATHAND hand) const {
-    FATALASSERT(hand<NUMHANDS);
-    return m_unit->attackRoundBaseTime[hand];
-  }
-  WEAPONMODE GetWeaponMode() const {
-    return (WEAPONMODE)m_unit->weaponMode;
-  }
-  BYTE                    IsUsingRangedWeapon() const;
-  bool                    GetSheathed() const;
-  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG unit) const;
-  void                    SetWaterSurfaceElevation(float elevation);
-
- protected:
-  CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
-      : m_unit((CGUnitData *)storage), m_move(position, facing, guid) {
-  }
-
-  CGUnit(const CGUnit &);
-  ~CGUnit() {
-  }
-  const CGUnitData *Unit() const;
-
-  CGUnitData *Unit();
-
-  CGUnitData   *m_unit;
-  CMovementData m_move;
-
- private:
-  CGUnit &operator=(const CGUnit &);
-};
 
 class CGUnit_C : public CGObject_C, public CGUnit {
   friend BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
@@ -1030,18 +629,28 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void Reenable();
   virtual void PostReenable();
   void         UpdateUnitCollisionBox(HMODEL model, LPCSTR modelFileName);
-  virtual BOOL IsSolidSelectable() const;
-  virtual BOOL IsSolidCollidable() const;
+  virtual BOOL IsSolidSelectable() const {
+    return 1;
+  }
+  virtual BOOL IsSolidCollidable() const {
+    return 0;
+  }
   virtual BOOL CanHighlight() const;
-  virtual BOOL CanBeTargetted() const;
+  virtual BOOL CanBeTargetted() const {
+    return CanHighlight();
+  }
   virtual void OnLeftClick();
   virtual void OnRightClick();
 
-  virtual LPCSTR GetObjectName() const;
-  void           SetCreatureStats(const CreatureStats_C *stats);
+  virtual LPCSTR GetObjectName() const {
+    return GetUnitName();
+  }
+  void SetCreatureStats(const CreatureStats_C *stats);
 
  protected:
-  virtual BOOL ShouldFadeIn() const;
+  virtual BOOL ShouldFadeIn() const {
+    return !(m_unit->flags & 2);
+  }
   void         UpdateUnitAlpha();
 
  public:
@@ -1060,17 +669,17 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   static void UpdateUnitNameplates(CGWorldFrame *worldFrame);
   static void ResortAllUnitNameplates(CGWorldFrame *worldFrame);
 
-  virtual void      GetAFKText(char *buffer, int size) const;
-  virtual void      GetDNDText(char *buffer, int size) const;
-  virtual void      GetGMText(char *buffer, int size) const;
+  virtual void      GetAFKText(char *buffer, int) const { buffer[0] = '\0'; }
+  virtual void      GetDNDText(char *buffer, int) const { buffer[0] = '\0'; }
+  virtual void      GetGMText(char *buffer, int) const { buffer[0] = '\0'; }
   int               GetCreatureType() const;
   void              SetLocalTarget(DWORDLONG target);
-  virtual DWORDLONG GetLocalTarget() const;
+  virtual DWORDLONG GetLocalTarget() const { return m_targetUnit; }
   void              HandleAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos);
   void              HandleMountedAnimEvent(LPCSTR eventName, const NTempest::C3Vector &pos);
-  virtual void      HandleSpellEventSound();
-  virtual void      CombatLoggingFlagChanged();
-  virtual DWORDLONG GetUnitBeingLooted() const;
+  virtual void      HandleSpellEventSound() {}
+  virtual void      CombatLoggingFlagChanged() {}
+  virtual DWORDLONG GetUnitBeingLooted() const { return 0; }
   BOOL              CanBeLooted(DWORD currentTime) const;
   static void       SetActiveMover(const DWORDLONG &guid);
 
@@ -1082,10 +691,18 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   static DWORDLONG m_activeMover;
 
  public:
-  virtual NTempest::C3Vector GetPosition() const;
-  virtual void               GetPosition(NTempest::C3Vector &vec) const;
-  virtual float              GetFacing() const;
-  virtual NTempest::C3Vector GetGroundNormal() const;
+  virtual NTempest::C3Vector GetPosition() const {
+    return m_move.GetPosition();
+  }
+  virtual void GetPosition(NTempest::C3Vector &vec) const {
+    vec = m_move.GetPosition();
+  }
+  virtual float GetFacing() const {
+    return m_move.GetFacing();
+  }
+  virtual NTempest::C3Vector GetGroundNormal() const {
+    return CGUnit::GetGroundNormal();
+  }
   float                      GetBoundingRadius() const;
   bool                       IsTurningState() const;
   void                       SetMirrorHandlers();
@@ -1153,11 +770,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void                AttachResEffectModel();
   void                DetatchResEffectModel();
   void                ShowPlayerXPGained();
-  virtual void        OnGetAttacked(DWORDLONG attacker);
+  virtual void        OnGetAttacked(DWORDLONG attacker) {
+  }
   virtual void        OnBadAttackFacing(DWORDLONG victimGUID);
-  virtual void        OnBadAttackTarget(DWORDLONG victim);
+  virtual void        OnBadAttackTarget(DWORDLONG victim) {}
   virtual void        OnBadAttackPosition(DWORDLONG victimGUID, float range);
-  virtual void        OnNotStanding(DWORDLONG victim);
+  virtual void        OnNotStanding(DWORDLONG victim) {}
   void                OnEncounter(AI_REACTION reaction);
   void                QueueBloodSplat(BLOODSPURTLOCATION linkPoint);
   void                HandleBloodPool(UINT currentTime);
@@ -1165,7 +783,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   const UnitBloodRec *GetBloodRecord();
   void                AddBloodPool();
   void                RemoveBloodPool();
-  virtual void        UnitHit(VICTIMSTATES state, DWORDLONG attacker);
+  virtual void        UnitHit(VICTIMSTATES, DWORDLONG) {}
   void                GetResistanceAndBuffs(int r, int &realResistance, int &effectiveResistance, int &buffPositive, int &buffNegative) const;
   BOOL                IsUnderWater() const;
   void                SetForcedAnimation(LPCSTR string);
@@ -1553,7 +1171,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   HMODEL        DuplicateCharacterModel(UINT flags) const;
   void          ClearMountAnimState();
   void          CreateUnitMount();
-  virtual float GetMountScale() const;
+  virtual float GetMountScale() const { return 1.0f; }
   void          DestroyUnitMount(int doNotUpdateAnim);
   void          UpdateUnitMountInfo(int immediate, UINT changedFlags);
   int           UnitMountShowing() const;
@@ -1566,10 +1184,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void  UpdatePlayerName();
   UINT          GetPlayerNameAttachmentPoint();
   virtual void  OnSpecialMountAnim();
-  virtual void  OnMount();
-  virtual void  OnDismount();
+  virtual void  OnMount() {}
+  virtual void  OnDismount() {}
   void          OnCharmedChanged();
-  virtual bool  CanBeMounted();
+  virtual bool  CanBeMounted() { return true; }
   void          ClearTempCharModel();
   void          SetTempCharModel(HMODEL model);
 
@@ -1632,14 +1250,14 @@ class CGUnit_C : public CGObject_C, public CGUnit {
  public:
   void         StandStateChanged(UINT oldState);
   void         NPCFlagChanged(UINT oldNPCFlags);
-  virtual void OnStandStateChanged(UINT oldState, UINT newState);
+  virtual void OnStandStateChanged(UINT, UINT) {}
   void         SitSleepAnimEndHandler();
   BOOL         IsPlayingSittingOrStandingAnim() const;
   virtual void ChangeStandState(UINT standState);
   int          PlayEmoteAnimation(UINT emoteID, int flags);
   void         RequestTalkEmote(TALKANIMATION talkAnim);
   UINT         GetEmoteAnimation(UINT emoteID) const;
-  virtual void SetEmoteState(UINT emoteID);
+  virtual void SetEmoteState(UINT emoteID) {}
   void         SetEmoteQueue(TSStackArray<QUESTGIVEREMOTENODE> &list);
   void         SetEmoteQueue(const QUESTGIVEREMOTENODE *list, UINT num);
 
@@ -1769,12 +1387,12 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   int          GetSpellLevel(int spellID) const {
     return (UINT)GetSpellRank(spellID) / 5;
   }
-  virtual bool  GetDefenseSkillRank(int &base, int &modifier) const;
-  virtual bool  GetAttackSkillRank(int hand, int &base, int &modifier) const;
+  virtual bool  GetDefenseSkillRank(int &base, int &modifier) const { modifier = 0; base = 0; return false; }
+  virtual bool  GetAttackSkillRank(int, int &base, int &modifier) const { modifier = 0; base = 0; return false; }
   virtual void  OnLevelChange();
-  virtual float GetBlockChance() const;
-  virtual float GetDodgeChance() const;
-  virtual float GetParryChance() const;
+  virtual float GetBlockChance() const { return 0.0f; }
+  virtual float GetDodgeChance() const { return 0.0f; }
+  virtual float GetParryChance() const { return 0.0f; }
 
  protected:
   int m_displayHealth;
@@ -1856,9 +1474,9 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   UINT m_rangedStandTimer;
 
  public:
-  virtual void UpdateObjComponentVisuals(const CGItem_C *item, const ItemEnchantment *enchantments, int num);
-  virtual void ClearItemVisuals(ACTIVEATTACHMENTINFO *info);
-  virtual void SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec *rec, bool force);
+  virtual void UpdateObjComponentVisuals(const CGItem_C *, const ItemEnchantment *, int) {}
+  virtual void ClearItemVisuals(ACTIVEATTACHMENTINFO *) {}
+  virtual void SetItemVisuals(ACTIVEATTACHMENTINFO *, const ItemVisualsRec *, bool) {}
 
  protected:
   void AddObjectComponentBySlot(
@@ -1919,7 +1537,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void         SetWeaponMode(WEAPONMODE mode);
   void         WeaponModeChanged();
   void         UpdateSheatheRangedReasons(bool suppressSound);
-  virtual void SetLastWeaponModeSent(int mode);
+  virtual void SetLastWeaponModeSent(int mode) {}
   void         HandlePrecastStart(bool precast);
   void         HandlePrecastStop(int spellID, bool force);
 

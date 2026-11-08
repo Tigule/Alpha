@@ -424,9 +424,7 @@ static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *he
 static void RequestImageDimensions(UINT *width, UINT *height, UINT *bestMip) {
   CGxCaps systemCaps = GxCaps();
 
-  VALIDATEBEGIN;
-  VALIDATE(systemCaps.m_maxTextureSize > 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(systemCaps.m_maxTextureSize > 0);
 
   while (*width > systemCaps.m_maxTextureSize || *height > systemCaps.m_maxTextureSize) {
     *width >>= 1;
@@ -1066,7 +1064,7 @@ static HTEXTURE GetTexture(LPCSTR texMap, CGxTexFlags flags) {
 static void HashNewTexture(LPCSTR texMap, CGxTexFlags flags, HTEXTURE texture, CStatus *status) {
   DWORD         currentTime;
   UINT          hash;
-  CTextureHash *textureHash;
+  CTextureHash *tex;
 
   ASSERT(texMap);
 
@@ -1074,10 +1072,10 @@ static void HashNewTexture(LPCSTR texMap, CGxTexFlags flags, HTEXTURE texture, C
   TextureCacheUpdate(currentTime, status);
   hash = SStrHash(texMap, 0, 0);
   HASHKEY_TEXTUREFILE hashKey(texMap, flags);
-  textureHash = s_textureCache.New(hash, hashKey, 0, 0);
-  s_textureCacheLRU.LinkNode(textureHash, LIST_TAIL, 0);
-  textureHash->texture = (HTEXTURE)HandleDuplicate(texture);
-  textureHash->timeStamp = currentTime;
+  tex = s_textureCache.New(hash, hashKey, 0, 0);
+  s_textureCacheLRU.LinkNode(tex, LIST_TAIL, 0);
+  tex->texture = (HTEXTURE)HandleDuplicate(texture);
+  tex->timeStamp = currentTime;
 }
 
 static void FileError(CStatus *status, LPCSTR description, LPCSTR path) {
@@ -1396,21 +1394,19 @@ static HTEXTURE GetTexture(const NTempest::CImVector &color) {
 
 static void HashNewTexture(const NTempest::CImVector &color, HTEXTURE texture, CStatus *status) {
   DWORD              currentTime = OsGetAsyncTimeMs();
-  CSolidTextureHash *textureHash;
+  CSolidTextureHash *tex;
 
   TextureCacheUpdate(currentTime, status);
-  textureHash = s_solidTextureCache.New(*color.IV_(), s_hashKeyNone, 0, 0);
-  s_textureCacheLRU.LinkNode(textureHash, LIST_TAIL, 0);
-  textureHash->texture = (HTEXTURE)HandleDuplicate(texture);
-  textureHash->timeStamp = currentTime;
+  tex = s_solidTextureCache.New(*color.IV_(), s_hashKeyNone, 0, 0);
+  s_textureCacheLRU.LinkNode(tex, LIST_TAIL, 0);
+  tex->texture = (HTEXTURE)HandleDuplicate(texture);
+  tex->timeStamp = currentTime;
 }
 
 CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
   CTexture *textureptr = (CTexture *)texture;
 
-  VALIDATEBEGIN;
-  VALIDATE(textureptr);
-  VALIDATEEND;
+  VALIDATE2(textureptr);
 
   if (!textureptr->gxTex) {
     if (!force) {
@@ -1437,9 +1433,7 @@ static void AsyncTextureWait(CTexture *texture) {
 MipBits *TextureGetMips(HTEXTURE texture, int force) {
   CTexture *textureptr = (CTexture *)texture;
 
-  VALIDATEBEGIN;
-  VALIDATE(textureptr);
-  VALIDATEEND;
+  VALIDATE2(textureptr);
 
   if (!textureptr->mipBits) {
     if (!force) {
@@ -1456,9 +1450,7 @@ MipBits *TextureGetMips(HTEXTURE texture, int force) {
 int TextureIsOpaque(HTEXTURE__ *texture) {
   CTexture *textureptr = (CTexture *)texture;
 
-  VALIDATEBEGIN;
-  VALIDATE(textureptr);
-  VALIDATEEND;
+  VALIDATE2(textureptr);
 
   return textureptr->flags & 1;
 }
@@ -1645,9 +1637,7 @@ void TextureDestroy() {
 LPCSTR TextureGetFilename(HTEXTURE texture) {
   CTexture *textureptr = (CTexture *)texture;
 
-  VALIDATEBEGIN;
-  VALIDATE(textureptr);
-  VALIDATEEND;
+  VALIDATE2(textureptr);
 
   return textureptr->filename;
 }

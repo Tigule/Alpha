@@ -822,6 +822,8 @@ void CMapChunk::FindLights() {
   }
 }
 
+#pragma optimize("", off)
+
 void CMapChunk::CreateVertices(float *heights) {
   FATALASSERT(heights);
 
@@ -873,6 +875,8 @@ void CMapChunk::CreateVertices(float *heights) {
   NTempest::C3Vector rv = aaBox.t - aaSphere.c;
   aaSphere.r = rv.Mag();
 }
+
+#pragma optimize("", on)
 
 void CMapChunk::CreateNormals(signed char *normals) {
   FATALASSERT(normals);

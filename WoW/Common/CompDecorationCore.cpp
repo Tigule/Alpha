@@ -12,6 +12,8 @@
 static LPCSTR const s_texComponentBasePath = "Item\\TextureComponents\\";
 static char *const  s_sexSuffixNames[UNITSEX_LAST] = {"M", "F", "U"};
 
+int ComponentUtilImageFileExists(LPCSTR fileName);
+
 static void ConstructSuffixString(UINT race, UINT sex, int includeRace, int includeSex, char *buffer, UINT size) {
   FATALASSERT(buffer);
   FATALASSERT(size);
@@ -51,26 +53,6 @@ static void BuildObjComponentPath(LPCSTR fileName, UINT race, UINT sex, char *bu
   SStrCopy(buffer, finalBuffer, size);
 }
 
-void CompDecorateObjName(LPCSTR string, char *buffer, UINT size, UINT race, UINT sex) {
-  FATALASSERT(buffer);
-  FATALASSERT(size);
-  buffer[0] = 0;
-  if (!string || !*string) {
-    return;
-  }
-
-  char finalName[MAX_PATH];
-  BuildObjComponentPath(string, race, sex, finalName, size);
-  if (!finalName[0]) {
-    BuildObjComponentPath(string, race, UNITSEX_NONE, finalName, size);
-  }
-  if (finalName[0]) {
-    SStrCopy(buffer, finalName, size);
-  } else {
-    SysMsgPrintf(SYSMSG_ERROR, "Error, object component file \"%s\" not found!", finalName);
-  }
-}
-
 static void BuildTexComponentPath(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UNIT_SEX sex, int includeSex) {
   static LPCSTR sectionNames[NUM_TEXCOMPONENT_SECTIONS] = {"ArmUpperTexture",  "ArmLowerTexture",   "HandTexture",       "HeadUpperTexture",
                                                            "HeadLowerTexture", "TorsoUpperTexture", "TorsoLowerTexture", "LegUpperTexture",
@@ -96,40 +78,23 @@ static void BuildTexComponentPath(LPCSTR string, TEXCOMPONENT_SECTIONS section, 
   SStrPrintf(buffer, size, "%s%s\\%s%s%s", s_texComponentBasePath, sectionNames[section], stringBuffer, suffixBuffer, ".BLP");
 }
 
-static int ComponentUtilImageFileExists(LPCSTR fileName) {
-  if (SFile::FileExists(fileName)) {
-    return 1;
-  }
-
-  char        alternate[MAX_PATH];
-  TEXFILETYPE type = TextureDiscoverFileType(fileName);
-  TexturePickAlternateFilename(fileName, type, alternate, sizeof(alternate));
-  return SFile::FileExists(alternate);
-}
-
-void CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UINT sex, int includeSex) {
-  char finalName[MAX_PATH];
-
-  ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
-  ASSERT(buffer);
-  ASSERT(size);
+void CompDecorateObjName(LPCSTR string, char *buffer, UINT size, UINT race, UINT sex) {
+  FATALASSERT(buffer);
+  FATALASSERT(size);
   buffer[0] = 0;
-
-  if (!string || !*string || section >= NUM_TEXCOMPONENT_SECTIONS) {
+  if (!string || !*string) {
     return;
   }
 
-  BuildTexComponentPath(string, section, finalName, sizeof(finalName), UNITSEX_NONE, includeSex);
-  if (finalName[0] && ComponentUtilImageFileExists(finalName)) {
-    SStrCopy(buffer, finalName, size);
-    return;
+  char finalName[MAX_PATH];
+  BuildObjComponentPath(string, race, sex, finalName, size);
+  if (!finalName[0]) {
+    BuildObjComponentPath(string, race, UNITSEX_NONE, finalName, size);
   }
-
-  BuildTexComponentPath(string, section, finalName, sizeof(finalName), (UNIT_SEX)sex, includeSex);
-  if (finalName[0] && ComponentUtilImageFileExists(finalName)) {
+  if (finalName[0]) {
     SStrCopy(buffer, finalName, size);
   } else {
-    SysMsgPrintf(SYSMSG_ERROR, "Error, texture component file \"%s\" not found!", finalName);
+    SysMsgPrintf(SYSMSG_ERROR, "Error, object component file \"%s\" not found!", finalName);
   }
 }
 
@@ -181,6 +146,32 @@ BOOL CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
   return 0;
 }
 
+void CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UINT sex, int includeSex) {
+  char finalName[MAX_PATH];
+
+  ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
+  ASSERT(buffer);
+  ASSERT(size);
+  buffer[0] = 0;
+
+  if (!string || !*string || section >= NUM_TEXCOMPONENT_SECTIONS) {
+    return;
+  }
+
+  BuildTexComponentPath(string, section, finalName, sizeof(finalName), UNITSEX_NONE, includeSex);
+  if (finalName[0] && ComponentUtilImageFileExists(finalName)) {
+    SStrCopy(buffer, finalName, size);
+    return;
+  }
+
+  BuildTexComponentPath(string, section, finalName, sizeof(finalName), (UNIT_SEX)sex, includeSex);
+  if (finalName[0] && ComponentUtilImageFileExists(finalName)) {
+    SStrCopy(buffer, finalName, size);
+  } else {
+    SysMsgPrintf(SYSMSG_ERROR, "Error, texture component file \"%s\" not found!", finalName);
+  }
+}
+
 BOOL CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
   enum STATES {
     FINDING_PERIOD = 0,
@@ -213,4 +204,15 @@ BOOL CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
 
   SStrCopy(buffer, string, size);
   return 0;
+}
+
+int ComponentUtilImageFileExists(LPCSTR fileName) {
+  if (SFile::FileExists(fileName)) {
+    return 1;
+  }
+
+  char        alternate[MAX_PATH];
+  TEXFILETYPE type = TextureDiscoverFileType(fileName);
+  TexturePickAlternateFilename(fileName, type, alternate, sizeof(alternate));
+  return SFile::FileExists(alternate);
 }

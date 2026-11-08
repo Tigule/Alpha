@@ -738,40 +738,21 @@ namespace MDL {
 }
 
 static UINT GetBinParticleEmitter2Size(const MDLPARTICLEEMITTER2 &section) {
-  UINT size = GetBinGenObjectSize(section) + 4 + GetNonAnimEmitterDataSize(section);
-  if (section.speed.keys.Count()) {
-    size += 16 + section.speed.keys.Count() * (4 + 4 * (section.speed.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.variation.keys.Count()) {
-    size += 16 + section.variation.keys.Count() * (4 + 4 * (section.variation.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.latitude.keys.Count()) {
-    size += 16 + section.latitude.keys.Count() * (4 + 4 * (section.latitude.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.longitude.keys.Count()) {
-    size += 16 + section.longitude.keys.Count() * (4 + 4 * (section.longitude.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.gravity.keys.Count()) {
-    size += 16 + section.gravity.keys.Count() * (4 + 4 * (section.gravity.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.life.keys.Count()) {
-    size += 16 + section.life.keys.Count() * (4 + 4 * (section.life.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.emissionRate.keys.Count()) {
-    size += 16 + section.emissionRate.keys.Count() * (4 + 4 * (section.emissionRate.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.width.keys.Count()) {
-    size += 16 + section.width.keys.Count() * (4 + 4 * (section.width.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.length.keys.Count()) {
-    size += 16 + section.length.keys.Count() * (4 + 4 * (section.length.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.zsource.keys.Count()) {
-    size += 16 + section.zsource.keys.Count() * (4 + 4 * (section.zsource.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.visibilityKeys.keys.Count()) {
-    size += 16 + section.visibilityKeys.keys.Count() * (4 + 4 * (section.visibilityKeys.type > TRACK_LINEAR ? 3 : 1));
-  }
+  UINT size = GetBinGenObjectSize(section);
+  size += 4;
+  size += GetNonAnimEmitterDataSize(section);
+  size += 4;
+  size += GetBinFloatKeyFramesSize(section.speed);
+  size += GetBinFloatKeyFramesSize(section.variation);
+  size += GetBinFloatKeyFramesSize(section.latitude);
+  size += GetBinFloatKeyFramesSize(section.longitude);
+  size += GetBinFloatKeyFramesSize(section.gravity);
+  size += GetBinFloatKeyFramesSize(section.emissionRate);
+  size += GetBinFloatKeyFramesSize(section.visibilityKeys);
+  size += GetBinFloatKeyFramesSize(section.length);
+  size += GetBinFloatKeyFramesSize(section.width);
+  size += GetBinFloatKeyFramesSize(section.zsource);
+  size += GetBinFloatKeyFramesSize(section.life);
   return size;
 }
 

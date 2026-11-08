@@ -127,9 +127,7 @@ namespace MDL {
 
   BOOL WriteTextures(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     UINT numTextures = data.textures.Count();
-    VALIDATEBEGIN;
-    VALIDATE((numTextures > 0) || (data.bones.Count() == 0));
-    VALIDATEEND;
+    VALIDATE2((numTextures > 0) || (data.bones.Count() == 0));
     if (numTextures) {
       WriteLine(buffer, "%s %d {\n", TokenText(MDLTOK_TEXTURES), numTextures);
       const MDLTEXTURESECTION *texture = data.textures.Ptr();
@@ -142,9 +140,7 @@ namespace MDL {
   }
 
   BOOL ReadBinTextures(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-    VALIDATEBEGIN;
-    VALIDATE(status != 0);
-    VALIDATEEND;
+    VALIDATE2(status != 0);
     if (length % 268) {
       status->Add(STATUS_ERROR, "Invalid TXTX section detected in model -- nonintegral number of textures.\n");
       return 0;
@@ -163,9 +159,7 @@ namespace MDL {
 
   BOOL WriteBinTextures(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
     UINT numTextures = data.textures.Count();
-    VALIDATEBEGIN;
-    VALIDATE((numTextures > 0) || (data.bones.Count() == 0));
-    VALIDATEEND;
+    VALIDATE2((numTextures > 0) || (data.bones.Count() == 0));
     if (numTextures) {
       buf.AddDword('SXET');
       buf.AddUint(268 * numTextures);

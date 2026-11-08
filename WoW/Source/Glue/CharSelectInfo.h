@@ -3,7 +3,7 @@
 #include <stpl.h>
 
 #include "Component/Component.h"
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "WowSvcs/WowSvcsClient/ClientConnection.h"
 
 class CSimpleModel;

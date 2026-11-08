@@ -217,30 +217,14 @@ static UINT GetRibbonFixedDataSize() {
 }
 
 static UINT GetBinRibbonEmitterSize(const MDLRIBBONEMITTER &section) {
-  UINT size = 4 + GetBinGenObjectSize(section) + GetRibbonFixedDataSize();
-  if (section.heightAbove.keys.Count()) {
-    UINT dataSize = section.heightAbove.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + section.heightAbove.keys.Count() * (4 + dataSize);
-  }
-  if (section.heightBelow.keys.Count()) {
-    UINT dataSize = section.heightBelow.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + section.heightBelow.keys.Count() * (4 + dataSize);
-  }
-  if (section.alphaKeys.keys.Count()) {
-    UINT dataSize = section.alphaKeys.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + section.alphaKeys.keys.Count() * (4 + dataSize);
-  }
-  if (section.colorKeys.keys.Count()) {
-    UINT dataSize = section.colorKeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + section.colorKeys.keys.Count() * (4 + dataSize);
-  }
-  if (section.textureSlot.keys.Count()) {
-    size += 16 + section.textureSlot.keys.Count() * 8;
-  }
-  if (section.visibilityKeys.keys.Count()) {
-    UINT dataSize = section.visibilityKeys.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + section.visibilityKeys.keys.Count() * (4 + dataSize);
-  }
+  UINT size = GetBinGenObjectSize(section) + 4;
+  size += GetRibbonFixedDataSize();
+  size += GetBinFloatKeyFramesSize(section.heightAbove);
+  size += GetBinFloatKeyFramesSize(section.heightBelow);
+  size += GetBinFloatKeyFramesSize(section.alphaKeys);
+  size += GetBinFloatKeyFramesSize(section.colorKeys);
+  size += GetBinUintKeyFramesSize(section.textureSlot);
+  size += GetBinFloatKeyFramesSize(section.visibilityKeys);
   return size;
 }
 

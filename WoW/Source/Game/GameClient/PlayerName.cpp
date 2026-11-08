@@ -14,7 +14,7 @@
 #include <Base/Handle.h>
 #include <FrameScript/FrameScript.h>
 #include <Gxu/IGxuFont.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Os/OsTime.h>
 #include <Tempest/cmath.h>
 #include <storm.h>

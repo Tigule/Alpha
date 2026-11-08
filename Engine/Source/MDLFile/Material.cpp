@@ -349,13 +349,8 @@ static BOOL ReadBinMaterial(CMsgBuffer &buf, UINT sectionLength, MDLMATERIALSECT
 
 static UINT GetLayerSize(const MDLTEXLAYER &layer) {
   UINT size = 28;
-  if (layer.alphaKeys.keys.Count()) {
-    UINT dataSize = layer.alphaKeys.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + layer.alphaKeys.keys.Count() * (4 + dataSize);
-  }
-  if (layer.flipKeys.keys.Count()) {
-    size += 16 + layer.flipKeys.keys.Count() * 8;
-  }
+  size += GetBinFloatKeyFramesSize(layer.alphaKeys);
+  size += GetBinUintKeyFramesSize(layer.flipKeys);
   return size;
 }
 

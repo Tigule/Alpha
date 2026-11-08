@@ -195,9 +195,7 @@ extern "C" HWND APIENTRY SMsgGetDefaultWindow() {
 }
 
 extern "C" BOOL APIENTRY SMsgGetDefaultWindowRect(LPRECT rect) {
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEEND;
+  VALIDATE2(rect);
 
   if (!s_defaultwindowrect.left && !s_defaultwindowrect.top && !s_defaultwindowrect.right && !s_defaultwindowrect.bottom) {
     return GetClientRect(s_defaultwindow, rect);
@@ -259,9 +257,7 @@ extern "C" BOOL APIENTRY SMsgSetDefaultWindow(HWND window) {
 }
 
 extern "C" void APIENTRY SMsgSetDefaultWindowRect(const RECT *rect) {
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(rect);
 
   s_defaultwindowrect = *rect;
 }

@@ -283,9 +283,7 @@ void CGChat::AddChatMessage(LPCSTR text, SLASH_COMMAND_ID type, LPCSTR player, U
 }
 
 void CGChat::AddTextEmoteMessage(const DWORDLONG &senderGUID, int textEmoteID, LPCSTR target) {
-  VALIDATEBEGIN;
-  VALIDATE(target);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(target);
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {

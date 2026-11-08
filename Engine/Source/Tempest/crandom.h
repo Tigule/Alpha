@@ -44,8 +44,8 @@ namespace NTempest {
     static DWORD Seed(char *password);
 
     static DWORD uint32_(CRndSeed &seed) {
-      DWORD acc = seed.rndacc;
       DWORD vls = seed.rndvls;
+      DWORD acc = seed.rndacc;
       long  r1 = (long)(vls >> 24);
       long  r2 = (long)((vls >> 16) & 0xFF);
       long  r3 = (long)((vls >> 8) & 0xFF);

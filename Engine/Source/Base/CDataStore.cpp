@@ -81,11 +81,7 @@ DATASTORE_PUT(float)
 CDataStore &CDataStore::PutString(LPCSTR pval) {
   ASSERT(!IsFinal());
 
-  if (!pval) {
-    FATALERROR(("pval"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval, *this);
 
   PutArray((const BYTE *)pval, SStrLen(pval) + 1);
   return *this;
@@ -100,11 +96,7 @@ CDataStore &CDataStore::PutString(const WORD *pval) {
 
   ASSERT(!IsFinal());
 
-  if (!pval) {
-    FATALERROR(("pval"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval, *this);
 
   bytes = ConvertUTF16toUTF8Length(pval, 0x7FFFFFFF, 0);
   ASSERT((int)bytes > 0);
@@ -138,11 +130,7 @@ CDataStore &CDataStore::PutArray(const BYTE *pval, UINT count) {
 
   ASSERT(!IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (pval) {
     bytes = count;
@@ -171,11 +159,7 @@ CDataStore &CDataStore::PutArray(const BYTE *pval, UINT count) {
 CDataStore &CDataStore::PutArray(const WORD *pval, UINT count) {
   ASSERT(!IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (pval) {
     UINT bytes = count * sizeof(WORD);
@@ -202,11 +186,7 @@ CDataStore &CDataStore::PutArray(const WORD *pval, UINT count) {
 CDataStore &CDataStore::PutArray(const DWORD *pval, UINT count) {
   ASSERT(!IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (pval) {
     UINT bytes = count * sizeof(DWORD);
@@ -233,11 +213,7 @@ CDataStore &CDataStore::PutArray(const DWORD *pval, UINT count) {
 CDataStore &CDataStore::PutArray(const DWORDLONG *pval, UINT count) {
   ASSERT(!IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (pval) {
     UINT bytes = count * sizeof(DWORDLONG);
@@ -264,11 +240,7 @@ CDataStore &CDataStore::PutArray(const DWORDLONG *pval, UINT count) {
 CDataStore &CDataStore::PutArray(const float *pval, UINT count) {
   ASSERT(!IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (pval) {
     UINT bytes = count * sizeof(float);
@@ -295,11 +267,7 @@ CDataStore &CDataStore::PutArray(const float *pval, UINT count) {
 CDataStore &CDataStore::PutArray(const unreal *pval, UINT count) {
   ASSERT(!IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (pval) {
     UINT bytes = count * sizeof(unreal);
@@ -356,11 +324,7 @@ CDataStore &CDataStore::GetString(char *pval, UINT maxChars) {
 
   ASSERT(IsFinal());
 
-  if (!(pval || !maxChars)) {
-    FATALERROR(("pval || !maxChars"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !maxChars, *this);
 
   if (pval && maxChars) {
     if (IsValid()) {
@@ -412,11 +376,7 @@ CDataStore &CDataStore::GetString(WORD *pval, UINT maxChars) {
 
   ASSERT(IsFinal());
 
-  if (!(pval || !maxChars)) {
-    FATALERROR(("pval || !maxChars"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !maxChars, *this);
 
   if (pval && maxChars) {
     if (IsValid()) {
@@ -466,11 +426,7 @@ CDataStore &CDataStore::GetArray(BYTE *pval, UINT count) {
 
   ASSERT(IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (IsValid()) {
     bytes = count;
@@ -502,11 +458,7 @@ CDataStore &CDataStore::GetArray(BYTE *pval, UINT count) {
 CDataStore &CDataStore::GetArray(WORD *pval, UINT count) {
   ASSERT(IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (IsValid()) {
     UINT bytes = count * sizeof(WORD);
@@ -536,11 +488,7 @@ CDataStore &CDataStore::GetArray(WORD *pval, UINT count) {
 CDataStore &CDataStore::GetArray(DWORD *pval, UINT count) {
   ASSERT(IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (IsValid()) {
     UINT bytes = count * sizeof(DWORD);
@@ -570,11 +518,7 @@ CDataStore &CDataStore::GetArray(DWORD *pval, UINT count) {
 CDataStore &CDataStore::GetArray(DWORDLONG *pval, UINT count) {
   ASSERT(IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (IsValid()) {
     UINT bytes = count * sizeof(DWORDLONG);
@@ -604,11 +548,7 @@ CDataStore &CDataStore::GetArray(DWORDLONG *pval, UINT count) {
 CDataStore &CDataStore::GetArray(float *pval, UINT count) {
   ASSERT(IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (IsValid()) {
     UINT bytes = count * sizeof(float);
@@ -638,11 +578,7 @@ CDataStore &CDataStore::GetArray(float *pval, UINT count) {
 CDataStore &CDataStore::GetArray(unreal *pval, UINT count) {
   ASSERT(IsFinal());
 
-  if (!(pval || !count)) {
-    FATALERROR(("pval || !count"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return *this;
-  }
+  VALIDATE2RETURN(pval || !count, *this);
 
   if (IsValid()) {
     UINT bytes = count * sizeof(unreal);

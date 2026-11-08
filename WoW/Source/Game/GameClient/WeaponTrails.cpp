@@ -11,7 +11,7 @@
 #include <Base/CDataAllocator.h>
 #include <Base/Handle.h>
 #include <Gx/Gx.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Tempest/c34matrix.h>
 #include <Tempest/c33matrix.h>
 #include <Tempest/c44matrix.h>
@@ -349,9 +349,7 @@ void WeaponTrailsShutdown() {
 }
 
 int WeaponTrailCreate(HMODEL model) {
-  VALIDATEBEGIN;
-  VALIDATE(model);
-  VALIDATEEND;
+  VALIDATE2(model);
 
   WTOBJECT *trail = s_unusedObjects.Get(0);
 
@@ -378,9 +376,7 @@ int WeaponTrailCreate(HMODEL model) {
 }
 
 void WeaponTrailClose(int trail) {
-  VALIDATEBEGIN;
-  VALIDATE(trail);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(trail);
 
   WTOBJECT *object = (WTOBJECT *)trail;
   if (object->m_model && object->m_geosetID) {
@@ -390,23 +386,17 @@ void WeaponTrailClose(int trail) {
 }
 
 void WeaponTrailSetColor(int trail, NTempest::CImVector color) {
-  VALIDATEBEGIN;
-  VALIDATE(trail);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(trail);
   ((WTOBJECT *)trail)->SetColor(color);
 }
 
 void WeaponTrailSetFadeOutRate(int trail, int fadeOutRate) {
-  VALIDATEBEGIN;
-  VALIDATE(trail);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(trail);
   ((WTOBJECT *)trail)->SetFadeOutRate(fadeOutRate);
 }
 
 void WeaponTrailDisableDrawing(int trail) {
-  VALIDATEBEGIN;
-  VALIDATE(trail);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(trail);
   ((WTOBJECT *)trail)->DisableDrawing();
 }
 

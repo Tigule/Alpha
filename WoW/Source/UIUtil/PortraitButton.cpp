@@ -20,7 +20,7 @@
 #include <FrameScript/FrameScript.h>
 #include <Gx/Gx.h>
 #include <Images/tga.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/Camera.h>
 #include <Services/DataMgr.h>
 #include <Services/Texture.h>

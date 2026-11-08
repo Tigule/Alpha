@@ -49,7 +49,7 @@
 #include "WorldClient/AreaList.h"
 #include "WorldClient/World.h"
 
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Os/OsTime.h>
 #include <ctype.h>
 #include <stdio.h>

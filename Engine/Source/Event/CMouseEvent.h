@@ -109,9 +109,17 @@ class CKeyEvent : public CEvent, public EVENT_DATA_KEY {
   virtual ~CKeyEvent() {
   }
 
-  static BOOL IsShiftDown();
-  static BOOL IsControlDown();
-  static BOOL IsAltDown();
+  static BOOL IsShiftDown() {
+    return EventIsKeyDown(KEY_SHIFT);
+  }
+
+  static BOOL IsControlDown() {
+    return EventIsKeyDown(KEY_CONTROL);
+  }
+
+  static BOOL IsAltDown() {
+    return EventIsKeyDown(KEY_ALT);
+  }
 };
 
 class CMouseEvent : public CEvent, public EVENT_DATA_MOUSE {

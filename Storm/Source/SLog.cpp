@@ -93,9 +93,7 @@ static BOOL CreateFileDirectory(LPCSTR path) {
   char *cursor;
   char *slash;
 
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
+  VALIDATE2(path);
 
   SStrCopy(buffer, path, sizeof(buffer));
   PathStripFilename(buffer);

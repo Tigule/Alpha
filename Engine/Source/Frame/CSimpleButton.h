@@ -2,6 +2,7 @@
 #define ENGINE_SOURCE_FRAME_CSIMPLEBUTTON_H
 
 #include "Frame/CSimpleFrame.h"
+#include "Frame/CSimpleTop.h"
 #include "Tempest/c2vector.h"
 
 class CObserver;
@@ -84,7 +85,10 @@ class CSimpleButton : public CSimpleFrame {
   virtual void OnDragStart(CMouseEvent &evt);
   virtual void OnLayerCursorEnter();
   virtual void OnLayerCursorExit();
-  virtual void LockHighlight(int lock);
+  virtual void LockHighlight(int lock) {
+    if (lock != m_highlightLocked) { m_highlightLocked = lock; if (lock) EnableDrawLayer(4); else if (m_top->m_mouseFocus != this) DisableDrawLayer(4); }
+    UpdateTextState(m_state);
+  }
   virtual void OnClick(MOUSEBUTTON button);
   void SetClickAction(UINT action);
 

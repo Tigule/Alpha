@@ -30,7 +30,7 @@
 #include "Game/GameClient/GuildClient.h"
 #include "Glue/CharCreateInfo.h"
 #include "Glue/CGlueMgr.h"
-#include "Object/ObjectClient/AnimStateCompiles.h"
+#include "Object/ObjectClient/AnimCompiles.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
 #include "DB/DBClient/DBCacheInstances.h"
 #include "Object/ObjectClient/Player_C.h"

@@ -21,6 +21,7 @@ struct TIMESTAMPSTRUCT : public TSHashObject<TIMESTAMPSTRUCT, HASHKEY_NONE> {
   LISTDECL(GAMETIMECBSTRUCT, callbackList);
 
   ~TIMESTAMPSTRUCT() {
+    callbackList.Clear();
   }
 };
 

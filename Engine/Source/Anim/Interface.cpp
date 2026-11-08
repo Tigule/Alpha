@@ -131,11 +131,11 @@ static void SetSeqFrequencies(const CArray<CVariations> &ordering, CArray<CAnimS
     UINT defaultFreq = 0;
 
     for (variation = 0; variation < numVariations; ++variation) {
-      CAnimSequence &sequence = (*itemList)[ordering[i].variation[variation]];
-      if (!sequence.randPickChance) {
+      UINT randPickChance = (*itemList)[ordering[i].variation[variation]].randPickChance;
+      if (!randPickChance) {
         ++numMissingFreq;
       } else {
-        defaultFreq += sequence.randPickChance;
+        defaultFreq += randPickChance;
       }
     }
 
@@ -185,18 +185,16 @@ static void SetSeqIndexOrdering(const CAnimNameHashTable &table, CArray<CVariati
 static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3Vector &target, UINT lookAtTypeFlag) {
   CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
+  VALIDATE2(unique);
   shared = (CAnimData *)unique->hdata;
-  VALIDATE(shared);
-  VALIDATE(objectId < shared->objectOrder.Count());
+  VALIDATE2(shared);
+  VALIDATE2(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
     return 0;
   }
-  VALIDATE(objectId < unique->status.Count());
-  VALIDATEEND;
+  VALIDATE2(objectId < unique->status.Count());
 
   CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
@@ -223,18 +221,16 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
 static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
   CAnim     *unique = (CAnim *)anim;
   CAnimData *shared;
-  VALIDATEBEGIN;
-  VALIDATE(unique);
+  VALIDATE2(unique);
   shared = (CAnimData *)unique->hdata;
-  VALIDATE(shared);
-  VALIDATE(objectId < shared->objectOrder.Count());
+  VALIDATE2(shared);
+  VALIDATE2(objectId < shared->objectOrder.Count());
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
     return 0;
   }
-  VALIDATE(objectId < unique->status.Count());
-  VALIDATEEND;
+  VALIDATE2(objectId < unique->status.Count());
 
   CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
@@ -855,14 +851,9 @@ BOOL AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
   if (objectId == (UINT)-1) {
     return 0;
   }
-
-  CAnimObj *currobj = shared->obj[objectId];
-  ASSERT(currobj);
-  ASSERT(currobj->type == OBJ_TYPE_EVENT);
+  CAnimEventObj  *eventObject = ConvertToEvent(shared->obj[objectId]);
   CAnimObjStatus *status = unique->status[objectId];
   ASSERT(status);
-
-  CAnimEventObj *eventObject = (CAnimEventObj *)currobj;
   return eventObject->events.NumKeysThisSeqSafe(status->base.currSeq) > 0;
 }
 
@@ -879,9 +870,7 @@ BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempes
     return 0;
   }
 
-  VALIDATEBEGIN;
-  VALIDATE(objectId < positions.Count());
-  VALIDATEEND;
+  VALIDATE2(objectId < positions.Count());
   *position = positions[objectId];
   return 1;
 }

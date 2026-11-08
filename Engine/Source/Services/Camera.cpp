@@ -104,9 +104,7 @@ HCAMERA CameraCreate() {
 
 HCAMERA CameraDuplicate(HCAMERA source) {
   CCamera *srcPtr = (CCamera *)source;
-  VALIDATEBEGIN;
-  VALIDATE(srcPtr);
-  VALIDATEEND;
+  VALIDATE2(srcPtr);
 
   CCamera *cameraPtr = NEWHANDLE(HCAMERA, CCamera);
   if (!cameraPtr) {
@@ -178,17 +176,13 @@ void CameraSetupScreenProjection(const NTempest::CRect &projectionRect, const NT
 
 void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectionRect, UINT flags) {
   CCamera *cameraPtr = (CCamera *)camera;
-  VALIDATEBEGIN;
-  VALIDATE(cameraPtr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(cameraPtr);
 
   cameraPtr->SetupWorldProjection(projectionRect, flags);
 }
 
 void CameraUpdate(HCAMERA__ *camera, float elapsedSec) {
   CCamera *cameraPtr = (CCamera *)camera;
-  VALIDATEBEGIN;
-  VALIDATE(cameraPtr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(cameraPtr);
   cameraPtr->Update(elapsedSec);
 }

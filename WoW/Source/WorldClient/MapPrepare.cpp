@@ -14,7 +14,7 @@
 
 #include "WorldCommon/WorldMath.h"
 
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/AsyncFileRead.h>
 
 void CMap::PrepareUpdate() {

@@ -58,7 +58,7 @@ class TInstanceAllocator : protected CDataAllocator {
     return data;
   }
 
-  __forceinline void Put(T *data) {
+  void Put(T *data) {
     data->~T();
     CDataAllocator::PutData(data, 0, 0);
   }
@@ -82,14 +82,14 @@ class TLockedInstanceAllocator : protected TInstanceAllocator<T> {
     TInstanceAllocator<T>::Clear();
   }
 
-  __forceinline T *Get(int zero) {
+  T *Get(int zero) {
     m_critsect.Enter();
     T *data = TInstanceAllocator<T>::Get(zero);
     m_critsect.Leave();
     return data;
   }
 
-  __forceinline void Put(T *data) {
+  void Put(T *data) {
     m_critsect.Enter();
     TInstanceAllocator<T>::Put(data);
     m_critsect.Leave();

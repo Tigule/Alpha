@@ -372,12 +372,16 @@ class Sha1 {
     SErrPrepareAppFatal(__FILE__, __LINE__); \
     SErrDisplayAppFatal args;             \
   }
-#define VALIDATEBEGIN
-#define VALIDATE(a)                          \
-  if (!(a)) {                                \
-    SErrPrepareAppFatal(__FILE__, __LINE__); \
-    SErrDisplayAppFatal(#a);                 \
-    goto validatefailed;                     \
+#define VALIDATEBEGIN                          \
+  {                                            \
+  int validatefailed = 1;                      \
+  switch (0) {                                 \
+  default:
+#define VALIDATE(a)                            \
+  if (!(a)) {                                  \
+    SErrPrepareAppFatal(__FILE__, __LINE__);   \
+    SErrDisplayAppFatal(#a);                   \
+    break;                                     \
   }
 #else
 #define ASSERT(a)
@@ -386,27 +390,77 @@ class Sha1 {
   if (1) {                                \
     SErrDisplayAppFatal args;             \
   }
-#define VALIDATEBEGIN
-#define VALIDATE(a)                          \
-  if (!(a)) {                                \
-    goto validatefailed;                     \
+#define VALIDATEBEGIN     \
+  {                       \
+  int validatefailed = 1; \
+  switch (0) {            \
+  default:
+#define VALIDATE(a) \
+  if (!(a)) {       \
+    break;          \
   }
 #endif
+
 #define VALIDATEANDBLANK(a) \
   VALIDATE(a)               \
   *(a) = 0;
 #define VALIDATEEND                            \
-  if (0) {                                     \
-  validatefailed:                              \
+  validatefailed = 0;                          \
+  }                                            \
+  if (validatefailed) {                        \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return FALSE;                              \
+  }                                            \
+  }
+#define VALIDATEENDVOID                        \
+  validatefailed = 0;                          \
+  }                                            \
+  if (validatefailed) {                        \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return;                                    \
+  }                                            \
+  }
+
+// todo: need to figure out the real name for this pattern (different control flow than validate begin/end)
+#ifdef ASSERTIONS_ENABLED
+#define VALIDATE2(a)                           \
+  if (!(a)) {                                  \
+    SErrPrepareAppFatal(__FILE__, __LINE__);   \
+    SErrDisplayAppFatal(#a);                   \
     SErrSetLastError(ERROR_INVALID_PARAMETER); \
     return FALSE;                              \
   }
-#define VALIDATEENDVOID                        \
-  if (0) {                                     \
-  validatefailed:                              \
+#define VALIDATE2VOID(a)                       \
+  if (!(a)) {                                  \
+    SErrPrepareAppFatal(__FILE__, __LINE__);   \
+    SErrDisplayAppFatal(#a);                   \
     SErrSetLastError(ERROR_INVALID_PARAMETER); \
     return;                                    \
   }
+#define VALIDATE2RETURN(a, r)                  \
+  if (!(a)) {                                  \
+    SErrPrepareAppFatal(__FILE__, __LINE__);   \
+    SErrDisplayAppFatal(#a);                   \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return r;                                  \
+  }
+#else
+#define VALIDATE2(a)                           \
+  if (!(a)) {                                  \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return FALSE;                              \
+  }
+#define VALIDATE2VOID(a)                       \
+  if (!(a)) {                                  \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return;                                    \
+  }
+#define VALIDATE2RETURN(a, r)                  \
+  if (!(a)) {                                  \
+    SErrSetLastError(ERROR_INVALID_PARAMETER); \
+    return r;                                  \
+  }
+#endif
 // clang-format on
 
 // --------------------------------

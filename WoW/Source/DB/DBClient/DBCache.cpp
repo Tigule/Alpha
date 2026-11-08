@@ -293,9 +293,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   OsCreateDirectory("WDB", 0);
   SStrPrintf(fileName, sizeof(fileName), "%s/%s", "WDB", m_fileName);
   file = OsCreateFile(fileName, 0x40000000, 1, 2, 0x80, 0x3F3F3F3F);
-  VALIDATEBEGIN;
-  VALIDATE(file != HOSFILE_INVALID);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(file != HOSFILE_INVALID);
 
   CDataStore store;
   LPVOID     ptr;

@@ -396,21 +396,3 @@ void CSimpleButton::UpdateTextState(CSimpleButtonState state) {
     text->Show();
   }
 }
-
-void CSimpleButton::LockHighlight(int lock) {
-  if (lock != m_highlightLocked) {
-    m_highlightLocked = lock;
-
-    if (lock) {
-      EnableDrawLayer(4);
-      UpdateTextState(m_state);
-      return;
-    }
-
-    if (m_top->m_mouseFocus != this) {
-      DisableDrawLayer(4);
-    }
-  }
-
-  UpdateTextState(m_state);
-}

@@ -21,17 +21,19 @@ class AREAHASHKEY {
   }
 
   AREAHASHKEY &operator=(const AREAHASHKEY &rhs) {
-    if (this != &rhs) {
-      cont = rhs.cont;
-      area = rhs.area;
-      subArea = rhs.subArea;
-    }
+    if (this == &rhs)
+      return *this;
+    cont = rhs.cont;
+    area = rhs.area;
+    subArea = rhs.subArea;
 
     return *this;
   }
 
   int operator==(const AREAHASHKEY &rhs) const {
-    return cont == rhs.cont && area == rhs.area && subArea == rhs.subArea;
+    return cont == rhs.cont &&
+           area == rhs.area &&
+           subArea == rhs.subArea;
   }
 
   UINT GetAreaID() const {

@@ -181,27 +181,32 @@ inline void DxtDecompress(const Dxt1Block *block, Pixel **dest, const DxtRect &r
 }
 
 template <class Pixel>
-inline void DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &rect, BYTE (*afunc)(UINT)) {
+inline void DxtMakeTable(const DxtColorBlock &block, Pixel *table) {
+  table[0] = block.color0;
+  table[1] = block.color1;
+  table[2].From565(
+      (BYTE)((DxtColorBlock::tables.dt235[block.color0.r] + DxtColorBlock::tables.dt135[block.color1.r]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt236[block.color0.g] + DxtColorBlock::tables.dt136[block.color1.g]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt235[block.color0.b] + DxtColorBlock::tables.dt135[block.color1.b]) >> 8)
+  );
+  table[3].From565(
+      (BYTE)((DxtColorBlock::tables.dt135[block.color0.r] + DxtColorBlock::tables.dt235[block.color1.r]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt136[block.color0.g] + DxtColorBlock::tables.dt236[block.color1.g]) >> 8),
+      (BYTE)((DxtColorBlock::tables.dt135[block.color0.b] + DxtColorBlock::tables.dt235[block.color1.b]) >> 8)
+  );
+}
+
+template <class Pixel, class AFunc>
+inline void DxtDecompress(const Dxt3Block *block, Pixel **dest, const DxtRect &rect, AFunc afunc) {
   static Pixel colorTable[4];
-  colorTable[0] = block->color.color0;
-  colorTable[1] = block->color.color1;
-  colorTable[2].From565(
-      (BYTE)((DxtColorBlock::tables.dt235[block->color.color0.r] + DxtColorBlock::tables.dt135[block->color.color1.r]) >> 8),
-      (BYTE)((DxtColorBlock::tables.dt236[block->color.color0.g] + DxtColorBlock::tables.dt136[block->color.color1.g]) >> 8),
-      (BYTE)((DxtColorBlock::tables.dt235[block->color.color0.b] + DxtColorBlock::tables.dt135[block->color.color1.b]) >> 8)
-  );
-  colorTable[3].From565(
-      (BYTE)((DxtColorBlock::tables.dt135[block->color.color0.r] + DxtColorBlock::tables.dt235[block->color.color1.r]) >> 8),
-      (BYTE)((DxtColorBlock::tables.dt136[block->color.color0.g] + DxtColorBlock::tables.dt236[block->color.color1.g]) >> 8),
-      (BYTE)((DxtColorBlock::tables.dt135[block->color.color0.b] + DxtColorBlock::tables.dt235[block->color.color1.b]) >> 8)
-  );
+  DxtMakeTable(block->color, colorTable);
 
   UINT colorShift = rect.l * DxtColorBlock::BPP;
   UINT alphaShift = rect.l * Dxt3AlphaBlock::BPP;
   for (UINT r = rect.t; r <= rect.b; ++r) {
     UINT colorBitRow = block->color.row[r] >> (BYTE)colorShift;
     UINT alphaBitRow = block->alpha.row[r] >> (WORD)alphaShift;
-    for (UINT c = rect.l; c <= rect.r; ++c, alphaBitRow >>= Dxt3AlphaBlock::BPP, colorBitRow >>= DxtColorBlock::BPP) {
+    for (UINT c = rect.l; c <= rect.r; ++c, colorBitRow >>= DxtColorBlock::BPP, alphaBitRow >>= Dxt3AlphaBlock::BPP) {
       dest[r][c].FromARGB(afunc(alphaBitRow & Dxt3AlphaBlock::PIXEL_LSB_MASK), colorTable[colorBitRow & DxtColorBlock::PIXEL_LSB_MASK]);
     }
 

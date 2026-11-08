@@ -4,7 +4,7 @@
 #include "Base/Activity.h"
 #include "Gx/CGxDevice.h"
 #include "Gxu/IGxuLight.h"
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
 #include "Tempest/c33matrix.h"
@@ -29,9 +29,7 @@ float                   s_animBoneProjectDistance;
 ANIMBONEPROJECTCALLBACK s_AnimBoneProjectCallback;
 
 static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
-  VALIDATEBEGIN;
-  VALIDATE(CMath::fnotequal_(direction.SquaredMag(),0));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(CMath::fnotequal_(direction.SquaredMag(),0));
   *xprime = direction;
 
   if (CMath::fequal_(xprime->x * xprime->x + xprime->y * xprime->y, 0)) {
@@ -72,9 +70,7 @@ static void RotateViewBillboarded(const NTempest::C3Vector &cameraVector) {
 }
 
 static void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
-  VALIDATEBEGIN;
-  VALIDATE(CMath::fnotequal_(cameraVector.SquaredMag(),0));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(CMath::fnotequal_(cameraVector.SquaredMag(),0));
   NTempest::C3Vector zprime;
 
   WorldMatrixGetRow(2, &zprime);
@@ -86,9 +82,7 @@ static void RotateViewZAxisBillboarded(const NTempest::C3Vector &cameraVector) {
 }
 
 static void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
-  VALIDATEBEGIN;
-  VALIDATE(CMath::fnotequal_(cameraVector.SquaredMag(),0));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(CMath::fnotequal_(cameraVector.SquaredMag(),0));
   NTempest::C3Vector yprime;
 
   WorldMatrixGetRow(1, &yprime);
@@ -100,9 +94,7 @@ static void RotateViewYAxisBillboarded(const NTempest::C3Vector &cameraVector) {
 }
 
 static void RotateViewXAxisBillboarded(const NTempest::C3Vector &cameraVector) {
-  VALIDATEBEGIN;
-  VALIDATE(CMath::fnotequal_(cameraVector.SquaredMag(),0));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(CMath::fnotequal_(cameraVector.SquaredMag(),0));
   NTempest::C3Vector xprime;
 
   WorldMatrixGetRow(0, &xprime);
@@ -202,14 +194,14 @@ static void PlaceModelObject(const AnimInfo &animInfo, CAnimModelObj *modelObj) 
 static void SetLightColor(const AnimInfo &animInfo, CAnimLightObj *currobj, CAnimLightObjStatus *lightStatus, CGxLight *light) {
   C3Color colorKey;
   if (currobj->color.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->color, C3Color(), &colorKey)) {
-    light->m_dirColor.r = NTempest::CMath::ftol_0_256_(min(max(colorKey.r, 0.0f), 1.0f) * 255.0f);
-    light->m_dirColor.g = NTempest::CMath::ftol_0_256_(min(max(colorKey.g, 0.0f), 1.0f) * 255.0f);
-    light->m_dirColor.b = NTempest::CMath::ftol_0_256_(min(max(colorKey.b, 0.0f), 1.0f) * 255.0f);
+    light->m_dirColor.r = NTempest::CMath::ftol_0_1_(colorKey.r);
+    light->m_dirColor.g = NTempest::CMath::ftol_0_1_(colorKey.g);
+    light->m_dirColor.b = NTempest::CMath::ftol_0_1_(colorKey.b);
   }
   if (currobj->ambColor.InterpolateRetained(animInfo, lightStatus->base, &lightStatus->ambColor, C3Color(), &colorKey)) {
-    light->m_ambColor.r = NTempest::CMath::ftol_0_256_(min(max(colorKey.r, 0.0f), 1.0f) * 255.0f);
-    light->m_ambColor.g = NTempest::CMath::ftol_0_256_(min(max(colorKey.g, 0.0f), 1.0f) * 255.0f);
-    light->m_ambColor.b = NTempest::CMath::ftol_0_256_(min(max(colorKey.b, 0.0f), 1.0f) * 255.0f);
+    light->m_ambColor.r = NTempest::CMath::ftol_0_1_(colorKey.r);
+    light->m_ambColor.g = NTempest::CMath::ftol_0_1_(colorKey.g);
+    light->m_ambColor.b = NTempest::CMath::ftol_0_1_(colorKey.b);
   }
 }
 
@@ -424,21 +416,27 @@ static void PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
   ASSERT(currobj);
 
   switch (currobj->type) {
-    case OBJ_TYPE_HELPER:
-      return;
-    case OBJ_TYPE_LIGHT:
+    default: {
       WorldMatrixTranslate(-currPos);
-      ASSERT(currobj->type == OBJ_TYPE_LIGHT);
-      SetLightValues(animInfo, (CAnimLightObj *)currobj, currPos);
+      CAnimBoneObj *currbone = ConvertToBone(currobj);
+      ASSERT(currbone->splitIndex < animInfo.data.numBones);
+      WorldMatrixGet(animInfo.data.boneMtx + currbone->splitIndex);
+      break;
+    }
+    case OBJ_TYPE_HELPER:
       break;
     case OBJ_TYPE_MODEL:
-      ASSERT(currobj->type == OBJ_TYPE_MODEL);
-      PlaceModelObject(animInfo, (CAnimModelObj *)currobj);
+      PlaceModelObject(animInfo, ConvertToModel(currobj));
       break;
+    case OBJ_TYPE_LIGHT: {
+      WorldMatrixTranslate(-currPos);
+      CAnimLightObj *light = ConvertToLight(currobj);
+      SetLightValues(animInfo, light, currPos);
+      break;
+    }
     case OBJ_TYPE_EMITTER2: {
       NTempest::C34Matrix currentWorldMatrix;
-      ASSERT(currobj->type == OBJ_TYPE_EMITTER2);
-      CAnimEmitter2Obj *emitter = (CAnimEmitter2Obj *)currobj;
+      CAnimEmitter2Obj   *emitter = ConvertToEmitter2(currobj);
       SetEmitter2Values(animInfo, emitter);
       ASSERT(emitter->splitIndex < animInfo.data.emitters2->Count());
       WorldMatrixGet(&currentWorldMatrix);
@@ -449,8 +447,7 @@ static void PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
       break;
     }
     case OBJ_TYPE_RIBBON: {
-      ASSERT(currobj->type == OBJ_TYPE_RIBBON);
-      CAnimRibbonObj *ribbon = (CAnimRibbonObj *)currobj;
+      CAnimRibbonObj *ribbon = ConvertToRibbon(currobj);
       SetRibbonValues(animInfo, ribbon);
       ASSERT(ribbon->splitIndex < animInfo.data.ribbons->Count());
       (*animInfo.data.ribbons)[ribbon->splitIndex]->Update(animInfo.unique->ribbonStatus[ribbon->splitIndex].elapsedTime, 0);
@@ -458,17 +455,8 @@ static void PlaceObject(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
     }
     case OBJ_TYPE_EVENT:
       WorldMatrixTranslate(-currPos);
-      ASSERT(currobj->type == OBJ_TYPE_EVENT);
-      PlaceEventObject(animInfo, (CAnimEventObj *)currobj);
+      PlaceEventObject(animInfo, ConvertToEvent(currobj));
       break;
-    default: {
-      WorldMatrixTranslate(-currPos);
-      ASSERT(currobj->type == OBJ_TYPE_BONE);
-      CAnimBoneObj *currbone = (CAnimBoneObj *)currobj;
-      ASSERT(currbone->splitIndex < animInfo.data.numBones);
-      WorldMatrixGet(animInfo.data.boneMtx + currbone->splitIndex);
-      break;
-    }
   }
 }
 
@@ -737,7 +725,7 @@ static void ISetSequenceUnchanged(CAnim *container, CAnimData *animptr) {
   for (i = 0; i < numObjects; ++i) {
     switch (animptr->obj[i]->type) {
       case OBJ_TYPE_BONE: {
-        CAnimBoneObj *bone = AnimObjToBoneObj(animptr->obj[i]);
+        CAnimBoneObj *bone = ConvertToBone(animptr->obj[i]);
         if (!bone->IsVisible(*container)) {
           setAllObjects = 0;
           continue;
@@ -840,9 +828,9 @@ void AnimAnimateModel(HANIM anim, const CAnimationData &data) {
   IAnimAnimateModel(container, animptr, data);
 }
 
-void AnimSetBoneProjectCallback(ANIMBONEPROJECTCALLBACK callback, float distance) {
+void AnimSetBoneProjectCallback(ANIMBONEPROJECTCALLBACK callback, float dist) {
   s_AnimBoneProjectCallback = callback;
-  s_animBoneProjectDistance = distance;
+  s_animBoneProjectDistance = dist;
 }
 
 void AnimGetBoneProjectCallback(ANIMBONEPROJECTCALLBACK &callback, float &dist) {

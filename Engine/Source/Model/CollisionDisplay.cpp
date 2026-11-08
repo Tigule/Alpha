@@ -1,6 +1,6 @@
 #include <Base/Base.h>
 
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Model/CollisionData.h"
 
 #include "Services/Texture.h"
@@ -118,9 +118,7 @@ static void BuildDisplayBox(
 
 HMODEL CollisionDataCreateModel(HCOLLISIONDATA handle) {
   CCollisionData *collide = (CCollisionData *)handle;
-  VALIDATEBEGIN;
-  VALIDATE(collide);
-  VALIDATEEND;
+  VALIDATE2(collide);
 
   HMODEL model = CreateCollisionDisplayMesh(*collide);
   CreateCollisionDisplayNormals(*collide, model);

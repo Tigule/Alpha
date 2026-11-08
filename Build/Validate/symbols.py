@@ -172,6 +172,11 @@ class TypeRepository:
             return TypeNode(index, "primitive", scalars=(("mode", mode), ("base", base), ("subtype", subtype)))
         return self.records.get(self.aliases.get(index, index))
 
+    def has_definition(self, node: TypeNode) -> bool:
+        return any(candidate != node.index and self.records[candidate].kind == node.kind
+                   and self.records[candidate].reason != "forward declaration"
+                   for candidate in self.named_types.get(node.name, ()))
+
     def compare(self, index: int, other: "TypeRepository", other_index: int) -> TypeComparison:
         active: set[tuple[int, int]] = set()
         proven: set[tuple[int, int]] = set()
@@ -188,6 +193,11 @@ class TypeRepository:
             a, b = self.resolve(aidx), other.resolve(bidx)
             if a is None or b is None:
                 return None, f"{where}: missing type record"
+            if (a.reason == "forward declaration" and b.reason == "forward declaration" and a.name
+                    and a.kind == b.kind and a.name == b.name and a.scalars == b.scalars
+                    and not self.has_definition(a) and not other.has_definition(b)):
+                proven.add(key)
+                return True, "forward-only types match by name"
             if not a.supported or not b.supported:
                 return None, f"{where}: unsupported {a.reason or a.kind} / {b.reason or b.kind}"
             if a.kind != b.kind:

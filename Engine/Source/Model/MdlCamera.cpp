@@ -1,6 +1,6 @@
 #include <Base/Base.h>
 
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 
 #include "MDLFile/MDLTypes.h"
 #include "Services/Camera.h"

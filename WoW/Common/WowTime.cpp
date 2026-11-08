@@ -76,13 +76,10 @@ int WowTime::CompareMinute(const WowTime &compareTime) const {
 
 bool WowTime::InRange(const WowTime &valMin, const WowTime &valMax) const {
   if (valMin <= valMax) {
-    if (*this >= valMin && *this < valMax) {
-      return true;
-    }
-  } else if (*this >= valMin || *this < valMax) {
-    return true;
+    return *this >= valMin && *this < valMax;
+  } else {
+    return *this >= valMin || *this < valMax;
   }
-  return false;
 }
 
 bool WowTime::operator<(const WowTime &cmpTime) const {

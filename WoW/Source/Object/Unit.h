@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Object/MovementData.h"
+
 enum {
   BONE_ARM_LEFT = 0,
   BONE_ARM_RIGHT = 1,
@@ -55,50 +57,6 @@ enum UNIT_SEX {
   UNITSEX_NONE = 2,
   UNITSEX_LAST = 3,
   UNITSEX_BOTH = 3
-};
-
-enum {
-  MOVEFLAG_FORWARD = 1,
-  MOVEFLAG_BACKWARD = 2,
-  MOVEFLAG_STRAFE_LEFT = 4,
-  MOVEFLAG_STRAFE_RIGHT = 8,
-  MOVEFLAG_LEFT = 16,
-  MOVEFLAG_RIGHT = 32,
-  MOVEFLAG_PITCH_UP = 64,
-  MOVEFLAG_PITCH_DOWN = 128,
-  MOVEFLAG_WALK = 256,
-  MOVEFLAG_TIME_VALID = 512,
-  MOVEFLAG_IMMOBILIZED = 1024,
-  MOVEFLAG_DONTCOLLIDE = 2048,
-  MOVEFLAG_REDIRECTED = 4096,
-  MOVEFLAG_ROOTED = 8192,
-  MOVEFLAG_FALLING = 16384,
-  MOVEFLAG_FALLEN_FAR = 32768,
-  MOVEFLAG_PENDING_STOP = 0x10000,
-  MOVEFLAG_PENDING_UNSTRAFE = 0x20000,
-  MOVEFLAG_PENDING_FALL = 0x40000,
-  MOVEFLAG_PENDING_FORWARD = 0x80000,
-  MOVEFLAG_PENDING_BACKWARD = 0x100000,
-  MOVEFLAG_PENDING_STR_LEFT = 0x200000,
-  MOVEFLAG_PENDING_STR_RGHT = 0x400000,
-  MOVEFLAG_PEND_MOVE_MASK = 0x180000,
-  MOVEFLAG_PEND_STRAFE_MASK = 0x600000,
-  MOVEFLAG_PENDING_MASK = 0x7F0000,
-  MOVEFLAG_MOVED = 0x800000,
-  MOVEFLAG_SLIDING = 0x1000000,
-  MOVEFLAG_SWIMMING = 0x2000000,
-  MOVEFLAG_SPLINE_MOVER = 0x4000000,
-  MOVEFLAG_SPEED_DIRTY = 0x8000000,
-  MOVEFLAG_HALTED = 0x10000000,
-  MOVEFLAG_NUDGE = 0x20000000,
-  MOVEFLAG_FALL_MASK = 0x100C000,
-  MOVEFLAG_LOCAL = 0x500F400,
-  MOVEFLAG_MOVE_MASK = 3,
-  MOVEFLAG_TURN_MASK = 48,
-  MOVEFLAG_PITCH_MASK = 192,
-  MOVEFLAG_STRAFE_MASK = 12,
-  MOVEFLAG_MOTION_MASK = 255,
-  MOVEFLAG_STOPPED_MASK = 0x3100F
 };
 
 enum UNITSTANDSTATE {
@@ -511,4 +469,462 @@ enum GAME_ERROR_TYPE {
   GERR_PETITION_NOT_ENOUGH_SIGNATURES = 296,
   GERR_NONE = 297,
   GERR_NUM_TYPES = 297
+};
+
+enum UNITAFFILIATION {
+  AFFILIATION_YOURSELF = 0,
+  AFFILIATION_YOURPET = 1,
+  AFFILIATION_PARTYMEMBER = 2,
+  AFFILIATION_OTHER = 3,
+  AFFILIATION_YOURCONTROLLER = 4,
+  AFFILIATION_NUMAFFILIATIONS = 5
+};
+
+enum COMBATHAND {
+  COMBAT_MAINHAND = 0,
+  COMBAT_OFFHAND = 1,
+  NUMHANDS = 2
+};
+
+enum WEAPONMODE {
+  WEAPONMODE_NORMALMODE = 0,
+  WEAPONMODE_SHEATHEDMODE = 1,
+  WEAPONMODE_RANGEDMODE = 2,
+  WEAPONMODE_NUMMODES = 3
+};
+
+struct CGUnitData {
+  DWORDLONG       charm;
+  DWORDLONG       summon;
+  DWORDLONG       charmedBy;
+  DWORDLONG       summonedBy;
+  DWORDLONG       createdBy;
+  DWORDLONG       target;
+  DWORDLONG       comboTarget;
+  DWORDLONG       channelObject;
+  int             health;
+  int             power[4];
+  int             maxHealth;
+  int             maxPower[4];
+  int             level;
+  int             factionTemplate;
+  BYTE            race;
+  BYTE            classId;
+  BYTE            sex;
+  BYTE            displayPower;
+  int             stats[5];
+  int             baseStats[5];
+  UINT            virtualItemDisplay[3];
+  VirtualItemInfo virtualItemInfo[3];
+  UINT            flags;
+  UINT            coinage;
+  int             auras[56];
+  BYTE            auraFlags[28];
+  UINT            auraState;
+  int             modDamageDone[6];
+  int             modDamageTaken[6];
+  int             modCreatureDamageDone[8];
+  UINT            attackRoundBaseTime[2];
+  int             resistances[6];
+  float           boundingRadius;
+  float           combatReach;
+  float           weaponReach;
+  int             displayID;
+  int             mountDisplayID;
+  WORD            minDamage;
+  WORD            maxDamage;
+  int             resistanceBuffModsPositive[6];
+  int             resistanceBuffModsNegative[6];
+  int             resistanceItemMods[6];
+  BYTE            standState;
+  BYTE            npcFlags;
+  BYTE            shapeshiftForm;
+  BYTE            weaponMode;
+  UINT            petNumber;
+  UINT            petNameTimestamp;
+  UINT            petExperience;
+  UINT            petNextLevelExperience;
+  UINT            dynamicFlags;
+  UINT            emoteState;
+  int             channelSpell;
+  int             modCastingSpeed;
+  int             createdBySpell;
+  BYTE            comboPoints;
+  BYTE            bytepad1;
+  BYTE            bytepad2;
+  BYTE            bytepad3;
+  UINT            pad;
+};
+
+class CGUnit {
+  friend class CGCamera;
+  friend class CGGameObject_C_Type_Chair;
+  friend class CGInputControl;
+  friend void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
+  friend BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
+  friend int  Player_C_AppFocusMovementHandler(int focus);
+
+ public:
+  UINT GetUnitFlags() const {
+    return m_unit->flags;
+  }
+  BYTE GetUnitNPCFlags() const {
+    return m_unit->npcFlags;
+  }
+  BYTE IsAlive() const;
+  BYTE IsDead() const {
+    return m_unit->health <= 0;
+  }
+  int GetHealth() const {
+    return m_unit->health;
+  }
+  float GetHealthPercent() const {
+    return (float)m_unit->health / m_unit->maxHealth;
+  }
+  int GetPower(POWER_TYPE powerType) const {
+    return powerType == -2 ? m_unit->health : m_unit->power[powerType];
+  }
+  int GetMaxPower(POWER_TYPE powerType) const {
+    return powerType == -2 ? m_unit->maxHealth : m_unit->maxPower[powerType];
+  }
+  float GetPowerPercent(POWER_TYPE powerType) const;
+  POWER_TYPE GetDisplayPower() const {
+    return (POWER_TYPE)m_unit->displayPower;
+  }
+  __forceinline int GetMaxHealth() const {
+    return m_unit->maxHealth;
+  }
+  UINT GetMoney() const {
+    return m_unit->coinage;
+  }
+  int GetLevel() const {
+    return m_unit->level;
+  }
+  UINT GetMinDamage() const {
+    return m_unit->minDamage;
+  }
+  UINT GetMaxDamage() const {
+    return m_unit->maxDamage;
+  }
+  BOOL IsCombatLoggingActive() const;
+  int GetCurrentStat(UINT statNumber) const {
+    FATALASSERT(statNumber < (sizeof(m_unit->stats) / sizeof(m_unit->stats[0])));
+    return m_unit->stats[statNumber];
+  }
+  int GetEffectiveStat(UINT stat) const;
+  int GetBaseStat(UINT statNumber) const {
+    FATALASSERT(statNumber < (sizeof(m_unit->baseStats) / sizeof(m_unit->baseStats[0])));
+    return m_unit->baseStats[statNumber];
+  }
+  int GetResistance(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistances) / sizeof(m_unit->resistances[0])));
+    return m_unit->resistances[resistance];
+  }
+  int GetEffectiveResistance(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistances) / sizeof(m_unit->resistances[0])));
+    return m_unit->resistances[resistance] < 0 ? 0 : m_unit->resistances[resistance];
+  }
+  int GetResistanceBuffModPositive(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistanceBuffModsPositive) / sizeof(m_unit->resistanceBuffModsPositive[0])));
+    return m_unit->resistanceBuffModsPositive[resistance];
+  }
+  int GetResistanceBuffModNegative(UINT resistance) const {
+    FATALASSERT(resistance < (sizeof(m_unit->resistanceBuffModsNegative) / sizeof(m_unit->resistanceBuffModsNegative[0])));
+    return m_unit->resistanceBuffModsNegative[resistance];
+  }
+  int GetResistanceItemMod(UINT school) const;
+  UINT GetRace() const {
+    return m_unit->race;
+  }
+  UINT GetClass() const {
+    return m_unit->classId;
+  }
+  UNIT_SEX GetSex() const {
+    return (UNIT_SEX)m_unit->sex;
+  }
+  int GetModDamageDone(UINT school) const {
+    return m_unit->modDamageDone[school];
+  }
+  int      GetModDamageTaken(UINT school) const;
+  int      GetModCreatureDamageDone(UINT creatureType) const;
+  const DWORDLONG &GetCharm() const {
+    return m_unit->charm;
+  }
+  const DWORDLONG &GetSummon() const {
+    return m_unit->summon;
+  }
+  const DWORDLONG &GetControlledGUID() const {
+    return m_unit->charm ? m_unit->charm : m_unit->summon;
+  }
+  const DWORDLONG &GetCharmedBy() const {
+    return m_unit->charmedBy;
+  }
+  BYTE             IsCharmedBy(const DWORDLONG &guid) const;
+  BYTE IsCharmed() const {
+    return m_unit->charmedBy != 0;
+  }
+  const DWORDLONG &GetSummonedBy() const {
+    return m_unit->summonedBy;
+  }
+  BYTE             IsSummonedBy(const DWORDLONG &guid) const;
+  BYTE             IsSummoned() const;
+  const DWORDLONG &GetCreatedBy() const {
+    return m_unit->createdBy;
+  }
+  BYTE             IsCreatedBy(const DWORDLONG &guid) const;
+  BYTE             IsCreated() const;
+  int GetCreatedBySpell() const {
+    return m_unit->createdBySpell;
+  }
+  const DWORDLONG &GetControlGUID() const {
+    return m_unit->charmedBy ? m_unit->charmedBy : m_unit->summonedBy;
+  }
+  const DWORDLONG &GetOwnerGUID() const {
+    return m_unit->charmedBy ? m_unit->charmedBy : m_unit->createdBy;
+  }
+  BYTE IsPossessedBy(const DWORDLONG &guid) const {
+    return IsPossessed() && guid == GetOwnerGUID();
+  }
+  BYTE IsPossessed() const {
+    return (GetUnitFlags() >> 24) & 1;
+  }
+  float GetBoundingRadius() const;
+  float GetCombatReach() const {
+    return m_unit->weaponReach + m_unit->combatReach;
+  }
+  int GetDisplayID() const {
+    return m_unit->displayID;
+  }
+  UINT                   GetMonsterItemDisplay(UINT slot) const;
+  const VirtualItemInfo *GetMonsterItemInfo(UINT slot) const;
+  UINT GetShapeshiftForm() const {
+    return m_unit->shapeshiftForm;
+  }
+  UINT                   GetShapeshiftBit() const;
+  BYTE                   IsChannelling() const;
+  int GetChannelSpell() const {
+    return m_unit->channelSpell;
+  }
+  DWORDLONG GetChannelObject() const {
+    return m_unit->channelObject;
+  }
+  int ModCastSpeed() const {
+    return m_unit->modCastingSpeed;
+  }
+  DWORDLONG GetComboTarget() const {
+    return m_unit->comboTarget;
+  }
+  UINT GetComboPoints() const {
+    return m_unit->comboPoints;
+  }
+  NTempest::C3Vector     GetPosition() const {
+    return m_move.GetPosition();
+  }
+  void               GetPosition(NTempest::C3Vector &position) const;
+  NTempest::C3Vector GetRawPosition() const {
+    return m_move.GetRawPosition();
+  }
+  float              GetFacing() const;
+  float              GetRawFacing() const;
+  NTempest::C3Vector GetAnchorPosition() const;
+  void               GetAnchorPosition(NTempest::C3Vector &position) const;
+  float              GetAnchorFacing() const;
+  float GetPitch() const {
+    return m_move.GetPitch();
+  }
+  NTempest::C3Vector GetGroundNormal() const {
+    return m_move.GetGroundNormal();
+  }
+  float              GetRunSpeed() const;
+  float              GetWalkSpeed() const;
+  float              GetSwimSpeed() const;
+  float              GetTurnRate() const;
+  UINT                   GetMoveFlags() const {
+    return m_move.GetMoveFlags();
+  }
+  BOOL IsInMotion() const;
+  BOOL IsMovingOrTurning() const;
+  BOOL IsMovingOrFalling() const;
+  BOOL IsMoving() const;
+  BOOL IsMovingOrStrafing() const;
+  BOOL IsMovingTurningOrStrafing() const;
+  BOOL IsMovingStrafingOrFalling() const;
+  BOOL IsMovingForward() const;
+  BOOL IsMovingBackwards() const;
+  BOOL IsWalking() const;
+  BOOL IsRunning() const;
+  BOOL IsTurning() const;
+  BOOL IsTurningLeft() const;
+  BOOL IsTurningRight() const;
+  BOOL IsStrafingLeft() const;
+  BOOL IsStrafingRight() const;
+  BOOL IsStrafing() const;
+  BOOL IsFalling() const;
+  BOOL IsImmobilized() const;
+  int  Moved() const;
+  DWORD GetMoveStartTime() const {
+    return m_move.GetMoveStartTime();
+  }
+  NTempest::C3Vector GetRedirection() const;
+  int                MoveTimeIsValid() const;
+  BOOL               IsSwimming() const;
+  BOOL               IsSwimmingOrFalling() const;
+  BOOL               IsMovingStrafingOrSwimming() const;
+  BOOL               IsMovingStrafingFallingOrSwimming() const;
+  float GetCollisionBoxHeight() const {
+    return m_move.GetCollisionBoxHeight();
+  }
+  int   IgnoresCollision() const;
+  BOOL  IsHalted() const;
+  void  BuildMovementUpdate(CDataStore *msg) const;
+  float LinearDistanceSquared(const NTempest::C3Vector &position) const;
+  int GetAura(int index) const {
+    return m_unit->auras[index];
+  }
+  BYTE GetAuraFlags(int index) const {
+    return (m_unit->auraFlags[index / 2] >> (4 * (index % 2))) & 0xF;
+  }
+  UINT GetAuraState() const {
+    return m_unit->auraState;
+  }
+  BYTE  HasAuraState(UINT state) const;
+  BYTE               IsDisconnected() const {
+    return GetUnitFlags() & 1;
+  }
+  BYTE               IsSpawning() const {
+    return (GetUnitFlags() >> 1) & 1;
+  }
+  BYTE IsClientLocked() const {
+    return !IsSpawning() && (GetUnitFlags() & 0xC00004);
+  }
+  BYTE IsOnTaxi() const {
+    return (GetUnitFlags() >> 20) & 1;
+  }
+  BYTE               IsPlayerControlled() const {
+    return (GetUnitFlags() >> 3) & 1;
+  }
+  BYTE IsPlusMob() const {
+    return (GetUnitFlags() >> 6) & 1;
+  }
+  BYTE IsBeastmaster() const;
+  BYTE               IsImmunePC() const {
+    return (GetUnitFlags() >> 8) & 1;
+  }
+  BYTE               IsImmuneNPC() const {
+    return (GetUnitFlags() >> 9) & 1;
+  }
+  BYTE               IsLooting() const {
+    return (GetUnitFlags() >> 10) & 1;
+  }
+  BYTE IsInCombat() const;
+  BYTE               IsMounted() const {
+    return (GetUnitFlags() >> 13) & 1;
+  }
+  BYTE      IsPureMountActive() const {
+    return (GetUnitFlags() >> 12) & 1;
+  }
+  BYTE IsPureMountMounted() const;
+  BYTE IsFeignDeath() const {
+    return (GetUnitFlags() >> 14) & 1;
+  }
+  BYTE IsStealthed() const {
+    return (GetUnitFlags() >> 15) & 1;
+  }
+  BYTE IsInvisible() const {
+    return (GetUnitFlags() >> 16) & 1;
+  }
+  BYTE IsConfused() const;
+  BYTE IsFleeing() const;
+  BYTE IsAffectingCombat() const {
+    return (GetUnitFlags() >> 19) & 1;
+  }
+  BYTE IsMerchant() const {
+    return m_unit->npcFlags & 1;
+  }
+  BYTE IsQuestGiver() const {
+    return m_unit->npcFlags & 2;
+  }
+  BYTE IsTaxiNode() const {
+    return m_unit->npcFlags & 4;
+  }
+  BYTE IsTrainer() const {
+    return m_unit->npcFlags & 8;
+  }
+  BYTE IsBinder() const {
+    return m_unit->npcFlags & 0x10;
+  }
+  BYTE IsBanker() const {
+    return m_unit->npcFlags & 0x20;
+  }
+  BYTE IsNpcPetition() const {
+    return m_unit->npcFlags & 0x80;
+  }
+  BYTE IsTabardVendor() const {
+    return m_unit->npcFlags & 0x40;
+  }
+  BYTE IsGuildRegistrar() const {
+    return IsNpcPetition() && IsTabardVendor();
+  }
+  BYTE IsNPC() const {
+    return IsMerchant() || IsQuestGiver() || IsTaxiNode() || IsTrainer() || IsBinder() || IsBanker() || IsNpcPetition() || IsTabardVendor();
+  }
+  int  GetMountDisplayID() const;
+  DWORDLONG GetTarget() const {
+    return m_unit->target;
+  }
+  UINT GetStandState() const {
+    return m_unit->standState;
+  }
+  int  StandStateValid(UNITSTANDSTATE newState) const;
+  BYTE IsSitting() const;
+  BYTE IsSleeping() const;
+  UINT GetEmoteState() const;
+  UINT      GetPetNumber() const {
+    return m_unit->petNumber;
+  }
+  UINT      GetPetNameTimestamp() const {
+    return m_unit->petNameTimestamp;
+  }
+  BYTE       *GetData(UINT offset);
+  static UINT GetDataSize();
+  static UINT GetBaseOffset();
+  static __forceinline UINT TotalFields() {
+    return 184;
+  }
+  static UINT GetUpdateMaskBytes();
+  static UINT GetUpdateMaskBlocks();
+  void      SetStorage(DWORD *storage) {
+    m_unit = (CGUnitData *)storage;
+  }
+  UINT GetAttackRoundTime(COMBATHAND hand) const {
+    FATALASSERT(hand<NUMHANDS);
+    return m_unit->attackRoundBaseTime[hand];
+  }
+  WEAPONMODE GetWeaponMode() const {
+    return (WEAPONMODE)m_unit->weaponMode;
+  }
+  BYTE                    IsUsingRangedWeapon() const;
+  bool                    GetSheathed() const;
+  virtual UNITAFFILIATION GetGUIDAffiliation(DWORDLONG) const {
+    return AFFILIATION_OTHER;
+  }
+  void                    SetWaterSurfaceElevation(float elevation);
+
+ protected:
+  CGUnit(DWORD *storage, const NTempest::C3Vector &position, float facing, const DWORDLONG &guid)
+      : m_unit((CGUnitData *)storage), m_move(position, facing, guid) {
+  }
+
+  CGUnit(const CGUnit &);
+  ~CGUnit() {
+  }
+  const CGUnitData *Unit() const;
+
+  CGUnitData *Unit();
+
+  CGUnitData   *m_unit;
+  CMovementData m_move;
+
+ private:
+  CGUnit &operator=(const CGUnit &);
 };

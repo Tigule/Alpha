@@ -190,11 +190,11 @@ class CArray {
     m_count = count;
   }
 
-  void Set(UINT elements, const T *data) {
-    SetCount(elements);
-    if (elements) {
+  void Set(UINT count, const T *data) {
+    SetCount(count);
+    if (count) {
       ASSERT(data);
-      memcpy(m_data, data, elements * sizeof(T));
+      memcpy(m_data, data, count * sizeof(T));
     }
   }
 
@@ -648,18 +648,18 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
     }
   }
 
-  void AddKey(int time, const U &keyData) {
-    CLinearKeyFrame<T> *key = GetLinearKey(m_numKeyFrames++);
-    key->time = time;
-    key->transform = keyData;
+  void AddKey(int time, const U &keydata, const U &inTan, const U &outTan) {
+    CSplineKeyFrame<T> *newKey = GetSplineKey(m_numKeyFrames++);
+    newKey->time = time;
+    newKey->transform = keydata;
+    newKey->inTan = inTan;
+    newKey->outTan = outTan;
   }
 
-  void AddKey(int time, const U &keyData, const U &inTan, const U &outTan) {
-    CSplineKeyFrame<T> *key = GetSplineKey(m_numKeyFrames++);
-    key->time = time;
-    key->transform = keyData;
-    key->inTan = inTan;
-    key->outTan = outTan;
+  void AddKey(int time, const U &keydata) {
+    CLinearKeyFrame<T> *newKey = GetLinearKey(m_numKeyFrames++);
+    newKey->time = time;
+    newKey->transform = keydata;
   }
 
   int InterpolateVolatile(const InterpInfo &info, const CBaseStatus &base, CKeyTrackStatus *keyStatus, const U &fallback, U *transform);
@@ -683,24 +683,24 @@ class CKeyFrameTrack : public CKeyFrameTrackBase {
     return &((CSplineKeyFrame<T> *)m_keyFrames)[index];
   }
 
-  const CLinearKeyFrame<T> *ToLinearKey(const CKeyFrame *key) const {
-    ASSERT((KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) || (KeyFrameSize() == sizeof(CSplineKeyFrame<T>)));
-    return (const CLinearKeyFrame<T> *)key;
-  }
-
   CLinearKeyFrame<T> *ToLinearKey(CKeyFrame *key) {
     ASSERT((KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) || (KeyFrameSize() == sizeof(CSplineKeyFrame<T>)));
     return (CLinearKeyFrame<T> *)key;
   }
 
-  const CSplineKeyFrame<T> *ToSplineKey(const CKeyFrame *key) const {
-    ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
-    return (const CSplineKeyFrame<T> *)key;
+  const CLinearKeyFrame<T> *ToLinearKey(const CKeyFrame *key) const {
+    ASSERT((KeyFrameSize() == sizeof(CLinearKeyFrame<T>)) || (KeyFrameSize() == sizeof(CSplineKeyFrame<T>)));
+    return (const CLinearKeyFrame<T> *)key;
   }
 
   CSplineKeyFrame<T> *ToSplineKey(CKeyFrame *key) {
     ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
     return (CSplineKeyFrame<T> *)key;
+  }
+
+  const CSplineKeyFrame<T> *ToSplineKey(const CKeyFrame *key) const {
+    ASSERT(KeyFrameSize() == sizeof(CSplineKeyFrame<T>));
+    return (const CSplineKeyFrame<T> *)key;
   }
 
  private:
@@ -777,12 +777,6 @@ struct CAnimBoneObj : public CAnimObj {
 
   BYTE geosetId;
 };
-
-inline CAnimBoneObj *AnimObjToBoneObj(CAnimObj *currobj) {
-  ASSERT(currobj);
-  ASSERT(currobj->type == OBJ_TYPE_BONE);
-  return (CAnimBoneObj *)currobj;
-}
 
 struct CAnimVisibleObj {
   int  Animates() {
@@ -905,6 +899,42 @@ struct CAnimLightObj : public CAnimObj, public CAnimVisibleObj {
   CKeyFrameTrack<float, float>     ambIntensity;
 };
 
+inline CAnimBoneObj *ConvertToBone(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_BONE);
+  return (CAnimBoneObj *)currobj;
+}
+
+inline CAnimLightObj *ConvertToLight(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_LIGHT);
+  return (CAnimLightObj *)currobj;
+}
+
+inline CAnimModelObj *ConvertToModel(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_MODEL);
+  return (CAnimModelObj *)currobj;
+}
+
+inline CAnimEmitter2Obj *ConvertToEmitter2(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_EMITTER2);
+  return (CAnimEmitter2Obj *)currobj;
+}
+
+inline CAnimRibbonObj *ConvertToRibbon(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_RIBBON);
+  return (CAnimRibbonObj *)currobj;
+}
+
+inline CAnimEventObj *ConvertToEvent(CAnimObj *currobj) {
+  ASSERT(currobj);
+  ASSERT(currobj->type == OBJ_TYPE_EVENT);
+  return (CAnimEventObj *)currobj;
+}
+
 template <class T>
 struct CCallbackFcn {
   CCallbackFcn() : callback(0), param(0) {
@@ -940,7 +970,7 @@ struct CSeqInfo {
 
 struct CAnim : public CHandleObject {
  public:
-  CAnim(BYTE createFlags = 0) : hdata(0), seqLastTime(0), flags(createFlags), primarySeq(0), seqMapIndex(0) {
+  CAnim(BYTE flags = 0) : hdata(0), seqLastTime(0), flags(flags), primarySeq(0), seqMapIndex(0) {
   }
   ~CAnim() {
     if (hdata) {

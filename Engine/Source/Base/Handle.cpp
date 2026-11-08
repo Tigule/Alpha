@@ -11,9 +11,7 @@ void HandleClose(HOBJECT handle) {
 }
 
 HOBJECT HandleCreate(CHandleObject *ptr, LPCSTR handleName) {
-  VALIDATEBEGIN;
-  VALIDATE(ptr);
-  VALIDATEEND;
+  VALIDATE2(ptr);
 
   ptr->IncRef();
   return (HOBJECT)ptr;

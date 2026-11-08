@@ -323,15 +323,9 @@ void SkipUnknown(CMsgBuffer &buf, UINT &totalRead) {
 
 UINT GetBinGenObjectSize(const MDLGENOBJECT &obj) {
   UINT size = 96;
-  if (obj.transkeys.keys.Count()) {
-    UINT dataSize = obj.transkeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + obj.transkeys.keys.Count() * (4 + dataSize);
-  }
+  size += GetBinFloatKeyFramesSize(obj.transkeys);
   size += GetBinQuatKeyFramesSize(obj.rotkeys);
-  if (obj.scalekeys.keys.Count()) {
-    UINT dataSize = obj.scalekeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + obj.scalekeys.keys.Count() * (4 + dataSize);
-  }
+  size += GetBinFloatKeyFramesSize(obj.scalekeys);
   return size;
 }
 
@@ -540,37 +534,4 @@ void WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINT
     MDL::WriteLine(buffer, "%s\t%d: %u,\n", indent, key->time, key->value);
   }
   MDL::WriteLine(buffer, "%s}\n", indent);
-}
-
-int ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
-  if (buf.Bytes() < 3 * sizeof(UINT)) {
-    return 0;
-  }
-  UINT numKeys = buf.GetUint();
-  totalRead += sizeof(UINT);
-  if (!numKeys) {
-    return 0;
-  }
-  keyframes.type = (MDLTRACKTYPE)buf.GetUint();
-  totalRead += sizeof(UINT);
-  keyframes.globalSeqId = buf.GetUint();
-  totalRead += sizeof(UINT);
-  keyframes.keys.SetCount(numKeys);
-  MDLKEYFRAME<NTempest::C3Vector> *key = keyframes.keys.Ptr();
-  int                              keySize = sizeof(int) + sizeof(NTempest::C3Vector);
-  UINT                             elements = sizeof(NTempest::C3Vector) / sizeof(float);
-  if (keyframes.type > TRACK_LINEAR) {
-    keySize = sizeof(int) + 3 * sizeof(NTempest::C3Vector);
-    elements = 3 * sizeof(NTempest::C3Vector) / sizeof(float);
-  }
-  if ((int)(keySize * numKeys) > buf.Bytes()) {
-    return 0;
-  }
-  for (UINT i = numKeys; i; --i, ++key) {
-    key->time = buf.GetInt();
-    totalRead += sizeof(int);
-    buf.GetFloatArray((float *)&key->value, elements);
-    totalRead += elements * sizeof(float);
-  }
-  return 1;
 }

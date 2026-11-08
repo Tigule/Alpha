@@ -221,9 +221,7 @@ ZipFileArchive::~ZipFileArchive() {
     file = NULL;
   }
 
-  ZipFileDirEntry *next;
-  for (ZipFileDirEntry *entry = s_directory.Head(); (int)entry > 0; entry = next) {
-    next = s_directory.RawNext(entry);
+  SAFEITERATELIST(ZipFileDirEntry, s_directory, entry) {
     if (entry->archive == this) {
       s_directory.DeleteNode(entry);
     }
@@ -432,11 +430,20 @@ DWORD ZipFileOpenArchive(LPCSTR archivename) {
   CentralDirectoryHeader cdirHeader;
 
   archive = s_archives.NewNode(LIST_TAIL, 0, 0);
-  if (archive && (!archive->Open(archivename) || !archive->GetCentralDirectoryHeader(cdirHeader) || !archive->ProcessCentralDirectory(cdirHeader))) {
-    s_archives.DeleteNode(archive);
-    archive = NULL;
-  }
+  if (!archive)
+    goto Error0;
+  if (!archive->Open(archivename))
+    goto Error1;
+  if (!archive->GetCentralDirectoryHeader(cdirHeader))
+    goto Error1;
+  if (!archive->ProcessCentralDirectory(cdirHeader))
+    goto Error1;
   return (DWORD)archive;
+
+Error1:
+  s_archives.DeleteNode(archive);
+Error0:
+  return 0;
 }
 
 BOOL ZipFileCloseArchive(DWORD handle) {

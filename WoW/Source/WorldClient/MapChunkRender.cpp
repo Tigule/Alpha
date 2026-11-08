@@ -574,17 +574,27 @@ void CMapChunk::CreateDetailDoodads() {
       float fy = y * (150.0f / 36.0f) + (150.0f / 72.0f);
       for (UINT i = 0; i < 8; ++i) {
         float fx = i * (150.0f / 36.0f) + (150.0f / 72.0f);
-        if (((noEffectDoodad[y] & g_1bitSplatMask[i]) >> g_1bitSplatShft[i]) || (holes & g_holeMask[y >> 1][i >> 1])) {
+        if ((noEffectDoodad[y] & g_1bitSplatMask[i]) >> g_1bitSplatShft[i]) {
           continue;
         }
-        const GroundEffectTextureRec *effectTex =
-            g_groundEffectTextureDB.GetRecordByIndex(layerList[(predTex[y] & g_2bitSplatMask[i]) >> g_2bitSplatShft[i]]->effectId);
-        if (effectTex && effectTex->m_doodadId[0] != -1) {
+        if (holes & g_holeMask[y >> 1][i >> 1]) {
+          continue;
+        }
+        UINT effectId = layerList[(predTex[y] & g_2bitSplatMask[i]) >> g_2bitSplatShft[i]]->effectId;
+        if (effectId == -1) {
+          continue;
+        }
+        const GroundEffectTextureRec *effectTex = g_groundEffectTextureDB.GetRecordByIndex(effectId);
+        if (!effectTex) {
+          continue;
+        }
+        int doodadId = effectTex->m_doodadId[0];
+        if (doodadId != -1) {
           aPos.x = -fy;
           aPos.y = -fx;
           CMap::GetPlane(aPos.x, aPos.y, plane);
           aPos.z = -(plane.n.x * aPos.x + plane.n.y * aPos.y + plane.d) / plane.n.z;
-          inst->AddDoodad(effectTex->m_doodadId[0], aPos, 0, plane);
+          inst->AddDoodad(doodadId, aPos, 0, plane);
         }
       }
     }
@@ -592,26 +602,29 @@ void CMapChunk::CreateDetailDoodads() {
     NTempest::C2iVector splatList[128];
     UINT n;
     for (n = 0; n < CWorld::detailDoodadDensity; ++n) {
-      splatList[n].x = NTempest::CRandom::uint32_(rSeed) & 7;
-      splatList[n].y = NTempest::CRandom::uint32_(rSeed) & 7;
+      UINT x = NTempest::CRandom::uint32_(rSeed);
+      UINT y = NTempest::CRandom::uint32_(rSeed);
+      splatList[n].x = x & 7;
+      splatList[n].y = y & 7;
     }
 
     NTempest::C3Vector cPos;
     NTempest::C3Vector splatCen;
-    NTempest::C4Plane plane;
     NTempest::C3Vector aPos;
+    NTempest::C4Plane plane;
     for (n = 0; n < CWorld::detailDoodadDensity; ++n) {
       NTempest::C2iVector splat = splatList[n];
-      if (((noEffectDoodad[splat.y] & g_1bitSplatMask[splat.x]) >> g_1bitSplatShft[splat.x]) ||
-          (holes & g_holeMask[splat.y >> 1][splat.x >> 1])) {
+      if ((noEffectDoodad[splat.y] & g_1bitSplatMask[splat.x]) >> g_1bitSplatShft[splat.x]) {
         continue;
       }
-      if (layerList[(predTex[splat.y] & g_2bitSplatMask[splat.x]) >> g_2bitSplatShft[splat.x]]->effectId == 0xFFFF) {
+      if (holes & g_holeMask[splat.y >> 1][splat.x >> 1]) {
         continue;
       }
-      const GroundEffectTextureRec *effectTex = g_groundEffectTextureDB.GetRecordByIndex(
-          layerList[(predTex[splat.y] & g_2bitSplatMask[splat.x]) >> g_2bitSplatShft[splat.x]]->effectId
-      );
+      UINT effectId = layerList[(predTex[splat.y] & g_2bitSplatMask[splat.x]) >> g_2bitSplatShft[splat.x]]->effectId;
+      if (effectId == 0xFFFF) {
+        continue;
+      }
+      const GroundEffectTextureRec *effectTex = g_groundEffectTextureDB.GetRecordByIndex(effectId);
       if (!effectTex) {
         continue;
       }
@@ -624,25 +637,36 @@ void CMapChunk::CreateDetailDoodads() {
       splatCen.y = splat.y * (150.0f / 36.0f);
       for (UINT i = 0; i < clumpDensity; ++i) {
         float rx = NTempest::CRandom::reals_(rSeed);
-        cPos.y = NTempest::CRandom::reals_(rSeed) * DETAIL_VARY + (150.0f / 72.0f);
+        float ry = NTempest::CRandom::reals_(rSeed);
         cPos.x = rx * DETAIL_VARY + (150.0f / 72.0f);
-        if (effectTex->m_doodadId[(n + i) & 3] == -1) {
+        cPos.y = ry * DETAIL_VARY + (150.0f / 72.0f);
+        int doodadId = effectTex->m_doodadId[(n + i) & 3];
+        if (doodadId == -1) {
           continue;
+        }
+
+        DWORD flags = 0;
+        int   sx = Fast_ftol((cPos.x + splatCen.x) * OO_COORD_TO_SHADOW);
+        int   sy = Fast_ftol((cPos.y + splatCen.y) * OO_COORD_TO_SHADOW);
+        if (shadowBits[sy] & (1 << sx)) {
+          flags = 1;
         }
 
         aPos.x = -cPos.y;
         aPos.y = -cPos.x;
-        plane = planeList[4 * (splat.x + 8 * splat.y) + (aPos.y - aPos.x < 0.0f) +
-                          (-aPos.y - (150.0f / 36.0f) - aPos.x > 0.0f ? 2 : 0)];
+        NTempest::C4Plane *p = &planeList[4 * (splat.x + 8 * splat.y)];
+        UINT planeIndex = 0;
+        if (aPos.y - aPos.x < 0.0f) {
+          planeIndex = 1;
+        }
+        if (-aPos.y - (150.0f / 36.0f) - aPos.x > 0.0f) {
+          planeIndex += 2;
+        }
+        plane = p[planeIndex];
         aPos.x -= splatCen.y;
         aPos.y -= splatCen.x;
         aPos.z = -(plane.n.x * aPos.x + plane.n.y * aPos.y + plane.d) / plane.n.z;
-        inst->AddDoodad(
-            effectTex->m_doodadId[(n + i) & 3], aPos,
-            (shadowBits[Fast_ftol((cPos.y + splatCen.y) * OO_COORD_TO_SHADOW)] &
-             (1UL << Fast_ftol((cPos.x + splatCen.x) * OO_COORD_TO_SHADOW))) != 0,
-            plane
-        );
+        inst->AddDoodad(doodadId, aPos, flags, plane);
       }
     }
   }

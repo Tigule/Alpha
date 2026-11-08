@@ -4,8 +4,8 @@
 
 #include "SHA.h"
 
-static const BYTE s_sha1Padding = 0x80;
-static BYTE       s_sha1Zero;
+static const unsigned char s_sha1Padding = 0x80;
+static unsigned char       s_sha1Zero;
 
 #define SHA1_ROL(value, bits) _lrotl((value), (bits))
 #define SHA1_BLK0(i)          (block->l[i] = (SHA1_ROL(block->l[i], 24) & 0xFF00FF00) | (SHA1_ROL(block->l[i], 8) & 0x00FF00FF))
@@ -29,8 +29,8 @@ static BYTE       s_sha1Zero;
 
 static void SHA1_Transform(unsigned int state[], const unsigned char buffer[]) {
   typedef union {
-    BYTE c[64];
-    UINT l[16];
+    unsigned char c[64];
+    unsigned int  l[16];
   } CHAR64LONG16;
 
   CHAR64LONG16 *block = (CHAR64LONG16 *)buffer;
@@ -143,8 +143,8 @@ void SHA1_Init(SHA1_CONTEXT *context) {
 }
 
 void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int len) {
-  DWORD i;
-  DWORD j;
+  unsigned int i;
+  unsigned int j;
 
   j = (context->count[0] >> 3) & 63;
   context->count[0] += len << 3;
@@ -169,8 +169,8 @@ void SHA1_Update(SHA1_CONTEXT *context, const unsigned char *data, unsigned int 
 }
 
 void SHA1_Final(unsigned char digest[], SHA1_CONTEXT *context) {
-  BYTE  finalcount[8];
-  DWORD i;
+  unsigned char finalcount[8];
+  unsigned long i;
 
   for (i = 0; i < 8; i++) {
     finalcount[i] = (context->count[(i >= 4) ? 0 : 1] >> ((3 - (i & 3)) * 8)) & 0xFF;
@@ -188,11 +188,11 @@ void SHA1_Final(unsigned char digest[], SHA1_CONTEXT *context) {
 }
 
 unsigned char *SHA1_InterleaveHash(unsigned char digest[], const unsigned char *data, unsigned int len) {
-  SHA1_CONTEXT context;
-  BYTE         localDigest[20];
-  BYTE        *scratch;
-  DWORD        half;
-  DWORD        i;
+  SHA1_CONTEXT   context;
+  unsigned char  localDigest[20];
+  unsigned char *scratch;
+  unsigned long  half;
+  unsigned long  i;
 
   while (len && !*data) {
     ++data;
@@ -204,7 +204,7 @@ unsigned char *SHA1_InterleaveHash(unsigned char digest[], const unsigned char *
   }
 
   half = len >> 1;
-  scratch = (BYTE *)_alloca(half);
+  scratch = (unsigned char *)_alloca(half);
   if (scratch) {
     for (i = 0; i < half; ++i) {
       scratch[i] = data[i * 2];

@@ -417,9 +417,7 @@ void CLayoutFrame::RegisterResize(CLayoutFrame *frame, UINT dependency) {
     }
   }
 
-  VALIDATEBEGIN;
-  VALIDATE(!IsResizeDependency( frame ));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(!IsResizeDependency( frame ));
 
   node = m_resizeList.NewNode(LIST_TAIL, 0, 0);
   node->frame = frame;
@@ -552,9 +550,7 @@ BOOL CLayoutFrame::GetRect(NTempest::CRect *rect) const {
 }
 
 void CLayoutFrame::SetLayoutScale(float scale, bool force) {
-  VALIDATEBEGIN;
-  VALIDATE(scale);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(scale);
 
   if (force || NTempest::CMath::fnotequal_(scale, m_layoutScale)) {
     m_layoutScale = scale;

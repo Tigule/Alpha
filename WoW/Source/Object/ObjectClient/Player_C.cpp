@@ -97,7 +97,7 @@
 
 #include <stpl.h>
 #include <FrameScript/FrameScript.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Os/OsTime.h>
 #include <Os/W32/Debugging.h>
 #include <Tempest/caasphere.h>
@@ -449,45 +449,6 @@ static const int                 s_clearLinkPointFlags[2][4] = {
 };
 
 BOOL IsSitStandSleepTransition(UINT animState);
-
-LPCSTR CGUnit_C::GetObjectName() const {
-  return GetUnitName();
-}
-
-NTempest::C3Vector CGUnit_C::GetPosition() const {
-  return m_move.GetPosition();
-}
-
-void CGUnit_C::GetPosition(NTempest::C3Vector &vec) const {
-  vec = m_move.GetPosition();
-}
-
-float CGUnit_C::GetFacing() const {
-  return m_move.GetFacing();
-}
-
-NTempest::C3Vector CGUnit_C::GetGroundNormal() const {
-  return CGUnit::GetGroundNormal();
-}
-
-BOOL CGUnit_C::ShouldFadeIn() const {
-  return !(m_unit->flags & 2);
-}
-
-BOOL CGUnit_C::IsSolidSelectable() const {
-  return 1;
-}
-
-BOOL CGUnit_C::IsSolidCollidable() const {
-  return 0;
-}
-
-BOOL CGUnit_C::CanBeTargetted() const {
-  return CanHighlight();
-}
-
-void CGUnit_C::OnGetAttacked(DWORDLONG) {
-}
 
 void CGPlayer_C::SetBaseAnimState(UINT newState) {
   UINT oldState = m_currentBaseAnimState;
@@ -5349,8 +5310,7 @@ UINT CGPlayer_C::DetermineWoundSequence() const {
   } else if (ModelHasSequenceId(charModel, 8)) {
     result = 8;
   } else {
-    FATALASSERT(m_readySequence != 0xffffffff);
-    result = m_readySequence;
+    result = GetReadySequence();
   }
   HandleClose(charModel);
   return result;
@@ -6643,10 +6603,10 @@ void CGPlayer_C::OnTaxiNodeStatus(CDataStore *msg) {
 }
 
 void CGPlayer_C::ShowTaxiNodes(CDataStore *msg) {
+  UINT      currentNode = 0;
   DWORDLONG unit = 0;
   LONGLONG  known;
   LONGLONG  flag;
-  UINT      currentNode = 0;
   UINT      showWindow;
 
   msg->Get(showWindow);
@@ -7569,10 +7529,6 @@ void CGPlayer_C::OnBadAttackPosition(DWORDLONG victim, float range) {
   }
 }
 
-DWORDLONG CGPlayer_C::GetUnitBeingLooted() const {
-  return m_lootingUnit;
-}
-
 void CGPlayer_C::OnBadAttackTarget(DWORDLONG) {
   SetCombatMode(0);
 }
@@ -7599,9 +7555,6 @@ void CGPlayer_C::HandleMirrorTimerDamage(const MIRRORTIMERDAMAGE &log) {
   if (GetGUID() == ClntObjMgrGetActivePlayer()) {
     CGGameUI::ShowCombatFeedback(log);
   }
-}
-
-void CGPlayer_C::PlayDeathThudCameraShake() const {
 }
 
 bool CGPlayer_C::CanBeMounted() {
@@ -7640,18 +7593,6 @@ void CGPlayer_C::OnLevelChange() {
     UpdateQuestStatusAll();
   }
   CGUnit_C::OnLevelChange();
-}
-
-float CGPlayer_C::GetBlockChance() const {
-  return m_plyr->blockPercentage;
-}
-
-float CGPlayer_C::GetDodgeChance() const {
-  return m_plyr->dodgePercentage;
-}
-
-float CGPlayer_C::GetParryChance() const {
-  return m_plyr->parryPercentage;
 }
 
 void CGPlayer_C::UpdateObjComponentVisuals(const CGItem_C *itemPtr, const ItemEnchantment *enchantments, int num) {

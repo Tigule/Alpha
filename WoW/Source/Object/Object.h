@@ -6,13 +6,6 @@
 
 namespace NTempest {
 
-  inline CDataStore &operator<<(CDataStore &s_, const C3Vector &d_) {
-    s_ << d_.x;
-    s_ << d_.y;
-    s_ << d_.z;
-    return s_;
-  }
-
   inline CDataStore &operator>>(CDataStore &s_, C3Vector &d_) {
     s_ >> d_.x;
     s_ >> d_.y;

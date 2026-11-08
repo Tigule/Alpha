@@ -9,9 +9,7 @@ BOOL IEvtTimerDispatch(EvtContext *context) {
   DWORD                   currTime;
   int                     dispatchedAny;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEEND;
+  VALIDATE2(context);
 
   context->TimerLockIdTableAndQueue(table, queue);
   currTime = OsGetAsyncTimeMs();
@@ -68,9 +66,7 @@ UINT IEvtTimerGetNextTime(EvtContext *context, DWORD currTime) {
   EvtTimerQueue          *queue;
   UINT                    nextTime;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEEND;
+  VALIDATE2(context);
 
   context->TimerLockIdTableAndQueue(table, queue);
   nextTime = INFINITE;
@@ -90,9 +86,7 @@ float IEvtTimerGetRemaining(EvtContext *context, UINT id) {
   EvtTimer               *timer;
   float                   remaining;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEEND;
+  VALIDATE2(context);
 
   if (!id) {
     return 0.0f;
@@ -120,9 +114,7 @@ void IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunctionPtr
   EvtTimerQueue          *queue;
   EvtTimer               *timer;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(context);
 
   if (!id) {
     return;
@@ -170,9 +162,7 @@ UINT IEvtTimerSet(
   EvtTimer               *timer;
   UINT                    id;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEEND;
+  VALIDATE2(context);
 
   if (!handler && !guidHandler) {
     return 0;
@@ -214,9 +204,7 @@ UINT IEvtTimerSet(
   EvtTimer               *timer;
   UINT                    id;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEEND;
+  VALIDATE2(context);
 
   if (!handler && !guidHandler) {
     return 0;
@@ -258,9 +246,7 @@ UINT IEvtTimerSetAbsolute(
   EvtTimer               *timer;
   UINT                    id;
 
-  VALIDATEBEGIN;
-  VALIDATE(context);
-  VALIDATEEND;
+  VALIDATE2(context);
 
   if (!handler && !guidHandler) {
     return 0;

@@ -1,306 +1,471 @@
-#pragma once
+#ifndef ENGINE_SOURCE_MODEL_IMODEL_H
+#define ENGINE_SOURCE_MODEL_IMODEL_H
 
-#include "Base/Handle.h"
+#include "Model/Model.h"
+#include "Anim/AnimTypes.h"
 #include "Gx/Gx.h"
-#include "Services/Camera.h"
+#include "Services/Texture.h"
+#include "Tempest/c2vector.h"
+#include "Tempest/c3vector.h"
+#include "Tempest/c34matrix.h"
+#include "Tempest/caabox.h"
+#include "Tempest/caasphere.h"
+#include "Tempest/cimvector.h"
+#include "Base/Handle.h"
 
-class CStatus;
-class CGxLight;
-struct HTEXTURE__;
-typedef HTEXTURE__ *HTEXTURE;
+#include <stpl.h>
 
-enum {
-  MODEL_GEO_UNSHADED = 1,
-  MODEL_GEO_TWOSIDED = 16,
-  MODEL_GEO_UNFOGGED = 32,
-  MODEL_GEO_NO_DEPTH_TEST = 64,
-  MODEL_GEO_NO_DEPTH_SET = 128
-};
+DECLARE_DERIVED_HANDLE(HMATERIAL, HOBJECT);
+DECLARE_DERIVED_HANDLE(HMATERIALSHARED, HOBJECT);
 
-struct CModelCreate {
-  CModelCreate() : flags(0), sequenceNames(0), numSequences(0), boneNames(0), numBones(0), cameraNames(0), numCameras(0) {
+struct CModelTexture {
+  CModelTexture() : handle(0), replaceableId(0) {
+  }
+  CModelTexture(const CModelTexture &source) {
+    replaceableId = source.replaceableId;
+    handle = (HTEXTURE)HandleDuplicate(source.handle);
+  }
+  CModelTexture &operator=(const CModelTexture &source) {
+    replaceableId = source.replaceableId;
+    if (handle) {
+      HandleClose(handle);
+    }
+    handle = (HTEXTURE)HandleDuplicate(source.handle);
+    return *this;
+  }
+  ~CModelTexture() {
+    if (handle) {
+      HandleClose(handle);
+    }
   }
 
-  UINT    flags;
-  LPCSTR *sequenceNames;
-  UINT    numSequences;
-  LPCSTR *boneNames;
-  UINT    numBones;
-  LPCSTR *cameraNames;
-  UINT    numCameras;
+  HTEXTURE handle;
+  UINT     replaceableId;
 };
 
-namespace NTempest {
-  class CAaBox;
-  class CAaSphere;
-  class C34Matrix;
-  class C3Vector;
-  class C44Matrix;
-  class CImVector;
-}  // namespace NTempest
+struct CTmuPassShared {
+  CTmuPassShared() : transformId(-1), coordId(0), textureShader(GxTS_PassThru), flags(0) {
+  }
 
-typedef void (*MODELPROJECT2DCALLBACK)(const NTempest::CAaBox &bounds, NTempest::CImVector color, const NTempest::C44Matrix &view);
+  UINT             transformId;
+  UINT             coordId;
+  EGxTextureShader textureShader;
+  UINT             flags;
+};
 
-DECLARE_DERIVED_HANDLE(HMODEL, HOBJECT);
+struct CTmuPassUnique {
+  CTmuPassUnique() : combiner(GxTexBlend_Mod), textureId(-1) {
+  }
 
-DECLARE_DERIVED_HANDLE(HMODELSHARED, HOBJECT);
+  static int Compare(const CModelTexture *, const CModelTexture *, const CTmuPassUnique &, const CTmuPassUnique &);
 
-enum EModelLoad {
-  CMODEL_UNINITIALIZED = 0,
-  CMODEL_LOADED = 1,
-  CMODEL_ASYNC_WAIT = 2,
-  CMODEL_DUPE_WAIT = 3,
-  CMODEL_DUPE_WAIT_PRSRV_ANIM = 4
+  EGxTexBlend combiner;
+  UINT        textureId;
+};
+
+struct CTexLayer {
+  CTexLayer() : vertexFormat(GxVBF_PCT0), disables(0), blendMode(GxBlend_Opaque), layerAlpha(255) {
+    for (UINT i = 0; i < 2; ++i) {
+      tmuPass[i].combiner = GxTexBlend_Mod;
+    }
+  }
+  CTexLayer(const CTexLayer &a) : vertexFormat(a.vertexFormat), disables(a.disables), blendMode(a.blendMode), layerAlpha(a.layerAlpha) {
+    for (UINT i = 0; i < 2; ++i) {
+      tmuPass[i] = a.tmuPass[i];
+    }
+  }
+  static int Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b);
+
+  EGxVertexBufferFormat vertexFormat;
+  union {
+    struct {
+      DWORD lighting : 1;
+      DWORD fog : 1;
+      DWORD depthTest : 1;
+      DWORD depthWrite : 1;
+      DWORD culling : 1;
+    } disable;
+    DWORD disables;
+  };
+  EGxBlend       blendMode;
+  CTmuPassUnique tmuPass[2];
+  BYTE           layerAlpha;
+};
+
+struct CTexLayerShared {
+  CTexLayerShared() : blendMode(GxBlend_Opaque) {
+  }
+
+  EGxBlend       blendMode;
+  CTmuPassShared tmuPass[2];
+};
+
+struct CMaterialShared : public CHandleObject {
+ public:
+  CMaterialShared() : priorityPlane(0) {
+  }
+  CMaterialShared(const CMaterialShared &);
+
+  TSGrowableArray<CTexLayerShared> layers;
+  int                              priorityPlane;
+};
+
+struct CMaterial : public CHandleObject {
+ public:
+  CMaterial() : data(0), emissiveColor(0, 0, 0, 0) {
+  }
+
+  CMaterial(const CMaterial &source)
+      : CHandleObject(source),
+        layers(source.layers),
+        data((HMATERIALSHARED)HandleDuplicate(source.data)),
+        emissiveColor(source.emissiveColor) {
+  }
+
+  ~CMaterial() {
+    if (data) {
+      HandleClose(data);
+    }
+  }
+
+  CMaterial &operator=(const CMaterial &source) {
+    if (data) {
+      HandleClose(data);
+    }
+    data = (HMATERIALSHARED)HandleDuplicate(source.data);
+    layers = source.layers;
+    emissiveColor = source.emissiveColor;
+    return *this;
+  }
+
+  TSGrowableArray<CTexLayer> layers;
+  HMATERIALSHARED            data;
+  NTempest::CImVector        emissiveColor;
 };
 
 class CAsyncObject;
-class CModelBase;
-enum EModelModQ {
-  MODEL_ADD_LINK = 0,
-  MODEL_APPLY_OBJECT_FACE_DIR = 1,
-  MODEL_APPLY_OBJECT_LOOK_AT = 2,
-  MODEL_CLEAR_ALL_LINKS = 3,
-  MODEL_CLEAR_LINK = 4,
-  MODEL_ENABLE_ANIM_BLENDING = 5,
-  MODEL_ENABLE_FULL_ALPHA = 6,
-  MODEL_FINISH_DUPLICATION = 7,
-  MODEL_FORCE_CURRENT_SEQUENCE_TIME = 8,
-  MODEL_FORCE_SEQUENCE_TIME = 9,
-  MODEL_HIDE_BOUNDS = 10,
-  MODEL_HIDE_GEOSETS = 11,
-  MODEL_HIDE_GEOSETS_RANGE = 12,
-  MODEL_LOCK_OBJECT_SEQUENCE = 13,
-  MODEL_MARK_FOOTSTEP_SEQUENCE = 14,
-  MODEL_MATCH_SEQUENCE = 15,
-  MODEL_OPTIMIZE_VISIBLE_GEOSETS = 16,
-  MODEL_REMOVE_LINK = 17,
-  MODEL_REMOVE_OBJECT_FACE_DIR = 18,
-  MODEL_REMOVE_OBJECT_LOOK_AT = 19,
-  MODEL_REPLACE_TEXTURE = 20,
-  MODEL_SET_EMISSIVE_COLOR = 21,
-  MODEL_SET_EVENT_CALLBACK = 22,
-  MODEL_SET_LIGHT_SELECT_CALLBACK = 23,
-  MODEL_SET_OBJECT_TIME_SCALE = 24,
-  MODEL_SET_RANDOM_SEQUENCE_FIDGET1 = 25,
-  MODEL_SET_RANDOM_SEQUENCE_FIDGET2 = 26,
-  MODEL_SET_SEQ_FINISHED_HANDLER1 = 27,
-  MODEL_SET_SEQ_FINISHED_HANDLER2 = 28,
-  MODEL_SET_SEQUENCE1 = 29,
-  MODEL_SET_SEQUENCE2 = 30,
-  MODEL_SET_SEQUENCE_FIDGET1 = 31,
-  MODEL_SET_SEQUENCE_FIDGET2 = 32,
-  MODEL_SET_TIME_SCALE = 33,
-  MODEL_SET_VERTEX_ALPHA = 34,
-  MODEL_SET_VERTEX_COLOR = 35,
-  MODEL_SHOW_BOUNDING_SPHERE = 36,
-  MODEL_SHOW_COLLISION = 37,
-  MODEL_SHOW_COLLISION_AABOX = 38,
-  MODEL_SHOW_MODEL = 39,
-  MODEL_NUM_COMMANDS = 40,
-  MODEL_COMMAND_NOT_QUEUED = MODEL_NUM_COMMANDS
+class CParticleEmitter2;
+class CRibbonEmitter;
+
+enum ModelIntersectResult {
+  MODEL_INTERSECT_NO_HIT = 0,
+  MODEL_INTERSECT_HIT_BOUNDING_SPHERE = 1,
+  MODEL_INTERSECT_HIT_COLLISION_VOLUMES = 2,
+  MODEL_INTERSECT_HIT_MODEL = 3
 };
 
-NODEDECL(CModelModItem) {
-  EModelModQ action;
-  BYTE       paramData[16];
+UINT GetInvalidMatrixId();
+void GxuLightSelectCallback(LPVOID parm, NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
+
+DECLARE_DERIVED_HANDLE(HCOLLISIONDATA, HOBJECT);
+
+enum EModelParamType {
+  MPARAM_UINT = 0,
+  MPARAM_HANDLE = 1,
+  MPARAM_FLOAT = 2,
+  MPARAM_C3VECTOR = 3,
+  MPARAM_BOOL = 4,
+  MPARAM_CARGB = 5,
+  MPARAM_PTR = 6,
+  MPARAM_BYTE = 7,
+  MPARAM_NONE = 8
 };
 
+enum GROUND_TRACK {
+  TRACK_YAW_ONLY = 0,
+  TRACK_PITCH_YAW = 1,
+  TRACK_PITCH_YAW_ROLL = 2,
+  GROUND_TRACK_MASK = 3
+};
 
-class CModel : public CHandleObject {
- public:
-  CModel(EModelLoad state = CMODEL_ASYNC_WAIT) : asyncObject(0), createData(0), shared(0), state(state) {
+enum COLLIDE_TYPE {
+  COLLIDE_BOX = 0,
+  COLLIDE_CYLINDER = 1,
+  COLLIDE_SPHERE = 2,
+  COLLIDE_PLANE = 3
+};
+
+struct CBoundsData {
+  NTempest::CAaBox    extent;
+  NTempest::CAaSphere sphere;
+};
+
+struct CHitTest {
+  CHitTest() : type(COLLIDE_BOX), radius(0.0f) {
   }
-  CModel(CModel &source);
-  void FinishDuplication(CModel &source);
-  void DeleteAsyncObj();
-  virtual ~CModel();
+
+  COLLIDE_TYPE       type;
+  NTempest::C3Vector extent[2];
+  float              radius;
+};
+
+struct CPrimitive {
+  CPrimitive() : type(GxPrim_Triangles), vertexCount(0) {
+  }
+
+  EGxPrim type;
+  UINT    vertexCount;
+};
+
+typedef TSFixedArray_<NTempest::C2Vector, 'IMod', __LINE__> CModelTexCoordArray;
+
+struct CGeosetShared {
+  CGeosetShared() : vertexShader(GxVS_PassThru), materialId(0), centroid(0.0f), radius(0.0f), selectionGroup(0), geosetId(0), flags(0) {
+  }
+
+  TSFixedArray_<NTempest::C3Vector, 'IMod', __LINE__>  position;
+  TSFixedArray_<BYTE, 'IMod', __LINE__>                boneWeights;
+  TSFixedArray_<NTempest::C3Vector, 'IMod', __LINE__>  normal;
+  TSFixedArray_<CModelTexCoordArray, 'IMod', __LINE__> texCoord;
+  TSFixedArray_<CPrimitive, 'IMod', __LINE__>          primitive;
+  TSFixedArray_<WORD, 'IMod', __LINE__>                primitiveVertices;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                groupMatrixCounts;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                matrices;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                hwBoneIndices;
+  TSFixedArray_<UINT, 'IMod', __LINE__>                hwBoneWeights;
+  EGxVertexShader                                 vertexShader;
+  UINT                                            materialId;
+  NTempest::C3Vector                              centroid;
+  float                                           radius;
+  UINT                                            selectionGroup;
+  UINT                                            geosetId;
+  UINT                                            flags;
+};
+
+struct CGeoset {
+  CGeoset() {
+    flags = 0;
+    weightedBones = GetInvalidMatrixId();
+  }
+
+  UINT weightedBones;
+  UINT flags;
+};
+
+struct CCustomGeoset {
+  NTempest::C3Vector position;
+  void (*renderCallback)(HMODEL, const NTempest::C34Matrix &, LPVOID);
+  LPVOID renderParam;
+};
+
+inline int CTmuPassUnique::Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTmuPassUnique &a, const CTmuPassUnique &b) {
+  if (a.combiner != b.combiner) {
+    return a.combiner - b.combiner;
+  }
+  return HandleObjectCompare(a.textureId == -1 ? 0 : aTextures[a.textureId].handle, b.textureId == -1 ? 0 : bTextures[b.textureId].handle);
+}
+
+class CModelBase {
+ public:
+  CModelBase(UINT flags = 0);
+  ~CModelBase();
 
  private:
-  CModel &operator=(const CModel &source);
-  void    RemoveModelCommandsFromQueue();
-
+  CModelBase &operator=(const CModelBase &source);
  public:
+  void (*m_PickLights)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT);
+  LPVOID              m_pickLightsParm;
+  UINT                m_flags;
+  NTempest::C34Matrix m_modelToWorld;
+  UINT                m_texBones;
+  HANIM               m_anim;
+  HMODEL              m_boundsModel;
+  UINT                m_aaBoxCustGeoId;
+  HMODEL              m_collideModel;
 
-  union {
-    CAsyncObject *asyncObject;
-    CModelBase   *data;
-    HMODEL        dupSource;
-  };
-  CModelCreate *createData;
-  HMODELSHARED  shared;
-  EModelLoad    state;
-  LISTDECL(CModelModItem, modelModQueue);
-
+ protected:
+  CModelBase(const CModelBase &source);
 };
 
-BOOL ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position);
+inline CModelBase::CModelBase(UINT flags)
+    : m_PickLights(GxuLightSelectCallback), m_flags(flags), m_anim(0), m_boundsModel(0), m_aaBoxCustGeoId(-1), m_collideModel(0) {
+  m_texBones = GetInvalidMatrixId();
+}
 
-void ModelInitialize();
-void ModelDestroy();
-void ModelCacheFlush();
-void ModelRemoveFromCache(LPCSTR sourcefile);
-BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status);
-BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels = 1);
-void ModelProcessEvents(HMODEL model, const NTempest::C34Matrix &orientation);
-void ModelProcessEvents(HMODEL model, const NTempest::C3Vector &position, float rotationAngle, const NTempest::C3Vector &rotationAxis, float scale);
-void ModelGetStandingMatrix(
+class CModelSimple : public CModelBase {
+ public:
+  CModelSimple() : CModelBase(0) {
+    m_geosets.SetCount(0);
+    m_geosetColor.SetCount(0);
+    m_custGeosets.SetCount(0);
+    m_materials.SetCount(0);
+    m_textures.SetCount(0);
+  }
+  CModelSimple(const CModelSimple &source);
+  ~CModelSimple();
+
+  TSCArray<CGeoset, 5>       m_geosets;
+  TSCArray<CGeosetColor, 5>  m_geosetColor;
+  TSCArray<CCustomGeoset, 1> m_custGeosets;
+  TSCArray<HMATERIAL, 4>     m_materials;
+  TSCArray<CModelTexture, 4> m_textures;
+
+ private:
+  CModelSimple &operator=(const CModelSimple &source);
+  void          CopyMaterials(const CModelSimple &source);
+};
+
+struct CModelShared : public CHandleObject {
+  CModelShared() : numBones(0), numTexBones(0), groundTrack(TRACK_YAW_ONLY), collision(0), numGeosets(0), numLayers(0) {
+    name[0] = 0;
+  }
+
+  CModelShared(const CModelShared &source);
+  ~CModelShared() {
+    if (collision) {
+      HandleClose((HOBJECT)collision);
+    }
+  }
+
+  virtual LPCSTR GetObjectName() {
+    return name;
+  }
+
+  TSFixedArray<CBoundsData>                      seqBounds;
+  TSFixedArray<UINT>                             attachIdToIndex;
+  TSFixedArray_<NTempest::C3Vector, 'IMod', __LINE__> positions;
+  TSFixedArray<CHitTest>                         hitTest;
+  TSFixedArray<CGeosetShared>                    geosets;
+  TSFixedArray<UINT>                             emitter2Order;
+  TSFixedArray<UINT>                             ribbonOrder;
+  UINT                                           numBones;
+  UINT                                           numTexBones;
+  GROUND_TRACK                                   groundTrack;
+  HCOLLISIONDATA                                 collision;
+  char                                           name[MAX_PATH];
+  CBoundsData                                    bounds;
+  BYTE                                           numGeosets;
+  BYTE                                           numLayers;
+
+ private:
+};
+
+void ModelEnableLights(HMODEL model, int enable);
+void ModelShowBoundingSphere(HMODEL model);
+void ModelShowBoundingBox(HMODEL model);
+BOOL ModelGeosetAdd(
     HMODEL                    model,
-    const NTempest::C3Vector &position,
-    const NTempest::C3Vector &groundNormal,
-    float                     facing,
-    float                     scale,
-    NTempest::C34Matrix      *orientation
+    UINT                      numVertices,
+    const NTempest::C3Vector *position,
+    const NTempest::C3Vector *normal,
+    const NTempest::C2Vector *texCoord,
+    EGxPrim                   primitiveType,
+    const WORD               *primitiveVertices,
+    UINT                      numPrimVertices,
+    HTEXTURE                  texture,
+    EGxBlend                  blendMode,
+    UINT                      disables,
+    NTempest::CImVector       color,
+    UINT                      replaceableId
 );
-void ModelForceStandingMatrix(
-    HMODEL                    model,
-    const NTempest::C3Vector &position,
-    const NTempest::C3Vector &groundNormal,
-    float                     facing,
-    float                     scale,
-    int                       enumGroundTrack,
-    float                     blendRatio,
-    NTempest::C34Matrix      *orientation
+HMODEL ModelCreateSimpleMesh(
+    LPCSTR                    name,
+    UINT                      numVertices,
+    const NTempest::C3Vector *position,
+    const NTempest::C3Vector *normal,
+    const NTempest::C2Vector *texCoord,
+    EGxPrim                   primitiveType,
+    const WORD               *primitiveVertices,
+    UINT                      numPrimVertices,
+    HTEXTURE                  texture,
+    EGxBlend                  blendMode,
+    UINT                      disables,
+    NTempest::CImVector       color,
+    UINT                      replaceableId
 );
-BOOL   ModelAdvanceTime(HMODEL model);
-BOOL   ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags);
-BOOL   ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags);
-int    ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT flags);
-int    ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags);
-int    ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT objectId, UINT flags);
-int    ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flags);
-int    ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags);
-UINT   ModelGetNumSequenceFidgets(HMODEL model, UINT seqIndex);
-BOOL   ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration);
-int    ModelGetSequenceTime(HMODEL model, UINT seqIndex);
-float  ModelGetPrimarySequenceCompletion(HMODEL model);
-BOOL   ModelHasSequenceId(HMODEL model, UINT seqIndex);
-HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status);
-HMODEL ModelCreateSolidSphere(float radius, HTEXTURE texture);
-HMODEL ModelCreateBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
-HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags);
-BOOL   ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale);
-BOOL   ModelClearLink(HMODEL parent, UINT parentIndex);
-BOOL   ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child);
-void   ModelClearAllLinks(HMODEL parent);
-BOOL   ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entriesInOut);
-BOOL   ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked);
-BOOL   ModelHasLinkPoint(HMODEL model, UINT index);
-UINT   ModelGetNumLinkPoints(HMODEL model);
-BOOL   ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int doLinkedModels);
-BOOL   ModelGetExtents(HMODEL model, NTempest::CAaBox *extents);
-BOOL   ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents);
-BOOL   ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds);
-void   ModelSceneCalcFrustumPlanes();
-BOOL   ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float scale, int testLinkedModels);
-BOOL   ModelTestSphere(
-    HMODEL                    model,
-    const NTempest::C3Vector &position,
-    float                     rotationAngle,
-    const NTempest::C3Vector &rotationAxis,
-    float                     scale,
-    int                       testLinkedModels
-);
-BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-BOOL ModelHasHitTestVolumes(HMODEL model);
-BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos);
-BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot);
-HCAMERA         ModelGetCamera(HMODEL model, UINT index);
-UINT            ModelGetNumCameras(HMODEL model);
-int             ModelIsCameraEnabled(HMODEL model, UINT index);
-BOOL            ModelIsShowingBoundingSphere(HMODEL model);
-BOOL            ModelIsShowingBoundingBox(HMODEL model);
-BOOL            ModelIsShowingHitTestGeometry(HMODEL model);
-void            ModelRestoreBlendMode(HMODEL model, int doLinkedModels);
-void            ModelSetBlendMode(HMODEL model, EGxBlend blendMode, int doLinkedModels);
-UINT            ModelGetNumLights(HMODEL model);
-const CGxLight *ModelGetLight(HMODEL model, UINT index);
-void            ModelEnableFullAlpha(HMODEL model, int enable);
-void            ModelEnableAnimBlending(HMODEL model, int enabled);
-void            ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int doLinkedModels);
-void            ModelHideBounds(HMODEL model);
-void            ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide);
-void            ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd, int hide);
-BOOL            ModelOptimizeVisibleGeosets(HMODEL model);
-void            ModelShowCollision(HMODEL model, int show);
-void            ModelShowCollisionAaBox(HMODEL model, int show);
-void            ModelShowModel(HMODEL model, int show);
-void            ModelSetProject2dCallback(MODELPROJECT2DCALLBACK callback);
-void            ModelScenePlaceCamera(const NTempest::C3Vector &position, const NTempest::C3Vector &direction);
-void            ModelSceneSetSharpness(float sharpness);
-void            ModelSetLightSelectCallback(
-    HMODEL model,
-    void (*callback)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT),
-    LPVOID parm,
-    int    doLinkedModels
-);
-void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param, int doLinkedModels);
-BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels);
-BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels);
-BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed);
-BOOL ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position);
-void ModelSetSeqFinishedHandler(HMODEL model, int (*callback)(LPVOID), LPVOID param);
-void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, int (*callback)(LPVOID), LPVOID param);
-void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels);
-BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels);
-int  ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector &target);
-int  ModelRemoveObjectLookAt(HMODEL model, UINT objectId);
-int  ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vector &direction);
-int  ModelRemoveObjectFaceDir(HMODEL model, UINT objectId);
-int  ModelMarkFootstepSequence(HMODEL model, UINT seqIndex);
-int  ModelLockObjectSequence(HMODEL model, UINT objectId, int set);
-void ModelSetVertexColor(HMODEL model, BYTE red, BYTE green, BYTE blue, int doLinkedModels);
-void ModelGetVertexColor(HMODEL model, BYTE &red, BYTE &green, BYTE &blue);
-void ModelShowUnselectable(HMODEL model, BYTE red, BYTE green, BYTE blue);
-void ModelHideUnselectable(HMODEL model);
-BOOL ModelIsShowingUnselectable(HMODEL model);
-void ModelSetVertexAlpha(HMODEL model, BYTE alpha, int doLinkedModels);
-BYTE ModelGetVertexAlpha(HMODEL model);
-void ModelCustGeosetMove(HMODEL model, UINT custGeosetId, const NTempest::C3Vector &modelSpacePosition);
-void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId);
-void ModelCustGeosetAdd(
-    HMODEL                    model,
-    const NTempest::C3Vector &modelSpacePosition,
-    void (*renderCallback)(HMODEL, const NTempest::C34Matrix &, LPVOID),
-    LPVOID renderParam,
-    UINT  *custGeosetId
-);
-UINT ModelGetPrimarySequence(HMODEL model);
-BOOL ModelUsesBlending(HMODEL model);
-void ModelEnumAnimObjects(HMODEL model, int (*callbackfcn)(UINT, LPCSTR, LPVOID), LPVOID param);
-void ModelEnableEmitters(HMODEL model, int enable, int doLinkedModels);
-void ModelEnableRibbons(HMODEL model, int enable);
-BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId);
-UINT ModelGetNumTextures(HMODEL model);
-UINT ModelGetTextureReplaceableId(HMODEL model, UINT textureId);
-void ModelAnimate(
-    HMODEL                    model,
-    const NTempest::C3Vector &position,
-    float                     rotationAngle,
-    const NTempest::C3Vector &rotationAxis,
-    float                     scale,
-    const NTempest::C3Vector &cameraWorldPos,
-    const NTempest::C3Vector &cameraVector
-);
-void ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &orientation);
-void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels);
-void ModelAnimate(
-    HMODEL                    model,
-    const NTempest::C3Vector &position,
-    float                     rotationAngle,
-    const NTempest::C3Vector &rotationAxis,
-    const NTempest::C3Vector &nonUniformScale,
-    const NTempest::C3Vector &cameraWorldPos,
-    const NTempest::C3Vector &cameraVector
-);
-void ModelAnimate(
-    HMODEL                     model,
-    const NTempest::C34Matrix &orientation,
-    float                      scale,
-    const NTempest::C3Vector  &cameraWorldPos,
-    const NTempest::C3Vector  &cameraVector
-);
-void ModelAddToScene(HMODEL model, UINT renderFlags);
-void ModelAddToScene(const NTempest::C3Vector &position, int priorityPlane, void (*callback)(LPVOID, int), LPVOID param1, int param2);
-void ModelRender(HMODEL model, CStatus *status, UINT renderFlags);
-void ModelRenderScene(CStatus *status);
+HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
+
+NODEDECL(LINKUNIQUE) {
+  LINKUNIQUE() : child(0), scale(1.0f) {
+  }
+
+  ~LINKUNIQUE() {
+    if (child) {
+      ModelEnableLights(child, 0);
+      HandleClose(child);
+    }
+  }
+
+  HMODEL child;
+  float  scale;
+
+ private:
+  LINKUNIQUE(const LINKUNIQUE &source);
+  LINKUNIQUE &operator=(const LINKUNIQUE &source);
+};
+
+class CModelComplex : public CModelBase {
+ public:
+  CModelComplex() : CModelBase(0x20) {
+  }
+  CModelComplex(const CModelComplex &source);
+  CModelComplex(const CModelSimple &source);
+  ~CModelComplex();
+
+  TSGrowableArray<CGeoset>          m_geosets;
+  TSGrowableArray<CGeosetShared>    m_addlGeosets;
+  TSGrowableArray<CGeosetColor>     m_geosetColor;
+  TSGrowableArray<CCustomGeoset>    m_custGeosets;
+  TSGrowableArray<HMATERIAL>        m_materials;
+  TSGrowableArray<CModelTexture>    m_textures;
+  TSFixedArray<DWORD>               m_lights;
+  TSFixedArray<LIST(LINKUNIQUE)>    m_attached;
+  TSFixedArray_<BYTE, 'MDLF', __LINE__>  m_attachmentFlags;
+  TSFixedArray<CParticleEmitter2 *> m_emitters2;
+  TSFixedArray<CRibbonEmitter *>    m_ribbons;
+  TSFixedArray<HCAMERA>             m_cameras;
+  TSFixedArray<UINT>                m_cameraOrder;
+  TSFixedArray<NTempest::C34Matrix> m_hitTestMtx;
+
+ private:
+  CModelComplex &operator=(const CModelComplex &source);
+  CModelComplex &operator=(const CModelSimple &source);
+  void           CopyAttachments(const CModelComplex &source);
+  void           CopyCameras(const CModelComplex &source);
+  void           CopyLights(const CModelComplex &source);
+  void           CopyEmitters(const CModelComplex &source);
+  void           CopyRibbons(const CModelComplex &source);
+};
+
+inline BOOL AttachmentIsEnabled(CModelComplex *modelptr, UINT index) {
+  if (modelptr->m_anim) {
+    if (modelptr->m_attachmentFlags[index] & 1) {
+      return modelptr->m_attachmentFlags[index] & 2;
+    }
+    BOOL enabled = AnimIsAttachmentEnabled(modelptr->m_anim, index);
+    modelptr->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
+    return enabled;
+  }
+  return 1;
+}
+
+struct CModelRenderData {
+  CGeoset       *m_geosets;
+  CGeosetColor  *m_geosetColor;
+  UINT           m_numGeosets;
+  HMATERIAL     *m_materials;
+  CModelTexture *m_textures;
+  CModel        *m_model;
+  CModelShared  *m_shared;
+  UINT           m_renderFlags;
+};
+
+void      EnqueueModelCommand(CModel *model, EModelModQ command, ...);
+HMATERIAL BuildSimpleMaterial(CModelTexture *modelTexture, UINT textureId, HTEXTURE texture, EGxBlend blendMode, UINT disables, UINT replaceableId);
+UINT      MatrixAlloc(UINT numMatrices);
+NTempest::C34Matrix *MatrixDeref(UINT handle);
+BOOL                 IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared);
+BOOL                 IModelDerefHandle(CModel *model, CModelBase **unique);
+BOOL                 IModelDerefHandle(CModel *model, CModelShared **shared);
+
+void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras);
+
+void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr);
+
+HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes);
+
+void MdxReadAttachments(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status);
+
+void MdxReadRibbonEmitters(BYTE *data, UINT fileBytes, CModelComplex *modelptr, CModelShared *shared);
+
+#endif

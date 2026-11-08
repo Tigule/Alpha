@@ -261,27 +261,13 @@ namespace MDL {
 
 static UINT GetBinParticleEmitterSize(const MDLPARTICLEEMITTER &section) {
   UINT size = GetBinGenObjectSize(section) + 288;
-  if (section.emissionRate.keys.Count()) {
-    size += 16 + section.emissionRate.keys.Count() * (4 + 4 * (section.emissionRate.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.gravity.keys.Count()) {
-    size += 16 + section.gravity.keys.Count() * (4 + 4 * (section.gravity.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.longitude.keys.Count()) {
-    size += 16 + section.longitude.keys.Count() * (4 + 4 * (section.longitude.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.latitude.keys.Count()) {
-    size += 16 + section.latitude.keys.Count() * (4 + 4 * (section.latitude.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.particle.life.keys.Count()) {
-    size += 16 + section.particle.life.keys.Count() * (4 + 4 * (section.particle.life.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.particle.speed.keys.Count()) {
-    size += 16 + section.particle.speed.keys.Count() * (4 + 4 * (section.particle.speed.type > TRACK_LINEAR ? 3 : 1));
-  }
-  if (section.visibilityKeys.keys.Count()) {
-    size += 16 + section.visibilityKeys.keys.Count() * (4 + 4 * (section.visibilityKeys.type > TRACK_LINEAR ? 3 : 1));
-  }
+  size += GetBinFloatKeyFramesSize(section.emissionRate);
+  size += GetBinFloatKeyFramesSize(section.gravity);
+  size += GetBinFloatKeyFramesSize(section.longitude);
+  size += GetBinFloatKeyFramesSize(section.latitude);
+  size += GetBinFloatKeyFramesSize(section.particle.life);
+  size += GetBinFloatKeyFramesSize(section.particle.speed);
+  size += GetBinFloatKeyFramesSize(section.visibilityKeys);
   return size;
 }
 

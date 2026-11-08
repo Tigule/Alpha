@@ -48,9 +48,7 @@ namespace MDL {
   }
 
   BOOL ReadBinVersion(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
-    VALIDATEBEGIN;
-    VALIDATE(status != 0);
-    VALIDATEEND;
+    VALIDATE2(status != 0);
     if (len == 4) {
       data.version = buf.GetUint();
       return 1;

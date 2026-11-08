@@ -12,7 +12,6 @@ static _D3DFORMAT s_depthFormat[4] = {D3DFMT_D16, D3DFMT_D24X8, D3DFMT_D24S8, D3
 static _D3DFORMAT s_colorFormat[4] = {D3DFMT_R5G6B5, D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8, D3DFMT_A2R10G10B10};
 
 BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
-  CGxFormat      fmt;
   D3DDISPLAYMODE dm;
   UINT           nModes;
   _D3DFORMAT     format;
@@ -28,16 +27,16 @@ BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
     format = s_colorFormat[i];
     nModes = d3d->GetAdapterModeCount(D3DADAPTER_DEFAULT, format);
     for (mode = 0; mode < nModes; ++mode) {
-      if (d3d->EnumAdapterModes(D3DADAPTER_DEFAULT, format, mode, &dm) < 0 || dm.Width < 640 || dm.Height < 480) {
+      if (d3d->EnumAdapterModes(D3DADAPTER_DEFAULT, format, mode, &dm) != D3D_OK || dm.Width < 640 || dm.Height < 480) {
         continue;
       }
 
+      CGxFormat fmt;
       memset(&fmt, 0, sizeof(fmt));
-      fmt.size.x = dm.Width;
-      fmt.size.y = dm.Height;
+      fmt.size = NTempest::C2iVector(dm.Width, dm.Height);
       fmt.apiSpecificModeID = mode;
       fmt.refreshRate = dm.RefreshRate;
-      formats.Add(1, &fmt);
+      *formats.New() = fmt;
     }
   }
 
@@ -171,8 +170,7 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   while (EnumDisplaySettingsA(dd.DeviceName, modeIndex, &dm)) {
     if (dm.dmPelsWidth >= 0x280 && dm.dmPelsHeight >= 0x1E0 && dm.dmBitsPerPel >= 0x10 && dm.dmDisplayFrequency >= 0x3C) {
       mode = modes.New();
-      mode->size.x = dm.dmPelsWidth;
-      mode->size.y = dm.dmPelsHeight;
+      mode->size = NTempest::C2iVector(dm.dmPelsWidth, dm.dmPelsHeight);
       mode->bpp = dm.dmBitsPerPel;
       mode->refreshRate = dm.dmDisplayFrequency;
     }

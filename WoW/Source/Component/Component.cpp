@@ -46,9 +46,7 @@ BOOL GetObjComponentInfo(
 
 bool ComponentApplyTabardTexture(HTEXCOMPONENT component, int eStyle, int eColor, int bStyle, int bColor, int b) {
   CTexComponent *componentptr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentptr);
-  VALIDATEEND;
+  VALIDATE2(componentptr);
 
   if (eStyle == componentptr->m_emblemStyle && eColor == componentptr->m_emblemColor && bStyle == componentptr->m_borderStyle &&
       bColor == componentptr->m_borderColor && b == componentptr->m_background)
@@ -87,9 +85,7 @@ void GetTabardBorderFileName(int section, int border, int color, char *buffer, i
 
 void ComponentRemoveTabardTexture(int sex, HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfo, int inventoryType) {
   CTexComponent *componentptr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentptr);
 
   if (displayInfo) {
     CStatus status;
@@ -108,9 +104,7 @@ bool CTexComponent::HasTabard() const {
 
 void ComponentForceTabardDraw(HTEXCOMPONENT component) {
   CTexComponent *componentptr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentptr);
   componentptr->m_flags |= 2;
   componentptr->m_dirtyFlags |= 0x60;
 }

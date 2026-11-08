@@ -7,7 +7,7 @@
 
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/Texture.h>
 
 #include <string.h>

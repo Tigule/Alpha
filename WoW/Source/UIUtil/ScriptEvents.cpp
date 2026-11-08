@@ -974,20 +974,7 @@ static void PortraitQueryCallback(int, const DWORDLONG &guid, LPVOID, bool grant
 }
 
 static int Script_SetPortraitTexture(lua_State *L) {
-  CSimpleTexture *texture;
-  {
-    CSimpleTexture *object;
-    if (lua_type(L, 1) != LUA_TTABLE) {
-      luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
-      object = 0;
-    } else {
-      lua_rawgeti(L, 1, 0);
-      object = (CSimpleTexture *)lua_touserdata(L, -1);
-      lua_pop(L, 1);
-      ASSERT(object);
-    }
-    texture = object;
-  }
+  CSimpleTexture *texture = (CSimpleTexture *)FrameScript_GetObjectThis(L);
   if (lua_isstring(L, 2)) {
     texture->SetTexture(0);
     DWORDLONG guid = Script_GetGUIDFromName(lua_tostring(L, 2));

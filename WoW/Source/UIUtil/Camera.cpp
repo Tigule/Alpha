@@ -20,7 +20,7 @@
 #include <FrameScript/FrameScript.h>
 #include "Object/ObjectClient/Object_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Base/Coordinate.h>
 #include <Base/Handle.h>
 #include <Base/Status.h>
@@ -908,9 +908,7 @@ float CGCamera::CollideCameraWithWorld(const NTempest::C3Vector &targetPosition)
 }
 
 void CGCamera::CalcThirdPerson(CGObject_C *target, DWORD timestamp) {
-  VALIDATEBEGIN;
-  VALIDATE(target);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(target);
   if (!((m_flags & 0x40) || FinishLoadingTarget(target))) {
     return;
   }
@@ -1018,9 +1016,7 @@ void CGCamera::CalcThirdPerson(CGObject_C *target, DWORD timestamp) {
 }
 
 void CGCamera::CalcFirstPerson(CGObject_C *target, DWORD timestamp) {
-  VALIDATEBEGIN;
-  VALIDATE(target);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(target);
 
   if ((m_flags & 0x40) || FinishLoadingTarget(target)) {
     float yaw = target->GetFacing();

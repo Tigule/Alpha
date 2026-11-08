@@ -13,7 +13,7 @@
 #include "Console/ConsoleClient.h"
 #include "ObjectAlloc/ObjectAllocTemplate.h"
 #include "Os/OsTime.h"
-#include "Net/NetClient/NetClient.h"
+#include "WowServices/WDataStore.h"
 
 #include <stdarg.h>
 #include <stdio.h>

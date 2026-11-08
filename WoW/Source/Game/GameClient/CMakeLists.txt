@@ -31,11 +31,6 @@ if(MSVC_VERSION EQUAL 1200)
     set(GAMECLIENT_PCH_FI /FIBase/Base.h /FIGx/Gx.h /FIMapDefs.h /FIWorldClient/World.h /FIWowConst.h /FIDayNight.h)
 
     get_target_property(GAMECLIENT_SOURCES GameClient SOURCES)
-    set(GAMECLIENT_YX Minimap.cpp PlayerName.cpp shadow.cpp WeaponTrails.cpp WorldText.cpp)
-    list(REMOVE_ITEM GAMECLIENT_SOURCES ${GAMECLIENT_YX})
-
-    set_source_files_properties(${GAMECLIENT_YX} PROPERTIES COMPILE_OPTIONS /YX)
-    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES vc60.pch)
     set_source_files_properties(${GAMECLIENT_SOURCES} PROPERTIES
         COMPILE_OPTIONS "${GAMECLIENT_PCH_FI};/YuDayNight.h;/Fp${GAMECLIENT_PCH}"
         OBJECT_DEPENDS ${GAMECLIENT_PCH})

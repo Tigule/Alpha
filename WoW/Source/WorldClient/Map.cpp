@@ -16,7 +16,7 @@
 
 #include "WorldCommon/WorldMath.h"
 
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Tempest/cfacet.h"
 
 #include <Model/CollisionData.h>
@@ -595,9 +595,9 @@ void CMap::VectorIntersectDY(const NTempest::C3Vector &p0, const NTempest::C3Vec
 
     scCollideList[scCollideCnt++] = sy;
     scCollideList[scCollideCnt++] = y + step;
-    y += step;
-    x = sy;
     edge += step * (150.0f / 36.0f);
+    x = sy;
+    y += step;
   }
 
   if (x != sRect.r) {

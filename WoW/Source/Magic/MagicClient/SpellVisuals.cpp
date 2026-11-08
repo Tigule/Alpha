@@ -18,7 +18,7 @@
 #include "DB/DBClient/AutoCode/SpellVisualPrecastTransitionsRec.h"
 #include "DB/DBClient/AutoCode/SpellVisualRec.h"
 #include "Client.h"
-#include "Object/ObjectClient/AnimStateCompiles.h"
+#include "Object/ObjectClient/AnimCompiles.h"
 #include "Object/ObjectClient/Unit_C.h"
 #include "Object/ObjectClient/Player_C.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
@@ -27,7 +27,7 @@
 #include "Services/SysMessage.h"
 #include "Services/Texture.h"
 #include <Os/OsTime.h>
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "SoundInterface/SoundInterface.h"
 #include "Tempest/c34matrix.h"
 #include "Tempest/caabox.h"
@@ -70,7 +70,7 @@ NODEDECL(BlizzardObject) {
 
   static Shard *AllocShard();
   static void   FreeShard(Shard * &shard);
-  static BOOL   ShardSeqFinished(LPVOID param);
+  static BOOL   ShardSeqFinished(LPVOID param) { return 0; }
 
   HMODEL              shardModel;
   DWORD               hWorldObject;
@@ -116,7 +116,7 @@ NODEDECL(LightningObject) {
   int                        spellID;
   BYTE                       forever;
 
-  LightningObject();
+  LightningObject() : refCount(1) {}
   ~LightningObject();
   bool Tick(UINT currentTime);
   void AddRef();
@@ -368,10 +368,6 @@ void BlizzardObject::Update() {
       FreeShard(shard);
     }
   }
-}
-
-BOOL BlizzardObject::ShardSeqFinished(LPVOID param) {
-  return 0;
 }
 
 static void ShardEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
@@ -653,9 +649,7 @@ static void PlayOneShotEffect(CGObject_C *object, int effectID, UNITEFFECTATTACH
 }
 
 void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster, UINT duration, UINT animDuration, bool wasProc) {
-  VALIDATEBEGIN;
-  VALIDATE(caster);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(caster);
 
   UnitCombatLogCastStart(id, caster->GetGUID());
 
@@ -704,9 +698,7 @@ void SpellVisualsHandleCastStart(int id, const SpellCast &cast, CGUnit_C *caster
 }
 
 void SpellVisualsHandleCastStop(int id, CGUnit_C *caster, BYTE status, BYTE reason) {
-  VALIDATEBEGIN;
-  VALIDATE(caster);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(caster);
 
   if (status == 2 && reason == 18) {
     caster->PendingPrecastInterrupt(id);
@@ -923,9 +915,9 @@ static void CreateLightningObj(
     UINT srcGuidSub = 0;
     for (int i = 0; i < numGuids; ++i) {
       LightningObject::Bolt &bolt = lightning->bolts[i];
-      bolt.srcGuidSub = LightningObject::Bolt::NULL_SUB;
-      bolt.dstGuidSub = LightningObject::Bolt::NULL_SUB;
       bolt.boltID = BADBOLT;
+      bolt.dstGuidSub = LightningObject::Bolt::NULL_SUB;
+      bolt.srcGuidSub = LightningObject::Bolt::NULL_SUB;
 
       CGObject_C *target = ClntObjMgrObjectPtr(guids[i], __FILE__, __LINE__);
       if (target && (target->IsA(TYPE_UNIT) || target->IsA(TYPE_GAMEOBJECT))) {
@@ -951,9 +943,6 @@ static void CreateLightningObj(
   }
 }
 
-LightningObject::LightningObject() : refCount(1) {
-}
-
 void SpellVisualsHandleSpellStart(
     int                            spellID,
     const SpellCast               &cast,
@@ -962,9 +951,7 @@ void SpellVisualsHandleSpellStart(
     bool                           ignoreAreaEffect,
     bool                           hits
 ) {
-  VALIDATEBEGIN;
-  VALIDATE(caster);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(caster);
   const SpellRec *srec = g_spellDB.GetRecord(spellID);
   if (!srec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);

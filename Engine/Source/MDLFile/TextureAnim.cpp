@@ -99,15 +99,9 @@ BOOL MDL::WriteTextureAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, 
 
 static UINT GetBinTexAnimSize(const MDLTEXANIMSECTION &section) {
   UINT size = 4;
-  if (section.transkeys.keys.Count()) {
-    UINT dataSize = section.transkeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + section.transkeys.keys.Count() * (4 + dataSize);
-  }
+  size += GetBinFloatKeyFramesSize(section.transkeys);
   size += GetBinQuatKeyFramesSize(section.rotkeys);
-  if (section.scalekeys.keys.Count()) {
-    UINT dataSize = section.scalekeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + section.scalekeys.keys.Count() * (4 + dataSize);
-  }
+  size += GetBinFloatKeyFramesSize(section.scalekeys);
   return size;
 }
 

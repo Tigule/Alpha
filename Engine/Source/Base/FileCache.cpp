@@ -200,9 +200,7 @@ void BaseFileFlush() {
 }
 
 void BaseFileRegisterUncachable(LPCSTR fileName) {
-  VALIDATEBEGIN;
-  VALIDATE(fileName);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fileName);
 
   s_critSect.Enter();
   if (!s_uncachableFiles.Ptr(fileName)) {
@@ -212,9 +210,7 @@ void BaseFileRegisterUncachable(LPCSTR fileName) {
 }
 
 void BaseFileUnregisterUncachable(LPCSTR fileName) {
-  VALIDATEBEGIN;
-  VALIDATE(fileName);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(fileName);
 
   s_critSect.Enter();
   if (s_uncachableFiles.Ptr(fileName)) {

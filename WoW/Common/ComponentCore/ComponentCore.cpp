@@ -2,7 +2,7 @@
 #include <Component/CharacterCustomization.h>
 
 #include <Base/Status.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/Texture.h>
 #include <Services/SysMessage.h>
 
@@ -11,7 +11,7 @@
 #include "DB/DBClient/AutoCode/ItemVisualEffectsRec.h"
 #include "DB/DBClient/AutoCode/ChrRacesRec.h"
 #include "DB/DBClient/AutoCode/HelmetGeosetVisDataRec.h"
-#include "Object/ObjectClient/AnimStateCompiles.h"
+#include "Object/ObjectClient/AnimCompiles.h"
 
 #include <string.h>
 #include <storm.h>
@@ -424,24 +424,22 @@ static void PasteOpaque(
 
   byteWidth = 4 * width;
   for (level = 0; level < levels; ++level) {
-    BYTE       *dstLine = (BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x;
-    const BYTE *srcLine = (const BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x;
-    UINT        row;
+    BYTE *dstLine = (BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x;
+    BYTE *srcLine = (BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x;
+    BYTE *done = srcLine + height * srcPitch;
 
-    for (row = 0; row < height; ++row) {
+    while (srcLine < done) {
       memcpy(dstLine, srcLine, byteWidth);
-      dstLine += dstPitch;
       srcLine += srcPitch;
+      dstLine += dstPitch;
     }
 
-    byteWidth = max(byteWidth >> 1, 4U);
-    height = max(height >> 1, 1U);
-    dstPos.x >>= 1;
-    dstPos.y >>= 1;
-    srcPos.x >>= 1;
-    srcPos.y >>= 1;
+    byteWidth = max(4U, byteWidth >> 1);
+    height = max(1U, height >> 1);
     dstPitch >>= 1;
     srcPitch >>= 1;
+    dstPos >>= 1;
+    srcPos >>= 1;
   }
 }
 
@@ -467,39 +465,29 @@ static void PasteTransparentOneBit(
   ASSERT(srcPitch);
 
   for (level = 0; level < levels; ++level) {
-    C4Pixel       *dstLine = (C4Pixel *)((BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x);
-    const C4Pixel *srcLine =
-        (const C4Pixel *)((const BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x);
-    UINT row;
+    BYTE *dstLine = (BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x;
+    BYTE *srcLine = (BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x;
+    BYTE *done = srcLine + height * srcPitch;
 
-    for (row = 0; row < height; ++row) {
-      C4Pixel       *dstPixel = dstLine;
-      const C4Pixel *srcPixel = srcLine;
-      UINT           column;
+    while (srcLine < done) {
+      UINT column;
 
       for (column = 0; column < width; ++column) {
-        if (srcPixel->a) {
-          dstPixel->b = srcPixel->b;
-          dstPixel->g = srcPixel->g;
-          dstPixel->r = srcPixel->r;
+        if (((UINT *)srcLine)[column] & 0xFF000000) {
+          ((UINT *)dstLine)[column] = (((UINT *)dstLine)[column] & 0xFF000000) | (((UINT *)srcLine)[column] & 0x00FFFFFF);
         }
-
-        ++dstPixel;
-        ++srcPixel;
       }
 
-      dstLine = (C4Pixel *)((BYTE *)dstLine + dstPitch);
-      srcLine = (const C4Pixel *)((const BYTE *)srcLine + srcPitch);
+      srcLine += srcPitch;
+      dstLine += dstPitch;
     }
 
-    width = max(width >> 1, 1U);
-    height = max(height >> 1, 1U);
-    dstPos.x >>= 1;
-    dstPos.y >>= 1;
-    srcPos.x >>= 1;
-    srcPos.y >>= 1;
-    dstPitch >>= 1;
+    width = max(1U, width >> 1);
+    height = max(1U, height >> 1);
     srcPitch >>= 1;
+    dstPitch >>= 1;
+    dstPos >>= 1;
+    srcPos >>= 1;
   }
 }
 
@@ -525,17 +513,16 @@ static void PasteTransparentFull(
   ASSERT(srcPitch);
 
   for (level = 0; level < levels; ++level) {
-    C4Pixel       *dstLine = (C4Pixel *)((BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x);
-    const C4Pixel *srcLine =
-        (const C4Pixel *)((const BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x);
-    UINT row;
+    BYTE *dstLine = (BYTE *)dstMips->mip[level] + dstPos.y * dstPitch + 4 * dstPos.x;
+    BYTE *srcLine = (BYTE *)srcMips->mip[level] + srcPos.y * srcPitch + 4 * srcPos.x;
+    BYTE *done = srcLine + height * srcPitch;
 
-    for (row = 0; row < height; ++row) {
-      C4Pixel       *dstPixel = dstLine;
-      const C4Pixel *srcPixel = srcLine;
-      UINT           column;
+    while (srcLine < done) {
+      UINT column;
 
       for (column = 0; column < width; ++column) {
+        C4Pixel *dstPixel = &((C4Pixel *)dstLine)[column];
+        const C4Pixel *srcPixel = &((const C4Pixel *)srcLine)[column];
         UINT alpha = srcPixel->a;
 
         if (alpha == 0xFF) {
@@ -547,23 +534,18 @@ static void PasteTransparentFull(
           dstPixel->g += (WORD)(alpha * (srcPixel->g - dstPixel->g)) >> 8;
           dstPixel->r += (WORD)(alpha * (srcPixel->r - dstPixel->r)) >> 8;
         }
-
-        ++dstPixel;
-        ++srcPixel;
       }
 
-      dstLine = (C4Pixel *)((BYTE *)dstLine + dstPitch);
-      srcLine = (const C4Pixel *)((const BYTE *)srcLine + srcPitch);
+      srcLine += srcPitch;
+      dstLine += dstPitch;
     }
 
-    width = max(width >> 1, 1U);
-    height = max(height >> 1, 1U);
-    dstPos.x >>= 1;
-    dstPos.y >>= 1;
-    srcPos.x >>= 1;
-    srcPos.y >>= 1;
-    dstPitch >>= 1;
+    width = max(1U, width >> 1);
+    height = max(1U, height >> 1);
     srcPitch >>= 1;
+    dstPitch >>= 1;
+    dstPos >>= 1;
+    srcPos >>= 1;
   }
 }
 
@@ -863,7 +845,11 @@ void CTexComponent::UpdateSection(CStatus *status, TEXCOMPONENT_SECTIONS section
 
   ASSERT(section < NUM_TEXCOMPONENT_SECTIONS);
 
-  if (!CompUtilGetSectionOffset(section, &x, &y) || !CompUtilGetSectionDimensions(section, &width, &height)) {
+  if (!CompUtilGetSectionOffset(section, &x, &y)) {
+    return;
+  }
+
+  if (!CompUtilGetSectionDimensions(section, &width, &height)) {
     return;
   }
 
@@ -974,16 +960,14 @@ BOOL CTexComponent::CheckPastingRules(TEXCOMPONENT_SECTIONS section, TEXCOMPONEN
   TEXCOMPONENT_LAYERS chestLayer;
   LAYERPRIORITY       chestPriority;
 
-  if (CompUtilItemSectionInfo(INDEX_TABARD_TYPE, TCS_LEGUPPER, &tabardLayer, &tabardPriority) &&
-      CompUtilItemSectionInfo(INDEX_BODY_TYPE, TCS_LEGUPPER, &bodyLayer, &bodyPriority) &&
-      CompUtilItemSectionInfo(INDEX_CHEST_TYPE, TCS_LEGUPPER, &chestLayer, &chestPriority) &&
-      ((layer == tabardLayer && priority == tabardPriority) || (layer == bodyLayer && priority == bodyPriority)) &&
-      m_sections[TCS_LEGUPPER].HasImage(chestLayer, chestPriority))
-  {
-    return 0;
+  if (!CompUtilItemSectionInfo(INDEX_TABARD_TYPE, TCS_LEGUPPER, &tabardLayer, &tabardPriority) ||
+      !CompUtilItemSectionInfo(INDEX_BODY_TYPE, TCS_LEGUPPER, &bodyLayer, &bodyPriority) ||
+      !CompUtilItemSectionInfo(INDEX_CHEST_TYPE, TCS_LEGUPPER, &chestLayer, &chestPriority)) {
+    return 1;
   }
 
-  return 1;
+  return !(((layer == tabardLayer && priority == tabardPriority) || (layer == bodyLayer && priority == bodyPriority)) &&
+           m_sections[TCS_LEGUPPER].HasImage(chestLayer, chestPriority));
 }
 
 void CTexComponent::BuildNakedPieces(CStatus *status, UINT race, UINT sex, UINT skinID, BOOL isNPC) {
@@ -1151,15 +1135,15 @@ static void UpdateComponentTexture(EGxTexCommand cmd, UINT w, UINT h, UINT d, UI
         component->CheckSections(1);
         component->UpdateSections(&status, 0);
       }
-      break;
+      return;
 
     case GxTex_Latch:
       texelStrideInBytes = 4 * w;
       texels = CTexturePiece::m_destImage->mip[mipLevel];
-      break;
+      return;
 
     case GxTex_Unlock:
-      break;
+      return;
   }
 }
 
@@ -1254,9 +1238,7 @@ void TexComponentAdd(
   ASSERT(playerSex < UNITSEX_LAST);
 
   CTexComponent *componentptr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentptr);
 
   if (!displayInfoRec ||
       !CompUtilItemSectionInfo(displayInfoRec, itemInventoryType, &numTextureComponents, sectionList, layerList, priorityList, &sectionArt))
@@ -1337,9 +1319,7 @@ int ObjComponentAdd(
 
 void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displayInfoRec, int itemInventoryType) {
   CTexComponent *componentptr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentptr);
 
   LAYERPRIORITY         priorityList[6];
   TEXCOMPONENT_LAYERS   layerList[6];
@@ -1368,9 +1348,7 @@ void TexComponentRemove(HTEXCOMPONENT component, const ItemDisplayInfoRec *displ
 
 void TexComponentChangeCharacterHead(HTEXCOMPONENT component, LPCSTR upperHead, LPCSTR lowerHead, UINT layer) {
   CTexComponent *componentptr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentptr);
 
   UINT uWidth;
   UINT uHeight;
@@ -1431,25 +1409,19 @@ void TexComponentRemoveSections(HTEXCOMPONENT component, const TEXCOMPONENT_SECT
 
 void TexComponentRemoveAllHolds(HTEXCOMPONENT component) {
   CTexComponent *componentPtr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentPtr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentPtr);
   componentPtr->RemoveHolds();
 }
 
 void TexComponentAddHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
   CTexComponent *componentPtr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentPtr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentPtr);
   componentPtr->AddHold(inventory, section);
 }
 
 void TexComponentRemoveHold(HTEXCOMPONENT component, INVENTORY_TYPES inventory, TEXCOMPONENT_SECTIONS section) {
   CTexComponent *componentPtr = (CTexComponent *)component;
-  VALIDATEBEGIN;
-  VALIDATE(componentPtr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(componentPtr);
   componentPtr->RemoveHold(inventory, section);
 }
 
@@ -1494,9 +1466,7 @@ HMODEL ObjComponentRemove(
     OBJREMOVECALLBACK callback,
     LPVOID            callbackParam
 ) {
-  VALIDATEBEGIN;
-  VALIDATE(charModel);
-  VALIDATEEND;
+  VALIDATE2(charModel);
 
   HMODEL savedSubComponent = 0;
   for (UINT componentLink = 0; componentLink < 36; ++componentLink) {

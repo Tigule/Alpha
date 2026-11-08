@@ -317,9 +317,7 @@ void EventSetMouseMode(MOUSEMODE mode, UINT holdButton) {
   HEVENTCONTEXT hContext;
   EvtContext   *context;
 
-  VALIDATEBEGIN;
-  VALIDATE(mode < MOUSE_MODES);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(mode < MOUSE_MODES);
 
   hContext = (HEVENTCONTEXT)PropGet(PROP_EVENTCONTEXT);
   context = EvtContext::GetTable().Lock((DWORD)hContext, 0, instanceLock, __FILE__, __LINE__);

@@ -126,13 +126,7 @@ int CTgaFile::ReadColorMappedImage(UINT flags) {
 }
 
 int CTgaFile::LoadImageData(UINT flags) {
-  VALIDATEBEGIN;
-  VALIDATE(m_image == 0);
-  if (0) {
-  validatefailed:
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return 1;
-  }
+  VALIDATE2RETURN(m_image == 0, 1);
 
   if (!m_file) {
     SErrSetLastError(0xF720007E);
@@ -604,9 +598,7 @@ BOOL CTgaFile::Write(LPCSTR path) {
   int     success;
   DWORD   byteswritten;
 
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
+  VALIDATE2(path);
 
   if (!m_image) {
     SErrSetLastError(0xF7200081);

@@ -2647,10 +2647,8 @@ namespace OsNet {
   }
 
   BOOL TCPNET::GetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user) {
-    VALIDATEBEGIN;
-    VALIDATE(hostNameList);
-    VALIDATE(hostAddrProc);
-    VALIDATEEND;
+    VALIDATE2(hostNameList);
+    VALIDATE2(hostAddrProc);
 
     TCPHOSTADDRINFO *info = NEW(TCPHOSTADDRINFO);
     info->m_hostNameList = (char *)ALLOC(SStrLen(hostNameList) + 1);
@@ -3118,9 +3116,7 @@ namespace OsNet {
   }
 
   void UDPCONN::SendTo(LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray) {
-    VALIDATEBEGIN;
-    VALIDATE(addrArray);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(addrArray);
 
     while (addrCount) {
       --addrCount;
@@ -3312,11 +3308,8 @@ namespace OsNet {
   }
 
   OS_SEND TCPCONN::SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) {
-    fd_set  write_fds;
     DWORD   startTime;
-    timeval tv;
     OUTPUT *poutput;
-    SEvent  event(0, 0);
 
     *bytesSent = 0;
     m_lock.Enter();
@@ -3328,6 +3321,7 @@ namespace OsNet {
     startTime = OsGetAsyncTimeMs();
     poutput = m_outputList.Tail();
     while (poutput) {
+      SEvent event(0, 0);
       poutput->m_completionEvent = &event;
       m_lock.Leave();
       if (event.Wait(timeout)) {
@@ -3378,6 +3372,8 @@ namespace OsNet {
         return OS_SEND_ERROR;
       }
 
+      fd_set  write_fds;
+      timeval tv;
       FD_ZERO(&write_fds);
       FD_SET(m_sock, &write_fds);
       timeout += startTime - OsGetAsyncTimeMs();
@@ -3945,34 +3941,26 @@ void OsNetPump(DWORD timeout) {
 }
 
 HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEEND;
+  VALIDATE2(conn);
 
   ((OsNet::NETCONN *)conn)->IncRef();
   return conn;
 }
 
 void OsNetConnFreeHandle(HNETCONN__ *conn) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->DecRef();
 }
 
 void OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->ConnAddr(connAddr);
 }
 
 void OsNetConnClose(HNETCONN__ *conn) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->Close();
 }
@@ -3985,25 +3973,19 @@ int OsNetConnIsClosed(HNETCONN__ *conn) {
 }
 
 void OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->SetEventProc(eventProc);
 }
 
 void OsNetConnSetUser(HNETCONN__ *conn, LPVOID user) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->SetUser(user);
 }
 
 void OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, LPVOID user) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->SetEventProcAndUser(eventProc, user);
 }
@@ -4016,9 +3998,7 @@ void OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID 
 }
 
 void OsLoopConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::LOOPCONN *)conn)->Send(data, bytes);
 }
@@ -4046,43 +4026,31 @@ void OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID us
 }
 
 void OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNFULL *)conn)->Send(data, bytes);
 }
 
 OS_SEND OsTcpConnSendSync(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) {
-  if (!conn) {
-    FATALERROR(("conn"));
-    SErrSetLastError(ERROR_INVALID_PARAMETER);
-    return OS_SEND_ERROR;
-  }
+  VALIDATE2RETURN(conn, OS_SEND_ERROR);
 
   return ((OsNet::NETCONNFULL *)conn)->SendSync(data, bytes, bytesSent, timeout);
 }
 
 void OsTcpConnSetNagle(HNETCONN__ *conn, int enable) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNFULL *)conn)->SetNagle(enable);
 }
 
 int OsTcpConnSetWindow(HNETCONN__ *conn, DWORD size) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEEND;
+  VALIDATE2(conn);
 
   return ((OsNet::NETCONNFULL *)conn)->SetWindow(size);
 }
 
 void OsTcpConnSetRecvTimeout(HNETCONN__ *conn, DWORD timeoutMs) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNFULL *)conn)->SetRecvTimeout(timeoutMs);
 }
@@ -4099,9 +4067,7 @@ void OsUdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC 
 }
 
 void OsUdpConnSendTo(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNLESS *)conn)->SendTo(data, bytes, addrCount, addrArray);
 }
@@ -4228,25 +4194,19 @@ void OsFileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int 
 }
 
 BOOL OsFileConnRead(HNETCONN__ *conn, DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEEND;
+  VALIDATE2(conn);
 
   return ((OsNet::FILECONN *)conn)->Read(pos, buffer, bytes, operationId);
 }
 
 BOOL OsFileConnWrite(HNETCONN__ *conn, DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEEND;
+  VALIDATE2(conn);
 
   return ((OsNet::FILECONN *)conn)->Write(pos, data, bytes, operationId);
 }
 
 void OsFileConnClose(HNETCONN__ *conn) {
-  VALIDATEBEGIN;
-  VALIDATE(conn);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(conn);
 
   ((OsNet::FILECONN *)conn)->Close();
 }

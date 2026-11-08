@@ -301,9 +301,7 @@ UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name) {
   UINT             heapId;
   CObjectHeapList *heap;
 
-  VALIDATEBEGIN;
-  VALIDATE(objectSize > 0);
-  VALIDATEEND;
+  VALIDATE2(objectSize > 0);
 
   s_globalsLock.Enter();
   ASSERT(globals->objects.Count() < MAX_HEAPS);

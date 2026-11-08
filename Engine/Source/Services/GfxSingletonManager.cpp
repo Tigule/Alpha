@@ -100,9 +100,7 @@ CSplineParticleEmitter *ParticleSystemManager::CreateSplineEmitter() {
 }
 
 CParticleEmitter2 *ParticleSystemManager::DuplicateEmitter(const CParticleEmitter2 *emitter, int deep) {
-  VALIDATEBEGIN;
-  VALIDATE(emitter != 0);
-  VALIDATEEND;
+  VALIDATE2(emitter != 0);
 
   CParticleEmitter2 *newEmitter = emitter->Clone(deep);
   newEmitter->AddRef();
@@ -161,9 +159,7 @@ void ParticleSystemManager::RenderEmitters() {
 }
 
 void ParticleSystemManager::DeleteModelEmitter(CParticleEmitter *emitter) {
-  VALIDATEBEGIN;
-  VALIDATE(emitter != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(emitter != 0);
 
   emitter->DecRef();
   UINT index = modelEmitters.Count();
@@ -178,9 +174,7 @@ void ParticleSystemManager::DeleteModelEmitter(CParticleEmitter *emitter) {
 }
 
 void ParticleSystemManager::DeleteEmitter2(CParticleEmitter2 *emitter) {
-  VALIDATEBEGIN;
-  VALIDATE(emitter != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(emitter != 0);
 
   emitter->DecRef();
   UINT index = emitter2s.Count();
@@ -233,9 +227,7 @@ CRibbonEmitter *RibbonManager::CreateEmitter() {
 }
 
 CRibbonEmitter *RibbonManager::DuplicateEmitter(const CRibbonEmitter *emitter) {
-  VALIDATEBEGIN;
-  VALIDATE(emitter != 0);
-  VALIDATEEND;
+  VALIDATE2(emitter != 0);
 
   CRibbonEmitter *newEmitter = emitter->Clone();
   newEmitter->AddRef();
@@ -274,9 +266,7 @@ void RibbonManager::RenderEmitters() {
 }
 
 void RibbonManager::DeleteEmitter(CRibbonEmitter *emitter) {
-  VALIDATEBEGIN;
-  VALIDATE(emitter != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(emitter != 0);
 
   emitter->DecRef();
 

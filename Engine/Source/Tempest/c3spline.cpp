@@ -372,48 +372,31 @@ namespace NTempest {
     UINT  segment;
     float segt;
     ArclengthSegT(t, segment, segt);
-    Evaluate(segment, segt, *(C3Vector *)&frame.d0);
+    Evaluate(segment, segt, *frame.Row3AsVec3());
 
     C3Vector linearFacing = points[segment + 2] - points[segment + 1];
-    float    magnitude = linearFacing.Mag();
-    if (CMath::fabs_(magnitude) >= 0.00000023841858f) {
-      linearFacing *= 1.0f / magnitude;
-    }
+    linearFacing.SafeNormalize();
 
-    if (splineMode != MODE_LINEAR) {
+    if (splineMode == MODE_LINEAR) {
+      *frame.Row0AsVec3() = linearFacing;
+    } else {
       C3Vector newFacing;
       EvaluateDer1(segment, segt, newFacing);
-      magnitude = newFacing.Mag();
-      if (CMath::fabs_(magnitude) >= 0.01f) {
+      float magnitude = newFacing.Mag();
+      if (!(CMath::fabs_(magnitude) < 0.01f)) {
         newFacing *= 1.0f / magnitude;
-        if (C3Vector::Dot(newFacing, linearFacing) >= 0.5f) {
-          frame.a0 = newFacing.x;
-          frame.a1 = newFacing.y;
-          frame.a2 = newFacing.z;
+        if (C3Vector::Dot(linearFacing, newFacing) < 0.5f) {
+          *frame.Row0AsVec3() = linearFacing;
         } else {
-          frame.a0 = linearFacing.x;
-          frame.a1 = linearFacing.y;
-          frame.a2 = linearFacing.z;
+          *frame.Row0AsVec3() = newFacing;
         }
       }
-    } else {
-      frame.a0 = linearFacing.x;
-      frame.a1 = linearFacing.y;
-      frame.a2 = linearFacing.z;
     }
 
-    frame.b0 = -frame.a1;
-    frame.b1 = frame.a0;
-    frame.b2 = 0.0f;
-    C2Vector &binormal = *(C2Vector *)&frame.b0;
-    magnitude = binormal.Mag();
-    if (CMath::fabs_(magnitude) >= 0.00000023841858f) {
-      binormal /= magnitude;
-    }
-
-    frame.c0 = -frame.b1 * frame.a2;
-    frame.c1 = frame.b0 * frame.a2;
-    frame.c2 = frame.b1 * frame.a0 - frame.b0 * frame.a1;
+    frame.Row1AsVec3()->Set(-frame.a1, frame.a0, 0.0f);
+    C2Vector &binormal = *(C2Vector *)frame.Row1AsVec3();
+    binormal.SafeNormalize();
+    *frame.Row2AsVec3() = C3Vector::Cross(*frame.Row0AsVec3(), binormal);
   }
 
   void C3Spline_CatmullRom::ISetPoints(const C3Vector *pts, UINT count) {

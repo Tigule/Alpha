@@ -266,7 +266,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   BOOL              OnLootItemNotify(CDataStore *msg);
   virtual void      LootAnimEndHandler();
   BOOL              CanLoot(CGUnit_C *unitPtr);
-  virtual DWORDLONG GetUnitBeingLooted() const;
+  virtual DWORDLONG GetUnitBeingLooted() const { return m_lootingUnit; }
   const DWORDLONG  &GetUnitLootingSent() const;
   UINT              GetPlayerAnimState();
   void              SheatheWeapon(bool sheathe);
@@ -339,7 +339,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual void      PlayFoleySound() const;
   virtual void      HandleSpellEventSound();
   void              PlayVocalMacro(int category);
-  virtual void      PlayDeathThudCameraShake() const;
+  virtual void      PlayDeathThudCameraShake() const {}
 
  protected:
   virtual UINT GetImpactType() const;
@@ -515,9 +515,9 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static UINT             GetLootItem(UINT slot);
   static UINT             GetLootItemDisplayID(UINT slot);
   static UINT             GetLootItemQuantity(UINT slot);
-  virtual float           GetBlockChance() const;
-  virtual float           GetDodgeChance() const;
-  virtual float           GetParryChance() const;
+  virtual float           GetBlockChance() const { return m_plyr->blockPercentage; }
+  virtual float           GetDodgeChance() const { return m_plyr->dodgePercentage; }
+  virtual float           GetParryChance() const { return m_plyr->parryPercentage; }
 
  protected:
   void CheckWeaponRankChange() const;

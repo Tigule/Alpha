@@ -230,6 +230,10 @@ namespace NTempest {
     return *this;
   }
 
+  inline C33Matrix operator+(const C33Matrix &l, const C33Matrix &r) {
+    return C33Matrix(l.a0 + r.a0, l.a1 + r.a1, l.a2 + r.a2, l.b0 + r.b0, l.b1 + r.b1, l.b2 + r.b2, l.c0 + r.c0, l.c1 + r.c1, l.c2 + r.c2);
+  }
+
   inline C33Matrix operator*(const C33Matrix &l, float a) {
     return C33Matrix(l.a0 * a, l.a1 * a, l.a2 * a, l.b0 * a, l.b1 * a, l.b2 * a, l.c0 * a, l.c1 * a, l.c2 * a);
   }

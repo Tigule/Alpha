@@ -1,6 +1,8 @@
 #ifndef ENGINE_SOURCE_FRAME_CSIMPLEEDITBOX_H
 #define ENGINE_SOURCE_FRAME_CSIMPLEEDITBOX_H
 
+#include "Event/CMouseEvent.h"
+#include "Event/CObserver.h"
 #include "Frame/CSimpleFrame.h"
 #include "Frame/CSimpleRender.h"
 #include "Tempest/crect.h"
@@ -130,6 +132,8 @@ class CSimpleEditBox : public CSimpleFrame {
     if (m_onEnterPressed) {
       FrameScript_Execute(m_onEnterPressed, this);
     }
+
+    DispatchAction(EVENT_ENTER);
   }
 
   void SetOnEscapePressedScript(LPCSTR source) {
@@ -142,6 +146,8 @@ class CSimpleEditBox : public CSimpleFrame {
     if (m_onEscapePressed) {
       FrameScript_Execute(m_onEscapePressed, this);
     }
+
+    DispatchAction(EVENT_ESCAPE);
   }
 
   void SetOnSpacePressedScript(LPCSTR source) {
@@ -154,6 +160,8 @@ class CSimpleEditBox : public CSimpleFrame {
     if (m_onSpacePressed) {
       FrameScript_Execute(m_onSpacePressed, this);
     }
+
+    DispatchAction(EVENT_SPACE);
   }
 
   void SetOnTabPressedScript(LPCSTR source) {
@@ -166,6 +174,8 @@ class CSimpleEditBox : public CSimpleFrame {
     if (m_onTabPressed) {
       FrameScript_Execute(m_onTabPressed, this);
     }
+
+    DispatchAction(EVENT_TAB);
   }
 
   void SetOnTextChangedScript(LPCSTR source) {
@@ -178,6 +188,8 @@ class CSimpleEditBox : public CSimpleFrame {
     if (m_onTextChanged) {
       FrameScript_Execute(m_onTextChanged, this);
     }
+
+    DispatchAction(EVENT_CHANGED);
   }
 
   void SetOnTextSetScript(LPCSTR source) {
@@ -190,6 +202,8 @@ class CSimpleEditBox : public CSimpleFrame {
     if (m_onTextSet) {
       FrameScript_Execute(m_onTextSet, this);
     }
+
+    DispatchAction(EVENT_SET);
   }
 
   static void SetKeyboardFocus(CSimpleEditBox *focus);
@@ -260,7 +274,14 @@ class CSimpleEditBox : public CSimpleFrame {
     m_actions[action].obj = observer;
   }
 
-  void DispatchAction(int action);
+  void DispatchAction(int action) {
+    if (m_actions[action].obj) {
+      CEvent evt;
+      evt.SetId(m_actions[action].id);
+      evt.SetParam(this);
+      m_actions[action].obj->OnEvent(evt);
+    }
+  }
   void CreateClauseHighlight();
   void CreateCandidatesFrame();
   void ShowCandidates();

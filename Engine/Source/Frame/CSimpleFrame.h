@@ -257,13 +257,10 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
       return this;
     }
 
-    CSimpleFrame *frame = m_parent;
-    while (frame) {
+    for (CSimpleFrame *frame = m_parent; frame; frame = frame->m_parent) {
       if (frame->IsToplevel()) {
         return frame;
       }
-
-      frame = frame->m_parent;
     }
 
     return 0;

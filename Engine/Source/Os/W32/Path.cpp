@@ -76,10 +76,8 @@ BOOL OsGetModuleName(DWORD moduleId, char *buffer, DWORD chars) {
 }
 
 BOOL OsSetModuleHandle(DWORD moduleId, HINSTANCE__ *moduleHandle) {
-  VALIDATEBEGIN;
-  VALIDATE(moduleId);
-  VALIDATE(moduleHandle);
-  VALIDATEEND;
+  VALIDATE2(moduleId);
+  VALIDATE2(moduleHandle);
 
   for (UINT i = 0; i < 8; ++i) {
     if (!s_modules[i].m_handle || s_modules[i].m_id == moduleId) {

@@ -85,7 +85,6 @@ struct LOGBASE {
 
 struct DAMAGELOGBASE : public LOGBASE {
   DAMAGELOGBASE(DWORDLONG attacker, DWORDLONG victim);
-  DAMAGELOGBASE(const DAMAGELOGBASE &other);
 
   DWORDLONG  attacker;
   DWORDLONG  victim;
@@ -250,26 +249,6 @@ struct PARTYKILLLOG : public LOGBASE {
   virtual void PI(CDataStore &msg, int debug) const;
   virtual void UI(CDataStore &msg);
 };
-
-inline DAMAGELOGBASE::DAMAGELOGBASE(const DAMAGELOGBASE &other)
-    : LOGBASE(other),
-      attacker(other.attacker),
-      victim(other.victim),
-      intellectBonus(other.intellectBonus),
-      DPSScaler(other.DPSScaler),
-      modDamageTaken(other.modDamageTaken),
-      modDamageDone(other.modDamageDone),
-      scaledDamage(other.scaledDamage),
-      netDamageMultiplier(other.netDamageMultiplier),
-      maxDamageReduction(other.maxDamageReduction),
-      scaledArmorReduction(other.scaledArmorReduction),
-      hitRollFloat(other.hitRollFloat),
-      hitRollNeededFloat(other.hitRollNeededFloat),
-      critRollFloat(other.critRollFloat),
-      critRollNeededFloat(other.critRollNeededFloat),
-      flags(other.flags),
-      dmg(other.dmg) {
-}
 
 inline DAMAGELOGBASE::DAMAGELOGBASE(DWORDLONG attacker, DWORDLONG victim)
     : attacker(attacker),

@@ -218,12 +218,12 @@ namespace Storm {
     BOOL        IsReopenedArchive(HSARCHIVE archive);
     FILEREC    *GetFilePtr(HSFILE hFile);
     int         ReleaseFilePtr(FILEREC *file);
-    void        AddArchiveRef(ARCHIVEREC *archive);
-    void        AddFileRef(FILEREC *file);
-    void        AddStreamRef(AUDIOSTREAM *stream);
-    void        RemoveArchiveRef(ARCHIVEREC *archive);
-    void        RemoveFileRef(FILEREC *file);
-    void        RemoveStreamRef(AUDIOSTREAM *stream);
+    inline void AddArchiveRef(ARCHIVEREC *archive);
+    inline void AddFileRef(FILEREC *file);
+    inline void AddStreamRef(AUDIOSTREAM *stream);
+    inline void RemoveArchiveRef(ARCHIVEREC *archive);
+    inline void RemoveFileRef(FILEREC *file);
+    inline void RemoveStreamRef(AUDIOSTREAM *stream);
     int         s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, HSARCHIVE *handle);
 
     struct UseGlob {
@@ -373,14 +373,14 @@ static const _AUTHCOMPANYINFO s_authcompany[1] = {
 typedef LIST(SFileArchiveRecData) SFileArchiveRecList;
 typedef LIST(SFileRecData) SFileRecList;
 
-Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
+inline Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
   Storm::SFile::RemoveFileRef(file);
   if (soundbuffer && soundbufferlocal) {
     soundbuffer->Release();
   }
 }
 
-REQUEST::~REQUEST() {
+inline REQUEST::~REQUEST() {
   Storm::SFile::RemoveFileRef(file);
   Storm::SFile::RemoveStreamRef(stream);
 }
@@ -1227,11 +1227,7 @@ static DWORD UpdateAudioStreamPos(SFileAudioStreamData *curr) {
 }
 
 static void CheckAudioStreams(int &parent_header) {
-  DWORD  timeoffset;
-  LPVOID buffer;
-  DWORD  bytes;
-  DWORD  maxoffset;
-  DWORD  WAVECHUNKSIZE;
+  DWORD WAVECHUNKSIZE;
 
   (void)parent_header;
   if (Storm::SFile::s_closingDirectSound || Storm::SFile::s_streamlist.IsEmpty()) {
@@ -1243,124 +1239,92 @@ static void CheckAudioStreams(int &parent_header) {
     WAVECHUNKSIZE = glob->WAVECHUNKSIZE;
   }
   Storm::SFile::s_streamlock.Enter();
-  ITERATELIST(SFileAudioStreamData, Storm::SFile::s_streamlist, stream) {
-    {
-      Storm::SFile::FilePtrLocked    fileptr((HSFILE)stream->file);
-      SFileRecData                  *file = fileptr.operator->();
-      Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)file->archive);
+  ITERATELIST(SFileAudioStreamData, Storm::SFile::s_streamlist, curr) {
+    Storm::SFile::FilePtrLocked    fileptr((HSFILE)curr->file);
+    Storm::SFile::ArchivePtrLocked archiveptr((HSARCHIVE)curr->file->archive);
 
-      if (stream->fillstatus == 3 || (stream->fillstatus == 2 && file->location >= stream->waveheadersize + stream->wavedatasize)) {
-        if (stream->loop) {
-          file->location = stream->waveheadersize;
-          stream->writecursor = 0;
-          stream->bytespastend = 0;
-        } else {
-          DWORD playpos = UpdateAudioStreamPos(stream);
-          if (playpos != 0xFFFFFFFF) {
-            if (stream->playcursor >= stream->wavedatasize) {
-              stream->soundbuffer->Stop();
-              stream->fillstatus = 4;
-            } else {
-              DWORD soundoffset = stream->nextwrite;
-              if ((playpos - soundoffset) % stream->soundbuffersize >= WAVECHUNKSIZE) {
-                DWORD endbytes = stream->soundbuffersize - soundoffset;
-                if (endbytes < WAVECHUNKSIZE) {
-                  SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->soundbuffersize - curr->nextwrite >= WAVECHUNKSIZE", TRUE, 1);
-                }
-                bytes = WAVECHUNKSIZE;
-                if (bytes > endbytes) {
-                  bytes = endbytes;
-                }
-                if (bytes != WAVECHUNKSIZE) {
-                  SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "bytes == WAVECHUNKSIZE", TRUE, 1);
-                }
-
-                buffer = NULL;
-                if (stream->soundbuffer->Lock(soundoffset, bytes, &buffer, &bytes, NULL, NULL, 0) >= 0)
-                {
-                  if (buffer && bytes) {
-                    memset(buffer, stream->fillvalue, bytes);
-                  }
-                  stream->soundbuffer->Unlock(buffer, bytes, NULL, 0);
-                  stream->writecursor += bytes;
-                  stream->bytespastend += bytes;
-                  stream->nextwrite += bytes;
-                  if (stream->nextwrite >= stream->soundbuffersize) {
-                    stream->nextwrite -= stream->soundbuffersize;
-                  }
-                }
-              }
-              stream->fillstatus = 3;
+    if (curr->fillstatus == 3 || (curr->fillstatus == 2 && curr->file->location >= curr->wavedatasize + curr->waveheadersize)) {
+      if (curr->loop) {
+        curr->file->location = curr->waveheadersize;
+        curr->writecursor = 0;
+        curr->bytespastend = 0;
+      } else {
+        DWORD playpos = UpdateAudioStreamPos(curr);
+        if (playpos == 0xFFFFFFFF)
+          continue;
+        if (curr->playcursor >= curr->wavedatasize) {
+          curr->soundbuffer->Stop();
+          curr->fillstatus = 4;
+          continue;
+        }
+        if ((playpos - curr->nextwrite) % curr->soundbuffersize >= WAVECHUNKSIZE) {
+          ASSERT(curr->soundbuffersize - curr->nextwrite >= WAVECHUNKSIZE);
+          DWORD  lockbytes = min(WAVECHUNKSIZE, curr->soundbuffersize - curr->nextwrite);
+          LPVOID buffer = NULL;
+          DWORD  bytes = lockbytes;
+          ASSERT(bytes == WAVECHUNKSIZE);
+          if (curr->soundbuffer->Lock(curr->nextwrite, lockbytes, &buffer, &bytes, NULL, NULL, 0) >= 0) {
+            memset(buffer, curr->fillvalue, bytes);
+            curr->soundbuffer->Unlock(buffer, bytes, NULL, 0);
+            curr->writecursor += bytes;
+            curr->bytespastend += bytes;
+            curr->nextwrite += bytes;
+            if (curr->nextwrite >= curr->soundbuffersize) {
+              curr->nextwrite -= curr->soundbuffersize;
             }
           }
         }
+        curr->fillstatus = 3;
       }
+    }
 
-      if (stream->fillstatus == 2) {
-        DWORD playpos = UpdateAudioStreamPos(stream);
-        if (playpos != 0xFFFFFFFF && (playpos - stream->nextwrite) % stream->soundbuffersize >= WAVECHUNKSIZE) {
-          bytes = stream->soundbuffersize - stream->nextwrite;
-          if (bytes < WAVECHUNKSIZE) {
-            SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "curr->soundbuffersize - curr->nextwrite >= WAVECHUNKSIZE", TRUE, 1);
-          }
-          if (bytes > WAVECHUNKSIZE) {
-            bytes = WAVECHUNKSIZE;
-          }
-          DWORD remaining = stream->waveheadersize + stream->wavedatasize - file->location;
-          if (bytes > remaining) {
-            bytes = remaining;
-          }
-          if (g_opt.alignstreamingwavedata) {
-            DWORD remainder = (file->archive->sectorsize - 1) & (file->location + bytes);
-            if (remainder && remainder < bytes) {
-              bytes -= remainder;
-            }
-          }
-          IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, stream->nextwrite, stream, bytes, 0, 0, NULL, 1, 0, NULL);
-          file->location += bytes;
-          stream->nextwrite += WAVECHUNKSIZE;
-          if (stream->nextwrite >= stream->soundbuffersize) {
-            stream->nextwrite -= stream->soundbuffersize;
-          }
-        }
-      } else if (stream->fillstatus == 0) {
-        maxoffset = stream->wavedatasize - stream->startingoffset;
-        if (maxoffset > stream->soundbuffersize) {
-          maxoffset = stream->soundbuffersize;
-        }
-        file->location = stream->waveheadersize + stream->startingoffset;
-
-        DWORD offset = 0;
-        timeoffset = 0;
+    if (curr->fillstatus == 2) {
+      DWORD playpos = UpdateAudioStreamPos(curr);
+      if (playpos == 0xFFFFFFFF)
+        continue;
+      if ((playpos - curr->nextwrite) % curr->soundbuffersize >= WAVECHUNKSIZE) {
+        ASSERT(curr->soundbuffersize - curr->nextwrite >= WAVECHUNKSIZE);
+        DWORD bytes = min(WAVECHUNKSIZE, curr->soundbuffersize - curr->nextwrite);
+        bytes = min(bytes, curr->wavedatasize + curr->waveheadersize - curr->file->location);
         if (g_opt.alignstreamingwavedata) {
-          bytes = WAVECHUNKSIZE;
-          if (bytes > maxoffset) {
-            bytes = maxoffset;
-          }
-          DWORD remainder = (file->archive->sectorsize - 1) & (file->location + bytes);
+          DWORD remainder = (curr->file->archive->sectorsize - 1) & (curr->file->location + bytes);
           if (remainder && remainder < bytes) {
             bytes -= remainder;
           }
-          IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, 0, stream, bytes, 0, 0, NULL, 1, 0, NULL);
-          file->location += bytes;
-          offset = bytes;
-          timeoffset = 1;
         }
-
-        while (offset < maxoffset) {
-          bytes = maxoffset - offset;
-          if (bytes > WAVECHUNKSIZE) {
-            bytes = WAVECHUNKSIZE;
-          }
-          IssueRequest(file, file->location, NULL, NULL, stream->soundbuffer, offset, stream, bytes, timeoffset, 0, NULL, 1, 0, NULL);
-          file->location += bytes;
-          timeoffset++;
-          offset += WAVECHUNKSIZE;
+        IssueRequest(curr->file, curr->file->location, NULL, NULL, curr->soundbuffer, curr->nextwrite, curr, bytes, 0, 0, NULL, 1, 0, NULL);
+        curr->file->location += bytes;
+        curr->nextwrite += WAVECHUNKSIZE;
+        if (curr->nextwrite >= curr->soundbuffersize) {
+          curr->nextwrite -= curr->soundbuffersize;
         }
-
-        stream->fillstatus = 1;
-        stream->nextwrite = offset % stream->soundbuffersize;
       }
+    } else if (curr->fillstatus == 0) {
+      DWORD offset = 0;
+      DWORD maxoffset = min(curr->soundbuffersize, curr->wavedatasize - curr->startingoffset);
+      curr->file->location = curr->waveheadersize + curr->startingoffset;
+
+      DWORD timeoffset = 0;
+      if (g_opt.alignstreamingwavedata) {
+        DWORD bytes = min(WAVECHUNKSIZE, maxoffset);
+        DWORD remainder = (curr->file->archive->sectorsize - 1) & (curr->file->location + bytes);
+        if (remainder && remainder < bytes) {
+          bytes -= remainder;
+        }
+        IssueRequest(curr->file, curr->file->location, NULL, NULL, curr->soundbuffer, 0, curr, bytes, timeoffset++, 0, NULL, 1, 0, NULL);
+        curr->file->location += bytes;
+        offset = bytes;
+      }
+
+      while (offset < maxoffset) {
+        DWORD bytes = min(WAVECHUNKSIZE, maxoffset - offset);
+        IssueRequest(curr->file, curr->file->location, NULL, NULL, curr->soundbuffer, offset, curr, bytes, timeoffset++, 0, NULL, 1, 0, NULL);
+        curr->file->location += bytes;
+        offset += WAVECHUNKSIZE;
+      }
+
+      curr->fillstatus = 1;
+      curr->nextwrite = offset % curr->soundbuffersize;
     }
   }
   Storm::SFile::s_streamlock.Leave();
@@ -1935,18 +1899,21 @@ done:
 }
 
 static int FindChunk(HSFILE handle, DWORD ckid, CKINFO *pck) {
-  DWORD ckhdr[2];
+  struct {
+    DWORD ckid;
+    DWORD size;
+  } ckhdr;
 
   for (;;) {
-    if (!SFileReadFile(handle, ckhdr, sizeof(ckhdr), NULL, NULL)) {
+    if (!SFileReadFile(handle, &ckhdr, sizeof(ckhdr), NULL, NULL)) {
       return FALSE;
     }
-    if (ckhdr[0] == ckid) {
-      pck->size = ckhdr[1];
+    if (ckhdr.ckid == ckid) {
+      pck->size = ckhdr.size;
       pck->offset = SFileSetFilePointer(handle, 0, NULL, FILE_CURRENT);
       return pck->offset != 0xFFFFFFFF;
     }
-    if (SFileSetFilePointer(handle, ckhdr[1], NULL, FILE_CURRENT) == 0xFFFFFFFF) {
+    if (SFileSetFilePointer(handle, ckhdr.size, NULL, FILE_CURRENT) == 0xFFFFFFFF) {
       return FALSE;
     }
   }
@@ -3426,9 +3393,7 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     }
     return TRUE;
   }
-  VALIDATEBEGIN;
-  VALIDATE(buffer);
-  VALIDATEEND;
+  VALIDATE2(buffer);
 
   if (fileptr->handle != INVALID_HANDLE_VALUE && !overlapped) {
     return ReadFileWin32(fileptr, 0xFFFFFFFF, buffer, bytestoread, bytesread);
@@ -3657,9 +3622,7 @@ extern "C" void APIENTRY SFileSetPlatform(DWORD platformId) {
 }
 
 extern "C" BOOL APIENTRY SFileUnloadFile(LPVOID buffer) {
-  VALIDATEBEGIN;
-  VALIDATE(buffer);
-  VALIDATEEND;
+  VALIDATE2(buffer);
   FREE(buffer);
   return TRUE;
 }

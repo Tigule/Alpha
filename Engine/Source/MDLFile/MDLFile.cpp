@@ -204,9 +204,7 @@ static BOOL IWriteMdlFile(LPCSTR path, const MDLDATA &mdldata, CMDLStatus *statu
 }
 
 void MDLFileSetDefaultWriteFormat(LPCSTR extension) {
-  VALIDATEBEGIN;
-  VALIDATE(extension);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(extension);
   s_defaultWriteFormat = DiscoverFileType(extension);
 }
 
@@ -318,9 +316,7 @@ BOOL MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status) {
 }
 
 BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
+  VALIDATE2(path);
 
   if (!status) {
     status = &s_nullStatus;
@@ -343,9 +339,7 @@ BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
 }
 
 BYTE *MDLFileBinaryLoad(LPCSTR path, UINT *fileBytes, CStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
+  VALIDATE2(path);
 
   if (!status) {
     status = &s_nullStatus;
@@ -372,9 +366,7 @@ void MDLFileBinaryUnload(BYTE *fileData) {
 }
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
-  VALIDATEBEGIN;
-  VALIDATE(fileData);
-  VALIDATEEND;
+  VALIDATE2(fileData);
 
   BYTE *fileEnd = fileData + fileBytes;
   while (fileData < fileEnd) {

@@ -166,8 +166,6 @@ BOOL CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) 
   return 1;
 }
 
-static char charBuf[8];
-
 LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
   LPCSTR result = string;
   LPCSTR keyString;
@@ -184,192 +182,7 @@ LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int ma
     return 0;
   }
 
-  switch (key) {
-    case KEY_SHIFT:
-      keyString = "SHIFT";
-      break;
-    case KEY_CONTROL:
-      keyString = "CTRL";
-      break;
-    case KEY_ALT:
-      keyString = "ALT";
-      break;
-    case KEY_SPACE:
-      keyString = "SPACE";
-      break;
-    case KEY_0:
-    case KEY_1:
-    case KEY_2:
-    case KEY_3:
-    case KEY_4:
-    case KEY_5:
-    case KEY_6:
-    case KEY_7:
-    case KEY_8:
-    case KEY_9:
-    case KEY_A:
-    case KEY_B:
-    case KEY_C:
-    case KEY_D:
-    case KEY_E:
-    case KEY_F:
-    case KEY_G:
-    case KEY_H:
-    case KEY_I:
-    case KEY_J:
-    case KEY_K:
-    case KEY_L:
-    case KEY_M:
-    case KEY_N:
-    case KEY_O:
-    case KEY_P:
-    case KEY_Q:
-    case KEY_R:
-    case KEY_S:
-    case KEY_T:
-    case KEY_U:
-    case KEY_V:
-    case KEY_W:
-    case KEY_X:
-    case KEY_Y:
-    case KEY_Z:
-      SStrPrintf(charBuf, sizeof(charBuf), "%c", key);
-      keyString = charBuf;
-      break;
-    case KEY_TILDE:
-      keyString = "TILDE";
-      break;
-    case KEY_NUMPAD0:
-    case KEY_NUMPAD1:
-    case KEY_NUMPAD2:
-    case KEY_NUMPAD3:
-    case KEY_NUMPAD4:
-    case KEY_NUMPAD5:
-    case KEY_NUMPAD6:
-    case KEY_NUMPAD7:
-    case KEY_NUMPAD8:
-    case KEY_NUMPAD9:
-      SStrPrintf(charBuf, sizeof(charBuf), "NUMPAD%d", key - KEY_NUMPAD0);
-      keyString = charBuf;
-      break;
-    case KEY_NUMPAD_PLUS:
-      keyString = "NUMPADPLUS";
-      break;
-    case KEY_NUMPAD_MINUS:
-      keyString = "NUMPADMINUS";
-      break;
-    case KEY_NUMPAD_MULTIPLY:
-      keyString = "NUMPADMULTIPLY";
-      break;
-    case KEY_NUMPAD_DIVIDE:
-      keyString = "NUMPADDIVIDE";
-      break;
-    case KEY_PLUS:
-      keyString = "PLUS";
-      break;
-    case KEY_MINUS:
-      keyString = "MINUS";
-      break;
-    case KEY_BRACKET_OPEN:
-      keyString = "LEFTBRACKET";
-      break;
-    case KEY_BRACKET_CLOSE:
-      keyString = "RIGHTBRACKET";
-      break;
-    case KEY_SLASH:
-      keyString = "SLASH";
-      break;
-    case KEY_BACKSLASH:
-      keyString = "BACKSLASH";
-      break;
-    case KEY_SEMICOLON:
-      keyString = "SEMICOLON";
-      break;
-    case KEY_APOSTROPHE:
-      keyString = "APOSTROPHE";
-      break;
-    case KEY_COMMA:
-      keyString = "COMMA";
-      break;
-    case KEY_PERIOD:
-      keyString = "PERIOD";
-      break;
-    case KEY_ESCAPE:
-      keyString = "ESCAPE";
-      break;
-    case KEY_ENTER:
-      keyString = "ENTER";
-      break;
-    case KEY_BACKSPACE:
-      keyString = "BACKSPACE";
-      break;
-    case KEY_TAB:
-      keyString = "TAB";
-      break;
-    case KEY_LEFT:
-      keyString = "LEFT";
-      break;
-    case KEY_UP:
-      keyString = "UP";
-      break;
-    case KEY_RIGHT:
-      keyString = "RIGHT";
-      break;
-    case KEY_DOWN:
-      keyString = "DOWN";
-      break;
-    case KEY_INSERT:
-      keyString = "INSERT";
-      break;
-    case KEY_DELETE:
-      keyString = "DELETE";
-      break;
-    case KEY_HOME:
-      keyString = "HOME";
-      break;
-    case KEY_END:
-      keyString = "END";
-      break;
-    case KEY_PAGEUP:
-      keyString = "PAGEUP";
-      break;
-    case KEY_PAGEDOWN:
-      keyString = "PAGEDOWN";
-      break;
-    case KEY_NUMLOCK:
-      keyString = "NUMLOCK";
-      break;
-    case KEY_CAPSLOCK:
-      keyString = "CAPSLOCK";
-      break;
-    case KEY_SCROLLLOCK:
-      keyString = "SCROLLLOCK";
-      break;
-    case KEY_PAUSE:
-      keyString = "PAUSE";
-      break;
-    case KEY_PRINTSCREEN:
-      keyString = "PRINTSCREEN";
-      break;
-    case KEY_F1:
-    case KEY_F2:
-    case KEY_F3:
-    case KEY_F4:
-    case KEY_F5:
-    case KEY_F6:
-    case KEY_F7:
-    case KEY_F8:
-    case KEY_F9:
-    case KEY_F10:
-    case KEY_F11:
-    case KEY_F12:
-      SStrPrintf(charBuf, sizeof(charBuf), "F%d", key - KEY_F1 + 1);
-      keyString = charBuf;
-      break;
-    default:
-      keyString = "UNKNOWN";
-      break;
-  }
+  keyString = KeyToString(key);
 
   if (!*keyString || (int)SStrLen(keyString) >= maxLen) {
     return 0;
@@ -673,7 +486,7 @@ static int Script_GetBinding(lua_State *L) {
     int    count = 0;
     bindings->GetCommand(index - 1, command);
     lua_pushstring(L, command);
-    for (LPCSTR key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
+    for (LPCSTR key = bindings->GetCommandKey(command, count); key; key = bindings->GetCommandKey(command, count)) {
       ++count;
       lua_pushstring(L, key);
     }
@@ -704,7 +517,7 @@ static int Script_GetBindingKey(lua_State *L) {
     FATALASSERT(bindings);
     int    count = 0;
     LPCSTR command = lua_tostring(L, 1);
-    for (LPCSTR key = bindings->GetCommandKey(command, 0); key; key = bindings->GetCommandKey(command, count)) {
+    for (LPCSTR key = bindings->GetCommandKey(command, count); key; key = bindings->GetCommandKey(command, count)) {
       ++count;
       lua_pushstring(L, key);
     }

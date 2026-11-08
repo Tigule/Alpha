@@ -260,22 +260,23 @@ BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   }
 
   NTempest::C3Vector location = object->GetPosition();
-  UINT               count = CWorld::QueryAreaId(location.x, location.y);
-  AREAHASHKEY        key(s_currentContinent, count >> 16, (WORD)count);
+  UINT               areaID = CWorld::QueryAreaId(location.x, location.y);
+  AREAHASHKEY        key(s_currentContinent, areaID >> 16, areaID & 0xFFFF);
 
-  OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(count, key);
-  if (!chunk) {
-    chunk = s_chunkHash.New(count, key, 0, 0);
-    *s_chunkList.New() = chunk;
-    s_currentChunk = s_chunkList.Count() - 1;
-    chunk->chunkNumber = s_currentChunk;
-    chunk->continentID = s_currentContinent;
-    chunk->areaID = count;
-    chunk->DumpInfo(1, 1);
-  } else {
-    s_currentChunk = chunk->chunkNumber;
+  OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(areaID, key);
+  if (chunk) {
     chunk->DumpInfo(1, 0);
+    return 1;
   }
+
+  chunk = s_chunkHash.New(areaID, key, 0, 0);
+  UINT count = s_chunkList.Count();
+  *s_chunkList.New() = chunk;
+  s_currentChunk = count;
+  chunk->chunkNumber = count;
+  chunk->continentID = s_currentContinent;
+  chunk->areaID = areaID;
+  chunk->DumpInfo(1, 1);
   return 1;
 }
 

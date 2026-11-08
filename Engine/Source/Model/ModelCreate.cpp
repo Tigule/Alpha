@@ -1,5 +1,4 @@
 #include "IModel.h"
-#include "ModelInternal.h"
 #include "CollisionData.h"
 
 #include "Base/Status.h"
@@ -501,26 +500,29 @@ static void IModelComputeBounds(CModelShared *shared) {
   ComputeBoundingRadius(shared->geosets.Ptr(), shared->geosets.Count(), shared->bounds.sphere.c, &shared->bounds.sphere.r);
 }
 
+static inline void LoadBoundsData(const CMdlBounds &mdlBounds, CBoundsData *bounds) {
+  bounds->extent = mdlBounds.extent;
+  bounds->sphere.c = mdlBounds.extent.Center();
+  bounds->sphere.r = mdlBounds.radius;
+}
+
 static BOOL MdlReadLoadExtents(const MDLDATA &data, CModelBase *modelptr, CModelShared *shared) {
   ASSERT(modelptr);
   ASSERT(shared);
 
-  shared->bounds.extent = data.model.bounds.extent;
-  shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
-  shared->bounds.sphere.r = data.model.bounds.radius;
+  LoadBoundsData(data.model.bounds, &shared->bounds);
 
   if (modelptr->m_anim && AnimNeedsSequenceBounds(modelptr->m_anim)) {
-    UINT count = data.sequences.Count();
-    shared->seqBounds.SetCount(count);
-    for (UINT i = 0; i < count; ++i) {
-      shared->seqBounds[i].extent = data.sequences[i].bounds.extent;
-      shared->seqBounds[i].sphere.c = (shared->seqBounds[i].extent.b + shared->seqBounds[i].extent.t) * 0.5f;
-      shared->seqBounds[i].sphere.r = data.sequences[i].bounds.radius;
+    shared->seqBounds.SetCount(data.sequences.Count());
+    const MDLSEQUENCESSECTION *sequence = data.sequences.Ptr();
+    CBoundsData               *bounds = shared->seqBounds.Ptr();
+    for (UINT i = data.sequences.Count(); i; --i) {
+      LoadBoundsData(sequence->bounds, bounds);
+      ++sequence;
+      ++bounds;
     }
-  } else if (fabs(shared->bounds.sphere.r) < 0.00000023841858f && data.sequences.Count()) {
-    shared->bounds.extent = data.sequences[0].bounds.extent;
-    shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
-    shared->bounds.sphere.r = data.sequences[0].bounds.radius;
+  } else if (NTempest::CMath::fabs_(shared->bounds.sphere.r) < 0.00000023841858f && data.sequences.Count()) {
+    LoadBoundsData(data.sequences[0].bounds, &shared->bounds);
   }
   return 1;
 }
@@ -900,9 +902,7 @@ void ModelRemoveFromCache(LPCSTR sourcefile) {
   char       *extension;
   CModelHash *modelHash;
 
-  VALIDATEBEGIN;
-  VALIDATE(sourcefile);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(sourcefile);
 
   SStrCopy(filePath, sourcefile, sizeof(filePath));
   extension = SStrChrR(filePath, '.');
@@ -956,9 +956,7 @@ BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status) {
 }
 
 HMODEL ModelGetModel(LPCSTR sourcefile, CModelCreate *data) {
-  VALIDATEBEGIN;
-  VALIDATE(sourcefile);
-  VALIDATEEND;
+  VALIDATE2(sourcefile);
   return GetModel(sourcefile, data);
 }
 
@@ -1311,7 +1309,7 @@ BOOL ModelGeosetAdd(
 
   HMATERIAL material = BuildSimpleMaterial(complex->m_textures.New(), complex->m_textures.Count(), texture, blendMode, disables, replaceableId);
   ASSERT(material);
-  *complex->m_materials.New() = material;
+  complex->m_materials.New(material);
 
   BuildSimpleGeoset(
       numVertices, position, normal, texCoord, primitiveType, primitiveVertices, numPrimVertices, materialId, complex->m_addlGeosets.New()
@@ -1675,9 +1673,7 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   UINT           i;
 
   CModel *model = (CModel *)modelHandle;
-  VALIDATEBEGIN;
-  VALIDATE(model);
-  VALIDATEEND;
+  VALIDATE2(model);
 
   if (model->state != CMODEL_LOADED) {
     return 0;
@@ -1705,12 +1701,10 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   return 1;
 }
 BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
-  VALIDATEBEGIN;
-  VALIDATE(model);
+  VALIDATE2(model);
   *unique = 0;
   *shared = (CModelShared *)model->shared;
-  VALIDATE(*shared);
-  VALIDATEEND;
+  VALIDATE2(*shared);
 
   if (model->state != CMODEL_LOADED) {
     return 0;
@@ -1721,9 +1715,7 @@ BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared
 }
 
 BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
-  VALIDATEBEGIN;
-  VALIDATE(model);
-  VALIDATEEND;
+  VALIDATE2(model);
 
   *unique = 0;
   if (model->state != CMODEL_LOADED) {
@@ -1735,11 +1727,9 @@ BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
 }
 
 BOOL IModelDerefHandle(CModel *model, CModelShared **shared) {
-  VALIDATEBEGIN;
-  VALIDATE(model);
+  VALIDATE2(model);
   *shared = (CModelShared *)model->shared;
-  VALIDATE(*shared);
-  VALIDATEEND;
+  VALIDATE2(*shared);
 
   return model->state == CMODEL_LOADED;
 }

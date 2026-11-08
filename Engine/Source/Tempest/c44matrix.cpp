@@ -33,8 +33,68 @@
 #include "Tempest/crect.h"
 #include "Tempest/tempest_intersect.h"
 
-float Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
-  return l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0 + l.a3 * r.d0;
+inline float Row0Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.a0 * r.a0 + l.a1 * r.b0 + l.a2 * r.c0 + l.a3 * r.d0);
+}
+
+inline float Row0Col1_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.a0 * r.a1 + l.a1 * r.b1 + l.a2 * r.c1 + l.a3 * r.d1);
+}
+
+inline float Row0Col2_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.a0 * r.a2 + l.a1 * r.b2 + l.a2 * r.c2 + l.a3 * r.d2);
+}
+
+inline float Row0Col3_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.a0 * r.a3 + l.a1 * r.b3 + l.a2 * r.c3 + l.a3 * r.d3);
+}
+
+inline float Row1Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.b0 * r.a0 + l.b1 * r.b0 + l.b2 * r.c0 + l.b3 * r.d0);
+}
+
+inline float Row1Col1_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.b0 * r.a1 + l.b1 * r.b1 + l.b2 * r.c1 + l.b3 * r.d1);
+}
+
+inline float Row1Col2_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.b0 * r.a2 + l.b1 * r.b2 + l.b2 * r.c2 + l.b3 * r.d2);
+}
+
+inline float Row1Col3_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.b0 * r.a3 + l.b1 * r.b3 + l.b2 * r.c3 + l.b3 * r.d3);
+}
+
+inline float Row2Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.c0 * r.a0 + l.c1 * r.b0 + l.c2 * r.c0 + l.c3 * r.d0);
+}
+
+inline float Row2Col1_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.c0 * r.a1 + l.c1 * r.b1 + l.c2 * r.c1 + l.c3 * r.d1);
+}
+
+inline float Row2Col2_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.c0 * r.a2 + l.c1 * r.b2 + l.c2 * r.c2 + l.c3 * r.d2);
+}
+
+inline float Row2Col3_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.c0 * r.a3 + l.c1 * r.b3 + l.c2 * r.c3 + l.c3 * r.d3);
+}
+
+inline float Row3Col0_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.d0 * r.a0 + l.d1 * r.b0 + l.d2 * r.c0 + l.d3 * r.d0);
+}
+
+inline float Row3Col1_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.d0 * r.a1 + l.d1 * r.b1 + l.d2 * r.c1 + l.d3 * r.d1);
+}
+
+inline float Row3Col2_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.d0 * r.a2 + l.d1 * r.b2 + l.d2 * r.c2 + l.d3 * r.d2);
+}
+
+inline float Row3Col3_(const NTempest::C44Matrix &l, const NTempest::C44Matrix &r) {
+  return (float)(l.d0 * r.a3 + l.d1 * r.b3 + l.d2 * r.c3 + l.d3 * r.d3);
 }
 
 namespace NTempest {
@@ -92,14 +152,7 @@ namespace NTempest {
 
   C44Matrix operator*(const C44Matrix &l, const C44Matrix &r) {
     return C44Matrix(
-        Row0Col0_(l, r), l.a0 * r.a1 + l.a1 * r.b1 + l.a2 * r.c1 + l.a3 * r.d1, l.a0 * r.a2 + l.a1 * r.b2 + l.a2 * r.c2 + l.a3 * r.d2,
-        l.a0 * r.a3 + l.a1 * r.b3 + l.a2 * r.c3 + l.a3 * r.d3, l.b0 * r.a0 + l.b1 * r.b0 + l.b2 * r.c0 + l.b3 * r.d0,
-        l.b0 * r.a1 + l.b1 * r.b1 + l.b2 * r.c1 + l.b3 * r.d1, l.b0 * r.a2 + l.b1 * r.b2 + l.b2 * r.c2 + l.b3 * r.d2,
-        l.b0 * r.a3 + l.b1 * r.b3 + l.b2 * r.c3 + l.b3 * r.d3, l.c0 * r.a0 + l.c1 * r.b0 + l.c2 * r.c0 + l.c3 * r.d0,
-        l.c0 * r.a1 + l.c1 * r.b1 + l.c2 * r.c1 + l.c3 * r.d1, l.c0 * r.a2 + l.c1 * r.b2 + l.c2 * r.c2 + l.c3 * r.d2,
-        l.c0 * r.a3 + l.c1 * r.b3 + l.c2 * r.c3 + l.c3 * r.d3, l.d0 * r.a0 + l.d1 * r.b0 + l.d2 * r.c0 + l.d3 * r.d0,
-        l.d0 * r.a1 + l.d1 * r.b1 + l.d2 * r.c1 + l.d3 * r.d1, l.d0 * r.a2 + l.d1 * r.b2 + l.d2 * r.c2 + l.d3 * r.d2,
-        l.d0 * r.a3 + l.d1 * r.b3 + l.d2 * r.c3 + l.d3 * r.d3
+        Row0Col0_(l, r), Row0Col1_(l, r), Row0Col2_(l, r), Row0Col3_(l, r), Row1Col0_(l, r), Row1Col1_(l, r), Row1Col2_(l, r), Row1Col3_(l, r), Row2Col0_(l, r), Row2Col1_(l, r), Row2Col2_(l, r), Row2Col3_(l, r), Row3Col0_(l, r), Row3Col1_(l, r), Row3Col2_(l, r), Row3Col3_(l, r)
     );
   }
 

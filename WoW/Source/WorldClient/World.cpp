@@ -24,7 +24,7 @@
 #include <Anim/AnimTypes.h>
 #include <Console/ConsoleClient.h>
 #include <Console/ConsoleVar.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Os/OsTime.h>
 #include <Services/IParticleMisc.h>
 #include <Services/Texture.h>
@@ -221,21 +221,10 @@ void CWorld::PrepareUpdate(const NTempest::C3Vector &position, const NTempest::C
 
   NTempest::CiRect oldGbChunkRect = gbChunkRect;
   PrepareAreaOfInterest(position, target);
-  if (oldGbChunkRect.maxy >= gbChunkRect.maxy) {
-    oldGbChunkRect.maxy = gbChunkRect.maxy;
-  }
-  if (oldGbChunkRect.maxx >= gbChunkRect.maxx) {
-    oldGbChunkRect.maxx = gbChunkRect.maxx;
-  }
-  if (oldGbChunkRect.miny <= gbChunkRect.miny) {
-    oldGbChunkRect.miny = gbChunkRect.miny;
-  }
-  if (oldGbChunkRect.minx <= gbChunkRect.minx) {
-    oldGbChunkRect.minx = gbChunkRect.minx;
-  }
-  if (oldGbChunkRect.minx >= oldGbChunkRect.maxx || oldGbChunkRect.miny >= oldGbChunkRect.maxy) {
+  if (!NTempest::CiRect::Intersection(oldGbChunkRect, gbChunkRect).NotEmpty()) {
     prepareAll = 1;
   }
+
 
   ++frameCnt;
   CWorldScene::PrepareRender(position, target);

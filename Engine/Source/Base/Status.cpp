@@ -35,9 +35,7 @@ void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
   LPCSTR       text;
   va_list      args;
 
-  VALIDATEBEGIN;
-  VALIDATE(format);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(format);
 
   va_start(args, format);
   text = FormatStatusMessage(format, args);
@@ -69,9 +67,7 @@ void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
   LPCSTR       text;
   va_list      args;
 
-  VALIDATEBEGIN;
-  VALIDATE(format);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(format);
 
   va_start(args, format);
   text = FormatStatusMessage(format, args);
@@ -113,9 +109,7 @@ void CStatus::Clear() {
 }
 
 void CStatus::GetErrorStr(char *buffer, DWORD bufchars, STATUS_TYPE minSeverity) const {
-  VALIDATEBEGIN;
-  VALIDATE(buffer);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(buffer);
 
   *buffer = 0;
   CONSTITERATELIST(STATUSENTRY, statusList, entry) {

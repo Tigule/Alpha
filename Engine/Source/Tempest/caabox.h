@@ -65,7 +65,7 @@ namespace NTempest {
       return t - b;
     }
     C3Vector Center() const {
-      return (t + b) * 0.5f;
+      return (b + t) * 0.5f;
     }
     float    CenterX() const;
     void     CenterX(const CAaBox &value);

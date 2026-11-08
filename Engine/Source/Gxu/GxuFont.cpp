@@ -501,9 +501,7 @@ UINT GxuFontWrapText(
   return lines;
 }
 float GxuFontGetOneToOneHeight(CGxFont *font) {
-  VALIDATEBEGIN;
-  VALIDATE(font);
-  VALIDATEEND;
+  VALIDATE2(font);
 
   ASSERT(font->m_cellHeight);
   ASSERT(font->m_cellHeight <= 32);
@@ -635,16 +633,12 @@ BOOL GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVect
   return 1;
 }
 int GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor) {
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
   string->SetColor(newColor);
   return 1;
 }
 void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos) {
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(string);
   string->SetStringPosition(pos);
 }
 void GxuFontSetCharSpacing(CGxString *string, float spacing) {

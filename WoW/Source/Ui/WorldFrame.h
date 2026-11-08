@@ -10,12 +10,25 @@
 
 #include <stpl.h>
 
-struct CModelRecord;
 struct HTEXCOMPONENT__;
 class CGObject_C;
 class CGUnit_C;
 class CGGameObject_C;
 BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param);
+
+NODEDECL(CModelRecord) {
+  HMODEL__ *model;
+  float     distance;
+  float     scale;
+  DWORDLONG guid;
+
+  CModelRecord() : model(0), distance(INFINITY), scale(1.0f), guid(0) {
+  }
+  CModelRecord(const CModelRecord &source);
+  ~CModelRecord();
+  CModelRecord &operator=(const CModelRecord &source);
+  void          Copy(const CModelRecord &source);
+};
 
 struct CWorldClickEvent {
   UINT button;

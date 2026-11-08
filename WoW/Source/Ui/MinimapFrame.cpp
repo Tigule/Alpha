@@ -745,12 +745,8 @@ void CGMinimapFrame::Render() {
   if (brightness > 255) {
     brightness = 255;
   }
-  ambient.r = ambient.r + ((brightness * (255 - ambient.r)) >> 8);
-  ambient.g = ambient.g + ((brightness * (255 - ambient.g)) >> 8);
-  ambient.b = ambient.b + ((brightness * (255 - ambient.b)) >> 8);
-  color.r = color.r + ((192 * (ambient.r - color.r)) >> 8);
-  color.g = color.g + ((192 * (ambient.g - color.g)) >> 8);
-  color.b = color.b + ((192 * (ambient.b - color.b)) >> 8);
+  ambient.BlendRGB(brightness, 0xFFFFFFFF);
+  color.BlendRGB(192, ambient);
   GxVertexShaderSelect(GxVS_PassThru);
 
   if (s_minimapTexParams.inside) {

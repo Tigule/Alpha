@@ -35,12 +35,12 @@ CStringRep &CStringManager::Add(LPCSTR str) {
     return CStringRep::s_nullRep;
   }
 
-  CStringRep *rep = Ptr(str);
-  if (!rep) {
-    rep = New(str, 0, 0);
+  CStringRep *pRep = Ptr(str);
+  if (!pRep) {
+    pRep = New(str, 0, 0);
   }
 
-  return *rep;
+  return *pRep;
 }
 
 CStringRep &CStringManager::Find(LPCSTR str) {
@@ -58,9 +58,7 @@ void CStringRep::DecrRef() {
   if (this != &s_nullRep && !--m_refcnt) {
     CStringManager *pStringManager = CStringManager::Get();
 
-    VALIDATEBEGIN;
-    VALIDATE(pStringManager);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(pStringManager);
 
     pStringManager->Delete(this);
   }
@@ -104,11 +102,9 @@ void RCString::Copy(LPCSTR source) {
 
   CStringManager *pManager;
 
-  VALIDATEBEGIN;
-  VALIDATE(SStrLen(source)<(unsigned)MAX_RCSTRING_LENGTH);
+  VALIDATE2VOID(SStrLen(source)<(unsigned)MAX_RCSTRING_LENGTH);
   pManager = CStringManager::Get();
-  VALIDATE(pManager);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(pManager);
 
   m_rep = &pManager->Add(source);
 }
@@ -180,9 +176,7 @@ RCString RCString::SubString(RCStringIndex start, RCStringIndex end) const {
   if (str) {
     UINT len = SStrLen(str);
 
-    VALIDATEBEGIN;
-    VALIDATE(len<(unsigned short)-1);
-    VALIDATEEND;
+    VALIDATE2(len<(unsigned short)-1);
 
     if (len && start <= (RCStringIndex)len) {
       if (end >= (RCStringIndex)len) {

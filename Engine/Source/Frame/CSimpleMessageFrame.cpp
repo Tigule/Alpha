@@ -90,9 +90,7 @@ void CSimpleMessageFrame::SetInsertMode(SimpleMessageFrameInsertMode mode) {
 }
 
 void CSimpleMessageFrame::AddMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent) {
-  VALIDATEBEGIN;
-  VALIDATE(text);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(text);
 
   MessageData *message = m_pendingMessages.New();
   message->text = SStrDupA(text, __FILE__, __LINE__);
@@ -218,9 +216,7 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
 }
 
 void CSimpleMessageFrame::AddPendingMessage(LPCSTR text, const NTempest::CImVector &color, float timeVisible, int permanent) {
-  VALIDATEBEGIN;
-  VALIDATE(text);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(text);
 
   ASSERT(m_rows > 0);
 

@@ -1,7 +1,7 @@
 #ifndef WOW_COMMON_WOWTIME_H
 #define WOW_COMMON_WOWTIME_H
 
-#include <Base/Base.h>
+#include <storm.h>
 #include <string.h>
 
 class WowTime {

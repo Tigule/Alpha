@@ -3,7 +3,7 @@
 
 #include "Frame/CSimpleFrame.h"
 #include "Gx/Gx.h"
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Tempest/caabox.h"
 #include "Tempest/c3vector.h"
 #include "Tempest/cimvector.h"

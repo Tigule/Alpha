@@ -2,7 +2,7 @@
 
 #include <Tempest/c2ivector.h>
 #include <TextureCacheCore.h>
-#include <WowConst.h>
+#include <InventoryConst.h>
 #include <ComponentCore/ComponentUtilCore.h>
 
 DECLARE_DERIVED_HANDLE(HTEXCOMPONENT, HOBJECT);

@@ -64,10 +64,12 @@ int GxAdapterDesktopMode(CGxMonitorMode &mode) {
 }
 
 const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api) {
+  static TSGrowableArray<CGxFormat> s_formats;
+
   ASSERT(api < GxApis_Last);
 
-  static TSGrowableArray<CGxFormat> s_formats;
   s_formats.SetCount(0);
+  s_formats.SetChunkSize(0x40);
   s_formats.ReserveSpace(0x100);
 
   switch (api) {
@@ -168,9 +170,7 @@ void GxDevDestroy(CGxDevice *devicePtr) {
     return;
   }
 
-  VALIDATEBEGIN;
-  VALIDATE(devicePtr == g_theGxDevicePtr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(devicePtr == g_theGxDevicePtr);
 
   g_theGxDevicePtr->DeviceDestroy();
   DELIFUSED(g_theGxDevicePtr);
@@ -273,17 +273,13 @@ void GxLight(UINT whichLight, CGxLight &lightInfo) {
 }
 
 void GxLightEnable(UINT whichLight, int enable) {
-  VALIDATEBEGIN;
-  VALIDATE(whichLight < Gx_MaxLights);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(whichLight < Gx_MaxLights);
 
   g_theGxDevicePtr->LightEnable(whichLight, enable);
 }
 
 void GxRsSet(EGxRenderState which, NTempest::CImVector value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   switch (which) {
     case GxRs_MatDiffuse:
@@ -302,9 +298,7 @@ void GxRsSet(EGxRenderState which, NTempest::CImVector value) {
 }
 
 void GxRsSet(EGxRenderState which, float value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   switch (which) {
     case GxRs_TexLodBias0:
@@ -336,9 +330,7 @@ void GxRsSet(EGxRenderState which, float value) {
 }
 
 void GxRsSet(EGxRenderState which, int value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   switch (which) {
     case GxRs_TexBlend0:
@@ -418,33 +410,25 @@ void GxRsSet(EGxRenderState which, LPVOID value) {
 }
 
 void GxRsGet(EGxRenderState which, NTempest::CImVector &value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
 void GxRsGet(EGxRenderState which, float &value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
 void GxRsGet(EGxRenderState which, int &value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
 
 void GxRsGet(EGxRenderState which, LPVOID &value) {
-  VALIDATEBEGIN;
-  VALIDATE(which < GxRenderStates_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(which < GxRenderStates_Last);
 
   g_theGxDevicePtr->RsGet(which, value);
 }
@@ -466,18 +450,14 @@ UINT GxRsStackOffset() {
 }
 
 void GxVertexShaderSelect(EGxVertexShader shader) {
-  VALIDATEBEGIN;
-  VALIDATE(shader < GxVertexShaders_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(shader < GxVertexShaders_Last);
 
   g_theGxDevicePtr->VertexShaderSelect(shader);
 }
 
 UINT GxVertexSize(EGxVertexBufferFormat format) {
   static DWORD vtxBufSize[GxVertexBufferFormats_Last] = {0x18, 0x1C, 0x20, 0x24, 0x28, 0x2C, 0x18, 0x10, 0x1C};
-  VALIDATEBEGIN;
-  VALIDATE(format < GxVertexBufferFormats_Last);
-  VALIDATEEND;
+  VALIDATE2(format < GxVertexBufferFormats_Last);
 
   return vtxBufSize[format];
 }
@@ -560,17 +540,13 @@ CGxBuf *GxBufGetDynamic(EGxVertexBufferFormat format) {
 }
 
 UINT GxPerfCounter(EGxPerfCounter counter) {
-  VALIDATEBEGIN;
-  VALIDATE(counter < GxPerfCounters_Last);
-  VALIDATEEND;
+  VALIDATE2(counter < GxPerfCounters_Last);
 
   return g_theGxDevicePtr->PerfCounter(counter);
 }
 
 void GxMasterEnableSet(EGxMasterEnables state, int enable) {
-  VALIDATEBEGIN;
-  VALIDATE(state < GxMasterEnables_Last);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(state < GxMasterEnables_Last);
 
   ASSERT((enable & ~1) == 0);
 
@@ -578,9 +554,7 @@ void GxMasterEnableSet(EGxMasterEnables state, int enable) {
 }
 
 int GxMasterEnable(EGxMasterEnables state) {
-  VALIDATEBEGIN;
-  VALIDATE(state < GxMasterEnables_Last);
-  VALIDATEEND;
+  VALIDATE2(state < GxMasterEnables_Last);
 
   return g_theGxDevicePtr->MasterEnable(state);
 }
@@ -833,9 +807,7 @@ BOOL GxTexCreate(const CGxTexParmsEx &parms, CGxTex *&texId) {
 }
 
 void GxTexUpdate(CGxTex *texId, int minX, int minY, int maxX, int maxY, int immediate) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   NTempest::CiRect rect(minY, minX, maxY, maxX);
   GxTexUpdate(texId, rect, immediate);
@@ -848,49 +820,37 @@ int GxTexNeedsUpdate(CGxTex *texId) {
 }
 
 void GxTexUpdate(CGxTex *texId, NTempest::CiRect &updateRect, int immediate) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexMarkForUpdate(texId, updateRect, immediate);
 }
 
 void GxTexSetUserData(CGxTex *texId, void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &), LPVOID userArg) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexSetUserData(texId, userFunc, userArg);
 }
 
 void GxTexSetFlags(CGxTex *texId, CGxTexFlags flags) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexSetFlags(texId, flags);
 }
 
 void GxTexDestroy(CGxTex *texId) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexDestroy(texId);
 }
 
 void GxTexParameters(const CGxTex *texId, CGxTexParms &parms) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexParameters(texId, parms);
 }
 
 void GxTexParametersEx(const CGxTex *texId, CGxTexParmsEx &parms) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexParameters(texId, parms);
 }
@@ -905,9 +865,7 @@ void GxTexSetDataFormat(CGxTex *texId, EGxTexFormat dataFormat) {
 }
 
 void GxTexFlags(const CGxTex *texId, CGxTexFlags &flags) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
 
   g_theGxDevicePtr->TexFlags(texId, flags);
 }
@@ -955,9 +913,7 @@ void GxXformView(NTempest::C44Matrix &matrix) {
 }
 
 void GxXformBone(UINT ndx, NTempest::C34Matrix &matrix) {
-  VALIDATEBEGIN;
-  VALIDATE(ndx < Gx_MaxBoneMatrices);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(ndx < Gx_MaxBoneMatrices);
 
   g_theGxDevicePtr->XformBone(ndx, matrix);
 }
@@ -1169,8 +1125,6 @@ void __cdecl GxLog(LPCSTR format, ...) {
 }
 
 void GxTexGetDimensions(const CGxTex *texId, UINT *width, UINT *height) {
-  VALIDATEBEGIN;
-  VALIDATE(texId != 0);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(texId != 0);
   g_theGxDevicePtr->TexGetDimensions(texId, width, height);
 }

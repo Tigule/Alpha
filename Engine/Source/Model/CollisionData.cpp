@@ -1,6 +1,6 @@
 #include <Base/Base.h>
 
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Model/CollisionData.h"
 
 #include "Gx/Gx.h"
@@ -79,9 +79,7 @@ static BOOL CollisionDataVectorIntersect(
     float                     &t
 ) {
   CCollisionData *collide = (CCollisionData *)hDC;
-  VALIDATEBEGIN;
-  VALIDATE(collide);
-  VALIDATEEND;
+  VALIDATE2(collide);
 
   t = FLT_MAX;
   NTempest::C3Vector dir = p1 - p0;
@@ -253,9 +251,7 @@ int ModelCollisionVectorIntersect(
 
 void ModelShowCollision(HMODEL model, int show) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase   *unique;
   CModelShared *shared;
@@ -276,9 +272,7 @@ void ModelShowCollision(HMODEL model, int show) {
 
 void ModelShowCollisionAaBox(HMODEL model, int show) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase   *unique;
   CModelShared *shared;
@@ -303,9 +297,7 @@ void ModelShowCollisionAaBox(HMODEL model, int show) {
 
 void ModelShowModel(HMODEL model, int show) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {

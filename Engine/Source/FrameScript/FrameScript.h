@@ -38,8 +38,8 @@ class FrameScript_Object {
 
   static void FillScriptMethodTable(FrameScript_Method *methods, int methodCount, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
   static void EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
-  static int  LookupScriptMethod(lua_State *state);
   static BOOL LookupScriptMethod(lua_State *state, LPCSTR name, TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> &methodTable);
+  static int  LookupScriptMethod(lua_State *state);
 
   BOOL         RegisterScriptEvent(LPCSTR name);
   void         UnregisterScriptEvent(LPCSTR name);

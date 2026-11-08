@@ -29,7 +29,7 @@
 #include "DB/DBClient/AutoCode/ItemDisplayInfoRec.h"
 #include "Game/GameClient/GuildClient.h"
 #include "Net/NetClient/NetClient.h"
-#include "Object/ObjectClient/AnimStateCompiles.h"
+#include "Object/ObjectClient/AnimCompiles.h"
 #include "ObjectMgrClient/ObjectMgrClient.h"
 #include "Ui/WorldFrame.h"
 #include "WowSvcs/WowSvcsClient/ClientServices.h"
@@ -38,7 +38,7 @@
 #include <Base/CDataStore.h>
 #include <Base/Handle.h>
 #include <Base/Status.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/SysMessage.h>
 #include <WorldClient/World.h>
 

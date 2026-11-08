@@ -3,8 +3,7 @@
 #include "Tempest/c2vector.h"
 #include "Tempest/c3ivector.h"
 #include "Tempest/cmath.h"
-
-class CDataStore;
+#include "Base/CDataStore.h"
 
 namespace NTempest {
 
@@ -110,7 +109,11 @@ namespace NTempest {
     }
 
     C3Vector &operator/=(float a) {
-      return *this *= 1.0f / a;
+      float inverse = 1.0f / a;
+      x *= inverse;
+      y *= inverse;
+      z *= inverse;
+      return *this;
     }
 
     C3Vector operator-() const {
@@ -233,6 +236,14 @@ namespace NTempest {
     return C3Vector(l.x - r.x, l.y - r.y, l.z - r.z);
   }
 
+  inline C3Vector operator+(const C3Vector &l, float r) {
+    return C3Vector(l.x + r, l.y + r, l.z + r);
+  }
+
+  inline C3Vector operator-(const C3Vector &l, float r) {
+    return C3Vector(l.x - r, l.y - r, l.z - r);
+  }
+
   inline C3Vector operator*(const C3Vector &l, float r) {
     return C3Vector(l.x * r, l.y * r, l.z * r);
   }
@@ -253,7 +264,12 @@ namespace NTempest {
     return l.x >= r.x && l.y >= r.y && l.z >= r.z;
   }
 
-  CDataStore &operator<<(CDataStore &store, const C3Vector &vector);
+  inline CDataStore &operator<<(CDataStore &s_, const C3Vector &d_) {
+    s_ << d_.x;
+    s_ << d_.y;
+    s_ << d_.z;
+    return s_;
+  }
 
   inline C3iVector::C3iVector(const C3Vector &vector)
       : x((long)vector.x), y((long)vector.y), z((long)vector.z) {

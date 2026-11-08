@@ -1,14 +1,22 @@
 #include <Base/Base.h>
 
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 
 #include "MDLFile/MDLTypes.h"
-#include "Model/Material.h"
 #include "Services/IParticleMisc.h"
 #include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
+
+static inline void SetRibbonMaterial(const CTexLayer &layer, CRibbonMat *ribbonMaterial) {
+  ribbonMaterial->enableLighting = !layer.disable.lighting;
+  ribbonMaterial->enableFog = !layer.disable.fog;
+  ribbonMaterial->enableDepthTest = !layer.disable.depthTest;
+  ribbonMaterial->enableDepthWrite = !layer.disable.depthWrite;
+  ribbonMaterial->enableCulling = !layer.disable.culling;
+  ribbonMaterial->alpha = layer.blendMode;
+}
 
 static void LoadRibbonMaterial(
     const CMaterial                      &uniqueMtl,
@@ -21,18 +29,8 @@ static void LoadRibbonMaterial(
   mats->SetCount(numLayers);
   textures->SetCount(numLayers);
   replace->SetCount(numLayers);
-
   for (UINT i = 0; i < numLayers; ++i) {
-    CRibbonMat &ribbonMaterial = (*mats)[i];
-    const CTexLayer &layer = uniqueMtl.layers[i];
-
-    ribbonMaterial.enableLighting = !layer.disable.lighting;
-    ribbonMaterial.enableFog = !layer.disable.fog;
-    ribbonMaterial.enableDepthTest = !layer.disable.depthTest;
-    ribbonMaterial.enableDepthWrite = !layer.disable.depthWrite;
-    ribbonMaterial.enableCulling = !layer.disable.culling;
-    ribbonMaterial.alpha = layer.blendMode;
-
+    SetRibbonMaterial(uniqueMtl.layers[i], &(*mats)[i]);
     UINT textureId = uniqueMtl.layers[i].tmuPass[0].textureId;
     (*textures)[i] = modelTextures[textureId].handle;
     (*replace)[i] = modelTextures[textureId].replaceableId;

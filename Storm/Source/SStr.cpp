@@ -145,31 +145,15 @@ static void CheckInitialized() {
 }
 
 static void InitializeFloatDigits() {
-  double *out;
-  double  scale;
-  int     exponent;
-  int     digit;
-
-  out = &s_realDigit[0][0];
-  exponent = -1;
-  do {
-    digit = 0;
-    scale = pow(10.0, exponent);
-    do {
-      out[digit] = digit * scale;
-      digit++;
-    } while (digit < 10);
-    out += 10;
-    exponent--;
-  } while (exponent > -21);
+  for (int exponent = 0; exponent < 20; ++exponent)
+    for (int digit = 0; digit < 10; ++digit)
+      s_realDigit[exponent][digit] = digit * pow(10.0, -1 - exponent);
 }
 
 LPCSTR SStrChr(LPCSTR string, char ch) {
   char current;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   current = *string;
   while (current) {
@@ -186,9 +170,7 @@ LPCSTR SStrChr(LPCSTR string, char ch) {
 char *SStrChr(char *string, char ch) {
   char current;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   current = *string;
   while (current) {
@@ -205,9 +187,7 @@ char *SStrChr(char *string, char ch) {
 LPCSTR SStrChrR(LPCSTR string, char ch) {
   LPCSTR result;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   result = NULL;
   while (*string) {
@@ -223,9 +203,7 @@ LPCSTR SStrChrR(LPCSTR string, char ch) {
 char *SStrChrR(char *string, char ch) {
   char *result;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   result = NULL;
   while (*string) {
@@ -242,11 +220,11 @@ int APIENTRY SStrCmp(LPCSTR string1, LPCSTR string2, DWORD maxchars) {
   VALIDATEBEGIN;
   VALIDATE(string1);
   VALIDATE(string2);
-  if (0) {
-  validatefailed:
+  validatefailed = 0; }
+  if (validatefailed) {
     SErrSetLastError(ERROR_INVALID_PARAMETER);
     return string1 - string2;
-  }
+  } }
 
   return strncmp(string1, string2, maxchars);
 }
@@ -255,11 +233,11 @@ int APIENTRY SStrCmpI(LPCSTR string1, LPCSTR string2, DWORD maxchars) {
   VALIDATEBEGIN;
   VALIDATE(string1);
   VALIDATE(string2);
-  if (0) {
-  validatefailed:
+  validatefailed = 0; }
+  if (validatefailed) {
     SErrSetLastError(ERROR_INVALID_PARAMETER);
     return string1 - string2;
-  }
+  } }
 
   return _strnicmp(string1, string2, maxchars);
 }
@@ -292,9 +270,7 @@ char *APIENTRY SStrDupA(LPCSTR string, LPCSTR fileName, UINT lineNumber) {
   DWORD bytes;
   char *result;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   bytes = SStrLen(string) + 1;
   result = (char *)SMemAlloc(bytes, fileName, lineNumber, 0);
@@ -312,9 +288,7 @@ extern "C" void APIENTRY SStrDestroy() {
 }
 
 DWORD APIENTRY SStrLen(LPCSTR string) {
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   {
     SSTR_INIT_DWORD_OPERATIONS;
@@ -330,9 +304,7 @@ DWORD APIENTRY SStrLen(LPCSTR string) {
 DWORD APIENTRY SStrLen(const WORD *string) {
   const WORD *scan;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   scan = string;
   if (*scan) {
@@ -430,9 +402,7 @@ double APIENTRY SStrToDouble(LPCSTR string) {
   int    exponent;
   int    tableOffset;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   CheckInitialized();
 
@@ -509,9 +479,7 @@ float APIENTRY SStrToFloat(LPCSTR string) {
   int    exponent;
   int    tableOffset;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   CheckInitialized();
 
@@ -584,9 +552,7 @@ int APIENTRY SStrToInt(LPCSTR string) {
   UINT digit;
   int  negative;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   negative = *string == '-';
   if (negative) {
@@ -618,9 +584,7 @@ LONGLONG APIENTRY SStrToInt64(LPCSTR string) {
   DWORD    chunk;
   DWORD    digit;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   negative = *string == '-';
   if (negative) {
@@ -662,9 +626,7 @@ UINT APIENTRY SStrToUnsigned(LPCSTR string) {
   UINT result;
   UINT digit;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   result = *string - '0';
   if (result < 10) {
@@ -752,9 +714,7 @@ DWORD APIENTRY SStrHash(LPCSTR string, DWORD flags, DWORD seed) {
   DWORD offset;
   DWORD ch;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   hash = seed;
   if (!hash) {
@@ -805,9 +765,7 @@ LONGLONG APIENTRY SStrHash64(LPCSTR string, DWORD flags, LONGLONG seed) {
   DWORD    ch;
   LONGLONG adjust;
 
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEEND;
+  VALIDATE2(string);
 
   result = seed ? seed : 0x7FED7FED7FED7FED;
   adjust = 0xEEEEEEEEEEEEEEEE;

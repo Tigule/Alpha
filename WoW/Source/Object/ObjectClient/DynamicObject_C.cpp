@@ -30,7 +30,7 @@
 #include "Object/ObjectClient/Player_C.h"
 #include "SoundInterface/SoundInterface.h"
 
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Os/W32/OsSound.h>
 #include <Services/SysMessage.h>
 #include <Tempest/caasphere.h>

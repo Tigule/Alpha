@@ -136,9 +136,7 @@ int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format
 int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, ...) {
   va_list arglist;
 
-  VALIDATEBEGIN;
-  VALIDATE(format);
-  VALIDATEEND;
+  VALIDATE2(format);
 
   va_start(arglist, format);
   return SysMsgVPrintf(severity, categoryMask, format, arglist);

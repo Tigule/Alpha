@@ -11,7 +11,7 @@
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleCommand.h"
 #include "Gx/Gx.h"
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Services/Texture.h"
 #include "Ui/WorldFrame.h"
 

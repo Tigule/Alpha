@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Tempest/caabox.h"
 #include "Tempest/c34matrix.h"
 #include "Tempest/cfacet.h"

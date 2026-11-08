@@ -93,9 +93,7 @@ finallylabel:
 FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
-  VALIDATEBEGIN;
-  VALIDATE(handle);
-  VALIDATEEND;
+  VALIDATE2(handle);
 
   dataPtr = (FACEDATA *)handle;
   ASSERT(dataPtr->selfReference);
@@ -106,9 +104,7 @@ void FontFaceCloseHandle(HFACE__ *handle) {
   FACEDATA *dataPtr;
   UINT      refCount;
 
-  VALIDATEBEGIN;
-  VALIDATE(handle);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(handle);
 
   dataPtr = (FACEDATA *)handle;
   HandleClose(handle);
@@ -128,9 +124,7 @@ void FontFaceCloseHandle(HFACE__ *handle) {
 LPCSTR FontFaceGetFontName(HFACE__ *handle) {
   FACEDATA *dataPtr;
 
-  VALIDATEBEGIN;
-  VALIDATE(handle);
-  VALIDATEEND;
+  VALIDATE2(handle);
 
   dataPtr = (FACEDATA *)handle;
   return dataPtr->GetString();

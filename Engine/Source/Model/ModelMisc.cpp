@@ -1,7 +1,6 @@
 #include <Base/Base.h>
 
 #include "IModel.h"
-#include "ModelInternal.h"
 
 #include "Anim/AnimTypes.h"
 #include "Gxu/IGxuLight.h"
@@ -368,9 +367,8 @@ void ModelMaterialShowLayer(HMODEL model, UINT materialIndex, UINT layerIndex, i
   }
 }
 
-static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::CImVector &color, int doLinkedModels) {
-  ASSERT(unique);
-
+template <class T>
+inline void IModelSetEmissiveColor(T *unique, const NTempest::CImVector &color) {
   ASSERT(unique);
   UINT numMaterials = unique->m_materials.Count();
   for (UINT i = 0; i < numMaterials; ++i) {
@@ -384,6 +382,12 @@ static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::
     ASSERT(uniqueMtl);
     uniqueMtl->emissiveColor = color;
   }
+}
+
+static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::CImVector &color, int doLinkedModels) {
+  ASSERT(unique);
+
+  IModelSetEmissiveColor(unique, color);
   if (doLinkedModels) {
     UINT numAttachments = unique->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
@@ -396,9 +400,7 @@ static void ComplexModelSetEmissiveColor(CModelComplex *unique, const NTempest::
 
 void ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int doLinkedModels) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -409,29 +411,15 @@ void ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int d
   if (unique->m_flags & 0x20) {
     ComplexModelSetEmissiveColor((CModelComplex *)unique, color, doLinkedModels);
   } else {
-    CModelSimple *simple = (CModelSimple *)unique;
-    UINT numMaterials = simple->m_materials.Count();
-    for (UINT i = 0; i < numMaterials; ++i) {
-      if (!MaterialUsedOnce(simple->m_materials[i])) {
-        HMATERIAL oldMaterial = simple->m_materials[i];
-        simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
-        HandleClose(oldMaterial);
-      }
-
-      CMaterial *uniqueMtl = (CMaterial *)simple->m_materials[i];
-      ASSERT(uniqueMtl);
-      uniqueMtl->emissiveColor = color;
-    }
+    IModelSetEmissiveColor((CModelSimple *)unique, color);
   }
 }
 
-static UINT ComplexModelReplaceTexture(CModelComplex *unique, UINT replaceableId, HTEXTURE texture, int doLinkedModels) {
+template <class T>
+inline UINT IModelReplaceTexture(T *unique, UINT replaceableId, HTEXTURE texture) {
   UINT numReplaced = 0;
-  UINT numAttached;
-  UINT index;
-
   UINT numTextures = unique->m_textures.Count();
-  for (index = 0; index < numTextures; ++index) {
+  for (UINT index = 0; index < numTextures; ++index) {
     CModelTexture &modelTexture = unique->m_textures[index];
 
     if (modelTexture.replaceableId == replaceableId) {
@@ -444,12 +432,17 @@ static UINT ComplexModelReplaceTexture(CModelComplex *unique, UINT replaceableId
     }
   }
 
+  return numReplaced;
+}
+
+static UINT ComplexModelReplaceTexture(CModelComplex *unique, UINT replaceableId, HTEXTURE texture, int doLinkedModels) {
+  UINT numReplaced = IModelReplaceTexture(unique, replaceableId, texture);
   numReplaced += UpdateRibbonMaterial(unique, replaceableId, texture);
   UpdateParticleEmitters(unique, replaceableId, texture);
 
   if (doLinkedModels) {
-    numAttached = unique->m_attached.Count();
-    for (index = 0; index < numAttached; ++index) {
+    UINT numAttached = unique->m_attached.Count();
+    for (UINT index = 0; index < numAttached; ++index) {
       ITERATELIST(LINKUNIQUE, unique->m_attached[index], link) {
         numReplaced += ModelReplaceTexture(link->child, replaceableId, texture, 1);
       }
@@ -477,23 +470,7 @@ BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int
     return ComplexModelReplaceTexture((CModelComplex *)unique, replaceableId, texture, doLinkedModels) != 0;
   }
 
-  CModelSimple *simple = (CModelSimple *)unique;
-  UINT          numReplaced = 0;
-  UINT          numTextures = simple->m_textures.Count();
-  for (UINT index = 0; index < numTextures; ++index) {
-    CModelTexture &modelTexture = simple->m_textures[index];
-
-    if (modelTexture.replaceableId == replaceableId) {
-      HTEXTURE oldTexture = modelTexture.handle;
-      modelTexture.handle = (HTEXTURE)HandleDuplicate(texture);
-      if (oldTexture) {
-        HandleClose(oldTexture);
-      }
-      ++numReplaced;
-    }
-  }
-
-  return numReplaced != 0;
+  return IModelReplaceTexture((CModelSimple *)unique, replaceableId, texture) != 0;
 }
 
 UINT ModelGetMatrixCount(HMODEL model) {
@@ -502,6 +479,16 @@ UINT ModelGetMatrixCount(HMODEL model) {
     return shared->numBones;
   }
   return 0;
+}
+
+static inline BOOL LinkIdToIndex(CModelShared *dataptr, UINT &index) {
+  ASSERT(dataptr);
+  if (index >= dataptr->attachIdToIndex.Count()) {
+    return 0;
+  }
+
+  index = dataptr->attachIdToIndex[index];
+  return index != (UINT)-1;
 }
 
 BOOL ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entriesInOut) {
@@ -520,15 +507,7 @@ BOOL ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entrie
     return 0;
   }
 
-  CModelShared *dataptr = shared;
-  ASSERT(dataptr);
-  if (index >= shared->attachIdToIndex.Count()) {
-    *entriesInOut = 0;
-    return 0;
-  }
-
-  index = shared->attachIdToIndex[index];
-  if (index == (UINT)-1) {
+  if (!LinkIdToIndex(shared, index)) {
     *entriesInOut = 0;
     return 0;
   }
@@ -550,23 +529,14 @@ BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
   CModelShared *shared;
   CModelBase   *unique;
 
-  VALIDATEBEGIN;
-  VALIDATE(numLinked);
-  VALIDATEEND;
+  VALIDATE2(numLinked);
   *numLinked = 0;
 
   if (!IModelDerefHandle((CModel *)model, &unique, &shared) || !(unique->m_flags & 0x20)) {
     return 0;
   }
 
-  CModelShared *dataptr = shared;
-  ASSERT(dataptr);
-  if (index >= shared->attachIdToIndex.Count()) {
-    return 0;
-  }
-
-  index = shared->attachIdToIndex[index];
-  if (index == (UINT)-1) {
+  if (!LinkIdToIndex(shared, index)) {
     return 0;
   }
 
@@ -580,16 +550,7 @@ BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
 BOOL ModelHasLinkPoint(HMODEL model, UINT index) {
   CModelShared *shared;
 
-  if (!IModelDerefHandle((CModel *)model, &shared)) {
-    return 0;
-  }
-
-  CModelShared *dataptr = shared;
-  ASSERT(dataptr);
-  if (index < dataptr->attachIdToIndex.Count() ? dataptr->attachIdToIndex[index] != (UINT)-1 : 0) {
-    return 1;
-  }
-  return 0;
+  return IModelDerefHandle((CModel *)model, &shared) && LinkIdToIndex(shared, index);
 }
 
 UINT ModelGetNumLinkPoints(HMODEL model) {
@@ -608,9 +569,7 @@ BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   CModelComplex *parentptr;
 
   CModel *modelptr = (CModel *)parent;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   ASSERT(CMath::fnotequal_(scale,0.0f));
   ASSERT(((CModel *)((CHandleObject*)(child))));
@@ -625,18 +584,11 @@ BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   }
 
   parentptr = (CModelComplex *)parentBase;
-  CModelShared *dataptr = parentdata;
-  ASSERT(dataptr);
-
-  if (parentIndex >= parentdata->attachIdToIndex.Count()) {
+  if (!LinkIdToIndex(parentdata, parentIndex)) {
     return 0;
   }
 
-  if (parentdata->attachIdToIndex[parentIndex] == (UINT)-1) {
-    return 0;
-  }
-
-  LIST(LINKUNIQUE) &links = parentptr->m_attached[parentdata->attachIdToIndex[parentIndex]];
+  LIST(LINKUNIQUE) &links = parentptr->m_attached[parentIndex];
   LINKUNIQUE *link = links.NewNode(LIST_TAIL, 0, 0);
   link->child = (HMODEL)HandleDuplicate(child);
   link->scale = scale;
@@ -650,9 +602,7 @@ BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
   CModelShared *parentdata;
 
   CModel *modelptr = (CModel *)parent;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   if (!IModelDerefHandle(modelptr, &parentBase, &parentdata)) {
     EnqueueModelCommand(modelptr, MODEL_REMOVE_LINK, parentIndex, child);
@@ -664,14 +614,7 @@ BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
   }
 
   CModelComplex *parentptr = (CModelComplex *)parentBase;
-  CModelShared *dataptr = parentdata;
-  ASSERT(dataptr);
-  if (parentIndex >= parentdata->attachIdToIndex.Count()) {
-    return 0;
-  }
-
-  parentIndex = parentdata->attachIdToIndex[parentIndex];
-  if (parentIndex == (UINT)-1) {
+  if (!LinkIdToIndex(parentdata, parentIndex)) {
     return 0;
   }
 
@@ -693,9 +636,7 @@ BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
   CModelComplex *parentptr;
 
   CModel *modelptr = (CModel *)parent;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   if (!IModelDerefHandle(modelptr, &parentBase, &parentdata)) {
     EnqueueModelCommand(modelptr, MODEL_CLEAR_LINK, parentIndex);
@@ -707,15 +648,7 @@ BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
   }
 
   parentptr = (CModelComplex *)parentBase;
-  CModelShared *dataptr = parentdata;
-  ASSERT(dataptr);
-
-  if (parentIndex >= parentdata->attachIdToIndex.Count()) {
-    return 0;
-  }
-
-  parentIndex = parentdata->attachIdToIndex[parentIndex];
-  if (parentIndex == (UINT)-1) {
+  if (!LinkIdToIndex(parentdata, parentIndex)) {
     return 0;
   }
 
@@ -729,9 +662,7 @@ void ModelClearAllLinks(HMODEL parent) {
   UINT        i;
 
   CModel *modelptr = (CModel *)parent;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &parentBase)) {
     EnqueueModelCommand(modelptr, MODEL_CLEAR_ALL_LINKS);
@@ -778,9 +709,7 @@ HCAMERA ModelGetCamera(HMODEL model, UINT index) {
     }
   }
 
-  VALIDATEBEGIN;
-  VALIDATE(index < complex->m_cameras.Count());
-  VALIDATEEND;
+  VALIDATE2(index < complex->m_cameras.Count());
 
   return (HCAMERA)HandleDuplicate(complex->m_cameras[index]);
 }
@@ -804,9 +733,7 @@ int ModelIsCameraEnabled(HMODEL model, UINT index) {
     }
   }
 
-  VALIDATEBEGIN;
-  VALIDATE(index < complex->m_cameras.Count());
-  VALIDATEEND;
+  VALIDATE2(index < complex->m_cameras.Count());
   return AnimIsCameraEnabled(unique->m_anim, index);
 }
 
@@ -828,9 +755,8 @@ BOOL ModelIsShowingHitTestGeometry(HMODEL model) {
   return IModelDerefHandle((CModel *)model, &unique) && (unique->m_flags & 8);
 }
 
-static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedModels) {
-  UINT numAttachments;
-
+template <class T>
+inline void IModelRestoreBlendMode(T *unique) {
   ASSERT(unique);
 
   UINT numMaterials = unique->m_materials.Count();
@@ -856,7 +782,12 @@ static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedMode
       uniqueLayer->blendMode = sharedLayer->blendMode;
     }
   }
+}
 
+static void ComplexModelRestoreBlendMode(CModelComplex *unique, int doLinkedModels) {
+  UINT numAttachments;
+
+  IModelRestoreBlendMode(unique);
   if (doLinkedModels) {
     numAttachments = unique->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
@@ -877,36 +808,12 @@ void ModelRestoreBlendMode(HMODEL model, int doLinkedModels) {
   if (unique->m_flags & 0x20) {
     ComplexModelRestoreBlendMode((CModelComplex *)unique, doLinkedModels);
   } else {
-    CModelSimple *simple = (CModelSimple *)unique;
-    UINT numMaterials = simple->m_materials.Count();
-    for (UINT i = 0; i < numMaterials; ++i) {
-      CMaterial *uniqueMtl = (CMaterial *)simple->m_materials[i];
-      ASSERT(uniqueMtl);
-
-      CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
-      ASSERT(sharedMtl);
-
-      if (!MaterialUsedOnce(simple->m_materials[i])) {
-        HMATERIAL oldMaterial = simple->m_materials[i];
-        simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
-        HandleClose(oldMaterial);
-        uniqueMtl = (CMaterial *)simple->m_materials[i];
-        ASSERT(uniqueMtl);
-      }
-
-      UINT             numLayers = sharedMtl->layers.Count();
-      CTexLayer       *uniqueLayer = uniqueMtl->layers.Ptr();
-      CTexLayerShared *sharedLayer = sharedMtl->layers.Ptr();
-      for (; numLayers; --numLayers, ++uniqueLayer, ++sharedLayer) {
-        uniqueLayer->blendMode = sharedLayer->blendMode;
-      }
-    }
+    IModelRestoreBlendMode((CModelSimple *)unique);
   }
 }
 
-static void ComplexModelSetBlendMode(CModelComplex *unique, EGxBlend blendMode, int doLinkedModels) {
-  UINT numAttachments;
-
+template <class T>
+inline void IModelSetBlendMode(T *unique, EGxBlend blendMode) {
   ASSERT(unique);
 
   UINT numMaterials = unique->m_materials.Count();
@@ -932,7 +839,12 @@ static void ComplexModelSetBlendMode(CModelComplex *unique, EGxBlend blendMode, 
       uniqueLayer->blendMode = blendMode;
     }
   }
+}
 
+static void ComplexModelSetBlendMode(CModelComplex *unique, EGxBlend blendMode, int doLinkedModels) {
+  UINT numAttachments;
+
+  IModelSetBlendMode(unique, blendMode);
   if (doLinkedModels) {
     numAttachments = unique->m_attached.Count();
     for (UINT i = 0; i < numAttachments; ++i) {
@@ -953,30 +865,7 @@ void ModelSetBlendMode(HMODEL model, EGxBlend blendMode, int doLinkedModels) {
   if (unique->m_flags & 0x20) {
     ComplexModelSetBlendMode((CModelComplex *)unique, blendMode, doLinkedModels);
   } else {
-    CModelSimple *simple = (CModelSimple *)unique;
-    UINT numMaterials = simple->m_materials.Count();
-    for (UINT i = 0; i < numMaterials; ++i) {
-      CMaterial *uniqueMtl = (CMaterial *)simple->m_materials[i];
-      ASSERT(uniqueMtl);
-
-      CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
-      ASSERT(sharedMtl);
-
-      if (!MaterialUsedOnce(simple->m_materials[i])) {
-        HMATERIAL oldMaterial = simple->m_materials[i];
-        simple->m_materials[i] = MaterialDuplicate(simple->m_materials[i]);
-        HandleClose(oldMaterial);
-        uniqueMtl = (CMaterial *)simple->m_materials[i];
-        ASSERT(uniqueMtl);
-      }
-
-      UINT             numLayers = sharedMtl->layers.Count();
-      CTexLayer       *uniqueLayer = uniqueMtl->layers.Ptr();
-      CTexLayerShared *sharedLayer = sharedMtl->layers.Ptr();
-      for (; numLayers; --numLayers, ++uniqueLayer, ++sharedLayer) {
-        uniqueLayer->blendMode = blendMode;
-      }
-    }
+    IModelSetBlendMode((CModelSimple *)unique, blendMode);
   }
 }
 
@@ -996,9 +885,7 @@ inline void IModelHideGeosets(T *modelptr, CModelShared *shared, UINT selectionG
 
 void ModelHideGeosets(HMODEL model, UINT selectionGroup, int hide) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase   *unique;
   CModelShared *shared;
@@ -1031,9 +918,7 @@ inline void IModelHideGeosetsRange(T *modelptr, CModelShared *shared, UINT selec
 
 void ModelHideGeosetsRange(HMODEL model, UINT selectionStart, UINT selectionEnd, int hide) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase   *unique;
   CModelShared *shared;
@@ -1288,9 +1173,7 @@ static void IModelOptimizeVisibleGeosets(CModelComplex *unique, CModelShared *sh
 
 BOOL ModelOptimizeVisibleGeosets(HMODEL model) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase   *unique;
   CModelShared *shared;
@@ -1402,9 +1285,7 @@ void ModelSetVertexAlpha(HMODEL model, BYTE alpha, int doLinkedModels) {
   CModelShared *shared;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique, &shared)) {
     EnqueueModelCommand(modelptr, MODEL_SET_VERTEX_ALPHA, alpha, doLinkedModels);
@@ -1502,9 +1383,7 @@ void ModelSetVertexColor(HMODEL model, BYTE red, BYTE green, BYTE blue, int doLi
   CModelShared *shared;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique, &shared)) {
     EnqueueModelCommand(modelptr, MODEL_SET_VERTEX_COLOR, red, green, blue, doLinkedModels);
@@ -1699,9 +1578,7 @@ const CGxLight *ModelGetLight(HMODEL model, UINT index) {
     return 0;
   }
 
-  VALIDATEBEGIN;
-  VALIDATE(pModel->m_flags & 0x00000020);
-  VALIDATEEND;
+  VALIDATE2(pModel->m_flags & 0x00000020);
 
   CModelComplex *complex = (CModelComplex *)pModel;
   return GxuLightLock(complex->m_lights[index]);
@@ -1716,9 +1593,7 @@ void ModelSetLightSelectCallback(
   CModelBase *unique;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_LIGHT_SELECT_CALLBACK, callback, parm, doLinkedModels);
@@ -1747,9 +1622,7 @@ void ModelCustGeosetAdd(
     LPVOID renderParam,
     UINT  *custGeosetId
 ) {
-  VALIDATEBEGIN;
-  VALIDATE(custGeosetId);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(custGeosetId);
 
   CModelBase *unique;
   if (!IModelDerefHandle((CModel *)model, &unique)) {
@@ -1843,9 +1716,7 @@ void ModelEnableAnimBlending(HMODEL model, int enabled) {
   CModelBase *unique;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_ENABLE_ANIM_BLENDING, enabled);
@@ -1950,9 +1821,7 @@ void ModelEnableFullAlpha(HMODEL model, int enable) {
   CModelBase *unique;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_ENABLE_FULL_ALPHA, enable);

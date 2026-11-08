@@ -602,18 +602,26 @@ class CSRgn {
   void CopyConstructor(const CSRgn &copy);
 
  public:
-  CSRgn();
+  CSRgn() {
+    SRgnCreate(&m_handle, 0);
+  }
   CSRgn(const CSRgn &copy);
-  ~CSRgn();
+  ~CSRgn() {
+    SRgnDelete(m_handle);
+  }
   CSRgn &operator=(const CSRgn &copy);
   void   AddParamf(const RECTF *rect, LPVOID param);
   void   AddParami(const RECT *rect, LPVOID param);
   void   AddRectf(const RECTF *rect, LPVOID param);
   void   AddRecti(const RECT *rect, LPVOID param);
   void   Clear();
-  void   CombineRectf(const RECTF *rect, LPVOID param, int combinemode);
+  void   CombineRectf(const RECTF *rect, LPVOID param, int combinemode) {
+    SRgnCombineRectf(m_handle, rect, param, combinemode);
+  }
   void   CombineRecti(const RECT *rect, LPVOID param, int combinemode);
-  void   GetBoundingRectf(RECTF *rect);
+  void   GetBoundingRectf(RECTF *rect) {
+    SRgnGetBoundingRectf(m_handle, rect);
+  }
   void   GetBoundingRecti(RECT *rect);
   void   GetRectsf(DWORD *numrects, RECTF *buffer);
   void   GetRectsi(DWORD *numrects, RECT *buffer);

@@ -521,9 +521,7 @@ extern "C" void APIENTRY SRgnCombineRectf(HSRGN handle, const RECTF *rect, LPVOI
 extern "C" void APIENTRY SRgnCombineRecti(HSRGN handle, const RECT *rect, LPVOID param, int combinemode) {
   RECTF rectf;
 
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(rect);
 
   rectf.left = rect->left;
   rectf.bottom = rect->top;
@@ -621,9 +619,7 @@ extern "C" void APIENTRY SRgnGetBoundingRectf(HSRGN handle, RECTF *rect) {
 extern "C" void APIENTRY SRgnGetBoundingRecti(HSRGN handle, RECT *rect) {
   RECTF rectf;
 
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(rect);
 
   SRgnGetBoundingRectf(handle, &rectf);
   rect->left = rectf.left;
@@ -680,9 +676,7 @@ extern "C" void APIENTRY SRgnGetRectParamsf(HSRGN handle, const RECTF *rect, DWO
 extern "C" void APIENTRY SRgnGetRectParamsi(HSRGN handle, const RECT *rect, DWORD *numparams, LPVOID *buffer) {
   RECTF rectf;
 
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(rect);
 
   rectf.left = rect->left;
   rectf.bottom = rect->top;
@@ -814,9 +808,7 @@ extern "C" BOOL APIENTRY SRgnIsRectInRegionf(HSRGN handle, const RECTF *rect) {
 extern "C" BOOL APIENTRY SRgnIsRectInRegioni(HSRGN handle, const RECT *rect) {
   RECTF rectf;
 
-  VALIDATEBEGIN;
-  VALIDATE(rect);
-  VALIDATEEND;
+  VALIDATE2(rect);
 
   rectf.left = rect->left;
   rectf.bottom = rect->top;

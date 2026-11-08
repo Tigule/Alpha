@@ -267,9 +267,7 @@ BOOL MDL::WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffe
 }
 
 BOOL MDL::ReadBinSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(status != 0);
-  VALIDATEEND;
+  VALIDATE2(status != 0);
   UINT numSeqs;
   numSeqs = buf.GetUint();
   if (length - 4 != sizeof(MDLSEQUENCESSECTION) * numSeqs) {
@@ -321,9 +319,7 @@ BOOL MDL::WriteBinSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) 
 }
 
 BOOL MDL::ReadBinGlobalSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(status != 0);
-  VALIDATEEND;
+  VALIDATE2(status != 0);
   if (length & 3) {
     status->Add(STATUS_ERROR, "Invalid GLBX section detected in model -- nonintegral number of global sequences.\n");
     return 0;

@@ -82,9 +82,7 @@ namespace ProfileInternal {
   }
 
   char *STRINGBLOCK::AllocString(LIST(STRINGBLOCK) & stringBlockList, LPCSTR string, int inSitu) {
-    VALIDATEBEGIN;
-    VALIDATE(string);
-    VALIDATEEND;
+    VALIDATE2(string);
 
     if (inSitu) {
       ITERATELIST(STRINGBLOCK, stringBlockList, stringBlock) {
@@ -110,9 +108,7 @@ namespace ProfileInternal {
   }
 
   void STRINGBLOCK::FreeString(LIST(STRINGBLOCK) & stringBlockList, char *string) {
-    VALIDATEBEGIN;
-    VALIDATE(string);
-    VALIDATEENDVOID;
+    VALIDATE2VOID(string);
 
     STRINGBLOCK *stringBlock = 0;
     ITERATELIST(STRINGBLOCK, stringBlockList, block) {
@@ -137,9 +133,7 @@ HPROFILE ProfileCreate() {
 }
 
 int ProfileReadFile(HPROFILE handle, LPCSTR path) {
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
+  VALIDATE2(path);
 
   return ProfileInternal::IReadFile((ProfileInternal::PROFILE *)handle, path);
 }
@@ -336,9 +330,7 @@ namespace ProfileInternal {
 }
 
 int ProfileWriteFile(HPROFILE handle, LPCSTR path) {
-  VALIDATEBEGIN;
-  VALIDATE(path);
-  VALIDATEEND;
+  VALIDATE2(path);
 
   return ProfileInternal::IWriteFile((ProfileInternal::PROFILE *)handle, path);
 }
@@ -774,9 +766,7 @@ void ProfileEnumKeys(HPROFILE handle, LPCSTR sectionName, PROFILEENUMKEYCALLBACK
 
   profile = (ProfileInternal::PROFILE *)handle;
   pSection = profile->sectionTable.Ptr(sectionName);
-  VALIDATEBEGIN;
-  VALIDATE(pSection);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(pSection);
 
   ITERATELIST(ProfileInternal::KEYVALUE, pSection->keyTable, key) {
     callback(key->GetString(), key->values[0], opaqueData);
@@ -795,9 +785,7 @@ BOOL ProfileSectionExists(HPROFILE profile, LPCSTR section) {
   ProfileInternal::PROFILE *profilePtr;
 
   profilePtr = (ProfileInternal::PROFILE *)profile;
-  VALIDATEBEGIN;
-  VALIDATE(profilePtr);
-  VALIDATEEND;
+  VALIDATE2(profilePtr);
 
   return profilePtr->sectionTable.Ptr(section) != 0;
 }

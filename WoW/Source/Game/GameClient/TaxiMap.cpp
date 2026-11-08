@@ -12,7 +12,7 @@
 
 #include <Base/Handle.h>
 #include <Base/Status.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Services/SysMessage.h>
 #include <Services/Texture.h>
 #include <Tempest/cimvector.h>

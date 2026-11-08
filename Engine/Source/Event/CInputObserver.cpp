@@ -9,10 +9,6 @@ static const float EVENT_PRIORITY_ABOVE_NORMAL = 1.0f;
 
 static TRefCntPtr<CInputObserver> s_pInputObserver;
 
-BOOL CObserver::OnEvent(const CEvent &) {
-  return 0;
-}
-
 void InputObserverInitialize() {
 }
 

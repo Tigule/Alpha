@@ -5,7 +5,7 @@
 
 #include "Base/Base.h"
 #include "Component/Component.h"
-#include "Model/IModel.h"
+#include "Model/Model.h"
 
 #define MAX_PLAYER_SEXES 2u
 

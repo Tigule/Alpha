@@ -186,7 +186,8 @@ class CGObject_C : public CGObject {
   }
   virtual void OnLeftClick() {
   }
-  virtual void                OnRightClick();
+  virtual void OnRightClick() {
+  }
   virtual NTempest::C34Matrix GetMatrix() const {
     return NTempest::C34Matrix();
   }
@@ -211,8 +212,10 @@ class CGObject_C : public CGObject {
   UINT m_flags;
 
  public:
-  virtual LPCSTR GetObjectName() const;
-  virtual int    GetPageTextID(void (*)(int, const DWORDLONG &, LPVOID, bool)) const {
+  virtual LPCSTR GetObjectName() const {
+    return 0;
+  }
+  virtual int GetPageTextID(void (*)(int, const DWORDLONG &, LPVOID, bool)) const {
     return 0;
   }
   BYTE GetAlpha() const {

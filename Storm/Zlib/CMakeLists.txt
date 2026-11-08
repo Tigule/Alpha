@@ -12,6 +12,6 @@ add_library(Zlib OBJECT
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(Zlib PRIVATE /Gr /Ob2 /Oy)
+    target_compile_options(Zlib PRIVATE /Gr /Ob2 /Oy /Zd)
     target_compile_definitions(Zlib PRIVATE Z_PREFIX)
 endif()

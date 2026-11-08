@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MDLTypes.h"
+#include "MDLStatus.h"
 #include "Parser.h"
 #include "Base/MsgBuffer.h"
 
@@ -36,7 +37,6 @@ BOOL         ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStat
 void         WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &track, DWORD magic, CMsgBuffer &buffer);
 BOOL         ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &track, CMsgBuffer &buffer, UINT &totalRead);
 UINT         GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &track);
-int          ReadBinFloatKeyFrames(MDLKEYTRACK<NTempest::C3Vector> &keyframes, CMsgBuffer &buf, UINT &totalRead);
 UINT         ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *keyTrack, LPCSTR *tokentext, UTokenData *value);
 void         WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer);
 
@@ -181,6 +181,18 @@ inline void WriteBinFloatKeyFrames(const MDLKEYTRACK<T> &keyframes, DWORD magicP
 }
 
 template <class T>
+inline UINT GetBinFloatKeyFramesSize(const MDLKEYTRACK<T> &keyframes) {
+  if (!keyframes.keys.Count()) {
+    return 0;
+  }
+  UINT dataSize = sizeof(T);
+  if (keyframes.type > TRACK_LINEAR) {
+    dataSize = 3 * sizeof(T);
+  }
+  return (dataSize + 4) * keyframes.keys.Count() + 16;
+}
+
+template <class T>
 inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
   if (buf.Bytes() < 3 * sizeof(UINT)) {
     return 0;
@@ -241,6 +253,13 @@ inline int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuf
   return 1;
 }
 
+inline UINT GetBinUintKeyFramesSize(const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes) {
+  if (!keyframes.keys.Count()) {
+    return 0;
+  }
+  return keyframes.keys.Count() * sizeof(MDLINTKEY) + 16;
+}
+
 inline void WriteBinUintKeyFrames(const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, DWORD magicParam, CMsgBuffer &buf) {
   UINT numKeys = keyframes.keys.Count();
   if (!numKeys) {
@@ -255,4 +274,22 @@ inline void WriteBinUintKeyFrames(const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes,
     buf.AddInt(key->time);
     buf.AddUintArray(&key->value, 1);
   }
+}
+
+inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<UINT> *section, UINT *localBytesRead, CMDLStatus *status) {
+  DWORD found = buf.GetDword();
+  *localBytesRead += 4;
+  if (found != title) {
+    status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
+    return 0;
+  }
+  UINT count = buf.GetUint();
+  *localBytesRead += 4;
+  if (!count) {
+    return 1;
+  }
+  section->SetCount(count);
+  buf.GetUintArray(section->Ptr(), count);
+  *localBytesRead += 4 * count;
+  return 1;
 }

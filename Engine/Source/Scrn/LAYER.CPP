@@ -59,8 +59,6 @@ static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
 }
 
 static BOOL OnPaint(LPCVOID, LPVOID) {
-  HSRGN rgn;
-  RECTF baseRect;
   float minX;
   float maxX;
   float minY;
@@ -72,28 +70,29 @@ static BOOL OnPaint(LPCVOID, LPVOID) {
     return 1;
   }
 
-  SRgnCreate(&rgn, 0);
-  baseRect.left = 0.0f;
-  baseRect.bottom = 0.0f;
-  baseRect.right = 1.0f;
-  baseRect.top = 1.0f;
-  SRgnCombineRectf(rgn, &baseRect, 0, 2);
-
   {
+    CSRgn rgn;
+    RECTF baseRect;
+
+    baseRect.left = 0.0f;
+    baseRect.bottom = 0.0f;
+    baseRect.right = 1.0f;
+    baseRect.top = 1.0f;
+    rgn.CombineRectf(&baseRect, 0, 2);
+
     ITERATELISTREVERSE(CILayer, s_zorderlist, layer) {
-      SRgnGetBoundingRectf(rgn, &layer->visible);
+      rgn.GetBoundingRectf(&layer->visible);
       layer->visible.left = max(layer->visible.left, layer->rect.left);
       layer->visible.bottom = max(layer->visible.bottom, layer->rect.bottom);
       layer->visible.right = min(layer->visible.right, layer->rect.right);
       layer->visible.top = min(layer->visible.top, layer->rect.top);
 
       if (!(layer->flags & 1)) {
-        SRgnCombineRectf(rgn, &layer->rect, 0, 4);
+        rgn.CombineRectf(&layer->rect, 0, 4);
       }
     }
   }
 
-  SRgnDelete(rgn);
   GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
   SAFEITERATELIST(CILayer, s_zorderlist, layer) {

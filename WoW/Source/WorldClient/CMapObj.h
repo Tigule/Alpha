@@ -388,6 +388,7 @@ class CMapObjGroup {
     return uniqueID;
   }
   BYTE GetFogId(UINT index) {
+    ASSERT(index < SMOGroup::NUM_FOGS);
     return fogIds[index];
   }
   SMOPoly *GetPoly(WORD poly) {

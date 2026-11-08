@@ -53,39 +53,54 @@ static bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
 
 bool LoadLightsAndFog(LPCSTR filename, LightGroup *lightgroup) {
   int    versionNumber;
-  int    lightCount;
+  int    lightCount = 0;
   SFile *lightdata = 0;
 
-  if (SFile::Open(filename, &lightdata) && SFile::Read(lightdata, &versionNumber, sizeof(versionNumber), 0, 0, 0) &&
-      versionNumber == (int)0x80000004 && SFile::Read(lightdata, &lightCount, sizeof(lightCount), 0, 0, 0))
-  {
-    lightgroup->m_lightData.SetCount(lightCount);
+  if (!SFile::Open(filename, &lightdata)) {
+    goto Error;
+  }
 
-    int i;
-    for (i = 0; i < lightCount; ++i) {
-      if (!SFile::Read(lightdata, &lightgroup->m_lightData[i].m_lightlist, sizeof(LightListData), 0, 0, 0)) {
-        break;
-      }
-    }
+  if (!SFile::Read(lightdata, &versionNumber, sizeof(versionNumber), 0, 0, 0)) {
+    goto Error;
+  }
 
-    if (i == lightCount) {
-      for (i = 0; i < lightCount; ++i) {
-        LightData &data = lightgroup->m_lightData[i];
-        if (!ReadSingleLightGroup(lightdata, &data.m_lightdata) || !ReadSingleLightGroup(lightdata, &data.m_stormdata) ||
-            !ReadSingleLightGroup(lightdata, &data.m_lightdataWater) || !ReadSingleLightGroup(lightdata, &data.m_stormdataWater))
-        {
-          break;
-        }
-      }
+  if (versionNumber != (int)0x80000004) {
+    goto Error;
+  }
 
-      if (i == lightCount) {
-        SFile::Close(lightdata);
-        return 1;
-      }
+  if (!SFile::Read(lightdata, &lightCount, sizeof(lightCount), 0, 0, 0)) {
+    goto Error;
+  }
+
+  lightgroup->m_lightData.SetCount(lightCount);
+
+  int i;
+  for (i = 0; i < lightCount; ++i) {
+    if (!SFile::Read(lightdata, &lightgroup->m_lightData[i].m_lightlist, sizeof(LightListData), 0, 0, 0)) {
+      goto Error;
     }
   }
 
-  lightgroup->m_lightData.Clear();
+  for (i = 0; i < lightCount; ++i) {
+    if (!ReadSingleLightGroup(lightdata, &lightgroup->m_lightData[i].m_lightdata)) {
+      goto Error;
+    }
+    if (!ReadSingleLightGroup(lightdata, &lightgroup->m_lightData[i].m_stormdata)) {
+      goto Error;
+    }
+    if (!ReadSingleLightGroup(lightdata, &lightgroup->m_lightData[i].m_lightdataWater)) {
+      goto Error;
+    }
+    if (!ReadSingleLightGroup(lightdata, &lightgroup->m_lightData[i].m_stormdataWater)) {
+      goto Error;
+    }
+  }
+
+  SFile::Close(lightdata);
+  return 1;
+
+Error:
+  lightgroup->m_lightData.SetCount(0);
   if (lightdata) {
     SFile::Close(lightdata);
   }
@@ -101,11 +116,10 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
     band = 9;
   }
 
-  TSFixedArray<LightMarker> &markers = lightdata->m_highlightMarker[band];
-  for (int n = 0; n < (int)markers.Count(); ++n) {
-    int x1 = markers[n].time;
-    int next = (n + 1) % markers.Count();
-    int t2 = markers[next].time;
+  for (int n = 0; n < (int)lightdata->m_highlightMarker[band].Count(); ++n) {
+    int x1 = lightdata->m_highlightMarker[band][n].time;
+    int next = (n + 1) % lightdata->m_highlightMarker[band].Count();
+    int t2 = lightdata->m_highlightMarker[band][next].time;
 
     if (t2 <= x1) {
       if (time > t2 && time < x1) {
@@ -124,12 +138,12 @@ void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTe
     int w = t2 - x1;
     int i = time - x1;
     if (oband < 18) {
-      int col1 = markers[n].color.r;
-      color->r = col1 + i * (markers[next].color.r - col1) / w;
-      col1 = markers[n].color.g;
-      color->g = col1 + i * (markers[next].color.g - col1) / w;
-      col1 = markers[n].color.b;
-      color->b = col1 + i * (markers[next].color.b - col1) / w;
+      int col1 = lightdata->m_highlightMarker[band][n].color.r;
+      color->r = col1 + i * (lightdata->m_highlightMarker[band][next].color.r - col1) / w;
+      col1 = lightdata->m_highlightMarker[band][n].color.g;
+      color->g = col1 + i * (lightdata->m_highlightMarker[band][next].color.g - col1) / w;
+      col1 = lightdata->m_highlightMarker[band][n].color.b;
+      color->b = col1 + i * (lightdata->m_highlightMarker[band][next].color.b - col1) / w;
       color->a = 255;
     } else if (distance) {
       float d1;

@@ -3,7 +3,7 @@
 #include "Parser.h"
 #include "TSet.h"
 #include "GenObject.h"
-#include "Model/ModelInternal.h"
+#include "Model/IModel.h"
 #include "Base/MsgBuffer.h"
 
 #include <storm.h>
@@ -249,9 +249,7 @@ BOOL MDL::WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, 
 }
 
 BOOL MDL::ReadBinModelGlobals(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
-  VALIDATEBEGIN;
-  VALIDATE(status != 0);
-  VALIDATEEND;
+  VALIDATE2(status != 0);
   if (len != 373) {
     status->Add(STATUS_ERROR, "Invalid MODL section detected in model.\n");
     return 0;

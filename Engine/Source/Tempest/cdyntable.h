@@ -145,7 +145,8 @@ namespace NTempest {
     }
 
     T *GetEntry(DWORD i) const {
-      return i < iused ? &((T *)this->mem)[i] : 0;
+      ASSERT(IsValid() && i < iused);
+      return &((T *)this->mem)[i];
     }
 
     void SetEntry(DWORD at, const T &entry, DWORD count = 1) const {
@@ -197,30 +198,19 @@ namespace NTempest {
     bool Grow(const T *entry = 0, DWORD count = 1) {
       ASSERT(IsValid());
 
-      if (!count) {
-        return true;
-      }
-
+      if (!count) return true;
       if (iused + count > iallocated) {
-        if (!expand) {
-          return false;
-        }
-
+        if (!expand) return false;
         DWORD toexpand = max(expand, iused - iallocated + count);
-
-        if (!CMemBlock::Resize((iallocated + toexpand) * sizeof(T), true)) {
-          return false;
-        }
-
+        if (!CMemBlock::Resize((iallocated + toexpand) * sizeof(T), true)) return false;
         iallocated += toexpand;
       }
 
       DWORD i = iused;
       iused += count;
 
-      if (entry) {
+      if (entry)
         SetEntry(i, entry, iused);
-      }
 
       return true;
     }
@@ -249,28 +239,21 @@ namespace NTempest {
     bool Remove(DWORD at, DWORD count) {
       ASSERT(IsValid());
 
-      if (at >= iused) {
-        return false;
-      }
-
-      if (at + count > iused) {
+      if (at >= iused) return false;
+      if (at + count > iused)
         count = iused - at;
-      }
 
       DWORD moventries = iused - at - count;
-      if (moventries) {
-        memmove(&(*this)[at], &(*this)[at + count], sizeof(T) * moventries);
-      }
+
+      if (moventries)
+        memmove(GetEntry(at), GetEntry(at + count), sizeof(T) * moventries);
 
       iused -= count;
       return true;
     }
 
     bool RemoveLast() {
-      if (!iused) {
-        return false;
-      }
-
+      if (!iused) return false;
       return Remove(iused - 1, 1);
     }
 

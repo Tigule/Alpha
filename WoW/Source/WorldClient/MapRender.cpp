@@ -18,7 +18,7 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Services/Texture.h"
 #include "Tempest/c34matrix.h"
 

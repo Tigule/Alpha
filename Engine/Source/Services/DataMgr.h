@@ -121,9 +121,7 @@ class TManaged : public CBaseManaged {
       T data = m_data;
       T saved = m_data;
       m_updateFcn(elapsedSec, m_updateData, &data);
-      VALIDATEBEGIN;
-      VALIDATE(data == saved);
-      VALIDATEENDVOID;
+      VALIDATE2VOID(data == saved);
     }
     m_flags &= ~REQUIRESUPDATE;
   }

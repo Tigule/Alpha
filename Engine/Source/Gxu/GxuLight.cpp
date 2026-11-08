@@ -226,12 +226,12 @@ static void IGxuLightUnlock(DWORD lightId) {
     return;
   }
 
-  float radius = (light->m_light.m_dirIntensity + light->m_light.m_ambIntensity) * 20.0f;
+  float radius = (light->m_light.m_ambIntensity + light->m_light.m_dirIntensity) * 20.0f;
   if (light->m_light.m_linearAttenuation != 0.0f) {
     radius /= light->m_light.m_linearAttenuation;
   }
-  NTempest::C3Vector min = NTempest::C3Vector(light->m_light.m_dir.x - radius, light->m_light.m_dir.y - radius, light->m_light.m_dir.z - radius);
-  NTempest::C3Vector max = NTempest::C3Vector(light->m_light.m_dir.x + radius, light->m_light.m_dir.y + radius, light->m_light.m_dir.z + radius);
+  NTempest::C3Vector min = light->m_light.m_dir - radius;
+  NTempest::C3Vector max = light->m_light.m_dir + radius;
 
   int minY = Fast_ftol(min.y / s_bucketSize), minX = Fast_ftol(min.x / s_bucketSize);
   int maxY = Fast_ftol(max.y / s_bucketSize), maxX = Fast_ftol(max.x / s_bucketSize);
@@ -239,10 +239,10 @@ static void IGxuLightUnlock(DWORD lightId) {
     for (int x = minX; x <= maxX; ++x) {
       HASHKEY_DWORD hashKey((x & 0xFFFF) | (y << 16));
       UINT          hash = hashKey.GetDword() % 0x1FFF;
-      CLightList   *list = CLightList::s_lightHashTable.Ptr(hash, hashKey);
+      CLightList   *lightList = CLightList::s_lightHashTable.Ptr(hash, hashKey);
 
-      if (!list) {
-        list = CLightList::s_lightHashTable.New(hash, hashKey, 0, 0);
+      if (!lightList) {
+        lightList = CLightList::s_lightHashTable.New(hash, hashKey, 0, 0);
       }
 
       NTempest::C3Vector pos(x * s_bucketSize + s_halfBucket, y * s_bucketSize + s_halfBucket, min.z);
@@ -251,17 +251,17 @@ static void IGxuLightUnlock(DWORD lightId) {
       CGxuLightLink *link = light->AllocListLink();
       link->m_fitness = fitness;
       link->m_light = light;
-      link->m_list = list;
+      link->m_list = lightList;
 
-      CGxuLightLink *existing = list->m_links.Head();
+      CGxuLightLink *existing = lightList->m_links.Head();
       while (existing && fitness < existing->m_fitness) {
         existing = existing->m_listLink.Next();
       }
 
       if (existing) {
-        list->m_links.LinkNode(link, LIST_LINK_BEFORE, existing);
+        lightList->m_links.LinkNode(link, LIST_LINK_BEFORE, existing);
       } else {
-        list->m_links.LinkNode(link, LIST_TAIL, 0);
+        lightList->m_links.LinkNode(link, LIST_TAIL, 0);
       }
     }
   }

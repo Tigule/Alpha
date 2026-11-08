@@ -18,9 +18,7 @@
 using NTempest::CMath;
 
 static void FaceDirection(const NTempest::C3Vector &direction, NTempest::C3Vector *xprime, NTempest::C3Vector *yprime, NTempest::C3Vector *zprime) {
-  VALIDATEBEGIN;
-  VALIDATE(CMath::fnotequal_(direction.SquaredMag(),0));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(CMath::fnotequal_(direction.SquaredMag(),0));
 
   *xprime = direction;
 
@@ -52,9 +50,7 @@ static void FaceDirectionWithRoll(
     NTempest::C3Vector       *yprime,
     NTempest::C3Vector       *zprime
 ) {
-  VALIDATEBEGIN;
-  VALIDATE(CMath::fnotequal_(direction.SquaredMag(),0));
-  VALIDATEENDVOID;
+  VALIDATE2VOID(CMath::fnotequal_(direction.SquaredMag(),0));
 
   *xprime = direction;
 

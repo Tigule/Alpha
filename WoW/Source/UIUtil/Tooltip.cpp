@@ -274,6 +274,11 @@ class CGCraftInfo {
 
 extern LPCSTR g_invTypeTokens[];
 
+inline void FrameScriptGetString(char *buf, LPCSTR stringLabel, UINT bufSize) {
+  LPCSTR text = FrameScript_GetText(stringLabel, -1, GENDER_NOT_APPLICABLE);
+  SStrCopy(buf, text, bufSize);
+}
+
 inline int CGItem::GetNumPetitionSignatures() const {
   return !(m_item->m_staticFlags & ITEM_FLAG_PETITION) ? 0 : m_item->m_enchantment[0].expiration;
 }
@@ -593,8 +598,7 @@ BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
     } else {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player && unitPtr->UnitReaction(player) <= UNIT_REACTION_HOSTILE && player->GetLevel() <= unitPtr->GetLevel() - 15) {
-        LPCSTR text = FrameScript_GetText("UNIT_LETHAL_LEVEL_TEMPLATE", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(buf, text, sizeof(buf));
+        FrameScriptGetString(buf, "UNIT_LETHAL_LEVEL_TEMPLATE", sizeof(buf));
       } else {
         if (unitPtr->IsPlusMob()) {
           SStrPrintf(buf, sizeof(buf), FrameScript_GetText("UNIT_PLUS_LEVEL_TEMPLATE", -1, GENDER_NOT_APPLICABLE), unitPtr->GetLevel());
@@ -721,15 +725,13 @@ void CGTooltip::SetObject(const DWORDLONG &object) {
           } else {
             textColor = s_errorColor;
           }
-          LPCSTR text = FrameScript_GetText("LOCKED_WITH_SPELL_KNOWN", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(fmt, text, sizeof(fmt));
+          FrameScriptGetString(fmt, "LOCKED_WITH_SPELL_KNOWN", sizeof(fmt));
         } else {
           if (objectPtr->GetLocked()) {
             break;
           }
           textColor.Set(1.0f, 1.0f, 0.0f, 0.0f);
-          LPCSTR text = FrameScript_GetText("LOCKED_WITH_SPELL", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(fmt, text, sizeof(fmt));
+          FrameScriptGetString(fmt, "LOCKED_WITH_SPELL", sizeof(fmt));
         }
         const LockTypeRec *lockType = g_lockTypeDB.GetRecord(lock->m_Index[0]);
         SStrPrintf(buf, sizeof(buf), fmt, lockType ? lockType->m_name_lang[CURRENT_LANGUAGE] : "UNKNOWN");
@@ -785,8 +787,7 @@ void CGTooltip::SetCorpse(const DWORDLONG &corpseGUID) {
   if (nc) {
     char   str[256];
     char   line[256];
-    LPCSTR text = FrameScript_GetText("CORPSE_TOOLTIP", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(str, text, sizeof(str));
+    FrameScriptGetString(str, "CORPSE_TOOLTIP", sizeof(str));
     SStrPrintf(line, sizeof(line), str, nc->m_name);
     AddLine(line, s_normalColor, 0);
     Show();
@@ -836,6 +837,7 @@ BOOL CGTooltip::SetItem(
   char  right[256];
   int   i;
   int   usable;
+  int   price;
   CVar *var = CVar::Lookup("showGUIDs");
   if (var && var->GetInt()) {
     SStrPrintf(buf, sizeof(buf), "0x%016I64X", refGUID);
@@ -886,42 +888,35 @@ BOOL CGTooltip::SetItem(
 
   if (!nameOnly) {
     if (stats->m_flags & ITEM_FLAG_CONJURED) {
-      LPCSTR text = FrameScript_GetText("ITEM_CONJURED", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, "ITEM_CONJURED", sizeof(temp));
       AddLine(temp, s_normalColor, 0);
     }
 
     buf[0] = 0;
     if (itemPtr && itemPtr->IsBound()) {
       if (stats->m_bonding != 4 && stats->m_bonding != 5) {
-        LPCSTR text = FrameScript_GetText("ITEM_SOULBOUND", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(buf, text, sizeof(buf));
+        FrameScriptGetString(buf, "ITEM_SOULBOUND", sizeof(buf));
       } else {
-        LPCSTR text = FrameScript_GetText("ITEM_BIND_QUEST", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(buf, text, sizeof(buf));
+        FrameScriptGetString(buf, "ITEM_BIND_QUEST", sizeof(buf));
       }
     }
     if (stats->m_bonding && !buf[0]) {
       switch (stats->m_bonding) {
         case 1: {
-          LPCSTR text = FrameScript_GetText("ITEM_BIND_ON_PICKUP", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(buf, text, sizeof(buf));
+          FrameScriptGetString(buf, "ITEM_BIND_ON_PICKUP", sizeof(buf));
           break;
         }
         case 4:
         case 5: {
-          LPCSTR text = FrameScript_GetText("ITEM_BIND_QUEST", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(buf, text, sizeof(buf));
+          FrameScriptGetString(buf, "ITEM_BIND_QUEST", sizeof(buf));
           break;
         }
         case 2: {
-          LPCSTR text = FrameScript_GetText("ITEM_BIND_ON_EQUIP", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(buf, text, sizeof(buf));
+          FrameScriptGetString(buf, "ITEM_BIND_ON_EQUIP", sizeof(buf));
           break;
         }
         case 3: {
-          LPCSTR text = FrameScript_GetText("ITEM_BIND_ON_USE", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(buf, text, sizeof(buf));
+          FrameScriptGetString(buf, "ITEM_BIND_ON_USE", sizeof(buf));
           break;
         }
       }
@@ -932,19 +927,16 @@ BOOL CGTooltip::SetItem(
 
     if (stats->m_maxCount > 0) {
       if (stats->m_maxCount == 1) {
-        LPCSTR text = FrameScript_GetText("ITEM_UNIQUE", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(buf, text, sizeof(buf));
+        FrameScriptGetString(buf, "ITEM_UNIQUE", sizeof(buf));
       } else {
-        LPCSTR text = FrameScript_GetText("ITEM_UNIQUE_MULTIPLE", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, "ITEM_UNIQUE_MULTIPLE", sizeof(temp));
         SStrPrintf(buf, sizeof(buf), temp, stats->m_maxCount);
       }
       AddLine(buf, s_normalColor, 0);
     }
 
     if (stats->m_startQuestID) {
-      LPCSTR text = FrameScript_GetText("ITEM_STARTS_QUEST", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(buf, text, sizeof(buf));
+      FrameScriptGetString(buf, "ITEM_STARTS_QUEST", sizeof(buf));
       AddLine(buf, s_normalColor, 0);
     }
 
@@ -1000,8 +992,7 @@ BOOL CGTooltip::SetItem(
 
   if (isBag) {
     if (subClass && subClass->m_displayName_lang[CURRENT_LANGUAGE] && *subClass->m_displayName_lang[CURRENT_LANGUAGE]) {
-      LPCSTR text = FrameScript_GetText("CONTAINER_SLOTS", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, "CONTAINER_SLOTS", sizeof(temp));
       SStrPrintf(left, sizeof(left), temp, stats->m_containerSlots, subClass->m_displayName_lang[CURRENT_LANGUAGE]);
       AddLine(left, s_normalColor, 0);
     }
@@ -1064,19 +1055,15 @@ BOOL CGTooltip::SetItem(
     if (stats->m_minDamage[0] || stats->m_maxDamage[0]) {
       if (stats->m_damageType[0]) {
         SStrPrintf(temp, sizeof(temp), "SPELL_SCHOOL%d_CAP", stats->m_damageType[0]);
-        LPCSTR text = FrameScript_GetText(temp, -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(buf, text, sizeof(buf));
-        text = FrameScript_GetText("DAMAGE_TEMPLATE_WITH_SCHOOL", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(buf, temp, sizeof(buf));
+        FrameScriptGetString(temp, "DAMAGE_TEMPLATE_WITH_SCHOOL", sizeof(temp));
         SStrPrintf(left, sizeof(left), temp, stats->m_minDamage[0], stats->m_maxDamage[0], buf);
       } else {
-        LPCSTR text = FrameScript_GetText("DAMAGE_TEMPLATE", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, "DAMAGE_TEMPLATE", sizeof(temp));
         SStrPrintf(left, sizeof(left), temp, stats->m_minDamage[0], stats->m_maxDamage[0]);
       }
       if (stats->m_class == 2) {
-        LPCSTR text = FrameScript_GetText("SPEED", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, "SPEED", sizeof(temp));
         SStrPrintf(right, sizeof(right), "%s %.2f", temp, stats->m_delay * 0.001f);
       } else {
         right[0] = 0;
@@ -1085,8 +1072,7 @@ BOOL CGTooltip::SetItem(
     }
 
     if (stats->m_resistances[0] > 0) {
-      LPCSTR text = FrameScript_GetText("ARMOR_TEMPLATE", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, "ARMOR_TEMPLATE", sizeof(temp));
       SStrPrintf(buf, sizeof(buf), temp, stats->m_resistances[0]);
       AddLine(buf, s_normalColor, 0);
     }
@@ -1100,8 +1086,7 @@ BOOL CGTooltip::SetItem(
     }
     if (usable) {
       if (stats->m_resistances[1]) {
-        LPCSTR text = FrameScript_GetText("ITEM_RESIST_ALL", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, "ITEM_RESIST_ALL", sizeof(temp));
         SStrPrintf(buf, sizeof(buf), temp, stats->m_resistances[1] > 0 ? '+' : '-', abs(stats->m_resistances[1]));
         AddLine(buf, s_normalColor, 0);
       }
@@ -1110,10 +1095,8 @@ BOOL CGTooltip::SetItem(
         if (stats->m_resistances[i]) {
           char school[32];
           SStrPrintf(temp, sizeof(temp), "SPELL_SCHOOL%d_CAP", i);
-          LPCSTR text = FrameScript_GetText(temp, -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(school, text, sizeof(school));
-          text = FrameScript_GetText("ITEM_RESIST_SINGLE", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(temp, text, sizeof(temp));
+          FrameScriptGetString(school, temp, sizeof(school));
+          FrameScriptGetString(temp, "ITEM_RESIST_SINGLE", sizeof(temp));
           SStrPrintf(buf, sizeof(buf), temp, stats->m_resistances[i] > 0 ? '+' : '-', abs(stats->m_resistances[i]), school);
           AddLine(buf, s_normalColor, 0);
         }
@@ -1125,38 +1108,31 @@ BOOL CGTooltip::SetItem(
         temp[0] = 0;
         switch (stats->m_bonusStat[i]) {
           case 0: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_MANA", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_MANA", sizeof(temp));
             break;
           }
           case 1: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_HEALTH", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_HEALTH", sizeof(temp));
             break;
           }
           case 3: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_AGILITY", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_AGILITY", sizeof(temp));
             break;
           }
           case 4: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_STRENGTH", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_STRENGTH", sizeof(temp));
             break;
           }
           case 5: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_INTELLECT", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_INTELLECT", sizeof(temp));
             break;
           }
           case 6: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_SPIRIT", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_SPIRIT", sizeof(temp));
             break;
           }
           case 7: {
-            LPCSTR text = FrameScript_GetText("ITEM_MOD_STAMINA", -1, GENDER_NOT_APPLICABLE);
-            SStrCopy(temp, text, sizeof(temp));
+            FrameScriptGetString(temp, "ITEM_MOD_STAMINA", sizeof(temp));
             break;
           }
         }
@@ -1176,8 +1152,7 @@ BOOL CGTooltip::SetItem(
             int timeLeft;
             if (itemPtr && (timeLeft = itemPtr->GetEnchantmentTimeLeft(i)) != 0) {
               int    minutes = timeLeft >= 60000;
-              LPCSTR text = FrameScript_GetText(minutes ? "ITEM_ENCHANT_TIME_LEFT_MINUTES" : "ITEM_ENCHANT_TIME_LEFT_SECONDS", -1, GENDER_NOT_APPLICABLE);
-              SStrCopy(temp, text, sizeof(temp));
+              FrameScriptGetString(temp, minutes ? "ITEM_ENCHANT_TIME_LEFT_MINUTES" : "ITEM_ENCHANT_TIME_LEFT_SECONDS", sizeof(temp));
               SStrPrintf(buf, sizeof(buf), temp, rec->m_name_lang[CURRENT_LANGUAGE], minutes ? (timeLeft - 1) / 60000 + 1 : timeLeft / 1000);
               AddLine(buf, enchantment > 0 ? s_friendlyColor : s_hostileColor, 0);
               hasCooldown = 1;
@@ -1191,8 +1166,7 @@ BOOL CGTooltip::SetItem(
       if (info && info->proposedEnchantment) {
         const SpellRec *srec = g_spellDB.GetRecord(info->proposedEnchantment);
         if (srec) {
-          LPCSTR text = FrameScript_GetText("ITEM_PROPOSED_ENCHANT", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(temp, text, sizeof(temp));
+          FrameScriptGetString(temp, "ITEM_PROPOSED_ENCHANT", sizeof(temp));
           SStrPrintf(buf, sizeof(buf), temp, srec->m_name_lang[CURRENT_LANGUAGE]);
           AddLine(buf, s_friendlyColor, 0);
           AddLine(FrameScript_GetText("ITEM_ENCHANT_DISCLAIMER", -1, GENDER_NOT_APPLICABLE), s_hostileColor, 0);
@@ -1204,8 +1178,7 @@ BOOL CGTooltip::SetItem(
   if (itemPtr && itemPtr->GetExpirationTimeLeft()) {
     int    timeLeft = itemPtr->GetExpirationTimeLeft();
     int    minutes = timeLeft >= 60000;
-    LPCSTR text = FrameScript_GetText(minutes ? "ITEM_DURATION_MINUTES" : "ITEM_DURATION_SECONDS", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, minutes ? "ITEM_DURATION_MINUTES" : "ITEM_DURATION_SECONDS", sizeof(temp));
     SStrPrintf(buf, sizeof(buf), temp, minutes ? (timeLeft - 1) / 60000 + 1 : timeLeft / 1000);
     AddLine(buf, s_normalColor, 0);
     hasCooldown = 1;
@@ -1236,8 +1209,7 @@ BOOL CGTooltip::SetItem(
     }
     if (buf[0]) {
       char   string[128];
-      LPCSTR text = FrameScript_GetText("RACE_CLASS_ONLY", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, "RACE_CLASS_ONLY", sizeof(temp));
       SStrPrintf(string, sizeof(string), temp, buf);
       AddLine(string, usable ? s_normalColor : s_errorColor, 0);
     }
@@ -1261,8 +1233,8 @@ BOOL CGTooltip::SetItem(
 
     if (!allRaces) {
       char races[512];
-      int  first = 1;
       races[0] = 0;
+      int first = 1;
       usable = 0;
       for (i = 0; i < g_chrRacesDB.GetNumRecords(); ++i) {
         const ChrRacesRec *race = g_chrRacesDB.GetRecordByIndex(i);
@@ -1279,8 +1251,7 @@ BOOL CGTooltip::SetItem(
       }
       if (races[0]) {
         char   listBuf[512];
-        LPCSTR text = FrameScript_GetText("ITEM_RACES_ALLOWED", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, "ITEM_RACES_ALLOWED", sizeof(temp));
         SStrPrintf(listBuf, sizeof(listBuf), temp, races);
         AddLine(listBuf, usable ? s_normalColor : s_errorColor, 0);
       }
@@ -1288,8 +1259,8 @@ BOOL CGTooltip::SetItem(
 
     if (!allClasses) {
       char classes[512];
-      int  first = 1;
       classes[0] = 0;
+      int first = 1;
       usable = 0;
       for (i = 0; i < g_chrClassesDB.GetNumRecords(); ++i) {
         const ChrClassesRec *classRec = g_chrClassesDB.GetRecordByIndex(i);
@@ -1306,8 +1277,7 @@ BOOL CGTooltip::SetItem(
       }
       if (classes[0]) {
         char   listBuf[512];
-        LPCSTR text = FrameScript_GetText("ITEM_CLASSES_ALLOWED", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, "ITEM_CLASSES_ALLOWED", sizeof(temp));
         SStrPrintf(listBuf, sizeof(listBuf), temp, classes);
         AddLine(listBuf, usable ? s_normalColor : s_errorColor, 0);
       }
@@ -1318,21 +1288,18 @@ BOOL CGTooltip::SetItem(
   int requiredLevel = stats->m_requiredLevel;
   if (requiredLevel) {
     if (requiredLevel > 0) {
-      LPCSTR text = FrameScript_GetText("ITEM_LEVEL_AND_MIN", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, "ITEM_LEVEL_AND_MIN", sizeof(temp));
       SStrPrintf(buf, sizeof(buf), temp, itemLevel, requiredLevel);
       AddLine(buf, requiredLevel > player->GetLevel() ? s_errorColor : s_normalColor, 0);
     } else {
-      LPCSTR text = FrameScript_GetText("ITEM_LEVEL", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, "ITEM_LEVEL", sizeof(temp));
       SStrPrintf(buf, sizeof(buf), temp, itemLevel);
       AddLine(buf, s_normalColor, 0);
     }
   }
 
   if (stats->m_requiredSkill > 0) {
-    LPCSTR text = FrameScript_GetText(stats->m_requiredSkillRank ? "ITEM_MIN_SKILL" : "ITEM_REQ_SKILL", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, stats->m_requiredSkillRank ? "ITEM_MIN_SKILL" : "ITEM_REQ_SKILL", sizeof(temp));
     const SkillLineRec *skill = g_skillLineDB.GetRecord(stats->m_requiredSkill);
     if (stats->m_requiredSkillRank) {
       SStrPrintf(buf, sizeof(buf), temp, skill ? skill->m_displayName_lang[CURRENT_LANGUAGE] : "UNKNOWN", stats->m_requiredSkillRank);
@@ -1375,8 +1342,7 @@ BOOL CGTooltip::SetItem(
 
   if (info && info->cooldownTime > 0) {
     int    minutes = info->cooldownTime >= 60000;
-    LPCSTR text = FrameScript_GetText(minutes ? "ITEM_COOLDOWN_TIME" : "ITEM_COOLDOWN_TIME_SEC", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, minutes ? "ITEM_COOLDOWN_TIME" : "ITEM_COOLDOWN_TIME_SEC", sizeof(temp));
     SStrPrintf(buf, sizeof(buf), temp, minutes ? (info->cooldownTime - 1) / 60000 + 1 : info->cooldownTime / 1000);
     AddLine(buf, s_normalColor, 0);
     hasCooldown = 1;
@@ -1412,21 +1378,24 @@ BOOL CGTooltip::SetItem(
     }
   }
 
-  if (itemGUID && CGMerchantInfo::GetMerchant()) {
-    int price = stats->m_sellPrice;
-    if (price) {
-      if (itemPtr) {
-        if (itemPtr->GetStackCount() > 1) {
-          price *= itemPtr->GetStackCount();
-        }
-        if (stats->m_spellCharges[0] < -1) {
-          price = (int)((float)itemPtr->GetSpellCharges(0) * price / stats->m_spellCharges[0] + 0.5f);
-        }
+  if (!itemGUID || !CGMerchantInfo::GetMerchant()) {
+    Show();
+    return hasCooldown;
+  }
+
+  price = stats->m_sellPrice;
+  if (price) {
+    if (itemPtr) {
+      if (itemPtr->GetStackCount() > 1) {
+        price *= itemPtr->GetStackCount();
       }
-      FrameScript_SignalEvent(323, "%s%d", GetName(), price);
-    } else {
-      AddLine(FrameScript_GetText("ITEM_UNSELLABLE", -1, GENDER_NOT_APPLICABLE), s_normalColor, 0);
+      if (stats->m_spellCharges[0] < -1) {
+        price = (int)((float)itemPtr->GetSpellCharges(0) * price / stats->m_spellCharges[0] + 0.5f);
+      }
     }
+    FrameScript_SignalEvent(323, "%s%d", GetName(), price);
+  } else {
+    AddLine(FrameScript_GetText("ITEM_UNSELLABLE", -1, GENDER_NOT_APPLICABLE), s_normalColor, 0);
   }
 
   Show();
@@ -1492,8 +1461,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
           spell->m_name_lang[CURRENT_LANGUAGE],
           SStrLen(skillLine->m_displayName_lang[CURRENT_LANGUAGE])
       )) {
-    LPCSTR text = FrameScript_GetText("SPELL_SKILL_LINE", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, "SPELL_SKILL_LINE", sizeof(temp));
     SStrPrintf(left, sizeof(left), temp, skillLine->m_displayName_lang[CURRENT_LANGUAGE]);
   }
   if (!nameOnly) {
@@ -1507,8 +1475,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
         SStrPrintf(temp, sizeof(temp), "%s_PER_TIME", token);
         SStrPrintf(right, sizeof(right), FrameScript_GetText(temp, -1, GENDER_NOT_APPLICABLE), manaCost, manaPerSecond);
       } else {
-        LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, token, sizeof(temp));
         SStrPrintf(right, sizeof(right), temp, manaCost);
       }
     }
@@ -1529,29 +1496,23 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
       int   minutes = time >= 60000.0f;
       if (time > 0.0f) {
         if (spell->m_attributes & 0x2) {
-          LPCSTR text = FrameScript_GetText("SPELL_CAST_TIME_RANGED", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(temp, text, sizeof(temp));
+          FrameScriptGetString(temp, "SPELL_CAST_TIME_RANGED", sizeof(temp));
           SStrPrintf(left, sizeof(left), temp, time * 0.001f);
         } else {
-          LPCSTR text = FrameScript_GetText(minutes ? "SPELL_CAST_TIME_MIN" : "SPELL_CAST_TIME_SEC", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(temp, text, sizeof(temp));
+          FrameScriptGetString(temp, minutes ? "SPELL_CAST_TIME_MIN" : "SPELL_CAST_TIME_SEC", sizeof(temp));
           SStrPrintf(left, sizeof(left), temp, time / (minutes ? 60000.0f : 1000.0f));
         }
       } else if (spell->m_attributes & 0x404) {
-        LPCSTR text = FrameScript_GetText("SPELL_ON_NEXT_SWING", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(left, text, sizeof(left));
+        FrameScriptGetString(left, "SPELL_ON_NEXT_SWING", sizeof(left));
       } else if (spell->m_attributes & 0x2) {
-        LPCSTR text = FrameScript_GetText("SPELL_ON_NEXT_RANGED", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(left, text, sizeof(left));
+        FrameScriptGetString(left, "SPELL_ON_NEXT_RANGED", sizeof(left));
       } else {
-        LPCSTR text = FrameScript_GetText("SPELL_CAST_TIME_INSTANT", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(left, text, sizeof(left));
+        FrameScriptGetString(left, "SPELL_CAST_TIME_INSTANT", sizeof(left));
       }
 
       if (recastTime > 4000) {
         minutes = recastTime >= 60000;
-        LPCSTR text = FrameScript_GetText(minutes ? "SPELL_RECAST_TIME_MIN" : "SPELL_RECAST_TIME_SEC", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(temp, text, sizeof(temp));
+        FrameScriptGetString(temp, minutes ? "SPELL_RECAST_TIME_MIN" : "SPELL_RECAST_TIME_SEC", sizeof(temp));
         SStrPrintf(right, sizeof(right), temp, recastTime / (minutes ? 60000 : 1000));
       } else {
         right[0] = 0;
@@ -1567,8 +1528,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
           } else {
             SStrPrintf(rangeString, sizeof(rangeString), "%d", (int)range->m_rangeMax);
           }
-          LPCSTR text = FrameScript_GetText("SPELL_RANGE", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(temp, text, sizeof(temp));
+          FrameScriptGetString(temp, "SPELL_RANGE", sizeof(temp));
           SStrPrintf(left, sizeof(left), temp, rangeString);
           AddLine(left, s_normalColor, 0);
         }
@@ -1586,8 +1546,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
         }
         if (first) {
           first = 0;
-          LPCSTR text = FrameScript_GetText("SPELL_REAGENTS", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(itemBuf, text, sizeof(itemBuf));
+          FrameScriptGetString(itemBuf, "SPELL_REAGENTS", sizeof(itemBuf));
         } else {
           SStrPack(itemBuf, ", ", sizeof(itemBuf));
         }
@@ -1613,8 +1572,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
         }
         if (first) {
           first = 0;
-          LPCSTR text = FrameScript_GetText("SPELL_TOTEMS", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(itemBuf, text, sizeof(itemBuf));
+          FrameScriptGetString(itemBuf, "SPELL_TOTEMS", sizeof(itemBuf));
         } else {
           SStrPack(itemBuf, ", ", sizeof(itemBuf));
         }
@@ -1652,8 +1610,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
     }
     if (itemTypes[0] && (!usable || !nameOnly)) {
       char   listBuf[512];
-      LPCSTR text = FrameScript_GetText(nameOnly ? "SPELL_EQUIPPED_ITEM_NOSPACE" : "SPELL_EQUIPPED_ITEM", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, nameOnly ? "SPELL_EQUIPPED_ITEM_NOSPACE" : "SPELL_EQUIPPED_ITEM", sizeof(temp));
       SStrPrintf(listBuf, sizeof(listBuf), temp, itemTypes);
       AddLine(listBuf, usable ? s_normalColor : s_errorColor, 1);
     }
@@ -1679,8 +1636,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
     }
     int usable = spell->m_shapeshiftMask & (1 << (player->GetShapeshiftForm() - 1));
     if (!first && (!usable || !nameOnly)) {
-      LPCSTR text = FrameScript_GetText(nameOnly ? "SPELL_REQUIRED_FORM_NOSPACE" : "SPELL_REQUIRED_FORM", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, nameOnly ? "SPELL_REQUIRED_FORM_NOSPACE" : "SPELL_REQUIRED_FORM", sizeof(temp));
       SStrPrintf(left, sizeof(left), temp, shapes);
       AddLine(left, usable ? s_normalColor : s_errorColor, 0);
     }
@@ -1689,8 +1645,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
   int hasCooldown = 0;
   if (cooldownTime > 0 && recastTime >= 60000) {
     int    minutes = cooldownTime >= 60000;
-    LPCSTR text = FrameScript_GetText(minutes ? "ITEM_COOLDOWN_TIME" : "ITEM_COOLDOWN_TIME_SEC", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, minutes ? "ITEM_COOLDOWN_TIME" : "ITEM_COOLDOWN_TIME_SEC", sizeof(temp));
     SStrPrintf(left, sizeof(left), temp, minutes ? (cooldownTime - 1) / 60000 + 1 : cooldownTime / 1000);
     AddLine(left, s_normalColor, 0);
     hasCooldown = 1;
@@ -1726,9 +1681,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
   }
 
   if (spell->m_attributesEx & 0x2) {
-    LPCSTR text =
-        FrameScript_GetText(spell->m_powerType >= 0 && spell->m_powerType < 4 ? s_allPowerTemplates[spell->m_powerType] : "SPELL_USE_ALL_HEALTH", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, spell->m_powerType >= 0 && spell->m_powerType < 4 ? s_allPowerTemplates[spell->m_powerType] : "SPELL_USE_ALL_HEALTH", sizeof(temp));
     AddLine(temp, (LPCSTR)0, 0);
   }
 
@@ -1880,8 +1833,7 @@ void CGTooltip::GetSpellEffectString(
       char school[32];
       char token[32];
       SStrPrintf(token, sizeof(token), "SPELL_SCHOOL%d_NAME", spell->m_school);
-      LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(school, text, sizeof(school));
+      FrameScriptGetString(school, token, sizeof(school));
       if ((spell->m_attributes & 0x402) && !(spell->m_attributes & 0x4)) {
         SStrPrintf(buf, bufSize, "%s%s_ADD", s_spellEffectTokens[spell->m_effect[effectIndex]], spell->m_school ? "" : "_NOSCHOOL");
         FrameScriptGetSpellString(detail, buf, tokenPoints, temp, sizeof(temp), 0, 0);
@@ -2077,8 +2029,7 @@ void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spe
       noSchool = 1;
     }
   }
-  LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-  SStrCopy(school, text, sizeof(school));
+  FrameScriptGetString(school, token, sizeof(school));
 
   int tokenPoints = -1;
   int min;
@@ -2209,8 +2160,7 @@ void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spe
         SStrPrintf(buf, bufSize, temp, points, period);
       } else {
         if (spell->m_effectAura[effectIndex] == 24 && spell->m_powerType == 1) {
-          text = FrameScript_GetText("SPELL_AURA_PERIODIC_RAGE_GEN", -1, GENDER_NOT_APPLICABLE);
-          SStrCopy(temp, text, sizeof(temp));
+          FrameScriptGetString(temp, "SPELL_AURA_PERIODIC_RAGE_GEN", sizeof(temp));
         }
         SStrPrintf(buf, bufSize, temp, period);
       }
@@ -2218,8 +2168,7 @@ void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spe
     case 85: {
       char newTemp[64];
       SStrPrintf(newTemp, sizeof(newTemp), "%s_%s", temp, s_powerTokens[spell->m_powerType]);
-      text = FrameScript_GetText(newTemp, -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, newTemp, sizeof(temp));
       SStrPrintf(buf, bufSize, temp);
       return;
     }
@@ -2274,7 +2223,7 @@ void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spe
       char            procTrigger[64];
       char            procFlagToken[64];
       SStrPrintf(procFlagToken, sizeof(procFlagToken), "PROC_EVENT%d_DESC", spell->m_procFlags);
-      text = FrameScript_GetText(procFlagToken, -1, GENDER_NOT_APPLICABLE);
+      LPCSTR text = FrameScript_GetText(procFlagToken, -1, GENDER_NOT_APPLICABLE);
       SStrCopy(procTrigger, text, sizeof(procTrigger));
       if (*text) {
         if (spell->m_procFlags & 0xA00) {
@@ -2291,7 +2240,7 @@ void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spe
       char procTrigger[64];
       char procFlagToken[32];
       SStrPrintf(procFlagToken, sizeof(procFlagToken), "PROC_EVENT%d_DESC", spell->m_procFlags);
-      text = FrameScript_GetText(procFlagToken, -1, GENDER_NOT_APPLICABLE);
+      LPCSTR text = FrameScript_GetText(procFlagToken, -1, GENDER_NOT_APPLICABLE);
       SStrCopy(procTrigger, text, sizeof(procTrigger));
       if (*text) {
         if (detail != TOOLTIP_DETAIL_GENERIC) {
@@ -2339,8 +2288,7 @@ void CGTooltip::GetAuraEffectString(char *buf, UINT bufSize, const SpellRec *spe
       } else {
         SStrPrintf(token, sizeof(token), "SPELL_STAT%d_NAME", spell->m_effectMiscValue[effectIndex]);
       }
-      text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(stat, text, sizeof(stat));
+      FrameScriptGetString(stat, token, sizeof(stat));
       if (detail != TOOLTIP_DETAIL_GENERIC) {
         SStrPrintf(buf, bufSize, temp, points, stat);
       } else {
@@ -2489,8 +2437,7 @@ void CGTooltip::GetItemEnchantString(char *buf, UINT bufSize, const SpellItemEnc
       char school[32];
       char token[32];
       SStrPrintf(token, sizeof(token), "SPELL_SCHOOL%d_NAME", enchant->m_effectArg[effectIndex]);
-      LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(school, text, sizeof(school));
+      FrameScriptGetString(school, token, sizeof(school));
       if (!enchant->m_effectArg[effectIndex]) {
         SStrPrintf(buf, sizeof(buf), "%s_NOSCHOOL", s_itemEnchantTokens[enchant->m_effect[effectIndex]]);
         FrameScriptGetEnchantString(detail, buf, temp, sizeof(temp));
@@ -2506,8 +2453,7 @@ void CGTooltip::GetItemEnchantString(char *buf, UINT bufSize, const SpellItemEnc
         char token[32];
         FrameScriptGetEnchantString(detail, "ITEM_ENCHANTMENT_ADD_RESISTANCE", temp, sizeof(temp));
         SStrPrintf(token, sizeof(token), "SPELL_SCHOOL%d_NAME", enchant->m_effectArg[effectIndex]);
-        LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(school, text, sizeof(school));
+        FrameScriptGetString(school, token, sizeof(school));
         SStrPrintf(buf, bufSize, temp, school, points);
         return;
       }
@@ -2691,24 +2637,20 @@ void CGTooltip::GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *sp
   }
 
   if (spell->m_effectChainTargets[effectIndex] > 0) {
-    LPCSTR text = FrameScript_GetText("SPELL_TARGET_CHAIN_TEMPLATE", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, "SPELL_TARGET_CHAIN_TEMPLATE", sizeof(temp));
     SStrPrintf(buf, bufSize, temp, noun, spell->m_effectChainTargets[effectIndex]);
     return;
   }
 
   if (!radius) {
-    LPCSTR text = FrameScript_GetText("SPELL_TARGET_TEMPLATE", -1, GENDER_NOT_APPLICABLE);
-    SStrCopy(temp, text, sizeof(temp));
+    FrameScriptGetString(temp, "SPELL_TARGET_TEMPLATE", sizeof(temp));
     SStrPrintf(buf, bufSize, temp, noun);
     return;
   }
 
-  char   center[64];
-  LPCSTR text = FrameScript_GetText(centerOnCaster ? "SPELL_TARGET_CENTER_CASTER" : "SPELL_TARGET_CENTER_LOC", -1, GENDER_NOT_APPLICABLE);
-  SStrCopy(center, text, sizeof(center));
-  text = FrameScript_GetText(cone ? "SPELL_TARGET_CONE_TEMPLATE" : "SPELL_TARGET_MULTIPLE_TEMPLATE", -1, GENDER_NOT_APPLICABLE);
-  SStrCopy(temp, text, sizeof(temp));
+  char center[64];
+  FrameScriptGetString(center, centerOnCaster ? "SPELL_TARGET_CENTER_CASTER" : "SPELL_TARGET_CENTER_LOC", sizeof(center));
+  FrameScriptGetString(temp, cone ? "SPELL_TARGET_CONE_TEMPLATE" : "SPELL_TARGET_MULTIPLE_TEMPLATE", sizeof(temp));
   SStrPrintf(buf, bufSize, temp, noun, radius, center);
 }
 
@@ -3189,8 +3131,7 @@ static int CGTooltip_SetAction(lua_State *L) {
 
     char buf[32];
     if (CGActionBar::IsAttackAction(slot)) {
-      LPCSTR text = FrameScript_GetText("ATTACK", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(buf, text, sizeof(buf));
+      FrameScriptGetString(buf, "ATTACK", sizeof(buf));
       tooltip->AddLine(buf, NTempest::CImVector(0xFFFFFFFFUL), 0);
       tooltip->Show();
     } else if (CGActionBar::IsItem(slot)) {
@@ -3211,8 +3152,7 @@ static int CGTooltip_SetAction(lua_State *L) {
           tooltip->SetItem(item->GetEntryID(), item->GetGUID(), item->GetGUID(), 0, 0, 0);
         }
       } else {
-        LPCSTR text = FrameScript_GetText("USE_ITEM", -1, GENDER_NOT_APPLICABLE);
-        SStrCopy(buf, text, sizeof(buf));
+        FrameScriptGetString(buf, "USE_ITEM", sizeof(buf));
         tooltip->AddLine(buf, NTempest::CImVector(0xFFFFFFFFUL), 0);
         tooltip->Show();
       }
@@ -3245,8 +3185,7 @@ static int CGTooltip_SetPlayerBuff(lua_State *L) {
       UINT   duration = CGBuffBar::GetBuffTimeLeftByIndex(index);
       BOOL   minutes = duration >= 60000;
       char   temp[64];
-      LPCSTR text = FrameScript_GetText(minutes ? "SPELL_TIME_REMAINING_MIN" : "SPELL_TIME_REMAINING_SEC", -1, GENDER_NOT_APPLICABLE);
-      SStrCopy(temp, text, sizeof(temp));
+      FrameScriptGetString(temp, minutes ? "SPELL_TIME_REMAINING_MIN" : "SPELL_TIME_REMAINING_SEC", sizeof(temp));
       if (minutes) {
         duration = (UINT)((float)duration * (1.0f / 60000.0f) + 0.99f);
       } else {
@@ -3397,7 +3336,8 @@ static int CGTooltip_SetQuestLogItem(lua_State *L) {
 static int CGTooltip_SetTrainerService(lua_State *L) {
   CGTooltip *tooltip = (CGTooltip *)FrameScript_GetObjectThis(L);
   if (lua_isnumber(L, 2)) {
-    const TrainerServiceInfo *service = CGClassTrainer::GetService((int)lua_tonumber(L, 2) - 1);
+    int                       index = (int)lua_tonumber(L, 2) - 1;
+    const TrainerServiceInfo *service = CGClassTrainer::GetService(index);
     if (service) {
       const SpellRec *spell = g_spellDB.GetRecord(service->spellID);
       if (spell) {
@@ -3581,32 +3521,37 @@ static int CGTooltip_SetBagItem(lua_State *L) {
   if (bag == player->Inventory()) {
     slot += 23;
   }
-  if (slot >= 0 && slot < (int)bag->NumSlots()) {
-    CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__));
-    if (item) {
-      UINT  duration = 0;
-      DWORD startTime = 0;
-      Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
+  if (slot < 0 || slot >= (int)bag->NumSlots()) {
+    lua_pushnil(L);
+    return 1;
+  }
 
-      int result;
-      if (duration > 0 && startTime > 0) {
-        TooltipExtendedItemInfo info;
-        info.enchantment[0] = 0;
-        info.enchantmentExpiration[0] = 0;
-        info.enchantment[1] = 0;
-        info.enchantmentExpiration[1] = 0;
-        info.cooldownTime = startTime + duration - OsGetAsyncTimeMs();
-        info.proposedEnchantment = 0;
-        info.creator = item->GetCreator();
-        result = tooltip->SetItem(item->GetEntryID(), item->GetGUID(), item->GetGUID(), 0, 1, &info);
-      } else {
-        result = tooltip->SetItem(item->GetEntryID(), item->GetGUID(), item->GetGUID(), 0, 1, 0);
-      }
-      if (result) {
-        lua_pushnumber(L, 1.0);
-        return 1;
-      }
+  CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__));
+  if (item) {
+    UINT  duration = 0;
+    DWORD startTime = 0;
+    Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, 0);
+    int result;
+    if (duration > 0 && startTime > 0) {
+      TooltipExtendedItemInfo info;
+      info.enchantment[0] = 0;
+      info.enchantmentExpiration[0] = 0;
+      info.enchantment[1] = 0;
+      info.enchantmentExpiration[1] = 0;
+      info.cooldownTime = startTime + duration - OsGetAsyncTimeMs();
+      info.proposedEnchantment = 0;
+      info.creator = item->GetCreator();
+      result = tooltip->SetItem(item->GetEntryID(), item->GetGUID(), item->GetGUID(), 0, 1, &info);
+    } else {
+      result = tooltip->SetItem(item->GetEntryID(), item->GetGUID(), item->GetGUID(), 0, 1, 0);
     }
+
+    if (result) {
+      lua_pushnumber(L, 1.0);
+    } else {
+      lua_pushnil(L);
+    }
+    return 1;
   }
   lua_pushnil(L);
   return 1;

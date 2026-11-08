@@ -467,9 +467,7 @@ float CSimpleTexture::GetHeight() {
 }
 
 void CSimpleFontStringAttributes::UpdateString(CSimpleFontString *string, int force) {
-  VALIDATEBEGIN;
-  VALIDATE(string);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(string);
 
   if (force) {
     m_flags |= FLAG_COMPLETE_UPDATE;

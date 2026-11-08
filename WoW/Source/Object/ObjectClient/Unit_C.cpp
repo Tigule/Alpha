@@ -227,7 +227,7 @@ NODEDECL(FREENAMEPLATE) {
 
   FREENAMEPLATE() : namePlate(0) {
   }
-  ~FREENAMEPLATE();
+  ~FREENAMEPLATE() { DELIFUSED(namePlate); }
 };
 
 static int s_drawNameplates;
@@ -548,72 +548,7 @@ struct UnitAnimationInfo {
   UINT   statePreempts;
 };
 
-static const UnitAnimationInfo s_animInfo[64] = {
-    UnitAnimationInfo(ANIM_STATE_NONE, "ANIM_STATE_NONE", 0x20000, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_DEAD, "ANIM_STATE_DEAD", 1033, 1000, 0),
-    UnitAnimationInfo(ANIM_STATE_SPELL, "ANIM_STATE_SPELL", 0, 50, 0),
-    UnitAnimationInfo(ANIM_STATE_IDLE, "ANIM_STATE_IDLE", 139264, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_STOP, "ANIM_STATE_STOP", 139264, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_WALK, "ANIM_STATE_WALK", 139524, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_RUN, "ANIM_STATE_RUN", 139524, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_WALK_BACKWARDS, "ANIM_STATE_WALK_BACKWARDS", 141572, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_STRAFE_WALK_LEFT, "ANIM_STATE_STRAFE_WALK_LEFT", 139524, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_STRAFE_WALK_RIGHT, "ANIM_STATE_STRAFE_WALK_RIGHT", 139524, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_STRAFE_RUN_LEFT, "ANIM_STATE_STRAFE_RUN_LEFT", 139524, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_STRAFE_RUN_RIGHT, "ANIM_STATE_STRAFE_RUN_RIGHT", 139524, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_DIAG_WALK_LEFT, "ANIM_STATE_DIAG_WALK_LEFT", 139524, 10, 0),
-    UnitAnimationInfo(ANIM_STATE_DIAG_WALK_RIGHT, "ANIM_STATE_DIAG_WALK_RIGHT", 139524, 10, 0),
-    UnitAnimationInfo(ANIM_STATE_DIAG_RUN_LEFT, "ANIM_STATE_DIAG_RUN_LEFT", 139524, 10, 0),
-    UnitAnimationInfo(ANIM_STATE_DIAG_RUN_RIGHT, "ANIM_STATE_DIAG_RUN_RIGHT", 139524, 10, 0),
-    UnitAnimationInfo(ANIM_STATE_DIAG_BACKWARDS_LEFT, "ANIM_STATE_DIAG_BACKWARDS_LEFT", 141572, 10, 0),
-    UnitAnimationInfo(ANIM_STATE_DIAG_BACKWARDS_RIGHT, "ANIM_STATE_DIAG_BACKWARDS_RIGHT", 141572, 10, 0),
-    UnitAnimationInfo(ANIM_STATE_TURNING_LEFT, "ANIM_STATE_TURNING_LEFT", 139264, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_TURNING_RIGHT, "ANIM_STATE_TURNING_RIGHT", 139264, 5, 0),
-    UnitAnimationInfo(ANIM_STATE_SWIM_IDLE, "ANIM_STATE_SWIM_IDLE", 8196, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_SWIM, "ANIM_STATE_SWIM", 8452, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_SWIM_STRAFE_LEFT, "ANIM_STATE_SWIM_STRAFE_LEFT", 8452, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_SWIM_STRAFE_RIGHT, "ANIM_STATE_SWIM_STRAFE_RIGHT", 8452, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_SWIM_BACKWARDS, "ANIM_STATE_SWIM_BACKWARDS", 8452, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_KNEEL, "ANIM_STATE_KNEEL", 0, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_RISE, "ANIM_STATE_RISE", 0, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_WOUND, "ANIM_STATE_WOUND", 33, 70, 1),
-    UnitAnimationInfo(ANIM_STATE_CRITICALWOUND, "ANIM_STATE_CRITICALWOUND", 33, 70, 1),
-    UnitAnimationInfo(ANIM_STATE_STUN, "ANIM_STATE_STUN", 9, 60, 11),
-    UnitAnimationInfo(ANIM_STATE_ATTACK_HIT, "ANIM_STATE_ATTACK_HIT", 8753, 80, 0),
-    UnitAnimationInfo(ANIM_STATE_ATTACK_READY, "ANIM_STATE_ATTACK_READY", 139296, 0, 0),
-    UnitAnimationInfo(ANIM_STATE_ATTACK_MISS, "ANIM_STATE_ATTACK_MISS", 8753, 70, 10),
-    UnitAnimationInfo(ANIM_STATE_ATTACKOFF_HIT, "ANIM_STATE_ATTACKOFF_HIT", 8753, 80, 0),
-    UnitAnimationInfo(ANIM_STATE_ATTACKOFF_MISS, "ANIM_STATE_ATTACKOFF_MISS", 8753, 70, 10),
-    UnitAnimationInfo(ANIM_STATE_PARRY, "ANIM_STATE_PARRY", 8224, 70, 1),
-    UnitAnimationInfo(ANIM_STATE_DODGE, "ANIM_STATE_DODGE", 8224, 70, 1),
-    UnitAnimationInfo(ANIM_STATE_SPELLPRECAST, "ANIM_STATE_SPELLPRECAST", 43, 71, 0),
-    UnitAnimationInfo(ANIM_STATE_SPELLCAST, "ANIM_STATE_SPELLCAST", 262673, 72, 10),
-    UnitAnimationInfo(ANIM_STATE_NPC_OBSOLETE, "ANIM_STATE_NPC_OBSOLETE", 0, 50, 0),
-    UnitAnimationInfo(ANIM_STATE_BLOCK, "ANIM_STATE_BLOCK", 32, 75, 0),
-    UnitAnimationInfo(ANIM_STATE_JUMPING, "ANIM_STATE_JUMPING", 139265, 90, 0),
-    UnitAnimationInfo(ANIM_STATE_JUMP_LANDING, "ANIM_STATE_JUMP_LANDING", 139265, 90, 0),
-    UnitAnimationInfo(ANIM_STATE_FALLING, "ANIM_STATE_FALLING", 139265, 90, 0),
-    UnitAnimationInfo(ANIM_STATE_LOOTBEGIN, "ANIM_STATE_LOOTBEGIN", 1160, 41, 0),
-    UnitAnimationInfo(ANIM_STATE_LOOTEND, "ANIM_STATE_LOOTEND", 200, 40, 0),
-    UnitAnimationInfo(ANIM_STATE_EMOTE, "ANIM_STATE_EMOTE", 131105, 30, 0),
-    UnitAnimationInfo(ANIM_STATE_SPELLIMPACT, "ANIM_STATE_SPELLIMPACT", 131109, 81, 0),
-    UnitAnimationInfo(ANIM_STATE_MOUNTED, "ANIM_STATE_MOUNTED", 16420, 100, 0),
-    UnitAnimationInfo(ANIM_STATE_SPECIALMOUNTANIM, "ANIM_STATE_SPECIALMOUNTANIM", 0x2000, 20, 0),
-    UnitAnimationInfo(ANIM_STATE_SITDOWN, "ANIM_STATE_SITDOWN", 196613, 2, 0),
-    UnitAnimationInfo(ANIM_STATE_SITTING, "ANIM_STATE_SITTING", 655365, 1, 0),
-    UnitAnimationInfo(ANIM_STATE_SITUP, "ANIM_STATE_SITUP", 196613, 3, 0),
-    UnitAnimationInfo(ANIM_STATE_SLEEPDOWN, "ANIM_STATE_SLEEPDOWN", 196613, 2, 0),
-    UnitAnimationInfo(ANIM_STATE_SLEEPING, "ANIM_STATE_SLEEPING", 655365, 1, 0),
-    UnitAnimationInfo(ANIM_STATE_SLEEPUP, "ANIM_STATE_SLEEPUP", 196613, 3, 0),
-    UnitAnimationInfo(ANIM_STATE_SITCHAIRLOW, "ANIM_STATE_SITCHAIRLOW", 655364, 1, 0),
-    UnitAnimationInfo(ANIM_STATE_SITCHAIRMEDIUM, "ANIM_STATE_SITCHAIRMEDIUM", 655364, 1, 0),
-    UnitAnimationInfo(ANIM_STATE_SITCHAIRHIGH, "ANIM_STATE_SITCHAIRHIGH", 655364, 1, 0),
-    UnitAnimationInfo(ANIM_STATE_KNEELDOWN, "ANIM_STATE_KNEELDOWN", 196613, 2, 0),
-    UnitAnimationInfo(ANIM_STATE_KNEELING, "ANIM_STATE_KNEELING", 655365, 1, 0),
-    UnitAnimationInfo(ANIM_STATE_KNEELUP, "ANIM_STATE_KNEELUP", 196613, 3, 0),
-    UnitAnimationInfo(ANIM_STATE_CHANNELSPELL, "ANIM_STATE_CHANNELSPELL", 33313, 29, 0),
-    UnitAnimationInfo(ANIM_STATE_SPELLAURA, "ANIM_STATE_SPELLAURA", 33, 29, 0),
-};
+#include "AnimStateCompiles.h"
 
 TSGrowableArray<UINT> g_unitSeqEndList;
 TSGrowableArray<UINT> g_mountSeqEndList;
@@ -693,14 +628,13 @@ static void SpellProcColorHandler(
   switch (action) {
     case SPELLPROCADD:
       newDesc->color.Set((UINT)rec->m_characterParam[0] | 0xFF000000);
-      newDesc->curTime = newDesc->startTime = newDesc->fadeInTime = OsGetAsyncTimeMs();
-      newDesc->period = rec->m_characterParam[1] != 0.0f ? 1.0f / rec->m_characterParam[1] * 1000.0f : 0.0f;
+      newDesc->fadeInTime = newDesc->startTime = newDesc->curTime = OsGetAsyncTimeMs();
+      newDesc->period = rec->m_characterParam[1] != 0.0f ? 1000.0f * (1.0f / rec->m_characterParam[1]) : 0.0f;
       if (newDesc->isOneShot) {
         newDesc->fadeOutTime = newDesc->startTime + Fast_ftol(rec->m_characterParam[3] * 1000.0f);
         newDesc->endTime = newDesc->fadeOutTime + Fast_ftol(rec->m_characterParam[2] * 1000.0f);
       } else {
-        newDesc->endTime = 0;
-        newDesc->fadeOutTime = 0;
+        newDesc->fadeOutTime = newDesc->endTime = 0;
       }
       break;
     case SPELLPROCREMOVE:
@@ -708,7 +642,8 @@ static void SpellProcColorHandler(
       newDesc->endTime = newDesc->curTime - (int)(newDesc->kitPtr->m_characterParam[2] * -1000.0f);
       break;
     case SPELLPROCREFRESH: {
-      NTempest::CImVector color = list.Tail() ? list.Tail()->color : NTempest::CImVector(0xFFFFFFFF);
+      SPELLEFFECTDESC *desc = list.Tail();
+      NTempest::CImVector color = desc ? desc->color : NTempest::CImVector(0xFFFFFFFF);
       ModelSetVertexColor(charModel, color.r, color.g, color.b, 0);
       break;
     }
@@ -718,7 +653,8 @@ static void SpellProcColorHandler(
       PurgeExpiredNodes(list, elapsed);
       SPELLEFFECTDESC *desc = unit->GetActiveEffect(list);
       if (desc) {
-        color.Blend255RGB(NTempest::CMath::ftol_0_256_(desc->CalcScalar() * 255.0f), &desc->color);
+        BYTE alpha = NTempest::CMath::ftol_0_256_(desc->CalcScalar() * 255.0f);
+        color.Blend255RGB(alpha, &desc->color);
       }
       if (hadEffects) {
         ModelSetVertexColor(charModel, color.r, color.g, color.b, 0);
@@ -1363,7 +1299,7 @@ CGUnit_C::CGUnit_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
           storage + CGObject::TotalFields(),
           init->move.status.worldPosition,
           init->move.status.worldFacing,
-          *(DWORDLONG *)storage
+          m_obj->m_guid
       ),
       m_questCountKilled(-1),
       m_questCountNeeded(-1),
@@ -1466,7 +1402,9 @@ CGUnit_C::CGUnit_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
   m_displayHealth = m_unit->health;
   memset(m_auraFlags, 0, sizeof(m_auraFlags));
   m_animatingAura = -1;
-  memset(m_weaponTrails, 0, sizeof(m_weaponTrails));
+  for (int i = 0; i < 5; ++i) {
+    m_weaponTrails[i] = 0;
+  }
   memset(m_callbackList, 0, sizeof(m_callbackList));
 }
 
@@ -1597,11 +1535,8 @@ CGUnit_C::~CGUnit_C() {
   m_pendingHitAnimVictims.Clear();
   ClearRangedStandTimer();
   ClearActiveAttachmentInfo();
-
-  while (IMPACTEFFECTDESC *impact = m_impactEffectsDesc.Head()) {
-    FATALASSERT(!m_impactEffectsDesc.Head());
-    DEL(impact);
-  }
+  FATALASSERT(!m_impactEffectsDesc.Head());
+  m_impactEffectsDesc.Clear();
 
   SetLocalTarget(0);
   if (m_model) {
@@ -1613,7 +1548,7 @@ CGUnit_C::~CGUnit_C() {
     m_auraVisual[index].Clear();
   }
 
-  while (ACTIVEAURAINFO *active = m_activeAuraInfo.Head()) {
+  for (ACTIVEAURAINFO *active = m_activeAuraInfo.Head(); (int)active > 0; active = m_activeAuraInfo.RawNext(active)) {
     s_auraInfoFreeList.Put(active);
   }
 
@@ -1635,14 +1570,13 @@ CGUnit_C::~CGUnit_C() {
   ClearWeaponTrailHandles();
 
   for (index = 0; index < sizeof(m_spellEffectLists) / sizeof(m_spellEffectLists[0]); ++index) {
-    while (SPELLEFFECTDESC *effect = m_spellEffectLists[index].Head()) {
+    for (SPELLEFFECTDESC *effect = m_spellEffectLists[index].Head(); (int)effect > 0; effect = m_spellEffectLists[index].RawNext(effect)) {
       s_spellEffectFreeList.Put(effect);
     }
   }
 
   if (m_channelSpellEffect) {
     s_spellEffectFreeList.Put(m_channelSpellEffect);
-    m_channelSpellEffect = 0;
   }
 
   ClearAnimCallbackData();
@@ -2536,11 +2470,11 @@ ACTIVEAURAINFO *CGUnit_C::FindActiveAuraInfo(int slot) {
 void CGUnit_C::RefreshAuraVisuals() {
   const SpellVisualKitRec *highestPrioritiesByKit[12];
   const SpellRec          *highestPrioritySpellFoundByKit[12];
-  ACTIVEAURAINFO          *highestSpellWithAnim = 0;
   ACTIVEAURAINFO          *highestPriorityAura = 0;
+  ACTIVEAURAINFO          *highestSpellWithAnim = 0;
 
-  memset(highestPrioritiesByKit, 0, sizeof(highestPrioritiesByKit));
   memset(highestPrioritySpellFoundByKit, 0, sizeof(highestPrioritySpellFoundByKit));
+  memset(highestPrioritiesByKit, 0, sizeof(highestPrioritiesByKit));
 
   ITERATELIST(ACTIVEAURAINFO, m_activeAuraInfo, curr) {
     FATALASSERT(curr->stateKitRec);
@@ -2550,19 +2484,18 @@ void CGUnit_C::RefreshAuraVisuals() {
       continue;
     }
 
-    const SpellVisualKitRec *kitRec = curr->stateKitRec;
     if (spellRec->m_spellPriority > -1) {
       highestPriorityAura = curr;
-      if (kitRec->m_anim != -1) {
+      if (curr->stateKitRec->m_anim != -1) {
         highestSpellWithAnim = curr;
       }
     }
 
 #define CHECK_HIGHEST_AURA(attach, field)                                                                                               \
-  if (kitRec->field > 0 &&                                                                                                              \
+  if (curr->stateKitRec->field > 0 &&                                                                                                              \
       (!highestPrioritySpellFoundByKit[attach] || spellRec->m_spellPriority > highestPrioritySpellFoundByKit[attach]->m_spellPriority)) \
   {                                                                                                                                     \
-    highestPrioritiesByKit[attach] = kitRec;                                                                                            \
+    highestPrioritiesByKit[attach] = curr->stateKitRec;                                                                                      \
     highestPrioritySpellFoundByKit[attach] = spellRec;                                                                                  \
   }
     CHECK_HIGHEST_AURA(UNITEFFECT_ATTACHBASE, m_baseEffect);
@@ -3192,17 +3125,15 @@ float CGUnit_C::GetSmoothFacing() const {
 }
 
 void CGUnit_C::UpdateDisplayFacing() {
-  HMODEL model = GetObjectModel();
-
   if (m_currentBaseAnimState >= 8 && m_currentBaseAnimState <= 17) {
     m_displayFacing = m_smoothFacing;
     return;
   }
 
   float angleDelta = m_smoothFacing - m_displayFacing;
-  if (m_move.IsMovingStrafingOrFalling() || fabs(angleDelta) < 0.00000023841858f) {
-    ModelRemoveObjectFaceDir(model, 4);
-    ModelRemoveObjectFaceDir(model, 6);
+  if (m_move.IsMovingStrafingOrFalling() || NTempest::CMath::fabs_(angleDelta) < 0.00000023841858f) {
+    ModelRemoveObjectFaceDir(GetObjectModel(), 4);
+    ModelRemoveObjectFaceDir(GetObjectModel(), 6);
     if (IsTurningState()) {
       UpdateBaseAnimation(0);
     }
@@ -3216,25 +3147,25 @@ void CGUnit_C::UpdateDisplayFacing() {
     angleDelta += 6.2831855f;
   }
 
-  float absHeadAngle = fabs(angleDelta);
+  float absAngleDelta = NTempest::CMath::fabs_(angleDelta);
   float absAngleToRetract = 0.0f;
   float absAngleConsumed = 0.0f;
 
   if (!(m_animFlags & 8)) {
-    int elapsed = OsGetAsyncTimeMs() - m_move.m_moveStartTime;
-    if (elapsed < 0) {
-      elapsed = 0;
+    int moveTime = OsGetAsyncTimeMs() - m_move.m_moveStartTime;
+    if (moveTime < 0) {
+      moveTime = 0;
     }
-    absAngleToRetract = (float)elapsed * 0.001f * m_move.m_turnRate * 2.0f;
-    if (absAngleToRetract > absHeadAngle) {
-      absAngleToRetract = absHeadAngle;
+    absAngleToRetract = 2.0f * (m_move.m_turnRate * ((float)moveTime * 0.001f));
+    if (absAngleToRetract > absAngleDelta) {
+      absAngleToRetract = absAngleDelta;
     }
   }
 
-  float absAngleLeft = absHeadAngle - absAngleToRetract;
-  if (fabs(absAngleLeft) < 0.00000023841858f) {
-    ModelRemoveObjectFaceDir(model, 4);
-    ModelRemoveObjectFaceDir(model, 6);
+  float absAngleLeft = absAngleDelta - absAngleToRetract;
+  if (NTempest::CMath::fabs_(absAngleLeft) < 0.00000023841858f) {
+    ModelRemoveObjectFaceDir(GetObjectModel(), 4);
+    ModelRemoveObjectFaceDir(GetObjectModel(), 6);
   } else {
     float maxHeadAngle = 0.69813168f;
     float torsoTurnRate = 0.25f;
@@ -3244,32 +3175,32 @@ void CGUnit_C::UpdateDisplayFacing() {
     }
 
     absAngleLeft -= absAngleToRetract;
-    absHeadAngle = torsoTurnRate * absAngleLeft;
-    if (absHeadAngle > 0.69813168f) {
-      absHeadAngle = 0.69813168f;
+    float absTorsoAngle = torsoTurnRate * absAngleLeft;
+    if (absTorsoAngle > 0.69813168f) {
+      absTorsoAngle = 0.69813168f;
     }
 
-    float              signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
+    float              signedAngle = angleDelta < 0.0f ? -absTorsoAngle : absTorsoAngle;
     NTempest::C3Vector torsoTurn(cos(signedAngle), sin(signedAngle), 0.0f);
-    if (ModelApplyObjectFaceDir(model, 4, torsoTurn)) {
-      absAngleConsumed = absHeadAngle;
+    if (ModelApplyObjectFaceDir(GetObjectModel(), 4, torsoTurn)) {
+      absAngleConsumed = absTorsoAngle;
     }
 
-    absHeadAngle = absAngleLeft - absAngleConsumed;
+    float absHeadAngle = absAngleLeft - absAngleConsumed;
     if (absHeadAngle > maxHeadAngle) {
       absHeadAngle = maxHeadAngle;
     }
 
     signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
     NTempest::C3Vector headTurn(cos(signedAngle), sin(signedAngle), 0.0f);
-    if (ModelApplyObjectFaceDir(model, 6, headTurn)) {
+    if (ModelApplyObjectFaceDir(GetObjectModel(), 6, headTurn)) {
       absAngleConsumed += absHeadAngle;
     }
     absAngleLeft -= absAngleConsumed;
   }
 
   if (ShouldShuffle()) {
-    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) || (!(m_animFlags & 0x18) && fabs(absAngleToRetract) >= 0.00000023841858f)) {
+    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) || (!(m_animFlags & 0x18) && NTempest::CMath::fabs_(absAngleToRetract) >= 0.00000023841858f)) {
       if (angleDelta >= 0.0f && m_currentBaseAnimState != ANIM_STATE_TURNING_LEFT) {
         CGUnit_C::UpdateBaseAnimation(ANIM_STATE_TURNING_LEFT, 0);
       } else if (angleDelta < 0.0f && m_currentBaseAnimState != ANIM_STATE_TURNING_RIGHT) {
@@ -3280,8 +3211,7 @@ void CGUnit_C::UpdateDisplayFacing() {
     }
   }
 
-  float signedConsumed = angleDelta < 0.0f ? -absAngleConsumed : absAngleConsumed;
-  m_displayFacing = m_smoothFacing - signedConsumed;
+  m_displayFacing = m_smoothFacing - (angleDelta < 0.0f ? -absAngleConsumed : absAngleConsumed);
 }
 
 void CGUnit_C::UpdateSmoothFacing() {
@@ -3291,13 +3221,12 @@ void CGUnit_C::UpdateSmoothFacing() {
   if (this == activeMover) {
     if (IsClientControlled()) {
       m_smoothFacing = facing;
-      CGInputControl *input = CGInputControl::GetActive();
-      if (m_move.IsTurning() || input->CameraCanTurnPlayer()) {
+      if (m_move.IsTurning() || CGInputControl::GetActive()->CameraCanTurnPlayer()) {
         m_animFlags |= 8;
       } else {
         m_animFlags &= ~8u;
       }
-      if (m_move.IsTurning() || input->IsMouseDragMoving()) {
+      if (m_move.IsTurning() || CGInputControl::GetActive()->IsMouseDragMoving()) {
         m_animFlags |= 0x10;
       } else {
         m_animFlags &= ~0x10u;
@@ -3311,65 +3240,63 @@ void CGUnit_C::UpdateSmoothFacing() {
       facing = m_forcedDisplayFacing;
     } else if (!(IsPlayerControlled() && IsA(ID_PLAYER))) {
       DWORDLONG target = 0;
-      if ((m_unit->flags & 0x20000) || !m_combat.IsAttacking()) {
-        target = GetUnitBeingLooted();
-        if (!target && GetGUID() == CGGameUI::GetInteractTarget()) {
-          target = ClntObjMgrGetActivePlayer();
-        }
-      } else {
+      if (!(m_unit->flags & 0x20000)) {
         target = m_combat.IsAttacking();
       }
+      if (!target) {
+        target = GetUnitBeingLooted();
+        if (!target && CGGameUI::GetInteractTarget() == GetGUID()) {
+          target = ClntObjMgrGetActivePlayer();
+        }
+      }
 
-      CGObject_C *targetObject = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
-      if (targetObject) {
-        CGUnit_C *targetUnit = (CGUnit_C *)targetObject;
-        facing = CalculateFacingTo(m_move.m_position, targetUnit->m_move.m_position);
+      if (target) {
+        CGObject_C *targetObject = ClntObjMgrObjectPtr(target, __FILE__, __LINE__);
+        if (targetObject) {
+          CGUnit_C *targetUnit = (CGUnit_C *)targetObject;
+          facing = CalculateFacingTo(m_move.GetRawPosition(), targetUnit->m_move.GetRawPosition());
+        }
       }
     }
   }
 
   float deltaFacing = facing - m_smoothFacing;
-  if (fabs(deltaFacing) <= 0.01f) {
-    m_smoothFacing = facing;
+  if (NTempest::CMath::fabs_(deltaFacing) <= 0.01f) {
     m_savedFacingDeltas[0] = 0.0f;
-    return;
-  }
-
-  if (deltaFacing > 3.1415927f) {
-    deltaFacing -= 6.2831855f;
-  } else if (deltaFacing < -3.1415927f) {
-    deltaFacing += 6.2831855f;
-  }
-
-  float *savedFacingDeltas = m_savedFacingDeltas;
-  if ((deltaFacing < 0.0f && savedFacingDeltas[0] > 0.0f) || (deltaFacing > 0.0f && savedFacingDeltas[0] < 0.0f)) {
-    savedFacingDeltas[0] = 0.0f;
-  }
-
-  if (savedFacingDeltas[0] == 0.0f) {
-    savedFacingDeltas[0] = deltaFacing;
-    savedFacingDeltas[1] = deltaFacing;
-    savedFacingDeltas[2] = deltaFacing;
-    savedFacingDeltas[3] = deltaFacing;
   } else {
-    memmove(savedFacingDeltas + 1, savedFacingDeltas, 3 * sizeof(float));
-    savedFacingDeltas[0] = deltaFacing;
-    float average = 0.25f * (savedFacingDeltas[0] + savedFacingDeltas[1] + savedFacingDeltas[2] + savedFacingDeltas[3]);
-    if (deltaFacing < 0.0f) {
-      if (deltaFacing > average) {
-        deltaFacing = average;
+    if (deltaFacing > 3.1415927f) {
+      deltaFacing -= 6.2831855f;
+    } else if (deltaFacing < -3.1415927f) {
+      deltaFacing += 6.2831855f;
+    }
+
+    if ((deltaFacing < 0.0f) ? (m_savedFacingDeltas[0] > 0.0f) : (m_savedFacingDeltas[0] < 0.0f)) {
+      m_savedFacingDeltas[0] = 0.0f;
+    }
+
+    if (m_savedFacingDeltas[0] == 0.0f) {
+      m_savedFacingDeltas[0] = deltaFacing;
+      memcpy(m_savedFacingDeltas + 1, m_savedFacingDeltas, 3 * sizeof(m_savedFacingDeltas[0]));
+    } else {
+      memmove(&m_savedFacingDeltas[1], &m_savedFacingDeltas[0], 3 * sizeof(float));
+      m_savedFacingDeltas[0] = deltaFacing;
+      float average = 0.0f;
+      for (int i = 0; i < 4; ++i) {
+        average += m_savedFacingDeltas[i];
       }
-    } else if (deltaFacing < average) {
-      deltaFacing = average;
+      average *= 0.25f;
+      deltaFacing = (deltaFacing > 0.0f) ? min(deltaFacing, average) : max(deltaFacing, average);
+    }
+
+    facing = m_smoothFacing + deltaFacing * 0.5f;
+    if (facing < 0.0f) {
+      facing += 6.2831855f;
+    } else if (facing >= 6.2831855f) {
+      facing -= 6.2831855f;
     }
   }
 
-  m_smoothFacing += deltaFacing * 0.5f;
-  if (m_smoothFacing >= 6.2831855f) {
-    m_smoothFacing -= 6.2831855f;
-  } else if (m_smoothFacing < 0.0f) {
-    m_smoothFacing += 6.2831855f;
-  }
+  m_smoothFacing = facing;
 }
 
 void CGUnit_C::SetSmoothFacing(float facing) {
@@ -4586,6 +4513,12 @@ void CGUnit_C::SetForcedAnimation(LPCSTR string) {
 }
 
 static int ParseForcedAnimCommandLine(LPCSTR arguments, UINT *fidgetIndex) {
+  enum STATE {
+    FINDCOMMAND,
+    FINDFIDGET,
+    DONE
+  };
+
   if (!arguments || !*arguments || !fidgetIndex) {
     return -1;
   }
@@ -4594,22 +4527,22 @@ static int ParseForcedAnimCommandLine(LPCSTR arguments, UINT *fidgetIndex) {
   int    anim = -1;
   UINT   foundFidget = 0;
   LPCSTR stringBuffer = arguments;
-  int    token = 0;
+  STATE  token = FINDCOMMAND;
   do {
     SStrTokenize(&stringBuffer, tokenBuffer, sizeof(tokenBuffer), " ", 0);
     switch (token) {
-      case 0:
+      case FINDCOMMAND:
         anim = GetForcedAnimIndex(tokenBuffer);
         if (anim == -1) {
           return -1;
         }
-        token = 1;
+        token = FINDFIDGET;
         break;
-      case 1:
+      case FINDFIDGET:
         foundFidget = SStrToInt(tokenBuffer);
-        token = 2;
+        token = DONE;
         break;
-      case 2:
+      case DONE:
         break;
       default:
         FATALERROR(("Error, unknown forceanim command, string is %s", arguments));
@@ -6051,12 +5984,6 @@ void CGUnit_C::RemoveAllNamePlates() {
   s_monsterNamePlateList.Clear();
 }
 
-
-
-FREENAMEPLATE::~FREENAMEPLATE() {
-  DEL(namePlate);
-}
-
 void CGUnit_C::RemoveUnitNamePlate() {
   DWORDLONG      unit = GetGUID();
   CHashKeyGUID   key(unit);
@@ -6407,9 +6334,7 @@ BOOL CGUnit_C::QueueAnim(ANIMQUEUETYPE type, const ATTACKROUNDINFO *roundInfo) {
 }
 
 bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGItem_C *item) {
-  VALIDATEBEGIN;
-  VALIDATE(spell);
-  VALIDATEEND;
+  VALIDATE2(spell);
 
   if (item) {
     if (Spell_C_GetItemCooldown(item->GetEntryID(), 0, 0, 0)) {
@@ -6536,9 +6461,7 @@ bool CGUnit_C::CheckAndReportSpellInhibitFlags(const SpellRec *spell, const CGIt
 }
 
 static bool IsDayTime() {
-  WowTime valMax(20, 0);
-  WowTime valMin(5, 30);
-  return g_clientGameTime.InRange(valMin, valMax);
+  return g_clientGameTime.InRange(WowTime(5, 30), WowTime(20, 0));
 }
 
 static bool IsMountSpell(const SpellRec *rec) {
@@ -7603,7 +7526,7 @@ bool CGUnit_C::SetSpellCastingAnimation(ANIMENUMERATION anim, UINT effectKit, UI
   FATALASSERT(charModel);
 
   int exit = 0;
-  if ((anim >= ANIM_SPELL_SPECIAL1H && anim <= ANIM_SPELL_SPECIAL2H) || anim == ANIM_SPECIALUNARMED) {
+  if (anim >= ANIM_SPELL_SPECIAL1H && (anim <= ANIM_SPELL_SPECIAL2H || anim == ANIM_SPECIALUNARMED)) {
     const VirtualItemInfo *item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_MAINHAND, 0);
     if (item && m_unit->weaponMode != WEAPONMODE_SHEATHEDMODE) {
       HMODEL model = GetCharacterModel(0);
@@ -7654,10 +7577,10 @@ bool CGUnit_C::SetSpellCastingAnimation(ANIMENUMERATION anim, UINT effectKit, UI
 
   HandleClose(charModel);
   finalAnim = anim;
-  m_spellCastingCameraShakeID = camShakeID;
   m_spellCastingAnim = anim;
   m_spellCastingEffectKit = effectKit;
   m_spellCastingSoundID = soundID;
+  m_spellCastingCameraShakeID = camShakeID;
   return result;
 }
 
@@ -10221,101 +10144,4 @@ void CGUnit_C::ProcessChannelObject() {
   } else {
     ClearFishingObject();
   }
-}
-
-UNITAFFILIATION CGUnit::GetGUIDAffiliation(DWORDLONG) const {
-  return AFFILIATION_OTHER;
-}
-
-
-
-void CGUnit_C::GetAFKText(char *buffer, int) const {
-  buffer[0] = '\0';
-}
-
-void CGUnit_C::GetDNDText(char *buffer, int) const {
-  buffer[0] = '\0';
-}
-
-void CGUnit_C::GetGMText(char *buffer, int) const {
-  buffer[0] = '\0';
-}
-
-DWORDLONG CGUnit_C::GetLocalTarget() const {
-  return m_targetUnit;
-}
-
-void CGUnit_C::HandleSpellEventSound() {
-}
-
-void CGUnit_C::CombatLoggingFlagChanged() {
-}
-
-DWORDLONG CGUnit_C::GetUnitBeingLooted() const {
-  return 0;
-}
-
-void CGUnit_C::OnBadAttackTarget(DWORDLONG victim) {
-}
-
-void CGUnit_C::OnNotStanding(DWORDLONG victim) {
-}
-
-void CGUnit_C::UnitHit(VICTIMSTATES, DWORDLONG) {
-}
-
-float CGUnit_C::GetMountScale() const {
-  return 1.0f;
-}
-
-void CGUnit_C::OnMount() {
-}
-
-void CGUnit_C::OnDismount() {
-}
-
-bool CGUnit_C::CanBeMounted() {
-  return true;
-}
-
-void CGUnit_C::OnStandStateChanged(UINT, UINT) {
-}
-
-void CGUnit_C::SetEmoteState(UINT emoteID) {
-}
-
-bool CGUnit_C::GetDefenseSkillRank(int &base, int &modifier) const {
-  modifier = 0;
-  base = 0;
-  return false;
-}
-
-bool CGUnit_C::GetAttackSkillRank(int, int &base, int &modifier) const {
-  modifier = 0;
-  base = 0;
-  return false;
-}
-
-float CGUnit_C::GetBlockChance() const {
-  return 0.0f;
-}
-
-float CGUnit_C::GetDodgeChance() const {
-  return 0.0f;
-}
-
-float CGUnit_C::GetParryChance() const {
-  return 0.0f;
-}
-
-void CGUnit_C::UpdateObjComponentVisuals(const CGItem_C *, const ItemEnchantment *, int) {
-}
-
-void CGUnit_C::ClearItemVisuals(ACTIVEATTACHMENTINFO *) {
-}
-
-void CGUnit_C::SetItemVisuals(ACTIVEATTACHMENTINFO *, const ItemVisualsRec *, bool) {
-}
-
-void CGUnit_C::SetLastWeaponModeSent(int mode) {
 }

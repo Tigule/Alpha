@@ -1,4 +1,4 @@
-#include "ModelInternal.h"
+#include "IModel.h"
 #include "CollisionData.h"
 
 #include "Base/Activity.h"
@@ -707,6 +707,44 @@ static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color
   s_Project2dCallback(worldBox, color, basisMtx);
 }
 
+static inline void SetSharedLayerStates(const CTexLayerShared &layerShared, const NTempest::CImVector &diffuse, const NTempest::CImVector &emissive) {
+  GxRsSet(GxRs_MatDiffuse, diffuse);
+  GxRsSet(GxRs_MatEmissive, emissive);
+
+  for (UINT tmu = 0; tmu < 2; ++tmu) {
+    if (layerShared.tmuPass[tmu].flags & 1) {
+      GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), GxTexGen_SphereMap);
+    } else {
+      GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), GxTexGen_Disable);
+    }
+    if (layerShared.tmuPass[tmu].flags & 2) {
+      GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
+    }
+  }
+}
+
+static inline void SetUniqueLayerStates(CModelRenderData *modelptr, const CTexLayer &layerUnique, CStatus *status) {
+  GxRsSet(GxRs_Lighting, !(modelptr->m_renderFlags & 4) && !layerUnique.disable.lighting);
+  GxRsSet(GxRs_Fog, !(modelptr->m_renderFlags & 8) && !layerUnique.disable.fog);
+  GxRsSet(GxRs_DepthTest, !layerUnique.disable.depthTest);
+  GxRsSet(GxRs_DepthWrite, !layerUnique.disable.depthWrite);
+  GxRsSet(GxRs_Culling, !layerUnique.disable.culling);
+  GxRsSet(GxRs_Blend, layerUnique.blendMode);
+
+  for (UINT tmu = 0; tmu < 2; ++tmu) {
+    UINT textureId = layerUnique.tmuPass[tmu].textureId;
+    if (textureId == (UINT)-1) {
+      GxRsSet((EGxRenderState)(GxRs_Texture0 + tmu), 0);
+    } else if (layerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2)) {
+      GxRsSet((EGxRenderState)(GxRs_Texture0 + tmu), 0);
+    } else {
+      CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
+      GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
+      GxRsSet((EGxRenderState)(GxRs_Texture0 + tmu), texture);
+    }
+  }
+}
+
 static void RenderUniformUVMapLayers(
     CModelRenderData          *modelptr,
     CGeosetShared             *geoShared,
@@ -719,9 +757,8 @@ static void RenderUniformUVMapLayers(
     GxRsSet(GxRs_NormalizeNormals, 1);
   }
 
-  UINT numLayers = uniqueMtl.layers.Count();
   UINT layersDrawn = 0;
-  UINT tmu;
+  UINT numLayers = uniqueMtl.layers.Count();
   for (UINT i = 0; i < numLayers; ++i) {
     if (!uniqueMtl.layers[i].layerAlpha) {
       continue;
@@ -732,43 +769,11 @@ static void RenderUniformUVMapLayers(
       break;
     }
 
-    const CTexLayerShared &layerShared = sharedMtl.layers[i];
-    GxRsSet(GxRs_MatDiffuse, color);
-    GxRsSet(GxRs_MatEmissive, uniqueMtl.emissiveColor);
+    SetSharedLayerStates(sharedMtl.layers[i], color, uniqueMtl.emissiveColor);
+    SetUniqueLayerStates(modelptr, uniqueMtl.layers[i], status);
 
-    for (tmu = 0; tmu < 2; ++tmu) {
-      UINT flags = layerShared.tmuPass[tmu].flags;
-      GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
-      if (flags & 2) {
-        GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
-      }
-    }
-
-    const CTexLayer &layerUnique = uniqueMtl.layers[i];
-    GxRsSet(GxRs_Lighting, !(modelptr->m_renderFlags & 4) && !layerUnique.disable.lighting);
-    GxRsSet(GxRs_Fog, !(modelptr->m_renderFlags & 8) && !layerUnique.disable.fog);
-    GxRsSet(GxRs_DepthTest, !layerUnique.disable.depthTest);
-    GxRsSet(GxRs_DepthWrite, !layerUnique.disable.depthWrite);
-    GxRsSet(GxRs_Culling, !layerUnique.disable.culling);
-    GxRsSet(GxRs_Blend, layerUnique.blendMode);
-
-    for (tmu = 0; tmu < 2; ++tmu) {
-      UINT           textureId = layerUnique.tmuPass[tmu].textureId;
-      EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
-      if (textureId == (UINT)-1) {
-        GxRsSet(textureState, 0);
-      } else if (layerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2)) {
-        GxRsSet(textureState, 0);
-      } else {
-        CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
-        GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
-        GxRsSet(textureState, texture);
-      }
-    }
-
-    int pushed = 0;
-    if (layersDrawn && alphaBlended) {
-      pushed = 1;
+    int pushed = layersDrawn > 0 && alphaBlended;
+    if (pushed) {
       GxRsPush();
       GxRsSet(GxRs_FogColor, NTempest::CImVector(0xFF000000ul));
     }
@@ -910,7 +915,6 @@ static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared
   UINT numLayers = uniqueMtl->layers.Count();
   BYTE geoAlpha = color.a;
   UINT layersDrawn = 0;
-  UINT tmu;
   for (UINT i = 0; i < numLayers; ++i) {
     BYTE layerAlpha = uniqueMtl->layers[i].layerAlpha;
     if (!layerAlpha) {
@@ -918,44 +922,15 @@ static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared
     }
 
     color.a = (BYTE)(geoAlpha * layerAlpha / 255);
-    const CTexLayerShared &stateLayerShared = sharedMtl->layers[i];
-    GxRsSet(GxRs_MatDiffuse, color);
-    GxRsSet(GxRs_MatEmissive, uniqueMtl->emissiveColor);
-
-    for (tmu = 0; tmu < 2; ++tmu) {
-      UINT flags = stateLayerShared.tmuPass[tmu].flags;
-      GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
-      if (flags & 2) {
-        GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
-      }
-    }
+    SetSharedLayerStates(sharedMtl->layers[i], color, uniqueMtl->emissiveColor);
 
     SetUvTransforms(modelptr->m_model->data, uniqueMtl->layers[i], sharedMtl->layers[i]);
     LockVertices(geoShared, uniqueMtl->layers[i], sharedMtl->layers[i]);
 
-    const CTexLayer &stateLayerUnique = uniqueMtl->layers[i];
-    GxRsSet(GxRs_Lighting, !(modelptr->m_renderFlags & 4) && !stateLayerUnique.disable.lighting);
-    GxRsSet(GxRs_Fog, !(modelptr->m_renderFlags & 8) && !stateLayerUnique.disable.fog);
-    GxRsSet(GxRs_DepthTest, !stateLayerUnique.disable.depthTest);
-    GxRsSet(GxRs_DepthWrite, !stateLayerUnique.disable.depthWrite);
-    GxRsSet(GxRs_Culling, !stateLayerUnique.disable.culling);
-    GxRsSet(GxRs_Blend, stateLayerUnique.blendMode);
+    SetUniqueLayerStates(modelptr, uniqueMtl->layers[i], status);
 
-    for (tmu = 0; tmu < 2; ++tmu) {
-      UINT           textureId = stateLayerUnique.tmuPass[tmu].textureId;
-      EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
-      if (textureId == (UINT)-1 || (stateLayerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2))) {
-        GxRsSet(textureState, 0);
-      } else {
-        CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
-        GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), stateLayerUnique.tmuPass[tmu].combiner);
-        GxRsSet(textureState, texture);
-      }
-    }
-
-    int blackenFog = 0;
-    if (layersDrawn && sharedMtl->layers[i].blendMode > GxBlend_AlphaKey) {
-      blackenFog = 1;
+    int blackenFog = layersDrawn > 0 && sharedMtl->layers[i].blendMode > GxBlend_AlphaKey;
+    if (blackenFog) {
       GxRsPush();
       GxRsSet(GxRs_FogColor, NTempest::CImVector(0xFF000000ul));
     }
@@ -1117,43 +1092,14 @@ static void RenderGeosetSingleLayer(
     GxRsSet(GxRs_NormalizeNormals, 1);
   }
 
-  const CTexLayerShared &layerShared = sharedMtl->layers[layerId];
-  GxRsSet(GxRs_MatDiffuse, newColor);
-  GxRsSet(GxRs_MatEmissive, uniqueMtl->emissiveColor);
-
-  for (UINT tmu = 0; tmu < 2; ++tmu) {
-    UINT flags = layerShared.tmuPass[tmu].flags;
-    GxRsSet((EGxRenderState)(GxRs_TexGen0 + tmu), flags & 1 ? 6 : 0);
-    if (flags & 2) {
-      GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + tmu), s_sceneSharpness);
-    }
-  }
+  SetSharedLayerStates(sharedMtl->layers[layerId], newColor, uniqueMtl->emissiveColor);
 
   if (materialChanged) {
-    const CTexLayer &layerUnique = uniqueMtl->layers[layerId];
-    GxRsSet(GxRs_Lighting, !(modelptr->m_renderFlags & 4) && !layerUnique.disable.lighting);
-    GxRsSet(GxRs_Fog, !(modelptr->m_renderFlags & 8) && !layerUnique.disable.fog);
-    GxRsSet(GxRs_DepthTest, !layerUnique.disable.depthTest);
-    GxRsSet(GxRs_DepthWrite, !layerUnique.disable.depthWrite);
-    GxRsSet(GxRs_Culling, !layerUnique.disable.culling);
-    GxRsSet(GxRs_Blend, layerUnique.blendMode);
-
-    for (UINT tmu = 0; tmu < 2; ++tmu) {
-      UINT           textureId = layerUnique.tmuPass[tmu].textureId;
-      EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
-      if (textureId == (UINT)-1 || (layerUnique.blendMode == GxBlend_Opaque && (modelptr->m_renderFlags & 2))) {
-        GxRsSet(textureState, 0);
-      } else {
-        CGxTex *texture = TextureGetGxTex(modelptr->m_textures[textureId].handle, 1, status);
-        GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
-        GxRsSet(textureState, texture);
-      }
-    }
+    SetUniqueLayerStates(modelptr, uniqueMtl->layers[layerId], status);
   }
 
-  int pushed = 0;
-  if (layerId && sharedMtl->layers[layerId].blendMode > GxBlend_AlphaKey) {
-    pushed = 1;
+  int pushed = layerId > 0 && sharedMtl->layers[layerId].blendMode > GxBlend_AlphaKey;
+  if (pushed) {
     GxRsPush();
     GxRsSet(GxRs_FogColor, NTempest::CImVector(0xFF000000ul));
   }
@@ -1696,27 +1642,7 @@ static void IModelRenderSceneOpaque(CStatus *status) {
   CModelRenderData renderData;
   FillInRenderData(lastModel, 0, &renderData);
 
-  const CTexLayer &layerUnique = *lastSorted->layer;
-  GxRsSet(GxRs_Lighting, !(renderData.m_renderFlags & 4) && !layerUnique.disable.lighting);
-  GxRsSet(GxRs_Fog, !(renderData.m_renderFlags & 8) && !layerUnique.disable.fog);
-  GxRsSet(GxRs_DepthTest, !layerUnique.disable.depthTest);
-  GxRsSet(GxRs_DepthWrite, !layerUnique.disable.depthWrite);
-  GxRsSet(GxRs_Culling, !layerUnique.disable.culling);
-  GxRsSet(GxRs_Blend, layerUnique.blendMode);
-
-  for (UINT tmu = 0; tmu < 2; ++tmu) {
-    UINT           textureId = layerUnique.tmuPass[tmu].textureId;
-    EGxRenderState textureState = (EGxRenderState)(GxRs_Texture0 + tmu);
-    if (textureId == (UINT)-1) {
-      GxRsSet(textureState, 0);
-    } else if (layerUnique.blendMode == GxBlend_Opaque && (renderData.m_renderFlags & 2)) {
-      GxRsSet(textureState, 0);
-    } else {
-      CGxTex *texture = TextureGetGxTex(renderData.m_textures[textureId].handle, 1, status);
-      GxRsSet((EGxRenderState)(GxRs_TexBlend0 + tmu), layerUnique.tmuPass[tmu].combiner);
-      GxRsSet(textureState, texture);
-    }
-  }
+  SetUniqueLayerStates(&renderData, *lastSorted->layer, status);
 
   ASSERT(s_verticesLocked == 0);
   while (s_opaqueScene.HasEntries()) {
@@ -1946,18 +1872,7 @@ static void IModelComplexAddToScene(CModel *model, UINT renderFlags) {
   }
 
   for (index = 0; index < modelptr->m_attached.Count(); ++index) {
-    int enabled = 1;
-
-    if (modelptr->m_anim) {
-      if (modelptr->m_attachmentFlags[index] & 1) {
-        enabled = modelptr->m_attachmentFlags[index] & 2;
-      } else {
-        enabled = AnimIsAttachmentEnabled(modelptr->m_anim, index);
-        modelptr->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-      }
-    }
-
-    if (enabled) {
+    if (AttachmentIsEnabled(modelptr, index)) {
       ITERATELIST(LINKUNIQUE, modelptr->m_attached.Ptr()[index], link) {
         ModelAddToScene(link->child, 0);
       }
@@ -2003,9 +1918,7 @@ void ModelAddToScene(HMODEL model, UINT renderFlags) {
   CModel     *modelptr = (CModel *)model;
   CModelBase *unique;
 
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (IModelDerefHandle(modelptr, &unique)) {
     ActivityBegin(ACTIVITY_MODEL);
@@ -2103,17 +2016,7 @@ static void ModelComplexRender(HMODEL modelHandle, CModel *model, UINT renderFla
 
   UINT numAttached = modelptr->m_attached.Count();
   for (index = 0; index < numAttached; ++index) {
-    int enabled = 1;
-    if (modelptr->m_anim) {
-      if (modelptr->m_attachmentFlags[index] & 1) {
-        enabled = modelptr->m_attachmentFlags[index] & 2;
-      } else {
-        enabled = AnimIsAttachmentEnabled(modelptr->m_anim, index);
-        modelptr->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-      }
-    }
-
-    if (enabled) {
+    if (AttachmentIsEnabled(modelptr, index)) {
       ITERATELIST(LINKUNIQUE, modelptr->m_attached[index], link) {
         ModelRender(link->child, 0, 0);
       }
@@ -2139,9 +2042,7 @@ static void ModelSimpleRender(CModel *model, UINT renderFlags, CStatus *status) 
 
 void ModelRender(HMODEL model, CStatus *status, UINT renderFlags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase *unique;
   if (IModelDerefHandle(modelptr, &unique)) {
@@ -2214,6 +2115,26 @@ void ModelSceneSetFrustumPlanes(NTempest::C4Vector fp[]) {
   }
 }
 
+template <class T> static void PointSegmentDistSq(const T &p, const T &a, const T &b, float *distSq, float *t) {
+  T     closest = p - a;
+  T     segment = b - a;
+  float position = T::Dot(segment, closest);
+  if (position < 0.0f) {
+    position = 0.0f;
+  } else {
+    float divisor = T::Dot(segment, segment);
+    if (position > divisor) {
+      position = 1.0f;
+      closest -= segment;
+    } else {
+      position /= divisor;
+      closest -= position * segment;
+    }
+  }
+  *distSq = T::Dot(closest, closest);
+  *t = position;
+}
+
 int ModelIntersectLineSegment(
     HMODEL__                 *model,
     float                     scale,
@@ -2232,23 +2153,9 @@ int ModelIntersectLineSegment(
   NTempest::CAaSphere bounds;
   IModelGetBoundingSphere(modelptr, shared, &bounds);
   TransformBounds(modelptr->m_modelToWorld, scale, &bounds);
-  NTempest::C3Vector closest = bounds.c - a;
-  NTempest::C3Vector segment = b - a;
-  float              position = NTempest::C3Vector::Dot(closest, segment);
-  if (position < 0.0f) {
-    position = 0.0f;
-  } else {
-    float divisor = NTempest::C3Vector::Dot(segment, segment);
-    if (position > divisor) {
-      position = 1.0f;
-      closest -= segment;
-    } else {
-      position /= divisor;
-      closest -= position * segment;
-    }
-  }
-  *linePos = position;
-  if (NTempest::C3Vector::Dot(closest, closest) <= bounds.r * bounds.r) {
+  float distSq;
+  PointSegmentDistSq(bounds.c, a, b, &distSq, linePos);
+  if (distSq <= bounds.r * bounds.r) {
     return IModelTestRay(modelptr, shared, a, b, linePos, testLinkedModels);
   }
   *linePos = INFINITY;
@@ -2393,23 +2300,9 @@ static BOOL LineSegmentIntersectCylinder(
     return 0;
   }
 
-  NTempest::C2Vector closest(cylBottom.x - ax.x, cylBottom.y - ax.y);
-  float              position = closest.x * (bx.x - ax.x) + closest.y * (bx.y - ax.y);
-  float              divisor = (bx.x - ax.x) * (bx.x - ax.x) + (bx.y - ax.y) * (bx.y - ax.y);
-  if (position < 0.0f) {
-    position = 0.0f;
-  } else if (position <= divisor) {
-    position /= divisor;
-    closest.x -= (bx.x - ax.x) * position;
-    closest.y -= (bx.y - ax.y) * position;
-  } else {
-    position = 1.0f;
-    closest.x -= bx.x - ax.x;
-    closest.y -= bx.y - ax.y;
-  }
-
-  *linePos = position;
-  return closest.SquaredMag() <= cylRadius * cylRadius;
+  float distSq;
+  PointSegmentDistSq<NTempest::C2Vector>(cylBottom, ax, bx, &distSq, linePos);
+  return distSq <= cylRadius * cylRadius;
 }
 
 static BOOL LineSegmentIntersectSphere(
@@ -2424,23 +2317,9 @@ static BOOL LineSegmentIntersectSphere(
   NTempest::C3Vector center = sphCenter * sphToWorld;
   float              radius = sphScale * sphRadius;
 
-  NTempest::C3Vector closest = center - a;
-  NTempest::C3Vector segment = b - a;
-  float              position = NTempest::C3Vector::Dot(closest, segment);
-  if (position < 0.0f) {
-    position = 0.0f;
-  } else {
-    float divisor = NTempest::C3Vector::Dot(segment, segment);
-    if (position > divisor) {
-      position = 1.0f;
-      closest -= segment;
-    } else {
-      position /= divisor;
-      closest -= position * segment;
-    }
-  }
-  *linePos = position;
-  return NTempest::C3Vector::Dot(closest, closest) <= radius * radius;
+  float distSq;
+  PointSegmentDistSq(center, a, b, &distSq, linePos);
+  return distSq <= radius * radius;
 }
 
 static BOOL IModelTestCollisionVolumes(
@@ -2907,34 +2786,23 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
   float              lineLength = lineSegment.Mag();
 
   *linePos = 0.0f;
-  NTempest::C3Vector closest = bounds.c - a;
-  float              position = NTempest::C3Vector::Dot(closest, lineSegment);
-  if (position < 0.0f) {
-    position = 0.0f;
-  } else {
-    float divisor = NTempest::C3Vector::Dot(lineSegment, lineSegment);
-    if (position > divisor) {
-      position = 1.0f;
-      closest -= lineSegment;
-    } else {
-      position /= divisor;
-      closest -= position * lineSegment;
-    }
-  }
-  *linePos = position;
-  if (NTempest::C3Vector::Dot(closest, closest) <= bounds.r * bounds.r) {
-    *linePos = position * lineLength;
+  float distSq;
+  PointSegmentDistSq(bounds.c, a, b, &distSq, linePos);
+  if (distSq <= bounds.r * bounds.r) {
+    *linePos *= lineLength;
     return 1;
   }
 
-  if (testLinkedModels && (modelptr->m_flags & 0x20)) {
-    CModelComplex *complex = (CModelComplex *)modelptr;
-    UINT           numAttachments = complex->m_attached.Count();
-    for (UINT i = 0; i < numAttachments; ++i) {
-      ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
-        if (ModelHitTestSphere(link->child, scale, a, b, 1, linePos)) {
-          return 1;
-        }
+  if (!testLinkedModels || !(modelptr->m_flags & 0x20)) {
+    return 0;
+  }
+
+  CModelComplex *complex = (CModelComplex *)modelptr;
+  UINT           numAttachments = complex->m_attached.Count();
+  for (UINT i = 0; i < numAttachments; ++i) {
+    ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
+      if (ModelHitTestSphere(link->child, scale, a, b, 1, linePos)) {
+        return 1;
       }
     }
   }
@@ -3035,11 +2903,11 @@ ModelIntersectResult ModelIntersectLineSegmentEx(
   VALIDATEBEGIN;
   VALIDATE(linePos);
   VALIDATE(centerDistSq);
-  if (0) {
-  validatefailed:
+  validatefailed = 0; }
+  if (validatefailed) {
     SErrSetLastError(ERROR_INVALID_PARAMETER);
     return MODEL_INTERSECT_NO_HIT;
-  }
+  } }
 
   CModelBase   *modelptr;
   CModelShared *shared;
@@ -3057,26 +2925,11 @@ ModelIntersectResult ModelIntersectLineSegmentEx(
   float                lineLength = (b - a).Mag();
 
   if (hitTestFlags & 0x1) {
-    NTempest::C3Vector closest = bounds.c - a;
-    NTempest::C3Vector segment = b - a;
-    float              position = NTempest::C3Vector::Dot(closest, segment);
-    if (position < 0.0f) {
-      position = 0.0f;
-    } else {
-      float divisor = NTempest::C3Vector::Dot(segment, segment);
-      if (position > divisor) {
-        position = 1.0f;
-        closest -= segment;
-      } else {
-        position /= divisor;
-        closest -= position * segment;
-      }
-    }
-    *centerDistSq = NTempest::C3Vector::Dot(closest, closest);
+    PointSegmentDistSq(bounds.c, a, b, centerDistSq, &hitLinePos);
     if (*centerDistSq > bounds.r * bounds.r) {
       return MODEL_INTERSECT_NO_HIT;
     }
-    hitLinePos = position * lineLength;
+    hitLinePos *= lineLength;
     result = MODEL_INTERSECT_HIT_BOUNDING_SPHERE;
   }
 
@@ -3108,9 +2961,7 @@ ModelIntersectResult ModelIntersectLineSegmentEx(
 
 void ModelShowBoundingSphere(HMODEL model) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase   *unique;
   CModelShared *shared;
@@ -3148,9 +2999,7 @@ void ModelShowBoundingBox(HMODEL model) {
 
 void ModelHideBounds(HMODEL model) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {

@@ -139,8 +139,8 @@ void CLightning::Render(UINT boltId, const NTempest::C3Vector &cameraPos) {
   mPos[0] = mPos[1] = mPoints[0] * particleToView;
   mPos[2 * numPoints - 2] = mPos[2 * numPoints - 1] = mPoints[numPoints - 1] * particleToView;
 
-  NTempest::C3Vector texTranslate(-(mAccTime / (mTexCoordScale != 0.0f ? mTexCoordScale : 1.0f)), 0.0f, 0.0f);
-  GxXformTranslate(GxXform_Tex0, texTranslate);
+  float texScale = mTexCoordScale != 0.0f ? mTexCoordScale : 1.0f;
+  GxXformTranslate(GxXform_Tex0, NTempest::C3Vector(-(mAccTime / texScale), 0.0f, 0.0f));
 
   GxRsPush();
   GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(mColor.a, 0, 0, 0));
@@ -235,9 +235,7 @@ void CLightningManager::Update(float elapsed) {
 void CLightningManager::Move(BoltID boltId, NTempest::C3Vector *src, NTempest::C3Vector *dst) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
   ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
-  VALIDATEBEGIN;
-  VALIDATE(src || dst);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(src || dst);
 
   if (src) {
     mLiveBolts[boltId]->SetSrcPos(*src);

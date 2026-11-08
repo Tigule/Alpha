@@ -5,7 +5,6 @@
 #include "Base/Activity.h"
 #include "Base/Base.h"
 #include "Gx/Gx.h"
-#include "Model/ModelInternal.h"
 #include "Services/ParticleSystem2.h"
 #include "Services/RibbonEmitter.h"
 
@@ -17,7 +16,6 @@ static TSGrowableArray<NTempest::C34Matrix> s_transforms;
 static UINT                                 s_transInUse;
 static TSGrowableArray<UINT>                s_layers;
 static UINT                                 s_layersInUse;
-static TSGrowableArray<BYTE>                s_layerAlpha;
 
 static void ApplyWorldTransforms(
     const NTempest::C3Vector &position,
@@ -101,6 +99,15 @@ static UINT *GetLayerPtr(UINT index) {
   return &s_layers[index];
 }
 
+template <class T> static UINT IGetNumLayers(T *modelptr) {
+  UINT numMaterials = modelptr->m_materials.Count();
+  UINT numLayers = 0;
+  for (UINT i = 0; i < numMaterials; ++i) {
+    numLayers += ((CMaterial *)modelptr->m_materials[i])->layers.Count();
+  }
+  return numLayers;
+}
+
 static void IGetLayerIDs(UINT *array, UINT numLayers) {
   if (numLayers) {
     ASSERT(array);
@@ -108,6 +115,28 @@ static void IGetLayerIDs(UINT *array, UINT numLayers) {
     do {
       array[--numLayers] = -1;
     } while (numLayers);
+  }
+}
+
+template <class T> static void IUpdateFlippedTextures(T *modelptr, UINT *layers, UINT numLayers) {
+  if (numLayers) {
+    ASSERT(layers);
+
+    UINT numMaterials = modelptr->m_materials.Count();
+    for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
+      CMaterial *material = (CMaterial *)modelptr->m_materials[materialIndex];
+      UINT       numMaterialLayers = material->layers.Count();
+      for (UINT materialLayer = 0; materialLayer < numMaterialLayers; ++materialLayer) {
+        if (layers[materialLayer] != (UINT)-1) {
+          if (HandleObjectCompare(
+                  modelptr->m_textures[material->layers[materialLayer].tmuPass[0].textureId].handle, modelptr->m_textures[layers[materialLayer]].handle
+              ))
+          {
+            material->layers[materialLayer].tmuPass[0].textureId = layers[materialLayer];
+          }
+        }
+      }
+    }
   }
 }
 
@@ -182,28 +211,6 @@ static void SetGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeo
   }
 }
 
-static void SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
-  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
-    ASSERT(geoShared->groupMatrixCounts.Count() <= 1);
-
-    geoUnique->weightedBones = MatrixAlloc(1);
-    WorldMatrixGet(MatrixDeref(geoUnique->weightedBones));
-  }
-}
-
-static void SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
-  NTempest::C34Matrix *source = boneMatrices + shared->numBones - shared->hitTest.Count();
-  NTempest::C34Matrix *target = unique->m_hitTestMtx.Ptr();
-  UINT                 count = unique->m_hitTestMtx.Count();
-
-  while (count) {
-    *target = *source;
-    ++target;
-    ++source;
-    --count;
-  }
-}
-
 static void SetGeosetMatrices(CModelSimple *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
   ASSERT(unique);
 
@@ -227,14 +234,12 @@ static void SetGeosetMatrices(CModelComplex *unique, CModelShared *shared, NTemp
   }
 }
 
-static void SetUnanimatedCollisionMatrices(CModelComplex *unique) {
-  NTempest::C34Matrix *matrix = unique->m_hitTestMtx.Ptr();
-  UINT                 count = unique->m_hitTestMtx.Count();
+static void SetUnanimatedGeosetMatrix(CGeoset *geoUnique, CGeosetColor *geosetColors, CGeosetShared *geoShared) {
+  if (!(geoUnique->flags & 1) && geosetColors[geoShared->geosetId].animatedColor.a) {
+    ASSERT(geoShared->groupMatrixCounts.Count() <= 1);
 
-  while (count) {
-    WorldMatrixGet(matrix);
-    ++matrix;
-    --count;
+    geoUnique->weightedBones = MatrixAlloc(1);
+    WorldMatrixGet(MatrixDeref(geoUnique->weightedBones));
   }
 }
 
@@ -260,6 +265,30 @@ static void SetUnanimatedGeosetMatrices(CModelComplex *unique, CModelShared *sha
   UINT numAddlGeosets = unique->m_addlGeosets.Count();
   for (i = 0; i < numAddlGeosets; ++i) {
     SetUnanimatedGeosetMatrix(&unique->m_geosets[i + shared->numGeosets], unique->m_geosetColor.Ptr(), &unique->m_addlGeosets[i]);
+  }
+}
+
+static void SetCollisionMatrices(CModelComplex *unique, CModelShared *shared, NTempest::C34Matrix *boneMatrices) {
+  NTempest::C34Matrix *source = boneMatrices + shared->numBones - shared->hitTest.Count();
+  NTempest::C34Matrix *target = unique->m_hitTestMtx.Ptr();
+  UINT                 count = unique->m_hitTestMtx.Count();
+
+  while (count) {
+    *target = *source;
+    ++target;
+    ++source;
+    --count;
+  }
+}
+
+static void SetUnanimatedCollisionMatrices(CModelComplex *unique) {
+  NTempest::C34Matrix *matrix = unique->m_hitTestMtx.Ptr();
+  UINT                 count = unique->m_hitTestMtx.Count();
+
+  while (count) {
+    WorldMatrixGet(matrix);
+    ++matrix;
+    --count;
   }
 }
 
@@ -291,33 +320,7 @@ static void SetLayerAlpha(HMATERIAL *materials, UINT numMaterials, BYTE *layerAl
   }
 }
 
-static void UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
-  float elapsed = AnimGetElapsedTime() * 0.001f;
-
-  UINT i;
-  UINT numEmitters = unique->m_emitters2.Count();
-  for (i = 0; i < numEmitters; ++i) {
-    NTempest::C34Matrix currentWorldMatrix = unique->m_modelToWorld;
-    currentWorldMatrix.Translate(shared->positions[shared->emitter2Order[i]]);
-    currentWorldMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
-    unique->m_emitters2[i]->SetEnabled(1, 1);
-    unique->m_emitters2[i]->Update(elapsed, currentWorldMatrix, cameraWorldPos);
-  }
-
-  UINT numRibbons = unique->m_ribbons.Count();
-  for (i = 0; i < numRibbons; ++i) {
-    unique->m_ribbons[i]->SetEnabled(1);
-    unique->m_ribbons[i]->Update(elapsed, 0);
-  }
-}
-
-static void IModelAnimateBounds(HMODEL model) {
-  CModelBase   *unique;
-  CModelShared *shared;
-  if (IModelDerefHandle((CModel *)model, &unique, &shared)) {
-    IModelAnimate(unique, shared, NTempest::C3Vector(), NTempest::C3Vector());
-  }
-}
+static TSGrowableArray<BYTE> s_layerAlpha;
 
 static void
 IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos, const NTempest::C3Vector &cameraVector) {
@@ -330,11 +333,7 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   GetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
 
   UINT bones = GetTransformListIndex(shared->numBones + shared->hitTest.Count());
-  UINT numLayers = 0;
-  UINT numMaterials = unique->m_materials.Count();
-  for (UINT i = 0; i < numMaterials; ++i) {
-    numLayers += ((CMaterial *)unique->m_materials[i])->layers.Count();
-  }
+  UINT numLayers = IGetNumLayers(unique);
   UINT layerIndex = GetLayerIndex(numLayers);
   IGetLayerIDs(GetLayerPtr(layerIndex), numLayers);
 
@@ -357,24 +356,7 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   animData.layerTextureIds = GetLayerPtr(layerIndex);
   AnimAnimateModel(unique->m_anim, animData);
 
-  UINT *layers = GetLayerPtr(layerIndex);
-  if (numLayers) {
-    ASSERT(layers);
-
-    for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
-      CMaterial *material = (CMaterial *)unique->m_materials[materialIndex];
-      for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
-        if (layers[materialLayer] != (UINT)-1) {
-          if (HandleObjectCompare(
-                  unique->m_textures[material->layers[materialLayer].tmuPass[0].textureId].handle, unique->m_textures[layers[materialLayer]].handle
-              ))
-          {
-            material->layers[materialLayer].tmuPass[0].textureId = layers[materialLayer];
-          }
-        }
-      }
-    }
-  }
+  IUpdateFlippedTextures(unique, GetLayerPtr(layerIndex), numLayers);
 
   SetGeosetMatrices(unique, shared, GetTransformPtr(bones));
   ReleaseLayerIndex(numLayers);
@@ -382,34 +364,24 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   SetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
 }
 
-static void ModelAnimateAttached(
-    HMODEL                    model,
-    float                     scale,
-    UINT                      transform,
-    int                       normalizeNorms,
-    const NTempest::C3Vector &cameraWorldPos,
-    const NTempest::C3Vector &cameraVector
-) {
-  CModelBase   *unique;
-  CModelShared *shared;
-  ASSERT(model);
-  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
-    return;
+static void UpdateEmitters(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vector &cameraWorldPos) {
+  float elapsed = AnimGetElapsedTime() * 0.001f;
+
+  UINT i;
+  UINT numEmitters = unique->m_emitters2.Count();
+  for (i = 0; i < numEmitters; ++i) {
+    NTempest::C34Matrix currentWorldMatrix = unique->m_modelToWorld;
+    currentWorldMatrix.Translate(shared->positions[shared->emitter2Order[i]]);
+    currentWorldMatrix.Rotate(PI * 0.5f, NTempest::C3Vector(0.0f, 0.0f, 1.0f), true);
+    unique->m_emitters2[i]->SetEnabled(1, 1);
+    unique->m_emitters2[i]->Update(elapsed, currentWorldMatrix, cameraWorldPos);
   }
-  WorldMatrixPush();
-  WorldMatrixLoad(*GetTransformPtr(transform));
-  WorldMatrixScale(scale);
-  WorldMatrixGet(&unique->m_modelToWorld);
-  if (normalizeNorms)
-    unique->m_flags |= 2;
-  else
-    unique->m_flags &= ~2;
-  IModelAnimate(unique, shared, cameraWorldPos, cameraVector);
-  if (unique->m_boundsModel)
-    IModelAnimateBounds(unique->m_boundsModel);
-  if (unique->m_collideModel)
-    IModelAnimateBounds(unique->m_collideModel);
-  WorldMatrixPop();
+
+  UINT numRibbons = unique->m_ribbons.Count();
+  for (i = 0; i < numRibbons; ++i) {
+    unique->m_ribbons[i]->SetEnabled(1);
+    unique->m_ribbons[i]->Update(elapsed, 0);
+  }
 }
 
 static void
@@ -422,11 +394,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
     GetLayerAlpha(unique->m_materials.Ptr(), unique->m_materials.Count(), s_layerAlpha.Ptr());
 
     UINT bones = GetTransformListIndex(shared->numBones + shared->hitTest.Count());
-    UINT numLayers = 0;
-    UINT numMaterials = unique->m_materials.Count();
-    for (UINT i = 0; i < numMaterials; ++i) {
-      numLayers += ((CMaterial *)unique->m_materials[i])->layers.Count();
-    }
+    UINT numLayers = IGetNumLayers(unique);
     UINT layerIndex = GetLayerIndex(numLayers);
     IGetLayerIDs(GetLayerPtr(layerIndex), numLayers);
 
@@ -451,24 +419,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
 
     memset(unique->m_attachmentFlags.Ptr(), 0, unique->m_attachmentFlags.Count());
 
-    UINT *layers = GetLayerPtr(layerIndex);
-    if (numLayers) {
-      ASSERT(layers);
-
-      for (UINT materialIndex = 0; materialIndex < numMaterials; ++materialIndex) {
-        CMaterial *material = (CMaterial *)unique->m_materials[materialIndex];
-        for (UINT materialLayer = 0; materialLayer < material->layers.Count(); ++materialLayer) {
-          if (layers[materialLayer] != (UINT)-1) {
-            if (HandleObjectCompare(
-                    unique->m_textures[material->layers[materialLayer].tmuPass[0].textureId].handle, unique->m_textures[layers[materialLayer]].handle
-                ))
-            {
-              material->layers[materialLayer].tmuPass[0].textureId = layers[materialLayer];
-            }
-          }
-        }
-      }
-    }
+    IUpdateFlippedTextures(unique, GetLayerPtr(layerIndex), numLayers);
 
     SetGeosetMatrices(unique, shared, GetTransformPtr(bones));
     SetCollisionMatrices(unique, shared, GetTransformPtr(bones));
@@ -484,16 +435,7 @@ IModelAnimate(CModelComplex *unique, CModelShared *shared, const NTempest::C3Vec
   int normalizeNorms = unique->m_flags & 2;
   LISTPTR(LINKUNIQUE) attached = unique->m_attached.Ptr();
   for (UINT i = 0; i < numAttachments; ++i, ++attached) {
-    int enabled = 1;
-    if (unique->m_anim) {
-      if (unique->m_attachmentFlags[i] & 1) {
-        enabled = unique->m_attachmentFlags[i] & 2;
-      } else {
-        enabled = AnimIsAttachmentEnabled(unique->m_anim, i);
-        unique->m_attachmentFlags[i] = (enabled ? 2 : 0) | 1;
-      }
-    }
-    if (enabled) {
+    if (AttachmentIsEnabled(unique, i)) {
       ITERATELISTPTR(LINKUNIQUE, attached, link) {
         ModelAnimateAttached(link->child, link->scale, transforms + i, normalizeNorms, cameraWorldPos, cameraVector);
       }
@@ -513,41 +455,11 @@ IModelAnimate(CModelBase *unique, CModelShared *shared, const NTempest::C3Vector
   }
 }
 
-static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
-  FATALASSERT(unique);
-  FATALASSERT(shared);
-
-  if (unique->m_anim) {
-    AnimProcessEvents(unique->m_anim, shared->positions);
-  }
-
-  if (unique->m_flags & 0x20) {
-    CModelComplex *complex = (CModelComplex *)unique;
-    UINT           numAttached = complex->m_attached.Count();
-    for (UINT index = 0; index < numAttached; ++index) {
-      int enabled = 1;
-      if (complex->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(complex->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
-      }
-
-      if (enabled) {
-        WorldMatrixPush();
-        ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
-          CModelBase   *childModel;
-          CModelShared *childShared;
-          if (IModelDerefHandle((CModel *)link->child, &childModel, &childShared)) {
-            WorldMatrixLoad(childModel->m_modelToWorld);
-            IModelProcessEvents(childModel, childShared);
-          }
-        }
-        WorldMatrixPop();
-      }
-    }
+static void IModelAnimateBounds(HMODEL model) {
+  CModelBase   *unique;
+  CModelShared *shared;
+  if (IModelDerefHandle((CModel *)model, &unique, &shared)) {
+    IModelAnimate(unique, shared, NTempest::C3Vector(), NTempest::C3Vector());
   }
 }
 
@@ -583,6 +495,64 @@ static void ApplyWorldTransforms(
   orientation->Scale(nonUniformScale);
 }
 
+static void ModelAnimateAttached(
+    HMODEL                    model,
+    float                     scale,
+    UINT                      transform,
+    int                       normalizeNorms,
+    const NTempest::C3Vector &cameraWorldPos,
+    const NTempest::C3Vector &cameraVector
+) {
+  CModelBase   *unique;
+  CModelShared *shared;
+  ASSERT(model);
+  if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
+    return;
+  }
+  WorldMatrixPush();
+  WorldMatrixLoad(*GetTransformPtr(transform));
+  WorldMatrixScale(scale);
+  WorldMatrixGet(&unique->m_modelToWorld);
+  if (normalizeNorms)
+    unique->m_flags |= 2;
+  else
+    unique->m_flags &= ~2;
+  IModelAnimate(unique, shared, cameraWorldPos, cameraVector);
+  if (unique->m_boundsModel)
+    IModelAnimateBounds(unique->m_boundsModel);
+  if (unique->m_collideModel)
+    IModelAnimateBounds(unique->m_collideModel);
+  WorldMatrixPop();
+}
+
+static void IModelProcessEvents(CModelBase *unique, CModelShared *shared) {
+  FATALASSERT(unique);
+  FATALASSERT(shared);
+
+  if (unique->m_anim) {
+    AnimProcessEvents(unique->m_anim, shared->positions);
+  }
+
+  if (unique->m_flags & 0x20) {
+    CModelComplex *complex = (CModelComplex *)unique;
+    UINT           numAttached = complex->m_attached.Count();
+    for (UINT index = 0; index < numAttached; ++index) {
+      if (AttachmentIsEnabled(complex, index)) {
+        WorldMatrixPush();
+        ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
+          CModelBase   *childModel;
+          CModelShared *childShared;
+          if (IModelDerefHandle((CModel *)link->child, &childModel, &childShared)) {
+            WorldMatrixLoad(childModel->m_modelToWorld);
+            IModelProcessEvents(childModel, childShared);
+          }
+        }
+        WorldMatrixPop();
+      }
+    }
+  }
+}
+
 static void IModelGetStandingBasis(
     GROUND_TRACK              trackType,
     const NTempest::C3Vector &groundNormal,
@@ -602,14 +572,14 @@ static void IModelGetStandingBasis(
 
     case TRACK_PITCH_YAW:
       yprime->Set(-xaxis.y, xaxis.x, 0.0f);
-      *xprime = NTempest::C3Vector::Cross(*yprime, groundNormal);
+      *xprime = NTempest::C3Vector::Cross(*(NTempest::C2Vector *)yprime, groundNormal);
       xprime->Normalize();
-      *zprime = NTempest::C3Vector::Cross(*xprime, *yprime);
+      *zprime = NTempest::C3Vector::Cross(*xprime, *(NTempest::C2Vector *)yprime);
       break;
 
     case TRACK_PITCH_YAW_ROLL:
       *zprime = groundNormal;
-      yprime->Set(-xaxis.y * zprime->z, xaxis.x * zprime->z, xaxis.y * zprime->x - xaxis.x * zprime->y);
+      *yprime = NTempest::C3Vector::Cross(*zprime, xaxis);
       yprime->Normalize();
       *xprime = NTempest::C3Vector::Cross(*yprime, *zprime);
       break;
@@ -768,9 +738,7 @@ void ModelAnimate(
 
 BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -800,9 +768,7 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
 
 BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -820,9 +786,7 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
 
 int ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -840,9 +804,7 @@ int ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT fl
 
 int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -868,9 +830,7 @@ int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT flags) {
 
 int ModelSetRandomSequenceFidget(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -897,9 +857,7 @@ UINT ModelGetNumSequenceFidgets(HMODEL model, UINT seqIndex) {
 
 int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -925,9 +883,7 @@ int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT flag
 
 int ModelSetSequenceFidget(HMODEL model, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -953,9 +909,7 @@ UINT ModelGetNumSequences(HMODEL model) {
 }
 
 BOOL ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
-  VALIDATEBEGIN;
-  VALIDATE(duration);
-  VALIDATEEND;
+  VALIDATE2(duration);
   *duration = 0;
 
   CModelBase *unique;
@@ -967,9 +921,7 @@ BOOL ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
 }
 
 BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
-  VALIDATEBEGIN;
-  VALIDATE(moveSpeed);
-  VALIDATEEND;
+  VALIDATE2(moveSpeed);
   *moveSpeed = 0.0f;
 
   CModelBase *unique;
@@ -1017,9 +969,7 @@ void ModelSetSeqFinishedHandler(HMODEL model, ANIMSEQFINISHEDHANDLER callback, L
   CModelBase *unique;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_SEQ_FINISHED_HANDLER1, callback, param);
@@ -1035,9 +985,7 @@ void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, ANIMSEQFINISHEDHAND
   CModelBase *unique;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_SEQ_FINISHED_HANDLER2, sequence, callback, param);
@@ -1051,9 +999,7 @@ void ModelSetSeqFinishedHandler(HMODEL model, UINT sequence, ANIMSEQFINISHEDHAND
 
 void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1072,19 +1018,8 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
   CModelComplex *complex = (CModelComplex *)unique;
   UINT           numAttachments = complex->m_attached.Count();
   for (UINT index = 0; index < numAttachments; ++index) {
-    int enabled = 1;
-    if (unique->m_anim) {
-      if (complex->m_attachmentFlags[index] & 1) {
-        enabled = complex->m_attachmentFlags[index] & 2;
-      } else {
-        enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-        complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-      }
-    }
-
-    if (enabled) {
-      LIST(LINKUNIQUE) &links = complex->m_attached[index];
-      ITERATELIST(LINKUNIQUE, links, link) {
+    if (AttachmentIsEnabled(complex, index)) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
         ModelSetTimeScale(link->child, timeScale, 1);
       }
     }
@@ -1093,9 +1028,7 @@ void ModelSetTimeScale(HMODEL model, float timeScale, int doLinkedModels) {
 
 BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int doLinkedModels) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1114,19 +1047,8 @@ BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int d
   CModelComplex *complex = (CModelComplex *)unique;
   UINT           numAttachments = complex->m_attached.Count();
   for (UINT index = 0; index < numAttachments; ++index) {
-    int enabled = 1;
-    if (unique->m_anim) {
-      if (complex->m_attachmentFlags[index] & 1) {
-        enabled = complex->m_attachmentFlags[index] & 2;
-      } else {
-        enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-        complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-      }
-    }
-
-    if (enabled) {
-      LIST(LINKUNIQUE) &links = complex->m_attached[index];
-      ITERATELIST(LINKUNIQUE, links, link) {
+    if (AttachmentIsEnabled(complex, index)) {
+      ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
         if (!ModelSetObjectTimeScale(link->child, objectId, timeScale, 1)) {
           return 0;
         }
@@ -1157,9 +1079,7 @@ float ModelGetObjectTimeScale(HMODEL model, UINT objectId) {
 
 BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedModels) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1174,30 +1094,12 @@ BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMod
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex *complex = (CModelComplex *)unique;
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
-    UINT index = 0;
-
-    while (index < complex->m_attached.Count()) {
-      int enabled = 1;
-      if (unique->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
-      }
-
-      if (enabled) {
-        LINKUNIQUE *link = attached->Head();
-        while (link) {
-          LINKUNIQUE *next = attached->Next(link);
+    for (UINT index = 0; index < complex->m_attached.Count(); ++index, ++attached) {
+      if (AttachmentIsEnabled(complex, index)) {
+        SAFEITERATELISTPTR(LINKUNIQUE, attached, link) {
           ModelForceCurrentSequenceTime(link->child, timeOffset, 1);
-          link = next;
         }
       }
-
-      ++attached;
-      ++index;
     }
   }
 
@@ -1206,9 +1108,7 @@ BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMod
 
 BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1223,30 +1123,12 @@ BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doL
   if (doLinkedModels && (unique->m_flags & 0x20)) {
     CModelComplex *complex = (CModelComplex *)unique;
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
-    UINT index = 0;
-
-    while (index < complex->m_attached.Count()) {
-      int enabled = 1;
-      if (unique->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
-      }
-
-      if (enabled) {
-        LINKUNIQUE *link = attached->Head();
-        while (link) {
-          LINKUNIQUE *next = attached->Next(link);
+    for (UINT index = 0; index < complex->m_attached.Count(); ++index, ++attached) {
+      if (AttachmentIsEnabled(complex, index)) {
+        SAFEITERATELISTPTR(LINKUNIQUE, attached, link) {
           ModelForceSequenceTime(link->child, 0, timeOffset, 1);
-          link = next;
         }
       }
-
-      ++attached;
-      ++index;
     }
   }
 
@@ -1264,31 +1146,17 @@ BOOL ModelAdvanceTime(HMODEL model) {
   }
 
   ASSERT(((CModel *)((CHandleObject*)(model))));
-  if (unique->m_flags & 0x20) {
-    CModelComplex *complex = (CModelComplex *)unique;
-    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
+  if (!(unique->m_flags & 0x20)) {
+    return 1;
+  }
 
-    for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
-      int enabled = 1;
-      if (complex->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(complex->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
+  CModelComplex *complex = (CModelComplex *)unique;
+  LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
+  for (UINT index = 0; index < complex->m_attached.Count(); ++index, ++attached) {
+    if (AttachmentIsEnabled(complex, index)) {
+      SAFEITERATELISTPTR(LINKUNIQUE, attached, link) {
+        ModelAdvanceTime(link->child);
       }
-
-      if (enabled) {
-        LINKUNIQUE *link = attached->Head();
-        while ((int)link > 0) {
-          LINKUNIQUE *next = attached->RawNext(link);
-          ModelAdvanceTime(link->child);
-          link = next;
-        }
-      }
-
-      ++attached;
     }
   }
 
@@ -1306,27 +1174,17 @@ BOOL ModelAdvanceTime(HMODEL model, int timeChange) {
   }
 
   FATALASSERT(((CModel *)((CHandleObject*)(model))));
-  if (unique->m_flags & 0x20) {
-    CModelComplex *complex = (CModelComplex *)unique;
-    LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
+  if (!(unique->m_flags & 0x20)) {
+    return 1;
+  }
 
-    for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
-      int enabled = 1;
-      if (unique->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
+  CModelComplex *complex = (CModelComplex *)unique;
+  LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
+  for (UINT index = 0; index < complex->m_attached.Count(); ++index, ++attached) {
+    if (AttachmentIsEnabled(complex, index)) {
+      ITERATELISTPTR(LINKUNIQUE, attached, link) {
+        ModelAdvanceTime(link->child, timeChange);
       }
-
-      if (enabled) {
-        ITERATELISTPTR(LINKUNIQUE, attached, link) {
-          ModelAdvanceTime(link->child, timeChange);
-        }
-      }
-      ++attached;
     }
   }
 
@@ -1348,22 +1206,12 @@ void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
     complex = (CModelComplex *)unique;
     LISTPTR(LINKUNIQUE) attached = complex->m_attached.Ptr();
 
-    for (UINT index = 0; index < complex->m_attached.Count(); ++index) {
-      int enabled = 1;
-      if (unique->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(unique->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
-      }
-      if (enabled) {
+    for (UINT index = 0; index < complex->m_attached.Count(); ++index, ++attached) {
+      if (AttachmentIsEnabled(complex, index)) {
         ITERATELISTPTR(LINKUNIQUE, attached, link) {
           ModelPauseTime(link->child, pause, 0);
         }
       }
-      ++attached;
     }
   }
 }
@@ -1382,17 +1230,7 @@ void ModelResetGlobalSequenceTimes(HMODEL model, int doLinkedModels) {
     CModelComplex *complex = (CModelComplex *)unique;
     UINT           numAttachments = complex->m_attached.Count();
     for (UINT index = 0; index < numAttachments; ++index) {
-      int enabled = 1;
-      if (complex->m_anim) {
-        if (complex->m_attachmentFlags[index] & 1) {
-          enabled = complex->m_attachmentFlags[index] & 2;
-        } else {
-          enabled = AnimIsAttachmentEnabled(complex->m_anim, index);
-          complex->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
-        }
-      }
-
-      if (enabled) {
+      if (AttachmentIsEnabled(complex, index)) {
         ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
           ModelResetGlobalSequenceTimes(link->child, 0);
         }
@@ -1405,9 +1243,7 @@ void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest
   CModelBase *unique;
 
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(modelptr);
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_EVENT_CALLBACK, callback, param, doLinkedModels);
@@ -1431,9 +1267,7 @@ void ModelSetEventCallback(HMODEL model, void (*callback)(LPCSTR, const NTempest
 
 int ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector &target) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1450,9 +1284,7 @@ int ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector
 
 int ModelRemoveObjectLookAt(HMODEL model, UINT objectId) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1479,9 +1311,7 @@ BOOL ModelObjectUsingLookAt(HMODEL model, UINT objectId) {
 
 int ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vector &direction) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1498,9 +1328,7 @@ int ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vecto
 
 int ModelRemoveObjectFaceDir(HMODEL model, UINT objectId) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1527,9 +1355,7 @@ BOOL ModelObjectUsingFaceDir(HMODEL model, UINT objectId) {
 
 int ModelMarkFootstepSequence(HMODEL model, UINT seqIndex) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1546,9 +1372,7 @@ int ModelMarkFootstepSequence(HMODEL model, UINT seqIndex) {
 
 int ModelLockObjectSequence(HMODEL model, UINT objectId, int set) {
   CModel *modelptr = (CModel *)model;
-  VALIDATEBEGIN;
-  VALIDATE(modelptr);
-  VALIDATEEND;
+  VALIDATE2(modelptr);
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
@@ -1603,13 +1427,8 @@ void ModelForceStandingMatrix(
     IModelGetStandingBasis(
         (GROUND_TRACK)enumGroundTrack, groundNormal, facing, deadMtx.Row0AsVec3(), deadMtx.Row1AsVec3(), deadMtx.Row2AsVec3()
     );
-    deadMtx = deadMtx * blendRatio;
-    standMtx = standMtx * (1.0f - blendRatio);
-    standMtx += deadMtx;
-    *orientation = NTempest::C34Matrix(standMtx);
-    orientation->d0 = position.x;
-    orientation->d1 = position.y;
-    orientation->d2 = position.z;
+    *orientation = NTempest::C34Matrix(standMtx * (1.0f - blendRatio) + deadMtx * blendRatio);
+    *(NTempest::C3Vector *)&orientation->d0 = position;
     orientation->Scale(scale);
   }
 }

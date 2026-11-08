@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <dsound.h>
 #include <storm.h>
+#include <stpl.h>
 #include "ISThread.h"
 #include <stdio.h>
 #include <time.h>

@@ -315,18 +315,6 @@ float CGGameObject_C_TypeBase::GetFacing() const {
   return m_owner->m_gameObj->m_facing;
 }
 
-bool CGGameObject_C_Type_Null::CanUse() const {
-  return 0;
-}
-
-bool CGGameObject_C_Type_Null::CanUseNow(GAME_ERROR_TYPE *) const {
-  return 0;
-}
-
-LPCSTR CGGameObject_C_Type_Null::DebugStatus() {
-  return "Unknown Object Type";
-}
-
 void CGGameObject_C_TypeAnimated::ModelJustLoaded() {
   UINT i;
   for (i = 0; i < sizeof(s_stateAnimInfo) / sizeof(s_stateAnimInfo[0]); ++i) {
@@ -554,9 +542,6 @@ CGGameObject_C_Type_Chest::CGGameObject_C_Type_Chest(CGGameObject_C *owner) : CG
 CGGameObject_C_Type_Trap::CGGameObject_C_Type_Trap(CGGameObject_C *owner) : CGGameObject_C_TypeAnimated(owner) {
 }
 
-void CGGameObject_C_Type_AreaDamage::ModelJustLoaded() {
-}
-
 CGGameObject_C_Type_AreaDamage::CGGameObject_C_Type_AreaDamage(CGGameObject_C *owner) : CGGameObject_C_TypeAnimated(owner) {
   m_owner->m_isSolid = 0;
   m_interactDistance = 0.0f;
@@ -578,24 +563,12 @@ CGGameObject_C_Type_Binder::CGGameObject_C_Type_Binder(CGGameObject_C *owner) : 
   m_interactDistance = MAX_BIND_DISTANCE;
 }
 
-bool CGGameObject_C_Type_Generic::CanUse() const {
-  return 0;
-}
-
 CGGameObject_C_Type_Generic::CGGameObject_C_Type_Generic(CGGameObject_C *owner) : CGGameObject_C_TypeBase(owner) {
 }
 
 bool CGGameObject_C_Type_Generic::CanHighlight() const {
   int prop = CGameObjectDef::GetPropNum(m_owner->GetType(), 18);
   return m_owner->GetPropertyValue(prop) != 0;
-}
-
-bool CGGameObject_C_Type_MapObj::CanHighlight() const {
-  return 0;
-}
-
-bool CGGameObject_C_Type_MapObj::CanUse() const {
-  return 0;
 }
 
 CGGameObject_C_Type_MapObj::CGGameObject_C_Type_MapObj(CGGameObject_C *owner) : CGGameObject_C_TypeBase(owner), m_objectId(0) {
@@ -610,14 +583,6 @@ CGGameObject_C_Type_MapObj::~CGGameObject_C_Type_MapObj() {
   if (m_objectId) {
     CWorld::ObjectDelete(m_objectId);
   }
-}
-
-NTempest::C3Vector CGGameObject_C_Type_MapObjTransport::GetPosition() const {
-  return m_position;
-}
-
-float CGGameObject_C_Type_MapObjTransport::GetFacing() const {
-  return m_facing;
 }
 
 CGGameObject_C_Type_MapObjTransport::CGGameObject_C_Type_MapObjTransport(CGGameObject_C *owner)
@@ -753,14 +718,6 @@ void CGGameObject_C_Type_Chair::PostInit() {
   GenerateChairPoints(NTempest::C44Matrix(m_owner->GetMatrix()), GetNumSlots(), m_slotPositions);
 }
 
-bool CGGameObject_C_Type_SpellFocus::CanHighlight() const {
-  return 1;
-}
-
-bool CGGameObject_C_Type_SpellFocus::CanUse() const {
-  return 0;
-}
-
 CGGameObject_C_Type_SpellFocus::CGGameObject_C_Type_SpellFocus(CGGameObject_C *owner) : CGGameObject_C_TypeAnimated(owner) {
 }
 
@@ -805,18 +762,6 @@ void CGGameObject_C_Type_Text::CloseInteraction() {
 }
 
 CGGameObject_C_Type_Goober::CGGameObject_C_Type_Goober(CGGameObject_C *owner) : CGGameObject_C_TypeAnimated(owner) {
-}
-
-NTempest::C3Vector CGGameObject_C_Type_Transport::GetPosition() const {
-  return m_position;
-}
-
-NTempest::C3Vector CGGameObject_C_Type_Transport::GetCurrentMoveVector() const {
-  return m_currDirection * m_currSpeed;
-}
-
-bool CGGameObject_C_Type_Transport::CanUse() const {
-  return 0;
 }
 
 CGGameObject_C_Type_Transport::CGGameObject_C_Type_Transport(CGGameObject_C *owner)
@@ -949,14 +894,6 @@ BOOL CGGameObject_C_Type_Transport::IsPointInside(const NTempest::C3Vector &poin
 }
 
 CGGameObject_C_Type_Camera::CGGameObject_C_Type_Camera(CGGameObject_C *owner) : CGGameObject_C_TypeBase(owner) {
-}
-
-bool CGGameObject_C_Type_DuelArbiter::CanHighlight() const {
-  return 1;
-}
-
-bool CGGameObject_C_Type_DuelArbiter::CanUse() const {
-  return 0;
 }
 
 CGGameObject_C_Type_DuelArbiter::CGGameObject_C_Type_DuelArbiter(CGGameObject_C *owner) : CGGameObject_C_TypeBase(owner) {
@@ -1145,9 +1082,7 @@ UINT CGGameObject_C::OffsetOf(OBJECT_TYPE_ID type) {
 }
 
 void CGGameObject_C::LoadBaseObject(const GameObjectStats *stats) {
-  VALIDATEBEGIN;
-  VALIDATE(stats);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(stats);
   SetMirrorHandlers();
   m_stats = stats;
 
@@ -1491,95 +1426,4 @@ BOOL CGGameObject_C::IsTransport() const {
   FATALASSERT(m_stats);
   UINT type = *(const UINT *)m_stats;
   return type == 11 || type == 15;
-}
-
-bool CGGameObject_C_TypeBase::CanHighlight() const {
-  return CanUse();
-}
-
-bool CGGameObject_C_TypeBase::CanChangeCursor() const {
-  return CanUse();
-}
-
-void CGGameObject_C_TypeBase::HandleAnimFinished() {
-}
-
-void CGGameObject_C_TypeBase::ActivateCustomAnim(UINT) {
-}
-
-void CGGameObject_C_TypeBase::AddPassenger(CMovementData *) {
-}
-
-NTempest::C3Vector CGGameObject_C_TypeBase::GetCurrentMoveVector() const {
-  return NTempest::C3Vector();
-}
-
-BOOL CGGameObject_C_TypeBase::IsPointInside(const NTempest::C3Vector &) const {
-  return 0;
-}
-
-void CGGameObject_C_TypeBase::Reenable() {
-}
-
-void CGGameObject_C_TypeBase::Disable(int) {
-}
-
-void CGGameObject_C_TypeBase::PostReenable() {
-}
-
-void CGGameObject_C_TypeBase::UpdateMovement(DWORD, float) {
-}
-
-void CGGameObject_C_TypeBase::ModelJustLoaded() {
-}
-
-void CGGameObject_C_TypeBase::StartInteraction() {
-}
-
-void CGGameObject_C_TypeBase::CloseInteraction() {
-}
-
-NTempest::C3Vector CGGameObject_C::GetPosition() const {
-  FATALASSERT(m_baseObj);
-  return m_baseObj->GetPosition();
-}
-
-void CGGameObject_C::GetPosition(NTempest::C3Vector &vec) const {
-  FATALASSERT(m_baseObj);
-  vec = m_baseObj->GetPosition();
-}
-
-float CGGameObject_C::GetFacing() const {
-  FATALASSERT(m_baseObj);
-  return m_baseObj->GetFacing();
-}
-
-BOOL CGGameObject_C::IsPointInside(const NTempest::C3Vector &point) const {
-  FATALASSERT(m_baseObj);
-  return m_baseObj->IsPointInside(point);
-}
-
-BOOL CGGameObject_C::IsSolidSelectable() const {
-  return m_isSolid || CanHighlight();
-}
-
-BOOL CGGameObject_C::IsSolidCollidable() const {
-  return m_isSolid;
-}
-
-LPCSTR CGGameObject_C::GetObjectName() const {
-  return GetName();
-}
-
-NTempest::C3Vector CGGameObject_C::GetCurrentMoveVector() const {
-  FATALASSERT(m_baseObj);
-  return m_baseObj->GetCurrentMoveVector();
-}
-
-NTempest::C34Matrix CGGameObject_C::GetMatrix() const {
-  return m_matrix;
-}
-
-void CGGameObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
-  *worldMatrix = GetMatrix();
 }

@@ -24,7 +24,9 @@ class CGxStateBom {
   }
 
 
-  int                 GetAsInt();
+  int GetAsInt() {
+    return mData[0];
+  }
 
   float GetAsFloat() {
     return *(float *)&mData[0];
@@ -38,7 +40,9 @@ class CGxStateBom {
     return *(NTempest::C3Vector *)&mData[0];
   }
 
-  LPVOID GetAsPointer();
+  LPVOID GetAsPointer() {
+    return (LPVOID)mData[0];
+  }
 
   const CGxStateBom &operator=(int value) {
     mData[0] = value;

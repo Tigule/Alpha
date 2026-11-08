@@ -67,9 +67,7 @@ void CGTaxiMap::LeaveWorld() {
 }
 
 void CGTaxiMap::SetupMap(const DWORDLONG &unit, UINT node, LONGLONG destNodes, LONGLONG knownNodes, const NTempest::CRect &visibleArea) {
-  VALIDATEBEGIN;
-  VALIDATE(unit);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(unit);
   if (m_unit) {
     if (m_unit == unit) {
       FATALASSERT(node == m_startNode);

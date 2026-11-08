@@ -22,7 +22,7 @@
 
 #include "Object_C.h"
 
-#include "AnimStateCompiles.h"
+#include "AnimCompiles.h"
 #include "Container_C.h"
 #include "Corpse_C.h"
 #include "DynamicObject_C.h"
@@ -34,7 +34,7 @@
 #include <Base/Handle.h>
 #include <Base/Status.h>
 #include <Gx/Gx.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Model/CollisionData.h>
 #include <Os/OsTime.h>
 #include <Os/W32/OSSystem.h>
@@ -134,9 +134,7 @@ static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLev
 static void s_BlobFadeTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, LPVOID userArg, UINT &texelStrideInBytes, LPCVOID &texels);
 
 HMODEL ObjectModelCreate(LPCSTR filename, OBJECT_TYPE objectType, UINT mdlCreateFlags) {
-  VALIDATEBEGIN;
-  VALIDATE(filename);
-  VALIDATEEND;
+  VALIDATE2(filename);
 
   CStatus      status;
   CModelCreate createData;
@@ -564,13 +562,6 @@ void CGObject_C::SetAnimated(int animated) {
   } else {
     m_flags &= ~1U;
   }
-}
-
-void CGObject_C::OnRightClick() {
-}
-
-LPCSTR CGObject_C::GetObjectName() const {
-  return 0;
 }
 
 void CGObject_C::Disable(int shutdown) {

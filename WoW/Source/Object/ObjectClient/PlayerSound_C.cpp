@@ -103,7 +103,12 @@ UINT CGPlayer_C::GetImpactType() const {
     return 0;
   }
 
-  const MaterialRec *material = g_materialDB.GetRecord(item->GetMaterial());
+  const VirtualItemInfo *info = &item->m_itemInfo;
+  if (!info || info->m_classID != 4) {
+    return 0;
+  }
+
+  const MaterialRec *material = g_materialDB.GetRecord(info->m_material);
   if (!material) {
     return 0;
   }

@@ -18,7 +18,7 @@
 #include "UIUtil/InputControl.h"
 #include "Ui/WorldFrame.h"
 
-#include "Model/IModel.h"
+#include "Model/Model.h"
 #include "Services/SysMessage.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/c34matrix.h"
@@ -794,21 +794,34 @@ void CWorldScene::CullDoodads(LISTEX(CMapBaseObjLink, refLink) & doodadDefLinkLi
   ITERATELIST(CMapBaseObjLink, doodadDefLinkList, link) {
     CMapDoodadDef *doodadDef = (CMapDoodadDef *)link->owner;
     FATALASSERT(doodadDef);
-    if ((doodadDef->model || doodadDef->RenderCB) && !(doodadDef->flags & CMapBaseObj::Flag_LoadFailed) && !doodadDef->sceneLink.IsLinked()) {
-      NTempest::CAaSphere doodadSphere;
-      doodadDef->GetBounds(doodadSphere);
-      doodadDef->camDist = camPlaneXY.DistSigned(doodadSphere.c) - doodadSphere.r;
-      if (!FrustumCull(doodadSphere.c, doodadSphere.r) && !ClipBufferCull(doodadSphere.c, doodadSphere.r, 5)) {
+    if (!doodadDef->model && !doodadDef->RenderCB) {
+      continue;
+    }
+    if (doodadDef->flags & CMapBaseObj::Flag_LoadFailed) {
+      continue;
+    }
+    if (doodadDef->sceneLink.IsLinked()) {
+      continue;
+    }
+
+    NTempest::CAaSphere doodadSphere;
+    doodadDef->GetBounds(doodadSphere);
+    doodadDef->camDist = camPlaneXY.DistSigned(doodadSphere.c) - doodadSphere.r;
+
+    if (!FrustumCull(doodadSphere.c, doodadSphere.r)) {
+      if (!ClipBufferCull(doodadSphere.c, doodadSphere.r, 5)) {
         sortTable.visDoodadList.LinkNode(doodadDef, LIST_TAIL, 0);
         ++nDoodadsRendered;
-      } else {
-        if (doodadDef->rCount != CWorld::frameCnt && doodadDef->flagAlwaysAnimate && doodadDef->model) {
-          ModelAdvanceTime(doodadDef->model);
-        }
-        doodadDef->rCount = CWorld::frameCnt;
+        continue;
       }
     }
+
+    if (doodadDef->rCount != CWorld::frameCnt && doodadDef->flagAlwaysAnimate && doodadDef->model) {
+      ModelAdvanceTime(doodadDef->model);
+    }
+    doodadDef->rCount = CWorld::frameCnt;
   }
+
 }
 
 void CWorldScene::CullChunkLiquid(CSortEntry *sortEntry, UINT type) {

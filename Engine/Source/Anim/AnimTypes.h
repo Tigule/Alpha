@@ -13,7 +13,7 @@ class CParticleEmitter2;
 class CRibbonEmitter;
 
 struct CGeosetColor {
-  CGeosetColor() : animatedColor(0xFFFFFFFF), proceduralColor(0xFFFFFFFF), animatedAlpha(1.0f), proceduralAlpha(1.0f) {
+  CGeosetColor() : animatedColor(0xFF, 0xFF, 0xFF, 0xFF), proceduralColor(0xFF, 0xFF, 0xFF, 0xFF), animatedAlpha(1.0f), proceduralAlpha(1.0f) {
   }
 
   NTempest::CImVector animatedColor;

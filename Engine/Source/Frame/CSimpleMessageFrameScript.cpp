@@ -7,17 +7,7 @@
 #include <lua.h>
 
 static int CSimpleMessageFrame_AddMessage(lua_State *L) {
-  CSimpleMessageFrame *frame;
-  if (lua_type(L, 1) != LUA_TTABLE) {
-    luaL_error(L, "Attempt to find 'this' in non-table object (used '.' instead of ':' ?)");
-    frame = 0;
-  } else {
-    lua_rawgeti(L, 1, 0);
-    CSimpleMessageFrame *object = (CSimpleMessageFrame *)lua_touserdata(L, -1);
-    lua_pop(L, 1);
-    ASSERT(object);
-    frame = object;
-  }
+  CSimpleMessageFrame *frame = (CSimpleMessageFrame *)FrameScript_GetObjectThis(L);
 
   if (lua_isstring(L, 2)) {
     LPCSTR message = lua_tostring(L, 2);

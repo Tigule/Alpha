@@ -141,22 +141,10 @@ BOOL MDL::WriteCameras(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLS
 
 static UINT GetBinCameraSize(const MDLCAMERASECTION &section) {
   UINT size = 120;
-  if (section.transkeys.keys.Count()) {
-    UINT dataSize = section.transkeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + section.transkeys.keys.Count() * (4 + dataSize);
-  }
-  if (section.rollkeys.keys.Count()) {
-    UINT dataSize = section.rollkeys.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + section.rollkeys.keys.Count() * (4 + dataSize);
-  }
-  if (section.target.transkeys.keys.Count()) {
-    UINT dataSize = section.target.transkeys.type > TRACK_LINEAR ? 36 : 12;
-    size += 16 + section.target.transkeys.keys.Count() * (4 + dataSize);
-  }
-  if (section.visibilityKeys.keys.Count()) {
-    UINT dataSize = section.visibilityKeys.type > TRACK_LINEAR ? 12 : 4;
-    size += 16 + section.visibilityKeys.keys.Count() * (4 + dataSize);
-  }
+  size += GetBinFloatKeyFramesSize(section.transkeys);
+  size += GetBinFloatKeyFramesSize(section.rollkeys);
+  size += GetBinFloatKeyFramesSize(section.target.transkeys);
+  size += GetBinFloatKeyFramesSize(section.visibilityKeys);
   return size;
 }
 

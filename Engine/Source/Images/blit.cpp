@@ -190,104 +190,60 @@ static void Blit_Dxt35_Dxt35(const C2iVector &size, LPCVOID in, UINT inStride, L
   memcpy(out, in, (UINT)(8 * width * height) >> 3);
 }
 
-template <class Pixel>
-inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt1Block *in, UINT inStride, Pixel *out, UINT outStride) {
+inline void DxtDecompress(const Dxt3Block *block, CImVector **dest, const DxtRect &rect) {
+  DxtDecompress(block, dest, rect, Dxt3A8);
+}
+
+inline void DxtDecompress(const Dxt3Block *block, CArgb4444 **dest, const DxtRect &rect) {
+  DxtDecompress(block, dest, rect, Dxt3A4);
+}
+
+template <class Block, class Pixel>
+inline void Blit_DxtUnaligned(const C2iVector &size, const Block *in, UINT inStride, Pixel *out, UINT outStride) {
   static Pixel table[4];
   int          y;
   for (y = 0; y < size.y; y += 4) {
-    Pixel *dest[4];
-    int    row;
-    for (row = 0; row < 4; ++row) {
+    const Block *src = in;
+    Pixel       *dest[4];
+    int          row;
+    for (row = 0; row < 4; ++row, out = (Pixel *)((BYTE *)out + outStride)) {
       dest[row] = out;
-      out = (Pixel *)((BYTE *)out + outStride);
     }
 
-    const Dxt1Block *src = in;
-    int              x;
-    for (x = 0; x < size.x; x += 4) {
+    int x;
+    for (x = 0; x < size.x; x += 4, ++src) {
       DxtRect rect(0, 0, min(size.x - 1, 3), min(size.y - 1, 3));
       DxtDecompress(src, dest, rect);
-      ++src;
     }
 
-    in = (const Dxt1Block *)((const BYTE *)in + inStride);
+    in = (const Block *)((const BYTE *)in + inStride);
   }
 }
 
-template <class Pixel>
-inline void Blit_Dxt(const C2iVector &size, const Dxt1Block *in, UINT inStride, Pixel *out, UINT outStride) {
+template <class Block, class Pixel>
+inline void Blit_Dxt(const C2iVector &size, const Block *in, UINT inStride, Pixel *out, UINT outStride) {
   static Pixel table[4];
   int          y;
   for (y = 0; y < size.y; y += 4) {
-    Pixel *dest[4];
-    int    row;
-    for (row = 0; row < 4; ++row) {
+    const Block *src = in;
+    Pixel       *dest[4];
+    int          row;
+    for (row = 0; row < 4; ++row, out = (Pixel *)((BYTE *)out + outStride)) {
       dest[row] = out;
-      out = (Pixel *)((BYTE *)out + outStride);
     }
 
-    const Dxt1Block *src = in;
-    int              x;
-    for (x = 0; x < size.x; x += 4) {
+    int x;
+    for (x = 0; x < size.x; x += 4, ++src) {
       DxtRect rect(0, 0, 3, 3, 4, 4);
       DxtDecompress(src, dest, rect);
-      ++src;
     }
 
-    in = (const Dxt1Block *)((const BYTE *)in + inStride);
-  }
-}
-
-template <class Pixel>
-inline void Blit_DxtUnaligned(const C2iVector &size, const Dxt3Block *in, UINT inStride, Pixel *out, UINT outStride) {
-  static Pixel table[4];
-  int          y;
-  for (y = 0; y < size.y; y += 4) {
-    Pixel *dest[4];
-    int    row;
-    for (row = 0; row < 4; ++row) {
-      dest[row] = out;
-      out = (Pixel *)((BYTE *)out + outStride);
-    }
-
-    const Dxt3Block *src = in;
-    int              x;
-    for (x = 0; x < size.x; x += 4) {
-      DxtRect rect(0, 0, min(size.x - 1, 3), min(size.y - 1, 3));
-      DxtDecompress(src, dest, rect, sizeof(Pixel) == sizeof(CArgb4444) ? Dxt3A4 : Dxt3A8);
-      ++src;
-    }
-
-    in = (const Dxt3Block *)((const BYTE *)in + inStride);
-  }
-}
-
-template <class Pixel>
-inline void Blit_Dxt(const C2iVector &size, const Dxt3Block *in, UINT inStride, Pixel *out, UINT outStride) {
-  static Pixel table[4];
-  int          y;
-  for (y = 0; y < size.y; y += 4) {
-    Pixel *dest[4];
-    int    row;
-    for (row = 0; row < 4; ++row) {
-      dest[row] = out;
-      out = (Pixel *)((BYTE *)out + outStride);
-    }
-
-    const Dxt3Block *src = in;
-    int              x;
-    for (x = 0; x < size.x; x += 4) {
-      DxtRect rect(0, 0, 3, 3, 4, 4);
-      DxtDecompress(src, dest, rect, sizeof(Pixel) == sizeof(CArgb4444) ? Dxt3A4 : Dxt3A8);
-      ++src;
-    }
-
-    in = (const Dxt3Block *)((const BYTE *)in + inStride);
+    in = (const Block *)((const BYTE *)in + inStride);
   }
 }
 
 static void Blit_Dxt1_Rgb565(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
     Blit_DxtUnaligned(size, (const Dxt1Block *)in, inStride, (CRgb565 *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt1Block *)in, inStride, (CRgb565 *)out, outStride);
@@ -295,7 +251,7 @@ static void Blit_Dxt1_Rgb565(const C2iVector &size, LPCVOID in, UINT inStride, L
 }
 
 static void Blit_Dxt1_Argb1555(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
     Blit_DxtUnaligned(size, (const Dxt1Block *)in, inStride, (CArgb1555 *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt1Block *)in, inStride, (CArgb1555 *)out, outStride);
@@ -303,7 +259,7 @@ static void Blit_Dxt1_Argb1555(const C2iVector &size, LPCVOID in, UINT inStride,
 }
 
 static void Blit_Dxt1_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
     Blit_DxtUnaligned(size, (const Dxt1Block *)in, inStride, (CImVector *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt1Block *)in, inStride, (CImVector *)out, outStride);
@@ -311,18 +267,18 @@ static void Blit_Dxt1_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride,
 }
 
 static void Blit_Dxt3_Argb4444(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
-    Blit_DxtUnaligned<CArgb4444>(size, (const Dxt3Block *)in, inStride, (CArgb4444 *)out, outStride);
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+    Blit_DxtUnaligned(size, (const Dxt3Block *)in, inStride, (CArgb4444 *)out, outStride);
   } else {
-    Blit_Dxt<CArgb4444>(size, (const Dxt3Block *)in, inStride, (CArgb4444 *)out, outStride);
+    Blit_Dxt(size, (const Dxt3Block *)in, inStride, (CArgb4444 *)out, outStride);
   }
 }
 
 static void Blit_Dxt3_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if (size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) {
-    Blit_DxtUnaligned<CImVector>(size, (const Dxt3Block *)in, inStride, (CImVector *)out, outStride);
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+    Blit_DxtUnaligned(size, (const Dxt3Block *)in, inStride, (CImVector *)out, outStride);
   } else {
-    Blit_Dxt<CImVector>(size, (const Dxt3Block *)in, inStride, (CImVector *)out, outStride);
+    Blit_Dxt(size, (const Dxt3Block *)in, inStride, (CImVector *)out, outStride);
   }
 }
 

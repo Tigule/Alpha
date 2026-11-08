@@ -51,7 +51,7 @@
 #include <FrameScript/FrameScript.h>
 #include <Event/CMouseEvent.h>
 #include <Gx/Gx.h>
-#include <Model/IModel.h>
+#include <Model/Model.h>
 #include <Os/W32/OsSound.h>
 #include <Services/IParticleMisc.h>
 #include <Services/Camera.h>
@@ -62,20 +62,6 @@
 
 #include <string.h>
 #include <float.h>
-
-NODEDECL(CModelRecord) {
-  HMODEL    model;
-  float     distance;
-  float     scale;
-  DWORDLONG guid;
-
-  CModelRecord() : model(0), distance(INFINITY), scale(1.0f), guid(0) {
-  }
-  CModelRecord(const CModelRecord &source);
-  ~CModelRecord();
-  CModelRecord &operator=(const CModelRecord &source);
-  void          Copy(const CModelRecord &source);
-};
 
 struct FADEOUTHASHOBJ : public TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID> {
   HMODEL              model;
@@ -1172,8 +1158,8 @@ static void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempe
     if (elapsed > 2000) {
       ITERATE_DELETE;
     }
-    float alpha = (1.0f - (float)(elapsed > 0 ? elapsed : 0) * 0.0005f) * (float)curr->startAlpha * (1.0f / 255.0f);
-    ModelSetVertexAlpha(curr->model, NTempest::CMath::ftol_0_1_(alpha), 1);
+    BYTE alpha = NTempest::CMath::ftol_0_1_((1.0f - (float)(elapsed > 0 ? elapsed : 0) * 0.0005f) * (float)curr->startAlpha * (1.0f / 255.0f));
+    ModelSetVertexAlpha(curr->model, alpha, 1);
 
     NTempest::C34Matrix camRelativeMatrix = curr->matrix;
     *camRelativeMatrix.Row3AsVec3() -= cameraPos;

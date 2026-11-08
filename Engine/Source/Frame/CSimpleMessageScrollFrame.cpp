@@ -124,9 +124,7 @@ void CSimpleMessageScrollFrame::SetTextLength(int size) {
 }
 
 void CSimpleMessageScrollFrame::AddMessage(LPCSTR text, const CSimpleFontStringAttributes *attrib) {
-  VALIDATEBEGIN;
-  VALIDATE(text);
-  VALIDATEENDVOID;
+  VALIDATE2VOID(text);
 
   if (m_numMessages < m_maxMessages) {
     ++m_numMessages;
