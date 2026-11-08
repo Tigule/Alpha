@@ -70,28 +70,11 @@ void OUTDOORSCHUNKHASHOBJ::PrintInfo(FILE *outFile) {
   FATALASSERT(outFile);
 
   fprintf(outFile, "c%dz%ds%d\n", continentID, areaID >> 16, areaID & 0xFFFF);
-  fprintf(outFile, "%d\n", desc.Environment);
-  fprintf(outFile, "%0.4f\n", desc.DecayTime);
-  fprintf(outFile, "%0.4f\n", desc.EnvSize);
-  fprintf(outFile, "%0.4f\n", desc.EnvDiffusion);
-  fprintf(outFile, "%d\n", desc.Room);
-  fprintf(outFile, "%d\n", desc.RoomHF);
-  fprintf(outFile, "%0.4f\n", desc.DecayHFRatio);
-  fprintf(outFile, "%d\n", desc.Reflections);
-  fprintf(outFile, "%0.4f\n", desc.ReflectionsDelay);
-  fprintf(outFile, "%d\n", desc.Reverb);
-  fprintf(outFile, "%0.4f\n", desc.ReverbDelay);
-  fprintf(outFile, "%0.4f\n", desc.RoomRolloffFactor);
-  fprintf(outFile, "%0.4f\n", desc.AirAbsorptionHF);
-  fprintf(outFile, "%d\n", desc.RoomLF);
-  fprintf(outFile, "%0.4f\n", desc.DecayLFRatio);
-  fprintf(outFile, "%0.4f\n", desc.EchoTime);
-  fprintf(outFile, "%0.4f\n", desc.EchoDepth);
-  fprintf(outFile, "%0.4f\n", desc.ModulationTime);
-  fprintf(outFile, "%0.4f\n", desc.ModulationDepth);
-  fprintf(outFile, "%0.4f\n", desc.HFReference);
-  fprintf(outFile, "%0.4f\n", desc.LFReference);
-  fprintf(outFile, "%d\n", desc.Environment);
+#define SNDDEBUG_INT(index, name) fprintf(outFile, "%d\n", desc.name);
+#define SNDDEBUG_FLOAT(index, name) fprintf(outFile, "%0.4f\n", desc.name);
+#include "SndDebugCompiles.h"
+#undef SNDDEBUG_INT
+#undef SNDDEBUG_FLOAT
 }
 
 BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {

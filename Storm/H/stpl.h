@@ -233,9 +233,8 @@ class TSCArray {
     if (count > MAXCOUNT) {
       FatalArrayBounds();
     }
-    for (UINT i = 0; i < count; ++i) {
+    for (UINT i = 0; i < count; ++i)
       m_data[i] = data[i];
-    }
     m_count = count;
   }
 
@@ -1854,11 +1853,9 @@ class TSHashTable {
     if (!Initialized())
       return 0;
 
-    ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr) {
+    ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr)
       if (ptr->m_hashval == hashval && ptr->m_key == key)
         return ptr;
-    }
-
     return 0;
   }
 
@@ -1870,11 +1867,9 @@ class TSHashTable {
     if (!Initialized())
       return 0;
 
-    ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr) {
+    ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr)
       if (ptr->m_hashval == hashval && ptr->m_key == str)
         return ptr;
-    }
-
     return 0;
   }
   const T *Ptr(UINT hashval, LPCSTR key) const;
@@ -1884,11 +1879,9 @@ class TSHashTable {
 
     UINT hashval = SStrHashHT(str);
 
-    ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr) {
+    ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr)
       if (ptr->m_hashval == hashval && ptr->m_key == str)
         return ptr;
-    }
-
     return 0;
   }
 

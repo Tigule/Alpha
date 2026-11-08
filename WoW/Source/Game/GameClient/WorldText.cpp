@@ -131,9 +131,6 @@ static struct {
 
 static UINT const worldTextFlags[NUM_WORLDTEXTTYPES] = {0x48, 0x48, 0x10, 0x8, 0x48, 0, 0};
 
-WORLDTEXTCREATEPARAMS::WORLDTEXTCREATEPARAMS() {
-}
-
 static int IntInterp(float progress, int start, int end) {
   return (double)(end - start) * progress + (double)start;
 }

@@ -4063,8 +4063,7 @@ void CGPlayer_C::SwapItems(DWORDLONG cursorItem, DWORDLONG cursorContainer, int 
       if (!containerObject || !containerObject->GetBag()) {
         return;
       }
-      CGBag    *bag = containerObject->GetBag();
-      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(equipSlot), __FILE__, __LINE__));
+      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(containerObject->GetBag()->GetItem(equipSlot), __FILE__, __LINE__));
       if (item && !(item->m_item->m_dynamicFlags & ITEM_DFLAG_BOUND) && !force) {
         const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), item->GetGUID(), SwapItemsStatsCallback, 0);
         if (!stats) {

@@ -3181,7 +3181,8 @@ void CGUnit_C::UpdateDisplayFacing() {
     }
 
     float              signedAngle = angleDelta < 0.0f ? -absTorsoAngle : absTorsoAngle;
-    NTempest::C3Vector torsoTurn(cos(signedAngle), sin(signedAngle), 0.0f);
+    NTempest::C3Vector torsoTurn;
+    NTempest::CMath::sincos_(signedAngle, torsoTurn.y, torsoTurn.x);
     if (ModelApplyObjectFaceDir(GetObjectModel(), 4, torsoTurn)) {
       absAngleConsumed = absTorsoAngle;
     }
@@ -3192,7 +3193,8 @@ void CGUnit_C::UpdateDisplayFacing() {
     }
 
     signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
-    NTempest::C3Vector headTurn(cos(signedAngle), sin(signedAngle), 0.0f);
+    NTempest::C3Vector headTurn;
+    NTempest::CMath::sincos_(signedAngle, headTurn.y, headTurn.x);
     if (ModelApplyObjectFaceDir(GetObjectModel(), 6, headTurn)) {
       absAngleConsumed += absHeadAngle;
     }
@@ -3200,7 +3202,7 @@ void CGUnit_C::UpdateDisplayFacing() {
   }
 
   if (ShouldShuffle()) {
-    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) || (!(m_animFlags & 0x18) && NTempest::CMath::fabs_(absAngleToRetract) >= 0.00000023841858f)) {
+    if (((m_animFlags & 0x10) && absAngleLeft > 0.00000023841858f) || (!(m_animFlags & 0x18) && !(NTempest::CMath::fabs_(absAngleToRetract) < 0.00000023841858f))) {
       if (angleDelta >= 0.0f && m_currentBaseAnimState != ANIM_STATE_TURNING_LEFT) {
         CGUnit_C::UpdateBaseAnimation(ANIM_STATE_TURNING_LEFT, 0);
       } else if (angleDelta < 0.0f && m_currentBaseAnimState != ANIM_STATE_TURNING_RIGHT) {
@@ -8723,20 +8725,22 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
     DDGenerateLogString(handle, stringBuffer, "%s", &m_deathHoldBuffer[m_deathHoldBufferIndices[i]]);
   }
 
-  if (m_animQueue.Head()) {
+  if (!m_animQueue.Head()) {
+    DDGenerateLogString(handle, stringBuffer, "No anims queued");
+  } else {
     DDGenerateLogString(handle, stringBuffer, "The following anims are queued:");
     CONSTITERATELIST(ANIMQUEUENODE, m_animQueue, curr) {
-      if (curr->type < ANIMQUEUE_NUMTYPES) {
+      if (curr->type < sizeof(s_animQueueNames) / sizeof(s_animQueueNames[0])) {
         DDGenerateLogString(handle, stringBuffer, "%s", s_animQueueNames[curr->type]);
       } else {
         DDGenerateLogString(handle, stringBuffer, "Unknown queue type: %d", curr->type);
       }
     }
-  } else {
-    DDGenerateLogString(handle, stringBuffer, "No anims queued");
   }
 
-  if (m_impactEffectsDesc.Head()) {
+  if (!m_impactEffectsDesc.Head()) {
+    DDGenerateLogString(handle, stringBuffer, "No impact effects are queued:");
+  } else {
     DDGenerateLogString(handle, stringBuffer, "The following impact effects are queued:");
     CONSTITERATELIST(IMPACTEFFECTDESC, m_impactEffectsDesc, impact) {
       LPCSTR      victimName = "UNKNOWNVICTIM";
@@ -8746,8 +8750,6 @@ void CGUnit_C::DumpGeneralDeathHoldLog(HSLOG handle, TSGrowableArray<char> *stri
       }
       DDGenerateLogString(handle, stringBuffer, "victim %s (%016I64X) : spellvisual %d\n", victimName, impact->victim, impact->impactKit->m_ID);
     }
-  } else {
-    DDGenerateLogString(handle, stringBuffer, "No impact effects are queued:");
   }
 }
 
