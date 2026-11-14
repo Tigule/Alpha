@@ -7,7 +7,11 @@
 #include "Frame/CSimpleTop.h"
 #include "Tempest/crect.h"
 
+#if defined(_MSC_VER) && _MSC_VER == 1200
 const float CFramePoint::UNDEFINED = *(const float *)&INFINITY_ENCODING;
+#else
+const float CFramePoint::UNDEFINED = INFINITY;
+#endif
 
 float CFramePointRelative::X(float scale) {
   NTempest::CRect rect;
