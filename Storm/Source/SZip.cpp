@@ -11,6 +11,7 @@
 #define ZIP_MAX_COMMENT 0xFFFF
 #define ZIP_READ_CHUNK  0x1000
 #define DEFLATED        8
+#define ZIPFILE_MAX_PATH 0x100
 
 #pragma pack(1)
 
@@ -316,8 +317,8 @@ void ConvertFromZip(char *str) {
 }
 
 BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
-  char                       localFilename[0x100];
-  char                       cdirFilename[0x100];
+  char                       localFilename[ZIPFILE_MAX_PATH];
+  char                       cdirFilename[ZIPFILE_MAX_PATH];
   CentralDirectoryFileHeader cdirFileHeader;
   LocalFileHeader            localFileHeader;
   DataDescriptor             trailer;
@@ -332,7 +333,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
     return 0;
   }
 
-  FATALASSERT(cdirFileHeader.filenameSize < sizeof(cdirFilename));
+  FATALASSERT(cdirFileHeader.filenameSize < ZIPFILE_MAX_PATH);
   if (fread(cdirFilename, cdirFileHeader.filenameSize, 1, file) != 1) {
     return 0;
   }
@@ -358,7 +359,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
     return 0;
   }
 
-  FATALASSERT(localFileHeader.filenameSize < sizeof(localFilename));
+  FATALASSERT(localFileHeader.filenameSize < ZIPFILE_MAX_PATH);
   if (fread(localFilename, localFileHeader.filenameSize, 1, file) != 1) {
     return 0;
   }

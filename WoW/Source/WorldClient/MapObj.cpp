@@ -22,7 +22,7 @@
 
 #include <math.h>
 
-UINT                               CMapObj::MAX_SOUND_RLEVEL;
+UINT                               CMapObj::MAX_SOUND_RLEVEL = 2;
 CMapObjDef                        *CMapObj::curMapObjDef;
 UINT                               CMapObj::sMinimapTag;
 TSHashTable<CMapObj, HASHKEY_NONE> CMapObj::mapObjHash;

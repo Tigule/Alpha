@@ -69,7 +69,7 @@ SFile          *CMap::wdtFile;
 DWORD           CMap::version;
 SMMapHeader     CMap::header;
 int             CMap::bActive;
-int             CMap::bPreload;
+int             CMap::bPreload = 1;
 int             CMap::bDungeon;
 SMAreaInfo      CMap::areaInfo[4096];
 CMapArea       *CMap::areaTable[4096];

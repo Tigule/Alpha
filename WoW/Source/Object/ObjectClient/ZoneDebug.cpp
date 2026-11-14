@@ -65,8 +65,8 @@ void ZoneDebugDestroy() {
 
 bool ZoneDebugIsInCurrentZone(float x, float y) {
   NTempest::C2iVector cellPos;
-  cellPos.x = (x * 36.0f + 614400.0f) * 0.00020833334f;
-  cellPos.y = (y * 36.0f + 614400.0f) * 0.00020833334f;
+  cellPos.x = ((int)x * 36 + 614400) / 4800;
+  cellPos.y = ((int)y * 36 + 614400) / 4800;
 
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player) {

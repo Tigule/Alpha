@@ -1194,6 +1194,7 @@ int Sound::GetNumOutputSystems() {
 }
 
 LPCSTR Sound::GetOutputSystemName(int index) {
+  // todo: ASSERT(index >= 0 && index <= FSOUND_OUTPUT_NOSOUND_NONREALTIME)
   ASSERT(index >= 0 && index <= 12);
   return s_outputSystemName[index];
 }
@@ -1212,6 +1213,7 @@ int Sound::GetNumMixers() {
 }
 
 LPCSTR Sound::GetMixerName(int index) {
+  // todo: ASSERT(index >= 0 && index < FSOUND_MIXER_MAX)
   ASSERT(index >= 0 && index < 10);
   return s_mixerName[index];
 }

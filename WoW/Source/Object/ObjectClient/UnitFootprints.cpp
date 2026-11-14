@@ -61,6 +61,8 @@ void    UnitEffectOneShot(
     bool                      forceEffectOnMount
 );
 
+#define NUM_MONSTERSIZECLASSES 5
+
 enum {
   CHUNKFLAG_PERSISTENT = 1
 };
@@ -76,7 +78,7 @@ static int                                s_currentTime;
 static NTempest::C3Vector                 s_currentCamera;
 static NTempest::C44Matrix                s_currentWorld;
 static const float                        s_maxPurgeDist = 100.0f;
-static const NTempest::C2Vector           s_splatSizes[5] = {
+static const NTempest::C2Vector           s_splatSizes[NUM_MONSTERSIZECLASSES] = {
     NTempest::C2Vector(0.44444445f), NTempest::C2Vector(0.6666667f), NTempest::C2Vector(1.1666666f), NTempest::C2Vector(1.3333334f),
     NTempest::C2Vector(1.7777778f)
 };
@@ -201,20 +203,20 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
     color.a = alpha <= 0 ? 0 : alpha;
   } else {
     static const int   FADEIN = 50;
-    static const int   FADEDONE = 12050;
-    static const int   FADEOUT = 7050;
+    static const int   HOLD = 7000;
+    static const int   FADEOUT = 5000;
     static const float MAXALPHA = 128.0f;
     int                elapsed = s_currentTime - startTime;
-    if (elapsed < 0 || elapsed > FADEDONE) {
+    if (elapsed < 0 || elapsed > FADEIN + HOLD + FADEOUT) {
       nuke = 1;
       return 1;
     }
     if (elapsed < FADEIN) {
       color.a = MAXALPHA * ((float)elapsed / FADEIN);
-    } else if (elapsed < FADEOUT) {
+    } else if (elapsed < FADEIN + HOLD) {
       color.a = MAXALPHA;
-    } else if (elapsed < FADEDONE) {
-      color.a = MAXALPHA - MAXALPHA * ((float)(elapsed - FADEOUT) / (FADEDONE - FADEOUT));
+    } else if (elapsed < FADEIN + HOLD + FADEOUT) {
+      color.a = MAXALPHA - MAXALPHA * ((float)(elapsed - (FADEIN + HOLD)) / FADEOUT);
     }
   }
   chunk->m_vertCount += data.Count();
@@ -473,7 +475,7 @@ void UnitFootprintNewBloodSplat(const UnitBloodRec *rec, UINT unitSize, const NT
     return;
   }
   FATALASSERT(rec);
-  FATALASSERT(unitSize < 5);
+  FATALASSERT(unitSize < NUM_MONSTERSIZECLASSES);
   static NTempest::CRndSeed s_rndSeed;
   float                     facing = NTempest::CRandom::reals_(s_rndSeed) * TWO_PI;
   float                     sizeVariance = NTempest::CRandom::reals_(s_rndSeed) * 0.2f + 1.0f;

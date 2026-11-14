@@ -1458,6 +1458,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   bool GetShowingHandArrow() const {
     return (m_flags >> 19) & 1;
   }
+  // todo: real name
+  bool IsXPGainPending() const {
+    return (m_flags >> 7) & 1;
+  }
   void SetShowingHandArrowFlag(int showing);
   void      SetAmmoDisplay(UINT displayID, UINT inventoryType) {
     m_ammoDisplayID = displayID;

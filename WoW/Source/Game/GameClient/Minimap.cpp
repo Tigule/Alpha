@@ -93,7 +93,7 @@ static void UpdatePointsOfInterest() {
 
   s_visiblePOI.SetCount(0);
   for (i = 0; i < s_numPoints; ++i) {
-    if (fabs(s_pointsOfInterest[i]->m_x) < 0.00000023841858f && fabs(s_pointsOfInterest[i]->m_y) < 0.00000023841858f) {
+    if (NTempest::CMath::fabs_(s_pointsOfInterest[i]->m_x) < 0.00000023841858f && NTempest::CMath::fabs_(s_pointsOfInterest[i]->m_y) < 0.00000023841858f) {
       if (s_POIIsVisible[i] || s_visibleNoIcon[i]) {
         s_updatePOI = 1;
         s_POIIsVisible[i] = 0;
@@ -137,7 +137,7 @@ static void UpdatePointsOfInterest() {
   float distance[3] = {MAX_POI_DISTANCE, MAX_POI_DISTANCE, MAX_POI_DISTANCE};
 
   for (i = 0; i < s_numPoints; ++i) {
-    if ((fabs(s_pointsOfInterest[i]->m_x) < 0.00000023841858f && fabs(s_pointsOfInterest[i]->m_y) < 0.00000023841858f) || s_POIIsVisible[i] ||
+    if ((NTempest::CMath::fabs_(s_pointsOfInterest[i]->m_x) < 0.00000023841858f && NTempest::CMath::fabs_(s_pointsOfInterest[i]->m_y) < 0.00000023841858f) || s_POIIsVisible[i] ||
         s_visibleNoIcon[i])
     {
       continue;

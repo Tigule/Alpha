@@ -48,7 +48,7 @@ static const char REGVAL_LASTCHARACTER[14] = "LastCharacter";
 static const char REGVAL_LASTACCOUNT[12] = "LastAccount";
 static const char REGVAL_LASTREALM[10] = "LastRealm";
 
-int           CCharSelectInfo::m_selectionIndex;
+int           CCharSelectInfo::m_selectionIndex = -1;
 CSimpleModel *CCharSelectInfo::m_modelFrame;
 
 static int Script_SetCharSelectModelFrame(lua_State *L);

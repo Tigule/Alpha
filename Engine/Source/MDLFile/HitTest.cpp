@@ -257,7 +257,7 @@ BOOL MDL::ReadBinHitTests(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatu
         break;
     }
     if (totalRead > length) {
-      status->FatalOverran("Hit test section overran read buf.\n", -1);
+      status->FatalOverran("Hit test section overran read buffer.\n", -1);
       return 0;
     }
     ReadBinObjectEnd(data, section, data.hitTestShapes.Count() - 1, 0x80000000);

@@ -85,6 +85,8 @@ UINT                CWorld::texMaxAnisotropyLog2;
 Particulate        *CWorld::particulate;
 int                 CWorld::bLoadSimpleDoodads;
 int                 CWorld::bShowSimpleDoodads;
+const UINT          CWorld::MAX_SOUND_EXT_LEVEL = 9999;
+const UINT          CWorld::MIN_SOUND_EXT_LEVEL = 2;
 
 NTempest::C44Matrix CWTriData::matrices[CWTriData::MaxBatches];
 WORD                CWTriData::vertexIndices[CWTriData::MaxVertexIndices];
@@ -854,9 +856,9 @@ int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest
   memset(lbool, 0, 9 * sizeof(*lbool));
 
   if (entity->flagInside) {
-    UINT closestExtLevel = 9999;
+    UINT closestExtLevel = MAX_SOUND_EXT_LEVEL;
     entity->QueryLiquidSounds(lbool, ldelta, ldsquared, closestExtLevel);
-    if (closestExtLevel < 2) {
+    if (closestExtLevel < MIN_SOUND_EXT_LEVEL) {
       CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
     }
   } else {

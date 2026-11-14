@@ -117,7 +117,7 @@ int                                   CGCraftInfo::m_currentSelection;
 UINT                                  CGCraftInfo::m_numSkills;
 UINT                                  CGCraftInfo::m_numSkillLines;
 UINT                                  CGCraftInfo::m_filteredSkills;
-int                                   CGCraftInfo::m_collapseFilter;
+int                                   CGCraftInfo::m_collapseFilter = -1;
 TSGrowableArray<CraftInfo *>          CGCraftInfo::m_skills;
 TSGrowableArray<CraftSkillLineInfo *> CGCraftInfo::m_skillLines;
 

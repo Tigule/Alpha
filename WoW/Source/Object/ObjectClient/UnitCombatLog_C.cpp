@@ -2218,12 +2218,12 @@ void UnitCombatLogUnitDead(DWORDLONG unit) {
 
   UNITAFFILIATION aAff;
   CGObject_C     *unitObjPtr;
-  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || (((CGUnit_C *)unitObjPtr)->GetUnitFlags() & 0x80)) {
+  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || ((CGUnit_C *)unitObjPtr)->IsXPGainPending()) {
     return;
   }
 
   LPCSTR unitName = ((CGUnit_C *)unitObjPtr)->GetUnitName();
-  LPCSTR templateTag = aAff ? "UNITDIESOTHER" : "UNITDIESSELF";
+  LPCSTR templateTag = aAff == AFFILIATION_YOURSELF ? "UNITDIESSELF" : "UNITDIESOTHER";
   LPCSTR format = FrameScript_GetText(templateTag, -1, GENDER_NOT_APPLICABLE);
   if (!format || !*format) {
     ReportError(templateTag);
@@ -2231,10 +2231,10 @@ void UnitCombatLogUnitDead(DWORDLONG unit) {
   }
 
   char output[128];
-  if (aAff) {
-    SStrPrintf(output, sizeof(output), format, unitName);
-  } else {
+  if (aAff == AFFILIATION_YOURSELF) {
     SStrPrintf(output, sizeof(output), "%s", format);
+  } else {
+    SStrPrintf(output, sizeof(output), format, unitName);
   }
   GeneralLogPrintf(s_affiliationLogType[aAff], output);
 }
