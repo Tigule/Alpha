@@ -407,7 +407,7 @@ void CGWorldMap::GetWorldPosition(const NTempest::C2Vector &pos, int mapID, floa
   y = 0.0f;
 
   const WorldMapContinentRec *continentRec = 0;
-  for (int i = 0; i < g_worldMapContinentDB.GetNumRecords(); ++i) {
+  for (UINT i = 0; i < g_worldMapContinentDB.GetNumRecords(); ++i) {
     const WorldMapContinentRec *rec = g_worldMapContinentDB.GetRecordByIndex(i);
     if (rec->m_mapID == mapID) {
       continentRec = rec;
@@ -424,7 +424,7 @@ void CGWorldMap::GetWorldPosition(const NTempest::C2Vector &pos, int mapID, floa
     return;
   }
 
-  if ((UINT)m_currentContinent >= m_continents.Count() || m_continents[m_currentContinent].continentID != mapID) {
+  if (mapID != m_continents[m_currentContinent].continentID) {
     return;
   }
 
@@ -438,14 +438,13 @@ void CGWorldMap::GetWorldPosition(const NTempest::C2Vector &pos, int mapID, floa
     return;
   }
 
-  const float tileSize = 533.33331f;
   const float mapOrigin = 17066.666f;
-  float       left = mapOrigin - areaRec->m_leftBoundary * tileSize;
-  float       right = mapOrigin - (areaRec->m_rightBoundary + 1) * tileSize;
+  float       left = mapOrigin - (areaRec->m_leftBoundary << 4) * 33.333332f;
+  float       right = mapOrigin - ((areaRec->m_rightBoundary + 1) << 4) * 33.333332f;
   x = 1.0f - (pos.y - right) / (left - right);
 
-  float top = mapOrigin - areaRec->m_topBoundary * tileSize;
-  float bottom = mapOrigin - (areaRec->m_bottomBoundary + 1) * tileSize;
+  float top = mapOrigin - (areaRec->m_topBoundary << 4) * 33.333332f;
+  float bottom = mapOrigin - ((areaRec->m_bottomBoundary + 1) << 4) * 33.333332f;
   y = 1.0f - (pos.x - bottom) / (top - bottom);
 
   if (x < 0.0f || x > 1.0f || y < 0.0f || y > 1.0f) {

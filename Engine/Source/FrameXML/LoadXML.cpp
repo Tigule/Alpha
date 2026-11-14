@@ -137,7 +137,7 @@ BOOL LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
   if (!SStrCmpI(child->GetName(), "AbsValue", 0x7FFFFFFF)) {
     attribute = child->GetAttributeByName("val");
     if (attribute && *attribute) {
-      value = SStrToFloat(attribute) * 0.0009765625f * 0.8f;
+      value = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
     return 1;
@@ -172,12 +172,12 @@ BOOL LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatu
   if (!SStrCmpI(child->GetName(), "AbsDimension", 0x7FFFFFFF)) {
     value = child->GetAttributeByName("x");
     if (value && *value) {
-      width = SStrToFloat(value) * 0.0009765625f * 0.8f;
+      width = (SStrToFloat(value) / 1024.0f) * 0.8f;
     }
 
     value = child->GetAttributeByName("y");
     if (value && *value) {
-      height = SStrToFloat(value) * 0.0009765625f * 0.8f;
+      height = (SStrToFloat(value) / 1024.0f) * 0.8f;
     }
 
     return 1;
@@ -219,22 +219,22 @@ BOOL LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, 
   if (!SStrCmpI(child->GetName(), "AbsInset", 0x7FFFFFFF)) {
     attribute = child->GetAttributeByName("right");
     if (attribute && *attribute) {
-      right = SStrToFloat(attribute) * 0.0009765625f * 0.8f;
+      right = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
     attribute = child->GetAttributeByName("left");
     if (attribute && *attribute) {
-      left = SStrToFloat(attribute) * 0.0009765625f * 0.8f;
+      left = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
     attribute = child->GetAttributeByName("top");
     if (attribute && *attribute) {
-      top = SStrToFloat(attribute) * 0.0009765625f * 0.8f;
+      top = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
     attribute = child->GetAttributeByName("bottom");
     if (attribute && *attribute) {
-      bottom = SStrToFloat(attribute) * 0.0009765625f * 0.8f;
+      bottom = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
     return 1;
