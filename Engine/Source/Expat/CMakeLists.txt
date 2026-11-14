@@ -8,7 +8,7 @@ target_include_directories(expat PRIVATE
     .
 )
 
-target_compile_definitions(expat PRIVATE _STATIC)
+target_compile_definitions(expat PRIVATE _STATIC _LIB COMPILED_FROM_DSP)
 
 if(MSVC AND NOT MSVC_VERSION EQUAL 1200)
     target_compile_options(expat PRIVATE /Gd)
