@@ -17,9 +17,7 @@ float CFramePointRelative::X(float scale) {
   }
 
   if (m_relative->IsAttachmentOrigin()) {
-    float offset = -rect.l;
-    rect.l += offset;
-    rect.r += offset;
+    rect.Offset(-rect.l, 0.0f);
   }
 
   switch (m_framePoint) {
@@ -50,9 +48,7 @@ float CFramePointRelative::Y(float scale) {
   }
 
   if (m_relative->IsAttachmentOrigin()) {
-    float offset = -rect.t;
-    rect.t += offset;
-    rect.b += offset;
+    rect.Offset(0.0f, -rect.t);
   }
 
   switch (m_framePoint) {

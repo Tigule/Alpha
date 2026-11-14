@@ -405,6 +405,19 @@ NODEDECL(DEFERREDSPELLMISS) {
   }
 };
 
+enum GUILD_EVENT {
+  GUILD_EVENT_PROMOTION = 0,
+  GUILD_EVENT_DEMOTION = 1,
+  GUILD_EVENT_MOTD = 2,
+  GUILD_EVENT_JOINED = 3,
+  GUILD_EVENT_LEFT = 4,
+  GUILD_EVENT_REMOVED = 5,
+  GUILD_EVENT_LEADER_IS = 6,
+  GUILD_EVENT_LEADER_CHANGED = 7,
+  GUILD_EVENT_DISBANDED = 8,
+  GUILD_EVENT_TABARDCHANGE = 9
+};
+
 enum PETITION_ERROR {
   PETITION_SUCCESS = 0,
   PETITION_ALREADY_SIGNED = 1,
@@ -2113,38 +2126,38 @@ static BOOL OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
 
   BYTE eventType = 0;
   msg->Get(eventType);
-  int event = eventType;
+  GUILD_EVENT event = (GUILD_EVENT)eventType;
   msg->Get(numStrings);
   for (BYTE index = 0; index < numStrings; ++index) {
     msg->GetString(string[index], sizeof(string[index]));
   }
 
   switch (event) {
-    case 0:
+    case GUILD_EVENT_PROMOTION:
       errorType = GERR_GUILD_PROMOTE_SS;
       break;
-    case 1:
+    case GUILD_EVENT_DEMOTION:
       errorType = GERR_GUILD_DEMOTE_SS;
       break;
-    case 3:
+    case GUILD_EVENT_JOINED:
       errorType = GERR_GUILD_JOIN_S;
       break;
-    case 4:
+    case GUILD_EVENT_LEFT:
       errorType = GERR_GUILD_LEAVE_S;
       break;
-    case 6:
+    case GUILD_EVENT_LEADER_IS:
       errorType = GERR_GUILD_LEADER_IS_S;
       break;
-    case 7:
+    case GUILD_EVENT_LEADER_CHANGED:
       errorType = GERR_GUILD_LEADER_CHANGED_SS;
       break;
-    case 5:
+    case GUILD_EVENT_REMOVED:
       errorType = GERR_GUILD_REMOVE_SS;
       break;
-    case 8:
+    case GUILD_EVENT_DISBANDED:
       errorType = GERR_GUILD_DISBANDED;
       break;
-    case 2:
+    case GUILD_EVENT_MOTD:
       if (!string[0][0]) {
         return 1;
       }

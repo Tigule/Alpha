@@ -898,15 +898,15 @@ static LPVOID SatisfyAllocRequest(HLOCKEDHEAP *lockedhandle, HEAPPTR heapptr, DW
 }
 
 static void SatisfyFreeRequest(HEAPPTR heapptr, LPVOID ptr, BLOCKPTR blockptr) {
-  DWORD bytes;
+  DWORD sourceBytes;
   DWORD sourceOverhead;
 
-  GetBlockSize(blockptr, ptr, &bytes, &sourceOverhead);
+  GetBlockSize(blockptr, ptr, &sourceBytes, &sourceOverhead);
   if (s_fillmode && !(blockptr->flags & BF_LARGEALLOC)) {
-    memset(ptr, 0xDD, bytes);
+    memset(ptr, 0xDD, sourceBytes);
   }
 
-  s_totalAllocated -= bytes;
+  s_totalAllocated -= sourceBytes;
   heapptr->cumulativeFrees++;
   FreeHeapBlock(heapptr, blockptr);
   IncrementFreeCount();

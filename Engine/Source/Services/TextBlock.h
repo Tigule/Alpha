@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Base/Handle.h>
-#include <Gxu/IGxuFont.h>
+#include <Gxu/GxuFont.h>
 #include <Tempest/c2vector.h>
 #include <Tempest/c3vector.h>
 #include <Tempest/cimvector.h>

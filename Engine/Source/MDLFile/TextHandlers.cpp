@@ -131,11 +131,10 @@ namespace MDL {
   }
 
   BOOL CallTextWriteHandlers(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *status) {
-    for (UINT i = 0; i < 22; ++i) {
-      if (!s_handlers[i](data, buffer, status)) {
+    TEXTHANDLER *handler = s_handlers;
+    for (UINT i = 22; i--; ++handler)
+      if (!(*handler)(data, buffer, status))
         return 0;
-      }
-    }
     return 1;
   }
 

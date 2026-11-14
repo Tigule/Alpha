@@ -454,6 +454,35 @@ static LPCSTR s_spellEffectTokens[87] = {
 };
 static LPCSTR s_itemEnchantTokens[5] = {"", "ITEM_ENCHANTMENT_PROC", "ITEM_ENCHANTMENT_DAMAGE", "ITEM_ENCHANTMENT_BUFF_EQUIPPED", "ITEM_ENCHANTMENT_ADD_ARMOR"};
 static LPCSTR s_summonTypeTokens[5] = {"UNITNAME_TITLE_PET", "UNITNAME_TITLE_MINION", "UNITNAME_TITLE_CHARM", "UNITNAME_TITLE_GUARDIAN", "UNITNAME_TITLE_CREATION"};
+
+enum SPELL_TARGET_TYPE {
+  TARGET_TYPE_CASTER = 0,
+  TARGET_TYPE_UNIT = 1,
+  TARGET_TYPE_FRIENDLY = 2,
+  TARGET_TYPE_ENEMY = 3,
+  TARGET_TYPE_PARTY_MEMBER = 4,
+  TARGET_TYPE_ITEM = 5,
+  TARGET_TYPE_LOCATION = 6,
+  TARGET_TYPE_OBJECT = 7,
+  TARGET_TYPE_PET = 8,
+  TARGET_TYPE_MAINHAND_ITEM = 9,
+  TARGET_TYPE_OFFHAND_ITEM = 10,
+  TARGET_TYPE_PARTY = 11,
+  TARGET_TYPE_MULTIPLE_UNITS = 12,
+  TARGET_TYPE_MULTIPLE_ENEMIES = 13,
+  TARGET_TYPE_MULTIPLE_PARTY_MEMBERS = 14,
+  TARGET_TYPE_MASTER = 15,
+  NUM_SPELL_TARGET_TYPES = 16
+};
+
+enum UNIT_SUMMON_TYPE {
+  UNIT_SUMMON_PET = 0,
+  UNIT_SUMMON_MINION = 1,
+  UNIT_SUMMON_CHARM = 2,
+  UNIT_SUMMON_GUARDIAN = 3,
+  UNIT_SUMMON_CREATION = 4,
+  NUM_UNIT_SUMMON_TYPES = 5
+};
 static LPCSTR s_manaCostTemplates[4] = {"MANA_COST", "RAGE_COST", "FOCUS_COST", "ENERGY_COST"};
 static LPCSTR s_allPowerTemplates[4] = {"SPELL_USE_ALL_MANA", "SPELL_USE_ALL_RAGE", "SPELL_USE_ALL_FOCUS", "SPELL_USE_ALL_ENERGY"};
 static LPCSTR s_powerTokens[4] = {"MANA", "RAGE", "FOCUS", "ENERGY"};
@@ -2490,7 +2519,7 @@ void CGTooltip::GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *sp
     return;
   }
 
-  int                   type = 16;
+  SPELL_TARGET_TYPE     type = NUM_SPELL_TARGET_TYPES;
   int                   centerOnCaster = 0;
   int                   cone = 0;
   int                   radius = 0;
@@ -2503,83 +2532,83 @@ void CGTooltip::GetSpellTargetString(char *buf, UINT bufSize, const SpellRec *sp
   for (i = 0; i < 2; ++i) {
     switch (i ? spell->m_implicitTargetB[effectIndex] : spell->m_implicitTargetA[effectIndex]) {
       case 1:
-        type = 0;
+        type = TARGET_TYPE_CASTER;
       case 22:
         centerOnCaster = 1;
         break;
       case 5:
-        type = 8;
+        type = TARGET_TYPE_PET;
         break;
       case 4:
       case 35:
-        type = 4;
+        type = TARGET_TYPE_PARTY_MEMBER;
         break;
       case 3:
       case 21:
-        type = 2;
+        type = TARGET_TYPE_FRIENDLY;
         break;
       case 2:
       case 6:
-        type = 3;
+        type = TARGET_TYPE_ENEMY;
         break;
       case 7:
         centerOnCaster = 1;
       case 8:
-        type = 12;
+        type = TARGET_TYPE_MULTIPLE_UNITS;
         break;
       case 13:
-        type = 9;
+        type = TARGET_TYPE_MAINHAND_ITEM;
         break;
       case 14:
-        type = 10;
+        type = TARGET_TYPE_OFFHAND_ITEM;
         break;
       case 24:
         cone = 1;
       case 15:
         centerOnCaster = 1;
       case 16:
-        type = 13;
+        type = TARGET_TYPE_MULTIPLE_ENEMIES;
         break;
       case 20:
-        type = radius ? 14 : 11;
+        type = radius ? TARGET_TYPE_MULTIPLE_PARTY_MEMBERS : TARGET_TYPE_PARTY;
         centerOnCaster = 1;
         break;
       case 23:
       case 26:
-        type = 7;
+        type = TARGET_TYPE_OBJECT;
         break;
       case 25:
-        type = 1;
+        type = TARGET_TYPE_UNIT;
         break;
       case 27:
-        type = 15;
+        type = TARGET_TYPE_MASTER;
         break;
     }
   }
 
   if (spell->m_effect[effectIndex] == 35) {
-    type = radius ? 14 : 11;
+    type = radius ? TARGET_TYPE_MULTIPLE_PARTY_MEMBERS : TARGET_TYPE_PARTY;
   }
 
-  if (type == 16) {
+  if (type == NUM_SPELL_TARGET_TYPES) {
     if (spell->m_targets & 0x1) {
-      type = 0;
+      type = TARGET_TYPE_CASTER;
     } else if (spell->m_targets & 0x2) {
-      type = 1;
+      type = TARGET_TYPE_UNIT;
     } else if (spell->m_targets & 0x8) {
-      type = 4;
+      type = TARGET_TYPE_PARTY_MEMBER;
     } else if (spell->m_targets & 0x10) {
-      type = 5;
+      type = TARGET_TYPE_ITEM;
     } else if (spell->m_targets & 0x20) {
-      type = 6;
+      type = TARGET_TYPE_LOCATION;
     } else if (spell->m_targets & 0x40) {
-      type = 6;
+      type = TARGET_TYPE_LOCATION;
     } else if (spell->m_targets & 0x80) {
-      type = 3;
+      type = TARGET_TYPE_ENEMY;
     } else if (spell->m_targets & 0x100) {
-      type = 2;
+      type = TARGET_TYPE_FRIENDLY;
     } else if (spell->m_targets & 0x800) {
-      type = 7;
+      type = TARGET_TYPE_OBJECT;
     } else {
       *buf = 0;
       return;
@@ -2659,10 +2688,10 @@ void CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, UINT 
     return;
   }
   DWORDLONG ownerGUID = 0;
-  int summonType = 1;
+  UNIT_SUMMON_TYPE summonType = UNIT_SUMMON_MINION;
   if (unitPtr->GetCharmedBy()) {
     ownerGUID = unitPtr->GetCharmedBy();
-    summonType = 2;
+    summonType = UNIT_SUMMON_CHARM;
   } else {
     if (unitPtr->GetCreatedBy()) {
       ownerGUID = unitPtr->GetCreatedBy();
@@ -2671,17 +2700,17 @@ void CGTooltip::GetSummonedByString(const CGUnit_C *unitPtr, char *string, UINT 
         switch (spell->m_effect[0]) {
           case 28:
           case 73:
-            summonType = 1;
+            summonType = UNIT_SUMMON_MINION;
             break;
           case 42:
-            summonType = 3;
+            summonType = UNIT_SUMMON_GUARDIAN;
             break;
           case 50:
           case 74:
-            summonType = 4;
+            summonType = UNIT_SUMMON_CREATION;
             break;
           case 56:
-            summonType = 0;
+            summonType = UNIT_SUMMON_PET;
             break;
           default:
             return;

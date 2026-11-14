@@ -29,14 +29,14 @@ static void ICollisionAddErrors(TSet &errors) {
 static void IReadTriangleIndices(Parser &parse, TSGrowableArray<WORD> *triIndices) {
   UINT   savedtoken;
   LPCSTR tokentext;
+  long   actual = 0;
   long   count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0) {
     triIndices->ReserveSpace(3 * count);
   }
   parse.Expect('{', savedtoken, tokentext);
-  long actual = 0;
   savedtoken = parse.Token(&tokentext, 0);
-  while (savedtoken == '{') {
+  while (savedtoken == '{' && savedtoken) {
     *triIndices->New() = parse.ExpectInt();
     parse.Expect(',');
     *triIndices->New() = parse.ExpectInt();

@@ -109,11 +109,10 @@ namespace MDL {
   }
 
   BOOL CallBinWriteHandlers(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *status) {
-    for (UINT i = 0; i < 21; ++i) {
-      if (!s_binHandlers[i](data, buffer, status)) {
+    BINHANDLER *handler = s_binHandlers;
+    for (UINT i = 21; i--; ++handler)
+      if (!(*handler)(data, buffer, status))
         return 0;
-      }
-    }
     return 1;
   }
 

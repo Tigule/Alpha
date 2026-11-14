@@ -55,6 +55,15 @@
 #include <lauxlib.h>
 #include <lua.h>
 
+enum MINIMAP_OBJECT_TYPES {
+  MINIMAP_OBJECT = 0,
+  MINIMAP_MONSTER = 1,
+  MINIMAP_PET = 2,
+  MINIMAP_PLAYER = 3,
+  MINIMAP_PARTY = 4,
+  MINIMAP_NUM_TYPES = 5
+};
+
 struct POIINFO {
   UINT               icon;
   NTempest::C3Vector vertices[4];
@@ -171,7 +180,7 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
     return 1;
   }
 
-  UINT type;
+  MINIMAP_OBJECT_TYPES type;
   switch (objectPtr->GetType()) {
     case HIER_TYPE_PLAYER:
       if (CGGameUI::IsPartyMember(object)) {
@@ -180,12 +189,12 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
     case HIER_TYPE_UNIT: {
       CGUnit_C *unit = (CGUnit_C *)objectPtr;
       if (unit->GetControlGUID() == ClntObjMgrGetActivePlayer()) {
-        type = 2;
+        type = MINIMAP_PET;
       } else {
         if (unit->GetHealth() <= 0) {
           return 1;
         }
-        type = 1;
+        type = MINIMAP_MONSTER;
         if (!player->CanTrack(unit)) {
           return 1;
         }
@@ -193,7 +202,7 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
       break;
     }
     case HIER_TYPE_GAMEOBJECT:
-      type = 0;
+      type = MINIMAP_OBJECT;
       if (!player->CanTrack((CGGameObject_C *)objectPtr)) {
         return 1;
       }

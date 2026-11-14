@@ -100,7 +100,7 @@ class CGGameObject {
 
 class CGGameObject_C_TypeBase {
  public:
-  CGGameObject_C_TypeBase() : m_owner(0), m_interactDistance(5.0f) {
+  CGGameObject_C_TypeBase() {
   }
   CGGameObject_C_TypeBase(CGGameObject_C *owner);
 

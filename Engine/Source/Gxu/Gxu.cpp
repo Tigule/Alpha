@@ -45,11 +45,10 @@ void GxuXformCreateProjection(float fovyInRadians, float aspect, float minZ, flo
   dst.c1 = 0.0f;
   dst.d1 = 0.0f;
 
-  float depth = maxZ - minZ;
   dst.a2 = 0.0f;
   dst.b2 = 0.0f;
-  dst.c2 = (minZ + maxZ) / depth;
-  dst.d2 = minZ * maxZ * -2.0f / depth;
+  dst.c2 = (minZ + maxZ) / (maxZ - minZ);
+  dst.d2 = minZ * maxZ * -2.0f / (maxZ - minZ);
 
   dst.a3 = 0.0f;
   dst.b3 = 0.0f;

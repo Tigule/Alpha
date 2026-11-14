@@ -22,6 +22,7 @@ def _parser(root: Path) -> argparse.ArgumentParser:
     parser.add_argument("--rebuilt-exe", type=Path, default=root / "Build/WoW/bin/Wowae.exe")
     parser.add_argument("--rebuilt-pdb", type=Path, default=root / "Build/WoW/bin/Wowae.pdb")
     parser.add_argument("--rebuilt-map", type=Path, default=root / "Build/WoW/bin/Wowae.map")
+    parser.add_argument("--rebuilt-objects", type=Path, help="rebuilt object root (default: the build directory of --rebuilt-exe); resolves block-scope statics absent from the rebuilt PDB")
     parser.add_argument("--json", type=Path, dest="json_path", help="write the versioned JSON report")
     parser.add_argument("--text", type=Path, help="also write the human-readable report to a file")
     parser.add_argument("--web", type=Path, help="write a dependency-free static validation explorer")
@@ -283,7 +284,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         require_decoder()
         report = compare_artifacts(args.original_exe, args.original_pdb, args.original_map,
                                    args.rebuilt_exe, args.rebuilt_pdb, args.rebuilt_map, strict=args.strict,
-                                   compiland=args.compiland)
+                                   compiland=args.compiland,
+                                   rebuilt_objects=(args.rebuilt_objects if args.rebuilt_objects is not None
+                                                    else args.rebuilt_exe.resolve().parents[2]))
         text = (render_compiland_text(report, args.detail or (), args.top) if args.compiland is not None else
                 render_text(report, args.detail or (), args.top))
         if args.json_path:

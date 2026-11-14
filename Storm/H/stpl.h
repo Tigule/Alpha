@@ -358,9 +358,9 @@ class TSFixedArray : public TSBaseArray<T> {
     if (!this->m_data) {
       this->m_data = (T *)SMemAlloc(count * sizeof(T), this->MemFileName(), this->MemLineNo(), 0);
       if (oldData) {
-        UINT copyCount = min(count, this->m_count);
+        UINT smallestCount = min(count, this->m_count);
 
-        for (index = 0; index < copyCount; ++index) {
+        for (index = 0; index < smallestCount; ++index) {
           new (&this->m_data[index]) T(oldData[index]);
           (oldData + index)->~T();
         }
@@ -691,8 +691,8 @@ class TSTimerPriority : public CSBasePriority {
   TSTimerPriority() : m_val(0) {
   }
 
-  BOOL Compare(CSBasePriority *priority) const {
-    TSTimerPriority<T> *timerPriority = (TSTimerPriority<T> *)priority;
+  BOOL Compare(CSBasePriority *a) const {
+    TSTimerPriority<T> *timerPriority = (TSTimerPriority<T> *)a;
     return (long)(m_val - timerPriority->m_val) <= 0;
   }
 
@@ -1024,16 +1024,16 @@ class TSLinkedNode {
 template <class T>
 class TSGetLink {
  public:
-  static TSLink<T> *Link(const TSLinkedNode<T> *instance, int) {
-    return &((TSLinkedNode<T> *)instance)->m_link;
+  static TSLink<T> *Link(const TSLinkedNode<T> *nodeptr, int linkoffset) {
+    return &((TSLinkedNode<T> *)nodeptr)->m_link;
   }
 };
 
 template <class T>
 class TSGetExplicitLink {
  public:
-  static TSLink<T> *Link(LPCVOID instance, int linkoffset) {
-    return (TSLink<T> *)((BYTE *)((LPVOID)instance) + linkoffset);
+  static TSLink<T> *Link(LPCVOID nodeptr, int linkoffset) {
+    return (TSLink<T> *)((BYTE *)((LPVOID)nodeptr) + linkoffset);
   }
 };
 
@@ -1216,12 +1216,12 @@ class TSList {
     return ptr;
   }
 
-  T *Next(const T *instance) {
-    return Link(instance)->Next();
+  T *Next(const T *ptr) {
+    return Link(ptr)->Next();
   }
 
-  const T *Next(const T *instance) const {
-    return Link(instance)->Next();
+  const T *Next(const T *ptr) const {
+    return Link(ptr)->Next();
   }
 
   T *Prev(const T *instance) {
@@ -1234,12 +1234,12 @@ class TSList {
     return (long)previous > 0 ? previous : 0;
   }
 
-  T *RawNext(const T *instance) {
-    return Link(instance)->RawNext();
+  T *RawNext(const T *ptr) {
+    return Link(ptr)->RawNext();
   }
 
-  const T *RawNext(const T *instance) const {
-    return Link(instance)->RawNext();
+  const T *RawNext(const T *ptr) const {
+    return Link(ptr)->RawNext();
   }
 
   T *Tail() {
@@ -1639,8 +1639,8 @@ class TSHashTable {
 
     int linkoffset = GetLinkOffset();
 
-    for (UINT loop = 0; loop <= m_slotmask; ++loop) {
-      m_slotlistarray[loop].ChangeLinkOffset(linkoffset);
+    for (UINT slot = 0; slot <= m_slotmask; ++slot) {
+      m_slotlistarray[slot].ChangeLinkOffset(linkoffset);
     }
   }
 

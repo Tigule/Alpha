@@ -667,7 +667,7 @@ static void Project2d(CGeosetShared *geoShared, const NTempest::CImVector &color
 
   NTempest::CAaBox localBox = NTempest::CAaBox::Bounding(&geoShared->position[0], 4);
 
-  float scale = worldMtx.a0 * worldMtx.a0 + worldMtx.a1 * worldMtx.a1 + worldMtx.a2 * worldMtx.a2;
+  float scale = worldMtx.a2 * worldMtx.a2 + worldMtx.a1 * worldMtx.a1 + worldMtx.a0 * worldMtx.a0;
   if (scale < 0.1f) {
     return;
   }

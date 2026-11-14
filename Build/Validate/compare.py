@@ -7,7 +7,10 @@ from dataclasses import asdict, dataclass
 from hashlib import sha256
 from pathlib import Path
 import math
+import os
 import posixpath
+import re
+import struct
 from typing import Any, Mapping, Sequence
 
 from .model import ArtifactData
@@ -173,7 +176,7 @@ def _source_path_key(path: str) -> str | None:
     if len(parts) < 2 or normalized in {".", ".."}:
         return None
     anchors = [index for index in range(len(parts) - 1)
-               if parts[index] in {"wow", "engine", "storm"} and parts[index + 1] == "source"]
+               if parts[index] in {"wow", "engine", "storm"} and parts[index + 1] in {"source", "common"}]
     if len(anchors) > 1:
         return None
     if anchors:
@@ -438,7 +441,8 @@ def _data_rva(artifact: ArtifactData, section_number: int, offset: int) -> int |
 
 
 def _target_maps(artifact: ArtifactData, functions: Sequence[_Function],
-                 pdb: PDBData | None = None) -> tuple[dict[int, str], dict[int, tuple[str, ...]]]:
+                 pdb: PDBData | None = None,
+                 objects: Mapping[str, list[Path]] | None = None) -> tuple[dict[int, str], dict[int, tuple[str, ...]]]:
     identity_rvas: dict[str, set[int]] = defaultdict(set)
     for function in functions:
         for identity in function.identities:
@@ -479,10 +483,117 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function],
                 continue
             identity = f"data:{key}:{symbol.name}"
             data_rvas[identity].add(rva); located.append((rva, identity))
+        renames: dict[tuple[int, str], str] = {}
+        if objects:
+            added, renames = _object_statics(pdb, module_keys, artifact, objects, data_rvas)
+            located.extend(added)
+            located = [(rva, renames.get((rva, identity), identity)) for rva, identity in located]
+            for (rva, old), new in renames.items():
+                data_rvas[new].add(rva)
+                data_rvas[old].discard(rva)
         for rva, identity in located:
             if len(data_rvas[identity]) == 1 and not targets.get(rva):
                 targets[rva].append(identity)
+        _COFF_RENAMES[id(pdb)] = renames
     return function_targets, {rva: tuple(sorted(set(values))) for rva, values in targets.items()}
+
+
+_COFF_RENAMES: dict[int, dict[tuple[int, str], str]] = {}
+
+
+_FUNCTION_STATIC = re.compile(r"^\?([^?@][^@]*)@\?(?:[0-9]|[A-P]+@)\?\?.+@4.+$")
+
+
+def _coff_symbols(data: bytes) -> dict[int, list[tuple[str, int, int]]]:
+    _, sections, _, table, count = struct.unpack_from("<HHIII", data, 0)
+    strings = table + count * 18
+    result: dict[int, list[tuple[str, int, int]]] = defaultdict(list)
+    index = 0
+    while index < count:
+        position = table + index * 18
+        raw = data[position:position + 8]
+        if raw[:4] == b"\0\0\0\0":
+            start = strings + struct.unpack_from("<I", raw, 4)[0]
+            name = data[start:data.index(b"\0", start)].decode("latin-1")
+        else:
+            name = raw.rstrip(b"\0").decode("latin-1")
+        value, section, kind, storage, auxiliary = struct.unpack_from("<IhHBB", data, position + 8)
+        if 0 < section <= sections and storage in (2, 3) and not name.startswith("."):
+            result[section].append((name, value, kind))
+        index += 1 + auxiliary
+    return result
+
+
+def _object_index(root: Path) -> dict[str, list[Path]]:
+    index: dict[str, list[Path]] = defaultdict(list)
+    for directory, _, files in os.walk(root):
+        for file in files:
+            if file.lower().endswith(".obj"):
+                index[file.lower()].append(Path(directory) / file)
+    return index
+
+
+def _object_statics(pdb: PDBData, module_keys: Mapping[str, str], artifact: ArtifactData,
+                    objects: Mapping[str, list[Path]], data_rvas: dict[str, set[int]]
+                    ) -> tuple[list[tuple[int, str]], dict[tuple[int, str], str]]:
+    by_module: dict[str, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
+    for symbol in pdb.data:
+        rva = _data_rva(artifact, symbol.section, symbol.offset)
+        if rva is not None:
+            by_module[symbol.module][symbol.name].add(rva)
+    result: list[tuple[int, str]] = []
+    renames: dict[tuple[int, str], str] = {}
+    for compiland in pdb.compilands:
+        key = module_keys.get(compiland.module_name)
+        module = compiland.module_name.replace("\\", "/").lower()
+        candidates = [path for path in objects.get(posixpath.basename(module), ())
+                      if path.as_posix().lower().endswith("/" + module.lstrip("./"))]
+        if key is None or len(candidates) != 1:
+            continue
+        known = by_module.get(compiland.module_name, {})
+        known_rvas = {rva for rvas in known.values() for rva in rvas}
+        sections = _coff_symbols(candidates[0].read_bytes())
+        plain_counts: dict[str, int] = defaultdict(int)
+        for symbols in sections.values():
+            for name, _, _ in symbols:
+                match = _FUNCTION_STATIC.match(name)
+                if match:
+                    plain_counts[match.group(1)] += 1
+        for symbols in sections.values():
+            deltas = set()
+            for name, value, kind in symbols:
+                if kind & 0x20:
+                    continue
+                match = _FUNCTION_STATIC.match(name)
+                pdb_name = (name[1:] if name.startswith("_") else name if match is None
+                            else match.group(1) if plain_counts[match.group(1)] == 1 else None)
+                rvas = known.get(pdb_name, set()) if pdb_name else set()
+                if len(rvas) == 1:
+                    deltas.add(next(iter(rvas)) - value)
+            if len(deltas) != 1:
+                continue
+            delta = next(iter(deltas))
+            for name, value, kind in symbols:
+                match = _FUNCTION_STATIC.match(name)
+                if kind & 0x20 or match is None:
+                    continue
+                if delta + value in known_rvas:
+                    at = {known_name for known_name, rvas in known.items() if delta + value in rvas}
+                    if match.group(1).startswith("$S") and at == {match.group(1)} and name not in known:
+                        renames[(delta + value, f"data:{key}:{match.group(1)}")] = f"data:{key}:{name}"
+                    continue
+                plain = match.group(1)
+                if plain.startswith("$S"):
+                    identity = f"data:{key}:{name}"
+                elif plain_counts[plain] == 1:
+                    identity = f"data:{key}:{plain}"
+                else:
+                    continue
+                if identity in data_rvas or _section_at(artifact, delta + value) is None:
+                    continue
+                data_rvas[identity].add(delta + value)
+                result.append((delta + value, identity))
+    return result, renames
 
 
 def _read_string(artifact: ArtifactData, rva: int) -> str | None:
@@ -853,8 +964,9 @@ def _inline_functions(original: PDBData, rebuilt: PDBData,
 
 
 def _compare_globals(original_artifact: ArtifactData, original: PDBData,
-                     rebuilt_artifact: ArtifactData, rebuilt: PDBData) -> list[dict[str, Any]]:
-    def collect(artifact: ArtifactData, pdb: PDBData) -> dict[tuple[str, str], dict[str, Any]]:
+                     rebuilt_artifact: ArtifactData, rebuilt: PDBData,
+                     aliases: Mapping[tuple[str, str], str] | None = None) -> list[dict[str, Any]]:
+    def collect(artifact: ArtifactData, pdb: PDBData, renames: Mapping[tuple[str, str], str]) -> dict[tuple[str, str], dict[str, Any]]:
         keys = _module_keys(pdb)
         names = {section.number: section.name for section in artifact.sections}
         values = {}
@@ -862,12 +974,12 @@ def _compare_globals(original_artifact: ArtifactData, original: PDBData,
             key = keys.get(symbol.module)
             if key is None or symbol.procedure is not None:
                 continue
-            values[(key, symbol.name)] = {"type": pdb.types.describe(symbol.type_index),
+            values[(key, renames.get((key, symbol.name), symbol.name))] = {"type": pdb.types.describe(symbol.type_index),
                                           "scope": "global" if symbol.kind == "global" else "static",
                                           "section": names.get(symbol.section, f"#{symbol.section}")}
         return values
 
-    left, right = collect(original_artifact, original), collect(rebuilt_artifact, rebuilt)
+    left, right = collect(original_artifact, original, {}), collect(rebuilt_artifact, rebuilt, aliases or {})
     rows = []
     for (compiland, name), value in sorted(left.items()):
         other = right.get((compiland, name))
@@ -980,7 +1092,8 @@ def _compare_compilands(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[
 
 def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                    rebuilt_artifact: ArtifactData, rebuilt_pdb: PDBData, *,
-                   strict: bool = False, compiland: str | None = None) -> dict[str, Any]:
+                   strict: bool = False, compiland: str | None = None,
+                   rebuilt_objects: Path | None = None) -> dict[str, Any]:
     original_identity = _identity_report(original_artifact, original_pdb)
     rebuilt_identity = _identity_report(rebuilt_artifact, rebuilt_pdb)
     if original_artifact.fatal or rebuilt_artifact.fatal or original_pdb.fatal or rebuilt_pdb.fatal:
@@ -1015,7 +1128,9 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
         and original_pdb == rebuilt_pdb
     )
     original_function_targets, original_map_targets = _target_maps(original_artifact, original_functions, original_pdb)
-    rebuilt_function_targets, rebuilt_map_targets = _target_maps(rebuilt_artifact, rebuilt_functions, rebuilt_pdb)
+    rebuilt_function_targets, rebuilt_map_targets = _target_maps(
+        rebuilt_artifact, rebuilt_functions, rebuilt_pdb,
+        _object_index(rebuilt_objects) if rebuilt_objects is not None else None)
     functions_to_compare = (original_functions if selected_compiland is None else
                             [function for function in original_functions
                              if any(symbol.module == selected_compiland[0].module_name
@@ -1128,7 +1243,11 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     and (selected_key is None or function.compiland == selected_key)]
     inline_functions = [row for row in _inline_functions(original_pdb, rebuilt_pdb, function_results)
                         if selected_key is None or row["compiland"] == selected_key]
-    global_results = [row for row in _compare_globals(original_artifact, original_pdb, rebuilt_artifact, rebuilt_pdb)
+    rebuilt_aliases = {}
+    for (_, old), new in _COFF_RENAMES.get(id(rebuilt_pdb), {}).items():
+        key, _, name = old[len("data:"):].rpartition(":")
+        rebuilt_aliases[(key, name)] = new.rpartition(":")[2]
+    global_results = [row for row in _compare_globals(original_artifact, original_pdb, rebuilt_artifact, rebuilt_pdb, rebuilt_aliases)
                       if selected_key is None or row["compiland"] == selected_key]
     inline_matched = sum(row["status"] == "inlined" for row in inline_functions)
     if selected_compiland is None:
@@ -1193,7 +1312,8 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
 
 def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, original_map: str | Path,
                       rebuilt_exe: str | Path, rebuilt_pdb_path: str | Path, rebuilt_map: str | Path, *,
-                      strict: bool = False, compiland: str | None = None) -> dict[str, Any]:
+                      strict: bool = False, compiland: str | None = None,
+                      rebuilt_objects: str | Path | None = None) -> dict[str, Any]:
     from .artifacts import load_artifacts
     paths = [Path(value) for value in (original_exe, original_pdb_path, original_map,
                                         rebuilt_exe, rebuilt_pdb_path, rebuilt_map)]
@@ -1217,6 +1337,7 @@ def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, o
         parse_pdb(rebuilt_pdb_snapshot.path, data=rebuilt_pdb_snapshot.data),
         strict=strict,
         compiland=compiland,
+        rebuilt_objects=None if rebuilt_objects is None else Path(rebuilt_objects),
     )
     report["inputs"] = {
         "original": {"exe": original_exe_snapshot.record(), "pdb": original_pdb_snapshot.record(),

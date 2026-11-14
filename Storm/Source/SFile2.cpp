@@ -911,8 +911,8 @@ int APIENTRY SFile::SetDataPathAlternate(LPCSTR path) {
 
 int APIENTRY SFile::FileExists(LPCSTR filename) {
   char realname[MAX_PATH];
-
-  return FindFile(filename, realname, MAX_PATH, BuildDefaultOpenFlags(), (SFILE_TYPE *)&filename);
+  SFILE_TYPE type;
+  return FindFile(filename, realname, MAX_PATH, BuildDefaultOpenFlags(), &type);
 }
 
 DWORD APIENTRY SFile::SetFilePointer(SFile *file, LONG distancetomove, LONG *distancetomovehigh, DWORD movemethod) {

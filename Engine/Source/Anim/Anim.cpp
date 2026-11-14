@@ -551,11 +551,8 @@ static void TransformObjectView(const AnimInfo &animInfo, CAnimObj *currobj, con
         break;
       case 0x38:
         RotateViewBillboarded(animInfo.cameraVector);
-        RotateView(animInfo, currobj);
-        break;
       default:
         RotateView(animInfo, currobj);
-        break;
     }
     ApplyFaceDir(animInfo, currobj);
   }

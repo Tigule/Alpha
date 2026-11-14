@@ -308,8 +308,9 @@ static void GenerateWeaponSwingCombatSounds() {
 
   for (i = g_weaponSwingSounds2DB.GetNumRecords(); i--;) {
     rec = g_weaponSwingSounds2DB.GetRecordByIndex(i);
-    if (rec && rec->m_SwingType < 3 && rec->m_Crit < 2) {
-      g_weaponSwingSounds[rec->m_SwingType].soundList[rec->m_Crit != 0] = rec->m_SoundID;
+    if (rec && rec->m_SwingType < 3 && rec->m_Crit < NUM_SWINGTYPES) {
+      WEAPONSWINGTYPES swingType = rec->m_Crit ? SWING_CRITICAL : SWING_NORMAL;
+      g_weaponSwingSounds[rec->m_SwingType].soundList[swingType] = rec->m_SoundID;
     }
   }
 }

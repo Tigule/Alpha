@@ -6,7 +6,7 @@
 #include <BLPFile/blp.h>
 #include "Object/ObjectClient/Unit_C.h"
 
-#include "../../Common/ComponentCore/ComponentCore.cpp"
+#include "ComponentCore/ComponentCore.cpp"
 
 BOOL GetObjComponentInfo(
     int     race,

@@ -240,7 +240,7 @@ namespace NTempest {
     char *oldMem_ = mem_;
     char *oldMem = mem;
     DWORD oldSize_ = size_;
-    DWORD oldSize = size;
+    DWORD tsize = size;
     mem_ = with.mem_;
     mem = with.mem;
     size_ = with.size_;
@@ -248,7 +248,7 @@ namespace NTempest {
     with.mem_ = oldMem_;
     with.mem = oldMem;
     with.size_ = oldSize_;
-    with.size = oldSize;
+    with.size = tsize;
     return true;
   }
 
