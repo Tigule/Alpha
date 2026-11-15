@@ -507,23 +507,23 @@ UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOO
     CMapObjDef *mapObjDef = CMap::CreateMapObjDef(name, pos, angle, bWait);
     FATALASSERT(mapObjDef);
     mapObjDef->param64 = param64;
-    baseObj = mapObjDef;
-    link = CMap::AllocBaseObjLink(baseObj);
+    link = CMap::AllocBaseObjLink(mapObjDef);
     link->ref = 0;
     CMap::mapObjDefLinkList.LinkNode(link, LIST_TAIL, 0);
+    baseObj = mapObjDef;
     if (bSnap) {
-      CMap::SnapBaseObjToSubChunk(baseObj, pos, angle);
+      CMap::SnapBaseObjToSubChunk(mapObjDef, pos, angle);
       CMap::UpdateMapObjDef(mapObjDef, pos, angle);
     }
   } else {
     CMapDoodadDef *doodadDef = CMap::CreateDoodadDef(name, pos, angle, bWait);
     FATALASSERT(doodadDef);
-    baseObj = doodadDef;
-    link = CMap::AllocBaseObjLink(baseObj);
+    link = CMap::AllocBaseObjLink(doodadDef);
     link->ref = 0;
     CMap::doodadDefLinkList.LinkNode(link, LIST_TAIL, 0);
+    baseObj = doodadDef;
     if (bSnap) {
-      CMap::SnapBaseObjToSubChunk(baseObj, pos, angle);
+      CMap::SnapBaseObjToSubChunk(doodadDef, pos, angle);
       CMap::UpdateDoodadDef(doodadDef, pos, angle);
     }
   }

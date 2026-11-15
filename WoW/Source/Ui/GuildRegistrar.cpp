@@ -122,32 +122,33 @@ static int Script_BuyGuildCharter(lua_State *L) {
   if (result == NAME_SUCCESS) {
     CGGuildRegistrar::BuyGuildCharter(name);
     lua_pushnumber(L, 1.0);
-  } else {
-    switch (result) {
-      case NAME_NO_NAME:
-        CGGameUI::DisplayError(GERR_GUILD_ENTER_NAME);
-        break;
-      case NAME_TOO_SHORT:
-        CGGameUI::DisplayError(GERR_GUILD_NAME_TOO_SHORT);
-        break;
-      case NAME_MIXED_LANGUAGES:
-        CGGameUI::DisplayError(GERR_GUILD_NAME_MIXED_LANGUAGES);
-        break;
-      case NAME_PROFANE:
-        CGGameUI::DisplayError(GERR_GUILD_NAME_PROFANE);
-        break;
-      case NAME_RESERVED:
-        CGGameUI::DisplayError(GERR_GUILD_NAME_RESERVED);
-        break;
-      case NAME_STARTS_WITH_GRAVE:
-      case NAME_TWO_GRAVES:
-      case NAME_INVALID_CHARACTER:
-      case NAME_FAILURE:
-        CGGameUI::DisplayError(GERR_GUILD_NAME_INVALID);
-        break;
-    }
-    lua_pushnil(L);
+    return 1;
   }
+
+  switch (result) {
+    case NAME_NO_NAME:
+      CGGameUI::DisplayError(GERR_GUILD_ENTER_NAME);
+      break;
+    case NAME_TOO_SHORT:
+      CGGameUI::DisplayError(GERR_GUILD_NAME_TOO_SHORT);
+      break;
+    case NAME_MIXED_LANGUAGES:
+      CGGameUI::DisplayError(GERR_GUILD_NAME_MIXED_LANGUAGES);
+      break;
+    case NAME_PROFANE:
+      CGGameUI::DisplayError(GERR_GUILD_NAME_PROFANE);
+      break;
+    case NAME_RESERVED:
+      CGGameUI::DisplayError(GERR_GUILD_NAME_RESERVED);
+      break;
+    case NAME_STARTS_WITH_GRAVE:
+    case NAME_TWO_GRAVES:
+    case NAME_INVALID_CHARACTER:
+    case NAME_FAILURE:
+      CGGameUI::DisplayError(GERR_GUILD_NAME_INVALID);
+      break;
+  }
+  lua_pushnil(L);
   return 1;
 }
 

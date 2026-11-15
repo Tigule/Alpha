@@ -1562,7 +1562,7 @@ BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3
   ClipFrame *oframe = &outFrame;
 
   UINT planeMask = 0x80000000;
-  for (UINT plane = 0; plane < 6; ++plane, planeMask >>= 1) {
+  for (int plane = 0; plane < 6; ++plane, planeMask >>= 1) {
     if (!(orMask & planeMask)) {
       continue;
     }

@@ -587,7 +587,7 @@ void GxPrimLockVertexPtrs(
     UINT                       normalStride,
     const NTempest::CImVector *color,
     UINT                       colorStride,
-    const BYTE                *bone,
+    const CGxPrimBone         *bone,
     UINT                       boneStride,
     const NTempest::C2Vector  *tex0,
     UINT                       tex0Stride,

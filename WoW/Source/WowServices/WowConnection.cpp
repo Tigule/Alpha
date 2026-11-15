@@ -21,14 +21,14 @@ UINT WowConnectionInitializer::count;
 int WowConnection::CreateSocket() {
   return socket(AF_INET, SOCK_STREAM, 0);
 }
-void WowConnection::CloseSocket(int sock) {
+void WowConnection::CloseSocket(sock_t sock) {
   closesocket(sock);
 }
 
 void RegisterSocket(int sock) {
   (void)sock;
 }
-WowConnection::WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse *response) {
+WowConnection::WowConnection(sock_t sock, sockaddr_in *addr, WowConnectionResponse *response) {
   int len;
 
   Init(response, 0);

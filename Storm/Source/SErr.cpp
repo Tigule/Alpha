@@ -212,7 +212,7 @@ static int UndecorateObjectName(LPCSTR source, char *dest, DWORD destchars) {
 }
 
 void SErrInitialize() {
-  SRegLoadValue("Internal", "Debug Error Output", 0, (LPDWORD)&debugmode);
+  SRegLoadValue("Internal", "Debug Error Output", 0, (LPDWORD)&g_opt.serrleaksilentwarning);
   SRegLoadValue("Internal", "No Minidumps", 0, (LPDWORD)&s_noMiniDumps);
   SErrRegisterThread(GetCurrentThread(), GetCurrentThreadId());
 }
@@ -1001,14 +1001,14 @@ static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCST
         }
       }
 
-      SStrPrintf(msg, sizeof(msg), "================================================================\n\nLogging %d threads\n\n", suspendedCount);
+      SStrPrintf(msg, sizeof(msg), "==============================================================================\n\nLogging %d threads\n\n", suspendedCount);
       WriteMessageToLog(logfile, msg);
 
       int loggedIndex = 0;
       if (currentIndex != -1) {
         SStrPrintf(
             msg, sizeof(msg),
-            "================================================================\n================================================================"
+            "==============================================================================\n=============================================================================="
             "\n\nLogging thread %d of %d (the current thread), thread id = 0x%08X, thread handle = 0x%08X\n\n",
             ++loggedIndex, numthreads, threadids[currentIndex], threads[currentIndex]
         );
@@ -1020,7 +1020,7 @@ static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCST
         if (suspended[i]) {
           SStrPrintf(
               msg, sizeof(msg),
-              "================================================================\n================================================================"
+              "==============================================================================\n=============================================================================="
               "\n\nLogging thread %d of %d, thread id = 0x%08X, thread handle = 0x%08X\n\n",
               ++loggedIndex, numthreads, threadids[i], threads[i]
           );

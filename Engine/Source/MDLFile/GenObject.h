@@ -37,7 +37,6 @@ BOOL         ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStat
 void         WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &track, DWORD magic, CMsgBuffer &buffer);
 BOOL         ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &track, CMsgBuffer &buffer, UINT &totalRead);
 UINT         GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &track);
-void         WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer);
 
 template <class T>
 inline UINT ReadFloatTrackHeader(Parser &parse, MDLKEYTRACK<T> *keyTrack, LPCSTR *tokentext, UTokenData *value) {
@@ -209,6 +208,45 @@ inline void WriteFloatKeyFrames(UINT title, LPCSTR indent, const MDLKEYTRACK<T> 
   MDL::WriteLine(buffer, "%s}\n", indent);
 }
 
+inline void WriteStaticKeyData(UINT title, LPCSTR indent, const float *staticData, UINT elements, TSGrowableArray<char> &buffer) {
+  MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(title));
+  WriteKeyData(buffer, staticData, elements);
+}
+
+template <class T>
+inline void WriteKeyFramesOrStatic(UINT title, LPCSTR indent, const MDLKEYTRACK<T> &keyframes, const float *staticData, UINT elements, TSGrowableArray<char> &buffer) {
+  if (keyframes.keys.Count()) {
+    WriteFloatKeyFrames(title, indent, keyframes, buffer);
+  } else {
+    WriteStaticKeyData(title, indent, staticData, elements, buffer);
+  }
+}
+
+inline void WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer) {
+  UINT numKeys = keyframes.keys.Count();
+  if (!numKeys) {
+    return;
+  }
+  MDL::WriteLine(buffer, "%s%s %u {\n", indent, MDL::TokenText(title), numKeys);
+  if (keyframes.globalSeqId != (UINT)-1) {
+    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(MDLTOK_GLOBALSEQID), keyframes.globalSeqId);
+  }
+  const MDLINTKEY *key = keyframes.keys.Ptr();
+  for (UINT i = numKeys; i; --i, ++key) {
+    MDL::WriteLine(buffer, "%s\t%d: %u,\n", indent, key->time, key->value);
+  }
+  MDL::WriteLine(buffer, "%s}\n", indent);
+}
+
+inline void WriteKeyFramesOrStatic(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, const UINT *staticData, UINT elements, TSGrowableArray<char> &buffer) {
+  if (keyframes.keys.Count()) {
+    WriteIntKeyFrames(title, indent, keyframes, buffer);
+  } else {
+    MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(title));
+    WriteUintKeyData(buffer, staticData, elements);
+  }
+}
+
 template <class T>
 inline void WriteBinFloatKeyFrames(const MDLKEYTRACK<T> &keyframes, DWORD magicParam, CMsgBuffer &buf) {
   UINT numKeys = keyframes.keys.Count();
@@ -341,5 +379,41 @@ inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGro
   section->SetCount(count);
   buf.GetUintArray(section->Ptr(), count);
   *localBytesRead += 4 * count;
+  return 1;
+}
+
+inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<WORD> *section, UINT *localBytesRead, CMDLStatus *status) {
+  DWORD found = buf.GetDword();
+  *localBytesRead += 4;
+  if (found != title) {
+    status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
+    return 0;
+  }
+  UINT count = buf.GetUint();
+  *localBytesRead += 4;
+  if (!count) {
+    return 1;
+  }
+  section->SetCount(count);
+  buf.GetWordArray(section->Ptr(), count);
+  *localBytesRead += 2 * count;
+  return 1;
+}
+
+inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<BYTE> *section, UINT *localBytesRead, CMDLStatus *status) {
+  DWORD found = buf.GetDword();
+  *localBytesRead += 4;
+  if (found != title) {
+    status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
+    return 0;
+  }
+  UINT count = buf.GetUint();
+  *localBytesRead += 4;
+  if (!count) {
+    return 1;
+  }
+  section->SetCount(count);
+  buf.GetData(section->Ptr(), count);
+  *localBytesRead += count;
   return 1;
 }

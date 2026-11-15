@@ -56,7 +56,7 @@ void WowConnectionNet::PlatformWorkerReady() {
   send(s_workerPipe[1], &c, 1, 0);
 }
 
-static void MakeSocketPipe(int *pipes) {
+static void MakeSocketPipe(int pipes[2]) {
   sockaddr_in addr;
   sockaddr_in incoming;
   int         len;

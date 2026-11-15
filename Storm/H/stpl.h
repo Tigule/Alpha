@@ -432,8 +432,13 @@ class TSFixedArray : public TSBaseArray<T> {
       new (&this->m_data[index]) T(data[index]);
     this->m_count = count;
   }
-  void Set(UINT count, int, const T *data) {
-    Set(count, data);
+  void Set(UINT count, int incr, const T *data) {
+    ReallocAndClearData(count);
+    for (UINT index = 0; index < count; ++index) {
+      new (&this->m_data[index]) T(*data);
+      data += incr;
+    }
+    this->m_count = count;
   }
   void SetCount(UINT count) {
     UINT index;
@@ -586,7 +591,11 @@ class TSGrowableArray : public TSFixedArray<T> {
   }
 
   void TrimUnusedSpace() {
-    this->ReallocData(this->m_count);
+    if (!this->m_count) {
+      this->Clear();
+    } else {
+      this->ReallocData(this->m_count);
+    }
   }
 
   UINT AddElement(const T *data) { return Add(data); }
@@ -1958,9 +1967,17 @@ class TSHashObjectChunk {
 template <class T, class KEY, int REUSE>
 class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
+#if defined(_MSC_VER) && _MSC_VER == 1200 && defined(_M_IX86)
   LISTEXDYN(T) m_reuseList;
   DWORD                                         m_chunkSize;
   TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;
+#else
+  typedef TSHashObjectChunk<T, KEY> CHUNK;
+
+  LISTEXDYN(T) m_reuseList;
+  DWORD m_chunkSize;
+  LISTDECLEX(CHUNK, m_link, m_chunkList);
+#endif
 
   void         Destructor();
   virtual void InternalDelete(T *ptr) {

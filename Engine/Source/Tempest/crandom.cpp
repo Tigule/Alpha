@@ -660,10 +660,10 @@ namespace NTempest {
     long integer = x;
     if (x < 0.0)
       --integer;
-    double fraction = x - integer;
+    float fraction = x - integer;
 
-    DWORD first = lattice_(integer);
-    DWORD second = lattice_(integer + 1);
+    DWORD first = ::lattice_(integer);
+    DWORD second = ::lattice_(integer + 1);
     DWORD bits = 0x40000000 | ((first & 0xFFFF) << 7);
     float firstSlope = *(float *)&bits - 3.0f;
     bits = 0x40000000 | ((second & 0xFFFF) << 7);
@@ -673,12 +673,12 @@ namespace NTempest {
     bits = 0x40400000 + ((second >> 10) & 0x3FFFC0) - ((first >> 10) & 0x3FFFC0);
     float difference = *(float *)&bits - 3.0f;
 
-    double fraction2 = fraction * fraction;
-    double value = (((fraction - 2.0) * fraction2 + fraction) * firstSlope + (3.0 - fraction - fraction) * fraction2 * difference +
-                    (fraction2 * fraction - fraction2) * secondSlope + firstValue) *
-                       0.75 +
-                   0.125;
-    return (3.0 - value - value) * value * value;
+    float fraction2 = fraction * fraction;
+    float value = (((fraction - 2.0f) * fraction2 + fraction) * firstSlope + (3.0f - (fraction + fraction)) * fraction2 * difference +
+                   (fraction2 * fraction - fraction2) * secondSlope + firstValue) *
+                      0.75f +
+                  0.125f;
+    return (3.0f - (value + value)) * (value * value);
   }
 
   float CRandom::noise_(double x, double y) {
@@ -722,8 +722,8 @@ namespace NTempest {
     float rowDerivative0 = (derivativesY[1] - derivativesY[0]) * hxv + derivativesXY[0] * hx0 + derivativesXY[1] * hx1 + derivativesY[0];
     float rowDerivative1 = (derivativesY[3] - derivativesY[2]) * hxv + derivativesXY[2] * hx0 + derivativesXY[3] * hx1 + derivativesY[2];
     float value =
-        (row1 - row0) * hyv + rowDerivative0 * hy0 + rowDerivative1 * hy1 + row0 - ((hx0 + hx1 + 1.0f) * 3.0f * (hy0 + hy1 + 1.0f) - 0.30000001f);
-    return (1.17188f - value * 0.48828f) * value * value;
+        (row1 - row0) * hyv + (row0 - ((hx0 + hx1 + 1.0f) * 3.0f * (hy0 + hy1 + 1.0f) - 0.30000001f)) + rowDerivative1 * hy1 + rowDerivative0 * hy0;
+    return (1.17188f - value * 0.48828f) * (value * value);
   }
 
   float CRandom::noise_(double x, double y, double z) {

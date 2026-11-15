@@ -81,10 +81,7 @@ class CWTriData {
 
     WORD GetVertexCount() const {
       ASSERT(maxIndex >= minIndex);
-      if (minIndex == 0xFFFF) {
-        return 0;
-      }
-      return maxIndex - minIndex + 1;
+      return minIndex == 0xFFFF ? (WORD)0 : (WORD)(maxIndex - minIndex + 1);
     }
 
     WORD GetIndexCount() const {

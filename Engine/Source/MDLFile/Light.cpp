@@ -188,42 +188,12 @@ static void IWriteLightProperties(const MDLLIGHTSECTION &section, TSGrowableArra
 static void IWriteLightSection(const MDLDATA &data, const MDLLIGHTSECTION &section, int needObjIds, TSGrowableArray<char> &buffer) {
   WriteObjectHeader(data, section, MDLTOK_LIGHT, needObjIds, buffer);
   IWriteLightProperties(section, buffer);
-  if (section.attenstartkeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_ATTENUATIONSTART, "\t", section.attenstartkeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ATTENUATIONSTART));
-    WriteKeyData(buffer, &section.staticAttenStart, 1);
-  }
-  if (section.attenendkeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_ATTENUATIONEND, "\t", section.attenendkeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ATTENUATIONEND));
-    WriteKeyData(buffer, &section.staticAttenEnd, 1);
-  }
-  if (section.intensitykeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_INTENSITY, "\t", section.intensitykeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_INTENSITY));
-    WriteKeyData(buffer, &section.staticIntensity, 1);
-  }
-  if (section.colorkeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_COLOR, "\t", section.colorkeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_COLOR));
-    WriteKeyData(buffer, &section.staticColor.b, 3);
-  }
-  if (section.ambintensitykeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_AMB_INTENSITY, "\t", section.ambintensitykeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_AMB_INTENSITY));
-    WriteKeyData(buffer, &section.staticAmbIntensity, 1);
-  }
-  if (section.ambcolorkeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_AMB_COLOR, "\t", section.ambcolorkeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_AMB_COLOR));
-    WriteKeyData(buffer, &section.staticAmbColor.b, 3);
-  }
+  WriteKeyFramesOrStatic(MDLTOK_ATTENUATIONSTART, "\t", section.attenstartkeys, &section.staticAttenStart, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_ATTENUATIONEND, "\t", section.attenendkeys, &section.staticAttenEnd, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_INTENSITY, "\t", section.intensitykeys, &section.staticIntensity, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_COLOR, "\t", section.colorkeys, &section.staticColor.b, 3, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_AMB_INTENSITY, "\t", section.ambintensitykeys, &section.staticAmbIntensity, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_AMB_COLOR, "\t", section.ambcolorkeys, &section.staticAmbColor.b, 3, buffer);
   WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", section.visibilityKeys, buffer);
   WriteObjectTrailer(section, buffer);
 }

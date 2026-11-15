@@ -8,10 +8,11 @@ from typing import Any, Sequence
 
 from .compare import compare_artifacts
 from .exporter import export_report
+from .lineproof import LineProof
 from .normalize import require_decoder
 
 
-_CATEGORIES = ("exact", "relocation_normalized", "macro_normalized", "mismatch", "missing", "ambiguous", "unsupported")
+_CATEGORIES = ("exact", "relocation_normalized", "macro_normalized", "line_normalized", "mismatch", "missing", "ambiguous", "unsupported")
 
 
 def _parser(root: Path) -> argparse.ArgumentParser:
@@ -31,6 +32,10 @@ def _parser(root: Path) -> argparse.ArgumentParser:
                         help="category shown in detail (repeatable; default: mismatch, missing, ambiguous, unsupported)")
     parser.add_argument("--top", type=int, default=20, help="largest detailed functions to show per category (default: 20)")
     parser.add_argument("--strict", action="store_true", help="exit 1 unless every comparison in scope is confirmed")
+    parser.add_argument("--no-line-proof", action="store_true",
+                        help="skip recompiling same-shape mismatches with the original __LINE__ values")
+    parser.add_argument("--line-proof-cache", type=Path,
+                        help="probe compile cache (default: lineproof under the build directory of --rebuilt-exe)")
     return parser
 
 
@@ -144,6 +149,12 @@ def _disassembly_diagnostic(evidence: Any) -> list[str]:
     return lines
 
 
+def _line_proof_text(metrics: dict[str, Any]) -> str:
+    proof = metrics.get("line_proof") or {}
+    return (f"Line proof: {proof.get('status', 'disabled')}, {proof.get('matched', 0):,} of "
+            f"{proof.get('candidates', 0):,} same-shape __LINE__ candidates match after recompiling")
+
+
 def render_text(report: dict[str, Any], details: Sequence[str], top: int) -> str:
     metrics = report["metrics"]
     lines = [
@@ -164,6 +175,7 @@ def render_text(report: dict[str, Any], details: Sequence[str], top: int) -> str
         f"({_format_percent(metrics['types']['count_percent'])})",
         f"Compilands: {metrics['compilands']['matched_count']:,}/{metrics['compilands']['total_count']:,} "
         f"({_format_percent(metrics['compilands']['count_percent'])})",
+        _line_proof_text(metrics),
         "",
         "Function categories (original denominator):",
     ]
@@ -219,6 +231,7 @@ def render_compiland_text(report: dict[str, Any], details: Sequence[str], top: i
         f"({_format_percent(code_and_signature['count_percent'])}), "
         f"{code_and_signature['matched_bytes']:,}/{code_and_signature['total_bytes']:,} bytes "
         f"({_format_percent(code_and_signature['byte_percent'])})",
+        _line_proof_text(metrics),
         "",
         "Function categories:",
     ]
@@ -282,11 +295,15 @@ def main(argv: Sequence[str] | None = None) -> int:
                 parser.error(f"{label} output cannot be inside --web output")
     try:
         require_decoder()
+        build = args.rebuilt_exe.resolve().parents[2]
+        line_proof = None if args.no_line_proof else LineProof(
+            build, (args.line_proof_cache or build / "lineproof").resolve())
         report = compare_artifacts(args.original_exe, args.original_pdb, args.original_map,
                                    args.rebuilt_exe, args.rebuilt_pdb, args.rebuilt_map, strict=args.strict,
                                    compiland=args.compiland,
                                    rebuilt_objects=(args.rebuilt_objects if args.rebuilt_objects is not None
-                                                    else args.rebuilt_exe.resolve().parents[2]))
+                                                    else build),
+                                   line_proof=line_proof)
         text = (render_compiland_text(report, args.detail or (), args.top) if args.compiland is not None else
                 render_text(report, args.detail or (), args.top))
         if args.json_path:

@@ -2218,7 +2218,7 @@ void UnitCombatLogUnitDead(DWORDLONG unit) {
 
   UNITAFFILIATION aAff;
   CGObject_C     *unitObjPtr;
-  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || ((CGUnit_C *)unitObjPtr)->IsXPGainPending()) {
+  if (!ShouldLogAttacker(unit, aAff, unitObjPtr, 0, 1, -1) || ((BYTE)(((CGUnit_C *)unitObjPtr)->m_flags >> 7) & 1)) {
     return;
   }
 

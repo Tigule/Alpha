@@ -27,30 +27,31 @@ void CParticleKey::Interpolate(float time, NTempest::CImVector &color, int &head
   }
 }
 
-CParticleKey::CParticleKey()
-    : m_startColor(-1),
-      m_initialHead(0),
-      m_deltaHead(0),
-      m_initialTail(0),
-      m_deltaTail(0),
-      m_startScale(1.0f),
-      m_deltaScale(0.0f),
-      m_startTime(0.0f),
-      m_ooSegLength(1.0f),
-      m_endTime(1.0f),
-      m_endColor(-1),
-      m_headStart(0),
-      m_headEnd(0),
-      m_tailStart(0),
-      m_tailEnd(0),
-      m_endScale(1.0f),
-      m_repeat(1.0f),
-      m_normStartTime(0.0f),
-      m_normEndTime(1.0f),
-      m_lifeSpan(1.0f) {
-  for (UINT i = 0; i < 4; ++i) {
-    m_deltaColor[i] = 0;
-  }
+CParticleKey::CParticleKey() {
+  m_deltaColor[0] = 0;
+  m_deltaColor[1] = 0;
+  m_deltaColor[2] = 0;
+  m_deltaColor[3] = 0;
+  m_initialHead = 0;
+  m_deltaHead = 0;
+  m_initialTail = 0;
+  m_deltaTail = 0;
+  m_deltaScale = 0.0f;
+  m_ooSegLength = 1.0f;
+  m_startTime = 0.0f;
+  m_normStartTime = 0.0f;
+  m_endTime = 1.0f;
+  m_normEndTime = 1.0f;
+  m_lifeSpan = 1.0f;
+  m_startColor = -1;
+  m_endColor = -1;
+  m_headStart = 0;
+  m_headEnd = 0;
+  m_tailStart = 0;
+  m_tailEnd = 0;
+  m_startScale = 1.0f;
+  m_endScale = 1.0f;
+  m_repeat = 1.0f;
 }
 
 void CParticleKey::SetSegment(float normStartTime, float normEndTime) {

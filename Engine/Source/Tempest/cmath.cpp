@@ -246,20 +246,217 @@ namespace NTempest {
   }
 
   void CMath::invertarray_(double *a, DWORD n) {
-    for (DWORD i = 0; i < n; ++i) {
-      a[i] = 1.0 / a[i];
+    DWORD count = div3_(n);
+    DWORD i;
+    n -= count * 3;
+    double fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9;
+    if (count < 1)
+      goto p3;
+    fp1 = a[0];
+    ((DWORD *)a)[1] = 0x7FDE61EE - ((DWORD *)a)[1];
+    fp2 = a[0];
+    fp4 = a[1];
+    ((DWORD *)a)[3] = 0x7FDE61EE - ((DWORD *)a)[3];
+    fp2 = fp2 * (2.0 - fp1 * fp2);
+    fp5 = a[1];
+    fp7 = a[2];
+    ((DWORD *)a)[5] = 0x7FDE61EE - ((DWORD *)a)[5];
+    fp2 = fp2 * (2.0 - fp1 * fp2);
+    fp5 = fp5 * (2.0 - fp4 * fp5);
+    fp8 = a[2];
+    fp2 = fp2 * (2.0 - fp1 * fp2);
+    fp5 = fp5 * (2.0 - fp4 * fp5);
+    fp8 = fp8 * (2.0 - fp7 * fp8);
+    for (i = 1; i < count; ++i) {
+      fp3 = 2.0 - fp1 * fp2;
+      fp5 = fp5 * (2.0 - fp4 * fp5);
+      fp8 = fp8 * (2.0 - fp7 * fp8);
+      fp1 = a[3];
+      ((DWORD *)a)[7] = 0x7FDE61EE - ((DWORD *)a)[7];
+      fp6 = 2.0 - fp4 * fp5;
+      fp4 = a[4];
+      ((DWORD *)a)[9] = 0x7FDE61EE - ((DWORD *)a)[9];
+      a[0] = fp2 * fp3;
+      fp8 = fp8 * (2.0 - fp7 * fp8);
+      fp2 = a[3];
+      fp9 = 2.0 - fp7 * fp8;
+      fp7 = a[5];
+      a[1] = fp5 * fp6;
+      fp2 = fp2 * (2.0 - fp1 * fp2);
+      fp5 = a[4];
+      a[2] = fp8 * fp9;
+      fp2 = fp2 * (2.0 - fp1 * fp2);
+      fp5 = fp5 * (2.0 - fp4 * fp5);
+      ((DWORD *)a)[11] = 0x7FDE61EE - ((DWORD *)a)[11];
+      fp8 = a[5];
+      a += 3;
+      fp2 = fp2 * (2.0 - fp1 * fp2);
+      fp5 = fp5 * (2.0 - fp4 * fp5);
+      fp8 = fp8 * (2.0 - fp7 * fp8);
+    }
+    fp5 = fp5 * (2.0 - fp4 * fp5);
+    fp8 = fp8 * (2.0 - fp7 * fp8);
+    a[0] = fp2 * (2.0 - fp1 * fp2);
+    fp8 = fp8 * (2.0 - fp7 * fp8);
+    a[1] = fp5 * (2.0 - fp4 * fp5);
+    a[2] = fp8 * (2.0 - fp7 * fp8);
+    a += 3;
+  p3:
+    if (n >= 1) {
+      a[0] = 1.0 / a[0];
+      if (n != 1)
+        a[1] = 1.0 / a[1];
     }
   }
 
   void CMath::sqrtarray_(double *a, DWORD n) {
-    for (DWORD i = 0; i < n; ++i) {
-      a[i] = sqrt_(a[i]);
+    DWORD count = div3_(n);
+    DWORD i;
+    n -= count * 3;
+    double fp0, fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9, fpA, fpB, fpC;
+    if (count < 1)
+      goto p3;
+    fpA = a[0];
+    fp1 = fpA * 0.5;
+    ((DWORD *)a)[1] = 0x5FE732F7 - ((((DWORD *)a)[1] >> 1) & 0x3FFFFFFF);
+    fp2 = a[0];
+    fpB = a[1];
+    ((DWORD *)a)[3] = 0x5FE732F7 - ((((DWORD *)a)[3] >> 1) & 0x3FFFFFFF);
+    fp5 = a[1];
+    fpC = a[2];
+    fp4 = fpB * 0.5;
+    ((DWORD *)a)[5] = 0x5FE732F7 - ((((DWORD *)a)[5] >> 1) & 0x3FFFFFFF);
+    fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+    fp8 = a[2];
+    fp7 = fpC * 0.5;
+    fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+    fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+    fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+    fp3 = 1.5 - fp2 * fp2 * fp1;
+    fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+    fp9 = fp8 * fp8;
+    for (i = 1; i < count; ++i) {
+      fp2 = fp2 * fp3;
+      fp8 = fp8 * (1.5 - fp9 * fp7);
+      fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+      fp3 = fp2 * fpA * (1.5 - fp2 * fp2 * fp1);
+      fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+      fpA = a[3];
+      ((DWORD *)a)[7] = 0x5FE732F7 - ((((DWORD *)a)[7] >> 1) & 0x3FFFFFFF);
+      fp2 = a[3];
+      fp6 = fp5 * fpB * (1.5 - fp5 * fp5 * fp4);
+      fpB = a[4];
+      a[0] = fp3;
+      fp1 = fpA * 0.5;
+      ((DWORD *)a)[9] = 0x5FE732F7 - ((((DWORD *)a)[9] >> 1) & 0x3FFFFFFF);
+      fp5 = a[4];
+      fp0 = fp8 * fpC * (1.5 - fp8 * fp8 * fp7);
+      fpC = a[5];
+      a[1] = fp6;
+      fp4 = fpB * 0.5;
+      ((DWORD *)a)[11] = 0x5FE732F7 - ((((DWORD *)a)[11] >> 1) & 0x3FFFFFFF);
+      fp8 = a[5];
+      a += 3;
+      fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+      fp7 = fpC * 0.5;
+      a[-1] = fp0;
+      fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+      fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+      fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+      fp3 = 1.5 - fp2 * fp2 * fp1;
+      fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+      fp9 = fp8 * fp8;
+    }
+    fp2 = fp2 * fp3;
+    fp8 = fp8 * (1.5 - fp9 * fp7);
+    fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+    fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+    a[0] = fp2 * (1.5 - fp2 * fp2 * fp1) * fpA;
+    a[1] = fp5 * (1.5 - fp5 * fp5 * fp4) * fpB;
+    a[2] = fp8 * (1.5 - fp8 * fp8 * fp7) * fpC;
+    a += 3;
+  p3:
+    if (n >= 1) {
+      a[0] = sqrt_(a[0]);
+      if (n != 1)
+        a[1] = sqrt_(a[1]);
     }
   }
 
   void CMath::sqrtinvarray_(double *a, DWORD n) {
-    for (DWORD i = 0; i < n; ++i) {
-      a[i] = 1.0 / sqrt_(a[i]);
+    DWORD count = div3_(n);
+    DWORD i;
+    n -= count * 3;
+    double fp0, fp1, fp2, fp3, fp4, fp5, fp6, fp7, fp8, fp9;
+    if (count < 1)
+      goto p3;
+    fp1 = a[0];
+    ((DWORD *)a)[1] = 0x5FE732F7 - ((((DWORD *)a)[1] >> 1) & 0x3FFFFFFF);
+    fp2 = a[0];
+    fp4 = a[1];
+    ((DWORD *)a)[3] = 0x5FE732F7 - ((((DWORD *)a)[3] >> 1) & 0x3FFFFFFF);
+    fp1 = fp1 * 0.5;
+    fp5 = a[1];
+    fp4 = fp4 * 0.5;
+    fp7 = a[2];
+    ((DWORD *)a)[5] = 0x5FE732F7 - ((((DWORD *)a)[5] >> 1) & 0x3FFFFFFF);
+    fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+    fp8 = a[2];
+    fp7 = fp7 * 0.5;
+    fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+    fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+    fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+    fp3 = 1.5 - fp2 * fp2 * fp1;
+    fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+    fp9 = fp8 * fp8;
+    for (i = 1; i < count; ++i) {
+      fp2 = fp2 * fp3;
+      fp8 = fp8 * (1.5 - fp9 * fp7);
+      fp3 = 1.5 - fp2 * fp2 * fp1;
+      fp1 = a[3];
+      ((DWORD *)a)[7] = 0x5FE732F7 - ((((DWORD *)a)[7] >> 1) & 0x3FFFFFFF);
+      fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+      fp0 = fp2 * fp3;
+      fp6 = 1.5 - fp5 * fp5 * fp4;
+      fp4 = a[4];
+      ((DWORD *)a)[9] = 0x5FE732F7 - ((((DWORD *)a)[9] >> 1) & 0x3FFFFFFF);
+      fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+      fp2 = a[3];
+      a[0] = fp0;
+      fp6 = fp5 * fp6;
+      fp9 = 1.5 - fp8 * fp8 * fp7;
+      fp1 = fp1 * 0.5;
+      fp5 = a[4];
+      fp7 = a[5];
+      fp0 = fp8 * fp9;
+      a[1] = fp6;
+      fp4 = fp4 * 0.5;
+      ((DWORD *)a)[11] = 0x5FE732F7 - ((((DWORD *)a)[11] >> 1) & 0x3FFFFFFF);
+      fp8 = a[5];
+      a += 3;
+      fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+      a[-1] = fp0;
+      fp7 = fp7 * 0.5;
+      fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+      fp2 = fp2 * (1.5 - fp2 * fp2 * fp1);
+      fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+      fp3 = 1.5 - fp2 * fp2 * fp1;
+      fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+      fp9 = fp8 * fp8;
+    }
+    fp2 = fp2 * fp3;
+    fp8 = fp8 * (1.5 - fp9 * fp7);
+    fp5 = fp5 * (1.5 - fp5 * fp5 * fp4);
+    a[0] = fp2 * (1.5 - fp2 * fp2 * fp1);
+    fp8 = fp8 * (1.5 - fp8 * fp8 * fp7);
+    a[1] = fp5 * (1.5 - fp5 * fp5 * fp4);
+    a[2] = fp8 * (1.5 - fp8 * fp8 * fp7);
+    a += 3;
+  p3:
+    if (n >= 1) {
+      a[0] = sqrtinv_(a[0]);
+      if (n != 1)
+        a[1] = sqrtinv_(a[1]);
     }
   }
 

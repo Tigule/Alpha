@@ -48,8 +48,9 @@ struct SMOFog {
       }
     }
 
-    Fog &operator[](UINT index) {
-      return fog[index];
+    Fog &operator[](UINT sub) {
+      ASSERT(sub < NUM_FOGS);
+      return fog[sub];
     }
 
     const Fog &operator[](UINT index) const {

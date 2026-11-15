@@ -189,7 +189,7 @@ NODEDECL(BLOODSPLATNODE) {
 };
 
 static const float UNDERWATER_BUBBLE_THRESHOLD = 5.0f;
-static UINT        s_lootCooldownTime;
+static UINT        s_lootCooldownTime = 0;
 static const float MOUSE_LOOK_SEND_FACING_DELTA = 0.1f;
 static NTempest::CImVector COLOR_GOLD(0xFFFFDE00);
 static const float MAX_NAMEPLATE_DIST = 20.0f;
@@ -737,8 +737,8 @@ static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
     static NTempest::C3Vector pts[4] = {
         NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.1f, 1.0f, 0.0f), NTempest::C3Vector(0.2f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
     };
-    pts[1].y = IPT2_SCALE * desc->scale;
-    pts[2].y = IPT1_SCALE * desc->scale;
+    pts[1].y = IPT1_SCALE * desc->scale;
+    pts[2].y = IPT2_SCALE * desc->scale;
     pts[3].y = desc->scale;
     NTempest::C3Spline_Bezier3 spline(pts, 4);
     float scalar = desc->CalcScalar();
@@ -3178,9 +3178,8 @@ void CGUnit_C::UpdateDisplayFacing() {
       absTorsoAngle = 0.69813168f;
     }
 
-    float              signedAngle = angleDelta < 0.0f ? -absTorsoAngle : absTorsoAngle;
     NTempest::C3Vector torsoTurn;
-    NTempest::CMath::sincos_(signedAngle, torsoTurn.y, torsoTurn.x);
+    NTempest::CMath::sincos_(NTempest::CMath::copysign_(absTorsoAngle, angleDelta), torsoTurn.y, torsoTurn.x);
     if (ModelApplyObjectFaceDir(GetObjectModel(), 4, torsoTurn)) {
       absAngleConsumed = absTorsoAngle;
     }
@@ -3190,9 +3189,8 @@ void CGUnit_C::UpdateDisplayFacing() {
       absHeadAngle = maxHeadAngle;
     }
 
-    signedAngle = angleDelta < 0.0f ? -absHeadAngle : absHeadAngle;
     NTempest::C3Vector headTurn;
-    NTempest::CMath::sincos_(signedAngle, headTurn.y, headTurn.x);
+    NTempest::CMath::sincos_(NTempest::CMath::copysign_(absHeadAngle, angleDelta), headTurn.y, headTurn.x);
     if (ModelApplyObjectFaceDir(GetObjectModel(), 6, headTurn)) {
       absAngleConsumed += absHeadAngle;
     }
@@ -3211,7 +3209,7 @@ void CGUnit_C::UpdateDisplayFacing() {
     }
   }
 
-  m_displayFacing = m_smoothFacing - (angleDelta < 0.0f ? -absAngleConsumed : absAngleConsumed);
+  m_displayFacing = m_smoothFacing - NTempest::CMath::copysign_(absAngleConsumed, angleDelta);
 }
 
 void CGUnit_C::UpdateSmoothFacing() {

@@ -2,6 +2,7 @@
 #include "Os/OsTime.h"
 
 #include "Services/Camera.h"
+#include "Services/DataMgrInt.h"
 #include "Base/Color.h"
 #include "Tempest/c33matrix.h"
 #include "Tempest/cimvector.h"

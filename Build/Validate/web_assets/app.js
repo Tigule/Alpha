@@ -44,6 +44,7 @@
     exact: { label: "Exact", bar: "bg-blue-900 dark:bg-blue-400", pill: "bg-blue-900 text-white dark:bg-blue-400 dark:text-slate-950" },
     address: { label: "Address-adjusted", bar: "bg-blue-500 dark:bg-blue-600", pill: "bg-blue-500 text-white dark:bg-blue-600" },
     macro: { label: "Macro-adjusted", bar: "bg-blue-300 dark:bg-blue-800", pill: "bg-blue-200 text-blue-950 dark:bg-blue-900 dark:text-blue-100" },
+    line: { label: "Line-adjusted", bar: "bg-blue-300 dark:bg-blue-800", pill: "bg-blue-200 text-blue-950 dark:bg-blue-900 dark:text-blue-100" },
     differs: { label: "Differs", bar: "bg-orange-600 dark:bg-orange-500", pill: "bg-orange-600 text-white dark:bg-orange-500 dark:text-slate-950" },
     missing: { label: "Missing", bar: "bg-slate-300 dark:bg-slate-600", pill: "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100" },
     unverified: { label: "Unverified", bar: "bg-slate-500 dark:bg-slate-400", pill: "bg-slate-500 text-white dark:bg-slate-400 dark:text-slate-950" },
@@ -52,7 +53,7 @@
     extra: { label: "Extra in rebuild", bar: "bg-orange-200", pill: "bg-orange-50 text-orange-900 ring-1 ring-inset ring-orange-200 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-800" },
   };
   const KIND = { class: "class", structure: "struct", union: "union", enum: "enum" };
-  const ORDER = ["exact", "address", "macro", "differs", "missing", "unverified"];
+  const ORDER = ["exact", "address", "macro", "line", "differs", "missing", "unverified"];
   const GOOD = "bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:ring-blue-800";
   const BAD = "bg-orange-50 text-orange-900 ring-1 ring-inset ring-orange-200 dark:bg-orange-950 dark:text-orange-200 dark:ring-orange-800";
   const NEUTRAL = "bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700";

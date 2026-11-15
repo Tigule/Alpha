@@ -162,30 +162,37 @@ static UINT SetParticleStyle(const BYTE *emitterData, UINT flags, CParticleEmitt
   return 8;
 }
 
+static inline BYTE ColorToByte(float c) {
+  return NTempest::CMath::ftol_0_256_(c * 255.0f);
+}
+
 static BYTE *SetKeyColors(BYTE *emitterData, CParticleKey *key1, CParticleKey *key2) {
   NTempest::CImVector startColor;
   NTempest::CImVector middleColor;
   NTempest::CImVector endColor;
 
-  const float *colors = (const float *)emitterData;
-  startColor.r = NTempest::CMath::ftol_0_256_(colors[0] * 255.0f);
-  startColor.g = NTempest::CMath::ftol_0_256_(colors[1] * 255.0f);
-  startColor.b = NTempest::CMath::ftol_0_256_(colors[2] * 255.0f);
-  middleColor.r = NTempest::CMath::ftol_0_256_(colors[3] * 255.0f);
-  middleColor.g = NTempest::CMath::ftol_0_256_(colors[4] * 255.0f);
-  middleColor.b = NTempest::CMath::ftol_0_256_(colors[5] * 255.0f);
-  endColor.r = NTempest::CMath::ftol_0_256_(colors[6] * 255.0f);
-  endColor.g = NTempest::CMath::ftol_0_256_(colors[7] * 255.0f);
-  endColor.b = NTempest::CMath::ftol_0_256_(colors[8] * 255.0f);
+  startColor.r = ColorToByte(((float *)emitterData)[0]);
+  startColor.g = ColorToByte(((float *)emitterData)[1]);
+  startColor.b = ColorToByte(((float *)emitterData)[2]);
+  emitterData += 3 * sizeof(float);
 
-  const BYTE *alpha = emitterData + 9 * sizeof(float);
-  startColor.a = alpha[0];
-  middleColor.a = alpha[1];
-  endColor.a = alpha[2];
+  middleColor.r = ColorToByte(((float *)emitterData)[0]);
+  middleColor.g = ColorToByte(((float *)emitterData)[1]);
+  middleColor.b = ColorToByte(((float *)emitterData)[2]);
+  emitterData += 3 * sizeof(float);
+
+  endColor.r = ColorToByte(((float *)emitterData)[0]);
+  endColor.g = ColorToByte(((float *)emitterData)[1]);
+  endColor.b = ColorToByte(((float *)emitterData)[2]);
+  emitterData += 3 * sizeof(float);
+
+  startColor.a = emitterData[0];
+  middleColor.a = emitterData[1];
+  endColor.a = emitterData[2];
 
   key1->SetColors(startColor, middleColor);
   key2->SetColors(middleColor, endColor);
-  return (BYTE *)(alpha + 3);
+  return emitterData + 3;
 }
 
 static BYTE *SetParticleKeys(BYTE *emitterData, float lifeSpan, CParticleEmitter2 *emitter) {
@@ -245,21 +252,21 @@ static void SetParticleKeys(const MDLPARTICLEEMITTER2 &emitterData, CParticleEmi
   key2.SetLifeSpan(emitterData.staticLife);
 
   NTempest::CImVector startColor;
-  startColor.r = NTempest::CMath::ftol_0_256_(emitterData.startColor.r * 255.0f);
-  startColor.g = NTempest::CMath::ftol_0_256_(emitterData.startColor.g * 255.0f);
-  startColor.b = NTempest::CMath::ftol_0_256_(emitterData.startColor.b * 255.0f);
+  NTempest::CImVector middleColor;
+  NTempest::CImVector endColor;
+  startColor.r = ColorToByte(emitterData.startColor.r);
+  startColor.g = ColorToByte(emitterData.startColor.g);
+  startColor.b = ColorToByte(emitterData.startColor.b);
   startColor.a = emitterData.startAlpha;
 
-  NTempest::CImVector middleColor;
-  middleColor.r = NTempest::CMath::ftol_0_256_(emitterData.middleColor.r * 255.0f);
-  middleColor.g = NTempest::CMath::ftol_0_256_(emitterData.middleColor.g * 255.0f);
-  middleColor.b = NTempest::CMath::ftol_0_256_(emitterData.middleColor.b * 255.0f);
+  middleColor.r = ColorToByte(emitterData.middleColor.r);
+  middleColor.g = ColorToByte(emitterData.middleColor.g);
+  middleColor.b = ColorToByte(emitterData.middleColor.b);
   middleColor.a = emitterData.middleAlpha;
 
-  NTempest::CImVector endColor;
-  endColor.r = NTempest::CMath::ftol_0_256_(emitterData.endColor.r * 255.0f);
-  endColor.g = NTempest::CMath::ftol_0_256_(emitterData.endColor.g * 255.0f);
-  endColor.b = NTempest::CMath::ftol_0_256_(emitterData.endColor.b * 255.0f);
+  endColor.r = ColorToByte(emitterData.endColor.r);
+  endColor.g = ColorToByte(emitterData.endColor.g);
+  endColor.b = ColorToByte(emitterData.endColor.b);
   endColor.a = emitterData.endAlpha;
 
   key1.SetColors(startColor, middleColor);

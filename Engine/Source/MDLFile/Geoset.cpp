@@ -378,19 +378,19 @@ static void IReadGroup(Parser &parse, MDLGEOSETSECTION *geoset, long *numMatrice
 
 static void IReadGroups(Parser &parse, MDLGEOSETSECTION *geoset, CMDLStatus *status) {
   UINT       savedtoken;
-  long       actualGroups = 0;
+  long       actualGroups;
   long       estGroups;
   LPCSTR     tokentext;
   UTokenData savedvalue;
-  long       estMatrices = -1;
-  long       actualMatrices = 0;
+  long       estMatrices;
+  long       actualMatrices;
+  actualGroups = actualMatrices = 0;
+  estMatrices = -1;
   estGroups = parse.GetOptionalInt(&savedtoken, &tokentext, &savedvalue);
   if (estGroups > 0) {
     estMatrices = parse.GetOptionalInt(savedtoken, &savedvalue, &savedtoken, &tokentext);
     geoset->groupMatrixCounts.ReserveSpace(estGroups);
-    if (estMatrices > 0) {
-      geoset->matrices.ReserveSpace(estMatrices);
-    }
+    geoset->matrices.ReserveSpace(estMatrices > 0 ? estMatrices : estGroups);
   }
   parse.Expect('{', savedtoken, tokentext);
   savedtoken = parse.Token(&tokentext, 0);
@@ -847,49 +847,11 @@ BOOL MDL::ReadGeosetAnim(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 
 static void IWriteGeosetAnimSection(const MDLGEOSETANIMSECTION &section, TSGrowableArray<char> &buffer) {
   MDL::WriteLine(buffer, "%s {\n", MDL::TokenText(MDLTOK_GEOSETANIM));
-  LPCSTR indent = "\t";
-  if (section.alphaKeys.keys.Count()) {
-    const MDLKEYTRACK<float> &track = section.alphaKeys;
-    MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(MDLTOK_ALPHA), track.keys.Count());
-    WriteTrackHeader(indent, track, buffer);
-    for (UINT i = 0; i < track.keys.Count(); ++i) {
-      const MDLKEYFRAME<float> &key = track.keys.Ptr()[i];
-      MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-      WriteKeyData(buffer, &key.value, 1);
-      if (track.type > TRACK_LINEAR) {
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_INTAN));
-        WriteKeyData(buffer, &key.inTan, 1);
-        MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_OUTTAN));
-        WriteKeyData(buffer, &key.outTan, 1);
-      }
-    }
-    MDL::WriteLine(buffer, "%s}\n", indent);
-  } else if (section.staticAlpha < 1.0f) {
-    MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ALPHA));
-    WriteKeyData(buffer, &section.staticAlpha, 1);
+  if (section.alphaKeys.keys.Count() || section.staticAlpha < 1.0f) {
+    WriteKeyFramesOrStatic(MDLTOK_ALPHA, "\t", section.alphaKeys, &section.staticAlpha, 1, buffer);
   }
-
   if (section.flags & 1) {
-    if (section.colorKeys.keys.Count()) {
-      const MDLKEYTRACK<C3Color> &track = section.colorKeys;
-      MDL::WriteLine(buffer, "%s%s %d {\n", indent, MDL::TokenText(MDLTOK_COLOR), track.keys.Count());
-      WriteTrackHeader(indent, track, buffer);
-      for (UINT i = 0; i < track.keys.Count(); ++i) {
-        const MDLKEYFRAME<C3Color> &key = track.keys.Ptr()[i];
-        MDL::WriteLine(buffer, "%s\t%d: ", indent, key.time);
-        WriteKeyData(buffer, &key.value.b, 3);
-        if (track.type > TRACK_LINEAR) {
-          MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_INTAN));
-          WriteKeyData(buffer, &key.inTan.b, 3);
-          MDL::WriteLine(buffer, "%s\t\t%s ", indent, MDL::TokenText(MDLTOK_OUTTAN));
-          WriteKeyData(buffer, &key.outTan.b, 3);
-        }
-      }
-      MDL::WriteLine(buffer, "%s}\n", indent);
-    } else {
-      MDL::WriteLine(buffer, "%s%s %s ", indent, MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_COLOR));
-      WriteKeyData(buffer, &section.staticColor.b, 3);
-    }
+    WriteKeyFramesOrStatic(MDLTOK_COLOR, "\t", section.colorKeys, &section.staticColor.b, 3, buffer);
   }
   MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_GEOSETID), section.geosetId);
   MDL::WriteLine(buffer, "}\n");
@@ -1095,34 +1057,12 @@ static BOOL ReadBinGeosetTags(CMsgBuffer &buf, MDLGEOSETSECTION *pGeoset, CMDLSt
     return 0;
   }
 
-  magic = buf.GetDword();
-  *localBytesRead += 4;
-  if (magic != 'XTVP') {
-    status->Add(STATUS_ERROR, "Invalid %s section.\n", "primitives vertices");
+  if (!IReadBinUintSection(buf, 'XTVP', "primitives vertices", &pGeoset->primitives.vertices, localBytesRead, status)) {
     return 0;
   }
-  count = buf.GetUint();
-  *localBytesRead += 4;
-  if (count) {
-    pGeoset->primitives.vertices.SetCount(count);
-    buf.GetWordArray(pGeoset->primitives.vertices.Ptr(), count);
-    *localBytesRead += 2 * count;
-  }
-
-  magic = buf.GetDword();
-  *localBytesRead += 4;
-  if (magic != 'XDNG') {
-    status->Add(STATUS_ERROR, "Invalid %s section.\n", "vertex group indices");
+  if (!IReadBinUintSection(buf, 'XDNG', "vertex group indices", &pGeoset->vertGroupIndices, localBytesRead, status)) {
     return 0;
   }
-  count = buf.GetUint();
-  *localBytesRead += 4;
-  if (count) {
-    pGeoset->vertGroupIndices.SetCount(count);
-    buf.GetData(pGeoset->vertGroupIndices.Ptr(), count);
-    *localBytesRead += count;
-  }
-
   if (!IReadBinUintSection(buf, 'CGTM', "group matrix counts", &pGeoset->groupMatrixCounts, localBytesRead, status)) {
     return 0;
   }

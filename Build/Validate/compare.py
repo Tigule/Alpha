@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from bisect import bisect_right
-from collections import defaultdict
-from dataclasses import asdict, dataclass
+from collections import Counter, defaultdict
+from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 from pathlib import Path
 import math
@@ -18,8 +18,10 @@ from .compiland_policy import apply_compiland_policy
 from .decode import DecodedProcedure, decode_procedure
 from .disassembly import disassembly_difference
 from .input_snapshot import capture_inputs
+from .lineproof import LineProof, function_code, remap_source, synthesize
 from .normalize import DecodeFailure, DecodeUnavailable, Evidence, compare_code, decode_x86
 from .symbols import Compiland, FunctionSymbol, PDBData, parse_pdb
+from .linetag import line_argument_pairs
 
 
 SCHEMA_VERSION = "validate/v1"
@@ -316,6 +318,8 @@ def _functions(artifact: ArtifactData, pdb: PDBData) -> tuple[list[_Function], l
     for (rva, size), symbols in sorted(grouped.items()):
         identities = {value for symbol in symbols if (value := _symbol_identity(symbol, module_keys))}
         identities.update(f"map:{name}" for name in map_names_at_rva.get(rva, ()) if len(map_name_rvas[name]) == 1)
+        identities.update(f"anonymous:{_PAIRING_ANONYMOUS.sub(lambda found: '?%' + found.group(1).lower() + '@@', map_symbol.name)}"
+                          for map_symbol in map_symbols_at_rva.get(rva, ()) if _PAIRING_ANONYMOUS.search(map_symbol.name))
         pdb_owner_contexts = {
             context
             for symbol in symbols
@@ -378,7 +382,7 @@ def _candidate(original: _Function, rebuilt_index: Mapping[str, list[_Function]]
         return function, None, "unique_owner_qualified_map_name", identity
     if len(owner_candidates) > 1:
         return None, "ambiguous", None, None
-    fallback = [identity for identity in original.identities if not identity.startswith(("map:", "map-owner:"))
+    fallback = [identity for identity in original.identities if not identity.startswith(("map:", "map-owner:", "anonymous:"))
                 and original_identity_counts.get(identity) == 1 and len(rebuilt_index.get(identity, ())) == 1]
     fallback_candidates = {(function.rva, function.size): function for identity in fallback
                            for function in rebuilt_index.get(identity, ())}
@@ -388,6 +392,11 @@ def _candidate(original: _Function, rebuilt_index: Mapping[str, list[_Function]]
         return None, "ambiguous", None, None
     if owner_ambiguous:
         return None, "ambiguous", None, None
+    anonymous = {(function.rva, function.size): function for identity in original.identities
+                 if identity.startswith("anonymous:") and original_identity_counts.get(identity) == 1
+                 for function in rebuilt_index.get(identity, ()) if len(rebuilt_index[identity]) == 1}
+    if len(anonymous) == 1:
+        return next(iter(anonymous.values())), None, "unique_anonymous_namespace_map_name", None
     return None, "missing", None, None
 
 
@@ -500,7 +509,9 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function],
             if len(data_rvas[identity]) == 1 and not targets.get(rva):
                 targets[rva].append(identity)
         _COFF_RENAMES[id(pdb)] = renames
-    return function_targets, {rva: tuple(sorted(set(values))) for rva, values in targets.items()}
+    final = {rva: tuple(sorted(set(values))) for rva, values in targets.items()}
+    _PAIRING_INDEX[id(final)] = _pairing_index(artifact, pdb, final)
+    return function_targets, final
 
 
 _COFF_RENAMES: dict[int, dict[tuple[int, str], str]] = {}
@@ -730,6 +741,92 @@ def _resolve_target(artifact: ArtifactData, function_targets: Mapping[int, str],
     return None, False
 
 
+_PAIRING_INDEX: dict[int, dict[str, Any]] = {}
+_PAIRING_PATH = re.compile(r"\b[A-Za-z]:[\\/](?:[^\\/\s]*[\\/])*([^\\/\s]+\.(?:c|cc|cpp|cxx|h|hpp|inl))\b", re.I)
+_PAIRING_GUARD = re.compile(r"\?\$S\d+@\?(?:[0-9]|[A-P]+@)\?\?")
+_PAIRING_ATEXIT_LOCAL = re.compile(r"^(local:[^|]+:)\$E\d+$")
+_PAIRING_OWNED_STATIC = re.compile(r"^data:((?:source|object):[^:]+):(.+)::([A-Za-z_]\w*(?:\+0x[0-9a-f]+)?)$")
+_PAIRING_PLAIN_DATA = re.compile(r"^data:(?:source|object):[^:]+:[A-Za-z_]\w*(?:\+0x[0-9a-f]+)?$")
+_PAIRING_ANONYMOUS = re.compile(r"\?%(?:[^@\\/]*[\\/])*([^@\\/]+?\.(?:c|cc|cpp|cxx))\d+@@", re.I)
+_PAIRING_ANONYMOUS_NAME = re.compile(
+    r"^(?:map|local|global):(?:(?:source|object):[^:]+:)?\?([A-Za-z_]\w*)@\?%(?:[^@\\/]*[\\/])*([^@\\/]+?\.(?:c|cc|cpp|cxx))\d+@@",
+    re.I)
+_PAIRING_TU_LOCAL = re.compile(r"^(?:data|local):((?:source|object):[^:]+):(?:`anonymous namespace'::)?([A-Za-z_]\w*)$")
+
+
+def _pairing_index(artifact: ArtifactData, pdb: PDBData | None,
+                   targets: Mapping[int, tuple[str, ...]]) -> dict[str, Any]:
+    guards: dict[str, set[int]] = defaultdict(set)
+    for rva, names in targets.items():
+        for name in names:
+            if _PAIRING_GUARD.search(name):
+                guards[_PAIRING_GUARD.sub("?$S@??", name)].add(rva)
+    at: dict[int, list[Any]] = defaultdict(list)
+    named: dict[tuple[str, str | None, str], set[int]] = defaultdict(set)
+    module_counts: dict[str, int] = defaultdict(int)
+    for compiland in pdb.compilands if pdb is not None else ():
+        module_counts[compiland.module_name] += 1
+    for symbol in pdb.data if pdb is not None else ():
+        rva = _data_rva(artifact, symbol.section, symbol.offset)
+        if rva is not None:
+            at[rva].append(symbol)
+            named[(symbol.module, symbol.procedure, symbol.name)].add(rva)
+    data = {rva: (symbols[0].module, (symbols[0].procedure + "::" if symbols[0].procedure else "") + symbols[0].name)
+            for rva, symbols in at.items()
+            if len(symbols) == 1 and symbols[0].kind == "local"
+            and len(named[(symbols[0].module, symbols[0].procedure, symbols[0].name)])
+            <= max(1, module_counts[symbols[0].module])}
+    return {"guards": {key: len(rvas) for key, rvas in guards.items()}, "data": data}
+
+
+def _pairing_keys(artifact: ArtifactData, function_targets: Mapping[int, str],
+                  map_targets: Mapping[int, tuple[str, ...]], function: _Function, instructions: Sequence[Any],
+                  index: int, value: int, identity: str | None, prior: Sequence[Evidence]) -> dict[str, tuple[str, ...]]:
+    rva = artifact.resolve_va(value)
+    text = identity or ""
+    if rva is None or text.startswith(("intra-function:", "import:")):
+        return {}
+    pairing_index = _PAIRING_INDEX.get(id(map_targets), {})
+    keys: dict[str, tuple[str, ...]] = {}
+    if "??_C@" in text or text.startswith("string:"):
+        string = _read_string(artifact, rva)
+        if string is not None and _PAIRING_PATH.search(string):
+            keys["path_basename"] = (_PAIRING_PATH.sub(lambda found: found.group(1).lower(), string),)
+    if _PAIRING_GUARD.search(text):
+        guard = _PAIRING_GUARD.sub("?$S@??", text)
+        if pairing_index.get("guards", {}).get(guard) == 1:
+            keys["static_guard"] = (guard,)
+    match = _PAIRING_ATEXIT_LOCAL.match(text)
+    following = index + 1
+    while (following < len(instructions) and instructions[following].mnemonic == "mov"
+           and instructions[following].operands[0][:2] != ("reg", "esp")):
+        following += 1
+    call = instructions[following] if following < len(instructions) else None
+    if (match and instructions[index].mnemonic == "push" and call is not None and call.mnemonic.startswith("call")
+            and call.operands and call.operands[0][0] == "imm"
+            and _resolve_target(artifact, function_targets, map_targets, function, int(call.operands[0][1]))[0] == "map:_atexit"
+            and any("$S" in (evidence.identity or "") for evidence in prior)):
+        ordinal = sum(1 for evidence in prior if "atexit_destructor" in ((evidence.detail or {}).get("pairing") or {}))
+        keys["atexit_destructor"] = (f"{match.group(1)}$E#{ordinal}",)
+    match = _PAIRING_OWNED_STATIC.match(text)
+    if match and match.group(2) in {symbol.name for symbol in function.symbols}:
+        keys["function_static"] = (f"data:{match.group(1)}:{match.group(3)}",)
+    elif _PAIRING_PLAIN_DATA.match(text):
+        keys["function_static"] = (text,)
+    owner = pairing_index.get("data", {}).get(rva)
+    if owner is not None and owner[0] in {symbol.module for symbol in function.symbols}:
+        keys["data_self"] = (owner[1],)
+    if "?%" in text:
+        keys["anonymous_namespace"] = (_PAIRING_ANONYMOUS.sub(lambda found: "?%" + found.group(1).lower() + "@@", text),)
+    match = _PAIRING_ANONYMOUS_NAME.match(text)
+    if match and function.compiland == "source:" + match.group(2).lower():
+        keys["anonymous_namespace_tu_local"] = (f"{function.compiland}:{match.group(1)}",)
+    match = _PAIRING_TU_LOCAL.match(text)
+    if match and match.group(1) == function.compiland:
+        keys["anonymous_namespace_tu_local"] = (f"{function.compiland}:{match.group(2)}",)
+    return keys
+
+
 def _code_evidence(artifact: ArtifactData, functions: Sequence[_Function], function: _Function,
                    code: bytes, function_targets: Mapping[int, str] | None = None,
                    map_targets: Mapping[int, tuple[str, ...]] | None = None,
@@ -738,7 +835,8 @@ def _code_evidence(artifact: ArtifactData, functions: Sequence[_Function], funct
         function_targets, map_targets = _target_maps(artifact, functions)
     base = artifact.identity.image_base + function.rva
     result: list[Evidence] = []
-    for instruction in (decoded or decode_procedure(code, base)).instructions:
+    instructions = (decoded or decode_procedure(code, base)).instructions
+    for index, instruction in enumerate(instructions):
         for local_offset, size, _, operand_index in instruction.fields:
             if not 0 <= operand_index < len(instruction.operands):
                 continue
@@ -753,7 +851,10 @@ def _code_evidence(artifact: ArtifactData, functions: Sequence[_Function], funct
                 value = int(operand[5])
             if value is not None:
                 identity, resolved = _resolve_target(artifact, function_targets, map_targets, function, value)
-                result.append(Evidence(instruction.offset + local_offset, size, kind, identity, resolved))
+                pairing = _pairing_keys(artifact, function_targets, map_targets, function, instructions, index,
+                                        value, identity, result)
+                result.append(Evidence(instruction.offset + local_offset, size, kind, identity, resolved,
+                                       {"pairing": pairing} if pairing else None))
     return result
 
 
@@ -779,6 +880,18 @@ def _macro_sink(target: str) -> str | None:
     return None
 
 
+def _interleaved_argument_instruction(instruction: Any, distance: int) -> bool:
+    if distance >= 30 or instruction.mnemonic.startswith(
+            ("call", "j", "loop", "ret", "push", "pop", "enter", "leave", "int")):
+        return False
+    target = instruction.operands[0] if instruction.operands else ("none",)
+    if target[0] == "reg" and target[1] in ("esp", "sp"):
+        return False
+    if target[0] == "mem" and "esp" in (target[2], target[3]):
+        return False
+    return all(operand[0] in ("reg", "imm", "mem") for operand in instruction.operands)
+
+
 def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], function: _Function,
                     code: bytes, function_targets: Mapping[int, str],
                     map_targets: Mapping[int, tuple[str, ...]],
@@ -799,15 +912,22 @@ def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], func
         ordinal = ordinals[sink]
         ordinals[sink] += 1
         pushes: list[Any] = []
+        interleaved: list[int] = []
         cursor = call_index - 1
         while cursor >= 0 and len(pushes) < 12:
             instruction = instructions[cursor]
             if instruction.mnemonic != "push":
-                break
+                if not _interleaved_argument_instruction(instruction, call_index - cursor):
+                    break
+                if len(pushes) <= max(_MACRO_ARGUMENTS[sink]):
+                    interleaved.append(instruction.offset)
+                cursor -= 1
+                continue
             pushes.append(instruction); cursor -= 1
         file_position, line_position = _MACRO_ARGUMENTS[sink]
         if max(file_position, line_position) >= len(pushes):
             continue
+        scan = {"argument_scan": "interleaved_arguments", "interleaved_offsets": interleaved} if interleaved else {}
         file_instruction = pushes[file_position]
         line_instruction = pushes[line_position]
         if not (len(file_instruction.operands) == len(line_instruction.operands) == 1
@@ -824,9 +944,9 @@ def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], func
         common = f"macro:{sink}:{ordinal}"
         fo, fs, _, _ = file_field; lo, ls, _, _ = line_field
         result.append(Evidence(file_instruction.offset + fo, fs, "macro_file", common + ":file", True,
-            {"sink": sink, "paired_call_verified": True, "value": source_file, "paired_line": line_value}))
+            {"sink": sink, "paired_call_verified": True, "value": source_file, "paired_line": line_value, **scan}))
         result.append(Evidence(line_instruction.offset + lo, ls, "macro_line", common + ":line", True,
-            {"sink": sink, "paired_call_verified": True, "value": line_value, "paired_file": source_file}))
+            {"sink": sink, "paired_call_verified": True, "value": line_value, "paired_file": source_file, **scan}))
         if line_position == 0:
             continue
         covered = {value.offset for value in result}
@@ -836,7 +956,7 @@ def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], func
             mo, ms, _, _ = merged.fields[0]
             result.append(Evidence(merged.offset + mo, ms, "macro_line", f"{common}:line:merged{alternate}", True,
                 {"sink": sink, "paired_call_verified": True, "value": int(merged.operands[-1][1]),
-                 "paired_file": source_file}))
+                 "paired_file": source_file, **scan}))
     result.extend(_file_line_argument_evidence(artifact, instructions, {value.offset for value in result}, base))
     return result
 
@@ -1059,6 +1179,9 @@ def _inline_functions(original: PDBData, rebuilt: PDBData,
     return result
 
 
+_ANONYMOUS_DATA = re.compile(r"^\?([A-Za-z_]\w*)@\?%(.+?\.(?:c|cc|cpp|cxx))\d+@@(3.+)$", re.I)
+
+
 def _compare_globals(original_artifact: ArtifactData, original: PDBData,
                      rebuilt_artifact: ArtifactData, rebuilt: PDBData,
                      aliases: Mapping[tuple[str, str], str] | None = None) -> list[dict[str, Any]]:
@@ -1076,6 +1199,44 @@ def _compare_globals(original_artifact: ArtifactData, original: PDBData,
         return values
 
     left, right = collect(original_artifact, original, {}), collect(rebuilt_artifact, rebuilt, aliases or {})
+
+    def anonymous_names(artifact: ArtifactData) -> dict[int, dict[str, tuple[str, str | None, str]]]:
+        result: dict[int, dict[str, tuple[str, str | None, str]]] = defaultdict(dict)
+        for map_symbol in artifact.map_symbols:
+            match = _ANONYMOUS_DATA.match(map_symbol.name)
+            if match and "static" not in map_symbol.flags:
+                result[map_symbol.rva][map_symbol.name] = (match.group(1), _source_path_key(match.group(2)),
+                                                           match.group(3))
+        return result
+
+    original_anonymous, rebuilt_anonymous = anonymous_names(original_artifact), anonymous_names(rebuilt_artifact)
+    original_keys, names = _module_keys(original), {section.number: section.name for section in rebuilt_artifact.sections}
+    expected: dict[tuple[str, str], tuple[str | None, str]] = {}
+    for symbol in original.data:
+        key = original_keys.get(symbol.module)
+        rva = _data_rva(original_artifact, symbol.section, symbol.offset)
+        if key is None or rva is None or symbol.procedure is not None or (key, symbol.name) not in left:
+            continue
+        decorated = [value for value in original_anonymous.get(rva, {}).values() if value[0] == symbol.name]
+        if len(decorated) == 1:
+            expected[(key, symbol.name)] = decorated[0][1:]
+    rebuilt_sources: dict[str | None, set[str]] = defaultdict(set)
+    for compiland in rebuilt.compilands:
+        for source in compiland.source_files:
+            if _basename(source).endswith((".c", ".cc", ".cpp", ".cxx")):
+                rebuilt_sources[_source_path_key(source)].add(_compiland_key(compiland))
+    candidates: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for symbol in rebuilt.anonymous_data:
+        rva = _data_rva(rebuilt_artifact, symbol.section, symbol.offset)
+        decorated = rebuilt_anonymous.get(rva, {}).get(symbol.name) if rva is not None else None
+        owners = rebuilt_sources.get(decorated[1], set()) if decorated is not None else set()
+        if decorated is None or decorated[1] is None or len(owners) != 1:
+            continue
+        identity = (next(iter(owners)), decorated[0])
+        if expected.get(identity) == decorated[1:] and identity not in right:
+            candidates[identity].append({"type": rebuilt.types.describe(symbol.type_index), "scope": "anonymous",
+                                         "section": names.get(symbol.section, f"#{symbol.section}")})
+    right.update({identity: values[0] for identity, values in candidates.items() if len(values) == 1})
     rows = []
     for (compiland, name), value in sorted(left.items()):
         other = right.get((compiland, name))
@@ -1200,10 +1361,138 @@ def _compare_compilands(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[
     return results, {"total_count": total, "matched_count": matched, "count_percent": _pct(matched, total)}
 
 
+def _line_values(macro: Sequence[Evidence]) -> dict[str, tuple[int, str]]:
+    return {value.identity: (int(value.detail["value"]), str(value.detail.get("paired_file", "")))
+            for value in macro if value.kind == "macro_line" and value.identity and value.detail}
+
+
+def _line_proof_candidate(left_decoded: DecodedProcedure, right_decoded: DecodedProcedure,
+                          left_lines: Mapping[str, tuple[int, str]], right_lines: Mapping[str, tuple[int, str]]) -> bool:
+    left, right = left_decoded.instructions, right_decoded.instructions
+    if len(left) != len(right) or Counter(value.mnemonic for value in left) != Counter(value.mnemonic for value in right):
+        return False
+    return any(key in left_lines and left_lines[key][0] != value for key, (value, _) in right_lines.items())
+
+
+def _apply_line_proof(proof: LineProof, pending: Sequence[dict[str, Any]], original_artifact: ArtifactData,
+                      rebuilt_artifact: ArtifactData, rebuilt_pdb: PDBData, rebuilt_functions: Sequence[_Function],
+                      rebuilt_function_targets: Mapping[int, str],
+                      rebuilt_map_targets: Mapping[int, tuple[str, ...]]) -> list[dict[str, Any]]:
+    names_at: dict[int, list[str]] = defaultdict(list)
+    for symbol in rebuilt_artifact.map_symbols:
+        names_at[symbol.rva].append(symbol.name)
+    compilands = defaultdict(list)
+    for value in rebuilt_pdb.compilands:
+        compilands[value.module_name].append(value)
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for item in pending:
+        module = item["rebuilt"].symbols[0].module
+        wanted = item["original"].compiland.partition(":")[2]
+        source = next((path for value in compilands.get(module, ()) for path in value.source_files
+                       if _basename(path).lower() == wanted), None)
+        if source is None:
+            item["result"]["line_proof"] = {"status": "refused", "reason": "rebuilt compiland source not found"}
+            continue
+        remap: dict[int, int] = {}
+        expected: dict[str, int] = {}
+        reason = None
+        for key, (value, file) in item["right_lines"].items():
+            expected[key] = value
+            if key not in item["left_lines"] or item["left_lines"][key][0] == value:
+                continue
+            original_value, original_file = item["left_lines"][key]
+            if (_basename(file).lower() != _basename(source).lower()
+                    or _basename(original_file).lower() != _basename(source).lower()):
+                continue
+            expected[key] = original_value
+            if remap.setdefault(value, original_value) != original_value:
+                reason = f"rebuilt line {value} maps to two original lines"
+                break
+        if reason is None and not remap:
+            reason = "no differing __LINE__ argument comes from the compiland source file"
+        if reason is not None:
+            item["result"]["line_proof"] = {"status": "refused", "reason": reason}
+            continue
+        item["remap"] = remap
+        item["expected_lines"] = expected
+        groups[(module, source)].append(item)
+    flipped = []
+    for (module, source), items in sorted(groups.items()):
+        rule = proof.rule(module, source)
+        if rule is None:
+            for item in items:
+                item["result"]["line_proof"] = {"status": "refused", "reason": "no compile rule in the build tree"}
+            continue
+        combined: dict[int, int] = {}
+        conflicts: set[int] = set()
+        for item in items:
+            for line, value in item["remap"].items():
+                if combined.setdefault(line, value) != value:
+                    conflicts.add(line)
+        accepted = []
+        for item in items:
+            if conflicts & set(item["remap"]):
+                item["result"]["line_proof"] = {"status": "refused", "reason": "line remap conflicts with another function"}
+            else:
+                accepted.append(item)
+        if not accepted:
+            continue
+        remap = {line: value for item in accepted for line, value in item["remap"].items()}
+        text = Path(source).read_bytes()
+        name = Path(source).name
+        stem = re.sub(r"[^A-Za-z0-9]+", "_", Path(module).stem)
+        base_obj = proof.compile(rule, remap_source(text, source, {}), name, f"base_{stem}")
+        fixed_obj = proof.compile(rule, remap_source(text, source, remap), name, f"line_{stem}") if base_obj else None
+        for item in accepted:
+            result, original, rebuilt = item["result"], item["original"], item["rebuilt"]
+            record: dict[str, Any] = {"status": "refused", "source": source,
+                                      "remap": {str(line): value for line, value in sorted(item["remap"].items())}}
+            result["line_proof"] = record
+            if base_obj is None or fixed_obj is None:
+                record["reason"] = "probe compile failed"
+                continue
+            names = names_at.get(rebuilt.rva, [])
+            base = function_code(base_obj, names)
+            fixed = function_code(fixed_obj, names)
+            if base is None or fixed is None:
+                record["reason"] = "function not found in probe object"
+                continue
+            right_address = rebuilt_artifact.identity.image_base + rebuilt.rva
+            rebuilt_code = rebuilt_artifact.read_rva(rebuilt.rva, rebuilt.size) or b""
+            code, why = synthesize(base_obj, base, fixed_obj, fixed, rebuilt_code, right_address)
+            if code is None:
+                record["reason"] = why
+                continue
+            synthetic = replace(rebuilt, size=len(code))
+            try:
+                right_decoded = decode_procedure(code, right_address)
+                right_evidence = _code_evidence(rebuilt_artifact, rebuilt_functions, synthetic, code,
+                                                rebuilt_function_targets, rebuilt_map_targets, right_decoded)
+                right_macro = _macro_evidence(rebuilt_artifact, rebuilt_functions, synthetic, code,
+                                              rebuilt_function_targets, rebuilt_map_targets, right_decoded)
+            except (DecodeFailure, DecodeUnavailable) as exc:
+                record["reason"] = f"synthetic function does not decode: {exc}"
+                continue
+            fixed_lines = {key: value for key, (value, _) in _line_values(right_macro).items()}
+            if fixed_lines != item["expected_lines"]:
+                record["reason"] = "recompiled __LINE__ arguments are not the remapped values"
+                continue
+            outcome = compare_code(item["left_code"], code, original_artifact.identity.image_base + original.rva,
+                                   right_address, item["left_evidence"], right_evidence, item["left_macro"],
+                                   right_macro, item["left_decoded"], right_decoded)
+            if not outcome.matched:
+                record["reason"] = f"still differs after line remap: {outcome.reason}"
+                continue
+            record.update({"status": "matched", "original_reason": result["reason"],
+                           "synthetic_category": outcome.category, "audit": list(outcome.audit)})
+            flipped.append(item)
+    return flipped
+
+
 def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                    rebuilt_artifact: ArtifactData, rebuilt_pdb: PDBData, *,
                    strict: bool = False, compiland: str | None = None,
-                   rebuilt_objects: Path | None = None) -> dict[str, Any]:
+                   rebuilt_objects: Path | None = None, line_proof: LineProof | None = None) -> dict[str, Any]:
     original_identity = _identity_report(original_artifact, original_pdb)
     rebuilt_identity = _identity_report(rebuilt_artifact, rebuilt_pdb)
     if original_artifact.fatal or rebuilt_artifact.fatal or original_pdb.fatal or rebuilt_pdb.fatal:
@@ -1252,6 +1541,7 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
     per_compiland: dict[str, dict[str, int]] = defaultdict(lambda: {"total_count": 0, "total_bytes": 0,
         "code_matched_count": 0, "code_matched_bytes": 0, "signature_matched_count": 0, "signature_matched_bytes": 0})
     used_rebuilt: set[tuple[int, int]] = set()
+    line_pending: list[dict[str, Any]] = []
     for original in functions_to_compare:
         cm = per_compiland[original.compiland]; cm["total_count"] += 1; cm["total_bytes"] += original.size
         if same_artifact:
@@ -1321,7 +1611,9 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                                                    rebuilt_function_targets, rebuilt_map_targets, right_decoded)
                     outcome = compare_code(left_code, right_code, left_address, right_address,
                         left_evidence, right_evidence, left_macro, right_macro,
-                        left_decoded, right_decoded)
+                        left_decoded, right_decoded,
+                        line_argument_pairs(_display_name(original), original_pdb.types.normalize_name,
+                                            rebuilt_pdb.types.normalize_name))
                     category, reason, audit, code_matched = outcome.category, outcome.reason, outcome.audit, outcome.matched
                     if outcome.mismatch_offset is not None: result["mismatch_offset"] = outcome.mismatch_offset
                 except (DecodeFailure, DecodeUnavailable) as exc:
@@ -1337,6 +1629,13 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     rebuilt_artifact.identity.image_base + rebuilt.rva,
                     left_decoded, right_decoded, reason, outcome.mismatch_offset, audit,
                 )
+                if line_proof is not None and not same_artifact:
+                    left_lines, right_lines = _line_values(left_macro), _line_values(right_macro)
+                    if _line_proof_candidate(left_decoded, right_decoded, left_lines, right_lines):
+                        line_pending.append({"result": result, "original": original, "rebuilt": rebuilt,
+                                             "left_code": left_code, "left_decoded": left_decoded,
+                                             "left_evidence": left_evidence, "left_macro": left_macro,
+                                             "left_lines": left_lines, "right_lines": right_lines})
             if code_matched:
                 code_count += 1; code_bytes += original.size; cm["code_matched_count"] += 1; cm["code_matched_bytes"] += original.size
                 if signature_status == "matched":
@@ -1344,6 +1643,24 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                     cm["signature_matched_count"] += 1; cm["signature_matched_bytes"] += original.size
         categories[result["category"]]["count"] += 1; categories[result["category"]]["bytes"] += original.size
         function_results.append(result)
+    line_proof_status = "disabled" if line_proof is None else (line_proof.unavailable or "enabled")
+    if line_pending and line_proof is not None and line_proof.unavailable is None:
+        for item in _apply_line_proof(line_proof, line_pending, original_artifact, rebuilt_artifact, rebuilt_pdb,
+                                      rebuilt_functions, rebuilt_function_targets, rebuilt_map_targets):
+            result, original = item["result"], item["original"]
+            size = original.size
+            categories["mismatch"]["count"] -= 1; categories["mismatch"]["bytes"] -= size
+            categories["line_normalized"]["count"] += 1; categories["line_normalized"]["bytes"] += size
+            result.pop("disassembly_difference", None); result.pop("mismatch_offset", None)
+            result.update({"category": "line_normalized", "code_matched": True,
+                           "reason": "matches after recompiling with the original __LINE__ values"})
+            cm = per_compiland[original.compiland]
+            code_count += 1; code_bytes += size; cm["code_matched_count"] += 1; cm["code_matched_bytes"] += size
+            if result["signature_status"] == "matched":
+                signature_count += 1; signature_bytes += size
+                cm["signature_matched_count"] += 1; cm["signature_matched_bytes"] += size
+        if categories["mismatch"]["count"] == 0:
+            categories.pop("mismatch")
     selected_key = None if selected_compiland is None else _compiland_key(selected_compiland[0])
     rebuilt_only = [{"display_name": _display_name(function), "compiland": function.compiland,
                      "rebuilt": {"rva": function.rva, "size": function.size},
@@ -1386,6 +1703,8 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                              if selected_compiland is not None else
                              "coverage only; bytes outside unique PDB procedure ranges are not counted as matched or mismatched")},
                 "types": type_metrics, "compilands": compiland_metrics, "categories": dict(sorted(categories.items())),
+                "line_proof": {"status": line_proof_status, "candidates": len(line_pending),
+                               "matched": categories.get("line_normalized", {"count": 0})["count"]},
                 "inline_functions": {"total_count": len(inline_functions), "matched_count": inline_matched,
                                      "count_percent": _pct(inline_matched, len(inline_functions))},
                 "globals": {"total_count": sum(row["status"] != "extra" for row in global_results),
@@ -1405,7 +1724,8 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
                 "The denominator is unique, readable original PDB procedure ranges; aliases are coalesced by RVA and length.",
                 "Executable coverage is separate and does not claim validation outside PDB procedure ranges.",
                 "The supplied images have stripped PE relocations; changed address fields require exact semantic target evidence.",
-                "Macro normalization requires diagnosed known-sink argument-pair evidence; absent evidence remains a mismatch."]}
+                "Macro normalization requires diagnosed known-sink argument-pair evidence; absent evidence remains a mismatch.",
+                "line_normalized: a same-shape mismatch whose __LINE__ arguments differ is recompiled from its rebuilt source with only those lines renumbered to the original values (#line). It counts as matched only if the unmodified probe reproduces the linked bytes and the recompiled function passes the normal comparison with every __LINE__ argument equal to the original."]}
     result = apply_compiland_policy(report, strict=strict)
     if selected_compiland is not None:
         result["scope"] = {
@@ -1423,7 +1743,8 @@ def compare_loaded(original_artifact: ArtifactData, original_pdb: PDBData,
 def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, original_map: str | Path,
                       rebuilt_exe: str | Path, rebuilt_pdb_path: str | Path, rebuilt_map: str | Path, *,
                       strict: bool = False, compiland: str | None = None,
-                      rebuilt_objects: str | Path | None = None) -> dict[str, Any]:
+                      rebuilt_objects: str | Path | None = None,
+                      line_proof: LineProof | None = None) -> dict[str, Any]:
     from .artifacts import load_artifacts
     paths = [Path(value) for value in (original_exe, original_pdb_path, original_map,
                                         rebuilt_exe, rebuilt_pdb_path, rebuilt_map)]
@@ -1448,6 +1769,7 @@ def compare_artifacts(original_exe: str | Path, original_pdb_path: str | Path, o
         strict=strict,
         compiland=compiland,
         rebuilt_objects=None if rebuilt_objects is None else Path(rebuilt_objects),
+        line_proof=line_proof,
     )
     report["inputs"] = {
         "original": {"exe": original_exe_snapshot.record(), "pdb": original_pdb_snapshot.record(),

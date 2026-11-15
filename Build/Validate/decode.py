@@ -397,6 +397,42 @@ def decode_procedure(code: bytes, address: int) -> DecodedProcedure:
         if overlap is not None:
             raise DecodeFailure(f"selector table overlaps reachable instruction at byte {overlap}")
 
+    reserved = set(occupied)
+    for table in tables.values():
+        reserved.update(range(table.offset, table.offset + table.entry_size * len(table.targets)))
+    for selector in selectors.values():
+        reserved.update(range(selector.offset, selector.offset + len(selector.values)))
+    cursor = 0
+    while cursor < len(code):
+        if cursor in reserved:
+            cursor += 1
+            continue
+        start = cursor
+        while cursor < len(code) and cursor not in reserved:
+            cursor += 1
+        if cursor >= len(code) or all(byte in {0x90, 0xCC} for byte in code[start:cursor]):
+            continue
+        dead: list[Instruction] = []
+        offset = start
+        try:
+            while offset < cursor:
+                instruction = _instruction(decoder, x86, code, address, offset)
+                dead.append(instruction)
+                offset += instruction.size
+        except DecodeFailure:
+            continue
+        if offset != cursor or not (dead[-1].mnemonic == "jmp" or dead[-1].mnemonic.startswith("ret")):
+            continue
+        starts = {instruction.offset for instruction in dead} | set(instructions)
+        targets = [_direct_target(instruction, address, len(code)) for instruction in dead
+                   if instruction.mnemonic.startswith("j")]
+        if any(target is None or target not in starts for target in targets):
+            continue
+        for instruction in dead:
+            instructions[instruction.offset] = instruction
+            for byte in range(instruction.offset, instruction.offset + instruction.size):
+                occupied[byte] = instruction.offset
+
     data_regions: list[DataRegion] = []
     cursor = 0
     while cursor < len(code):

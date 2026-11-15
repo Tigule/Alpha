@@ -232,12 +232,7 @@ static void IWriteLayer(const MDLTEXLAYER &layer, int needCoordIds, TSGrowableAr
   MDL::WriteLine(buffer, "\t\t%s {\n", MDL::TokenText(MDLTOK_LAYER));
   MDL::WriteLine(buffer, "\t\t\t%s %s,\n", MDL::TokenText(MDLTOK_FILTERMODE), MDL::TokenText(IGetFilterModeToken(layer.blendMode)));
   IWriteTextureFlags(layer.flags, buffer);
-  if (layer.flipKeys.keys.Count()) {
-    WriteIntKeyFrames(MDLTOK_TEXTURE_ID, "\t\t\t", layer.flipKeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "\t\t\t%s %s ", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_TEXTURE_ID));
-    WriteUintKeyData(buffer, &layer.textureId, 1);
-  }
+  WriteKeyFramesOrStatic(MDLTOK_TEXTURE_ID, "\t\t\t", layer.flipKeys, &layer.textureId, 1, buffer);
   if (layer.transformId != (UINT)-1) {
     MDL::WriteLine(buffer, "\t\t\t%s %u,\n", MDL::TokenText(MDLTOK_TVERTEXANIMID), layer.transformId);
   }
@@ -245,12 +240,7 @@ static void IWriteLayer(const MDLTEXLAYER &layer, int needCoordIds, TSGrowableAr
     MDL::WriteLine(buffer, "\t\t\t%s %u,\n", MDL::TokenText(MDLTOK_COORD_ID), layer.coordId);
   }
   if (layer.alphaKeys.keys.Count() || layer.staticAlpha < 1.0f) {
-    if (layer.alphaKeys.keys.Count()) {
-      WriteFloatKeyFrames(MDLTOK_ALPHA, "\t\t\t", layer.alphaKeys, buffer);
-    } else {
-      MDL::WriteLine(buffer, "\t\t\t%s %s ", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ALPHA));
-      WriteKeyData(buffer, &layer.staticAlpha, 1);
-    }
+    WriteKeyFramesOrStatic(MDLTOK_ALPHA, "\t\t\t", layer.alphaKeys, &layer.staticAlpha, 1, buffer);
   }
   MDL::WriteLine(buffer, "\t\t}\n");
 }

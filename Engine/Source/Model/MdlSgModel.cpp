@@ -251,10 +251,8 @@ static BYTE *LoadGeosetTransformGroups(BYTE *geosetData, UINT loadFlags, CGeoset
     geoShared->hwBoneWeights.SetCount(geoShared->position.Count());
     geoShared->hwBoneIndices.SetCount(geoShared->position.Count());
     geoShared->hwBoneIndices.Zero();
-    UINT numVertices = geoShared->position.Count();
-    for (UINT i = 0; i < numVertices; ++i) {
-      geoShared->hwBoneWeights.Ptr()[i] = 0xFF000000;
-    }
+    UINT weight = 0xFF000000;
+    geoShared->hwBoneWeights.Set(geoShared->position.Count(), 0, &weight);
 
     geosetData += 4;
     geosetData += *(UINT *)geosetData + 4;
@@ -392,10 +390,8 @@ static void CreateGeoset(const MDLGEOSETSECTION &geosetdata, UINT geosetId, UINT
     geoShared->hwBoneWeights.SetCount(geoShared->position.Count());
     geoShared->hwBoneIndices.SetCount(geoShared->position.Count());
     geoShared->hwBoneIndices.Zero();
-    UINT numVertices = geoShared->position.Count();
-    for (UINT i = 0; i < numVertices; ++i) {
-      geoShared->hwBoneWeights.Ptr()[i] = 0xFF000000;
-    }
+    UINT weight = 0xFF000000;
+    geoShared->hwBoneWeights.Set(geoShared->position.Count(), 0, &weight);
   } else {
     geoShared->groupMatrixCounts = geosetdata.groupMatrixCounts;
     geoShared->matrices = geosetdata.matrices;
@@ -478,25 +474,21 @@ static void ProcessAttachments(
     UINT                                         loadFlags,
     CStatus                                     *status
 ) {
-  UINT numAttachments = attachments.Count();
-  if (!numAttachments) {
+  if (!attachments.Count())
     return;
-  }
 
   ASSERT(modelptr);
-  modelptr->m_attached.SetCount(numAttachments);
-  modelptr->m_attachmentFlags.SetCount(numAttachments);
-  memset(modelptr->m_attachmentFlags.Ptr(), 0, numAttachments);
 
-  UINT highestId = attachments.Top()->attachmentId;
-  shared->attachIdToIndex.SetCount(highestId + 1);
+  modelptr->m_attached.SetCount(attachments.Count());
+  modelptr->m_attachmentFlags.SetCount(attachments.Count());
+  memset(modelptr->m_attachmentFlags.Ptr(), 0, modelptr->m_attachmentFlags.Count());
+  shared->attachIdToIndex.SetCount(attachments.Top()->attachmentId + 1);
   memset(shared->attachIdToIndex.Ptr(), 0xFF, shared->attachIdToIndex.Count() * sizeof(UINT));
 
-  CStatus      subStatus;
   LISTPTR(LINKUNIQUE) instance = modelptr->m_attached.Ptr();
-  for (UINT i = 0; i < numAttachments; ++i, ++instance) {
-    UINT attachmentId = attachments.Ptr()[i].attachmentId;
-    shared->attachIdToIndex[attachmentId] = i;
+  CStatus             subStatus;
+  for (UINT i = 0; i < attachments.Count(); ++i, ++instance) {
+    shared->attachIdToIndex[attachments.Ptr()[i].attachmentId] = i;
     if (!SStrLen(attachments.Ptr()[i].path)) {
       continue;
     }

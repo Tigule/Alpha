@@ -255,7 +255,9 @@ LPCSTR CGLootInfo::GetLootSlotText(UINT slot) {
       int first = 1;
       for (int coin = 2; coin >= 0; --coin) {
         if (coins[coin]) {
-          SStrCopy(coinName, FrameScript_GetText(CurrencyAbbreviation(coin), -1, GENDER_NOT_APPLICABLE), sizeof(coinName));
+          LPCSTR text = CurrencyAbbreviation(coin);
+          text = FrameScript_GetText(text, -1, GENDER_NOT_APPLICABLE);
+          SStrCopy(coinName, text, sizeof(coinName));
           if (first) {
             SStrPrintf(moneyBuf, sizeof(moneyBuf), "%d %s%s", coins[coin], coinName, coin > 0 ? "\n" : "");
             first = 0;
@@ -275,7 +277,10 @@ LPCSTR CGLootInfo::GetLootSlotText(UINT slot) {
     return 0;
   }
   const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
-  return stats ? stats->m_displayName[0] : 0;
+  if (!stats) {
+    return 0;
+  }
+  return stats->m_displayName[0];
 }
 
 LPCSTR CGLootInfo::GetLootSlotLink(UINT slot, char *link, UINT size) {
@@ -313,35 +318,39 @@ void CGLootInfo::CoinsCleared() {
 
 int CGLootInfo::LootSlot(UINT slot, int force) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (player) {
-    UINT origSlot = slot;
-    if (m_coins) {
-      if (!slot) {
-        if (m_coins > 0) {
-          SndInterfacePlayInterfaceSound("LOOTWINDOWCOINSOUND");
-          player->LootMoney();
-          m_coins = -1;
-          FrameScript_SignalEvent(251, "%d", 1);
-          if (!HasLoot()) {
-            CGGameUI::CloseLoot(1, 0);
-          }
-        }
-        return 1;
-      }
-      --slot;
-    }
+  if (!player) {
+    return 1;
+  }
 
-    FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
-    if (m_loot[slot].itemID) {
-      const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
-      FATALASSERT(stats);
-      if (stats->m_bonding == 1 && !force) {
-        FrameScript_SignalEvent(268, "%u", origSlot + 1);
-        return 1;
+  UINT origSlot = slot;
+  if (m_coins) {
+    if (!slot) {
+      if (m_coins > 0) {
+        SndInterfacePlayInterfaceSound("LOOTWINDOWCOINSOUND");
+        player->LootMoney();
+        m_coins = -1;
+        FrameScript_SignalEvent(251, "%d", 1);
+        if (!HasLoot()) {
+          CGGameUI::CloseLoot(1, 0);
+        }
       }
-      SndInterfacePlayItemSound(ITEMSOUND_PICKUP, stats->m_displayInfoID);
-      player->AutoStoreLootItem(m_loot[slot].slot);
+      return 1;
     }
+    --slot;
+  }
+
+  FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
+  if (!m_loot[slot].itemID) {
+    return 1;
+  }
+
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
+  FATALASSERT(stats);
+  if (stats->m_bonding == 1 && !force) {
+    FrameScript_SignalEvent(268, "%u", origSlot + 1);
+  } else {
+    SndInterfacePlayItemSound(ITEMSOUND_PICKUP, stats->m_displayInfoID);
+    player->AutoStoreLootItem(m_loot[slot].slot);
   }
   return 1;
 }

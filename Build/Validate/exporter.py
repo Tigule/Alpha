@@ -15,7 +15,7 @@ from .compiland_policy import apply_compiland_policy
 
 EXPORTER_VERSION = "validate-explorer/v2"
 SUPPORTED_SCHEMA = "validate/v1"
-_STATUS = {"exact": "exact", "relocation_normalized": "address", "macro_normalized": "macro", "mismatch": "differs",
+_STATUS = {"exact": "exact", "relocation_normalized": "address", "macro_normalized": "macro", "line_normalized": "line", "mismatch": "differs",
            "missing": "missing", "ambiguous": "unverified", "unsupported": "unverified"}
 _TRANSLATION_UNITS = (".c", ".cc", ".cpp", ".cxx")
 _REPOSITORY = Path(__file__).resolve().parents[2]

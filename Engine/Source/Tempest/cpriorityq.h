@@ -63,8 +63,7 @@ namespace NTempest {
       return Used() - eRootIndex;
     }
     T Root() const {
-      ASSERT(HasEntries());
-      return CDynTable<T>::operator[](eRootIndex);
+      return (*this)[eRootIndex];
     }
 
     void Enqueue(T value) {
@@ -73,42 +72,42 @@ namespace NTempest {
       DWORD entry = Used() - 1;
       while (entry > eRootIndex) {
         DWORD parent = entry >> 1;
-        if (!B::HasHigherPriority(value, CDynTable<T>::operator[](parent))) {
+        if (!B::HasHigherPriority(value, (*this)[parent])) {
           break;
         }
 
-        CDynTable<T>::operator[](entry) = CDynTable<T>::operator[](parent);
+        (*this)[entry] = (*this)[parent];
         entry >>= 1;
       }
 
-      CDynTable<T>::operator[](entry) = value;
+      (*this)[entry] = value;
     }
 
     T Dequeue() {
-      T root = CDynTable<T>::operator[](eRootIndex);
-      T k = CDynTable<T>::operator[](CDynTable<T>::Used() - 1);
+      T root = Root();
+      T k = (*this)[Used() - 1];
 
-      CDynTable<T>::RemoveLast();
+      this->RemoveLast();
 
-      if (CDynTable<T>::Used() < 2) return root;
+      if (Used() < 2) return root;
 
       DWORD entry = eRootIndex;
-      DWORD hbound = CDynTable<T>::Used() - 1;
+      DWORD hbound = Used() - 1;
       DWORD lbound = hbound >> 1;
 
       while (entry <= lbound) {
         DWORD child = entry << 1;
 
-        if (child < hbound && B::HasHigherPriority(CDynTable<T>::operator[](child + 1), CDynTable<T>::operator[](child)))
+        if (child < hbound && B::HasHigherPriority((*this)[child + 1], (*this)[child]))
           ++child;
 
-        if (B::HasHigherPriority(k, CDynTable<T>::operator[](child)))
+        if (B::HasHigherPriority(k, (*this)[child]))
           break;
-        CDynTable<T>::operator[](entry) = CDynTable<T>::operator[](child);
+        (*this)[entry] = (*this)[child];
         entry = child;
       }
 
-      CDynTable<T>::operator[](entry) = k;
+      (*this)[entry] = k;
       return root;
     }
 

@@ -147,34 +147,38 @@ void CGItemText::DisplayText(const DWORDLONG &item, int useSkill) {
   }
   m_pages[m_currentPage + 1] = text->m_nextPage;
 
-  UINT language = 0;
   if (object->GetType() & TYPE_ITEM) {
     CGItem_C *itemObject = (CGItem_C *)object;
     if (itemObject->IsTranslated()) {
       SStrCopy(m_text, text->m_text, sizeof(m_text));
-      FrameScript_SignalEvent(275);
-      return;
-    }
+    } else {
+      const ItemStats_C *stats = g_itemDBCache.GetRecord(object->GetEntryID(), 0, 0, 0);
+      FATALASSERT(stats);
 
-    const ItemStats_C *stats = g_itemDBCache.GetRecord(*object->GetData(3), 0, 0, 0);
-    FATALASSERT(stats);
-    language = stats->m_languageID;
+      UINT skill = 0;
+      if (useSkill) {
+        CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+        if (player) {
+          player->GetLanguageSkill(stats->m_languageID, skill);
+        }
+      }
+
+      CGChat::TranslateMessage(stats->m_languageID, skill, text->m_text, m_text, sizeof(m_text), 1);
+    }
   } else if (object->GetType() & TYPE_GAMEOBJECT) {
-    language = ((CGGameObject_C *)object)->GetPageTextLanguage();
-  } else {
-    FrameScript_SignalEvent(275);
-    return;
-  }
+    UINT language = ((CGGameObject_C *)object)->GetPageTextLanguage();
 
-  UINT skill = 0;
-  if (useSkill) {
-    CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (player) {
-      player->GetLanguageSkill(language, skill);
+    UINT skill = 0;
+    if (useSkill) {
+      CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+      if (player) {
+        player->GetLanguageSkill(language, skill);
+      }
     }
+
+    CGChat::TranslateMessage(language, skill, text->m_text, m_text, sizeof(m_text), 1);
   }
 
-  CGChat::TranslateMessage(language, skill, text->m_text, m_text, sizeof(m_text), 1);
   FrameScript_SignalEvent(275);
 }
 

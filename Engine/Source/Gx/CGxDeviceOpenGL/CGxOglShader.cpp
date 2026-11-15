@@ -95,29 +95,37 @@ void RegisterCombiners::FinalCombiner::Realize() {
 }
 
 void CGxDeviceOpenGl::IPixelShaderBind(CGxPixelShader *ps) {
-  if (ps) {
-    if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_nvrc) {
+  if (!ps) {
+    switch (m_caps.m_pixelShaderTarget) {
+      case CGxPixelShader::Target_arbfp1:
+        DsSet(Ds_FragmentProgramARB, 0, 0);
+        break;
+      case CGxPixelShader::Target_nvrc:
+        DsSet(Ds_RegisterCombinersNV, 0, 0);
+        break;
+    }
+    return;
+  }
+
+  switch (m_caps.m_pixelShaderTarget) {
+    case CGxPixelShader::Target_arbfp1:
+      glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, ps->apiSpecific);
+      DsSet(Ds_FragmentProgramARB, 1, 0);
+      break;
+    case CGxPixelShader::Target_nvrc: {
       const BYTE *code = ps->code.Ptr();
-      UINT        combinerCount = *(const UINT *)code;
-      glCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, combinerCount);
+      glCombinerParameteriNV(GL_NUM_GENERAL_COMBINERS_NV, *(const int *)code);
       glCombinerParameteriNV(0x854F, code[4]);
       glCombinerParameterfvNV(GL_CONSTANT_COLOR0_NV, (const float *)(code + 8));
       glCombinerParameterfvNV(GL_CONSTANT_COLOR1_NV, (const float *)(code + 24));
 
-      RegisterCombiners::GeneralCombiner *general = (RegisterCombiners::GeneralCombiner *)(code + 40);
-      for (UINT stage = 0; stage < combinerCount; ++stage) {
-        general[stage].Realize(GL_COMBINER0_NV + stage, 0);
+      for (int stage = 0; stage < *(const int *)code; ++stage) {
+        ((RegisterCombiners::GeneralCombiner *)(code + 40))[stage].Realize(GL_COMBINER0_NV + stage, 0);
       }
       ((RegisterCombiners::FinalCombiner *)(code + 392))->Realize();
       DsSet(Ds_RegisterCombinersNV, 1, 0);
-    } else if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_arbfp1) {
-      glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, ps->apiSpecific);
-      DsSet(Ds_FragmentProgramARB, 1, 0);
+      break;
     }
-  } else if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_nvrc) {
-    DsSet(Ds_RegisterCombinersNV, 0, 0);
-  } else if (m_caps.m_pixelShaderTarget == CGxPixelShader::Target_arbfp1) {
-    DsSet(Ds_FragmentProgramARB, 0, 0);
   }
 }
 

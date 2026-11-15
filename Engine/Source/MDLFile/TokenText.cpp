@@ -252,7 +252,7 @@ namespace MDL {
       return s_singletoktbl[token];
     }
     if (token > 479)
-      token = token & 0x80000000 ? 0 : 479;
+      token = ~((int)token >> 31) & 479;
     FATALASSERT(s_tokentext[token - MDLTOK_FIRST_TOKEN].token == token);
     return s_tokentext[token - MDLTOK_FIRST_TOKEN].text;
   }

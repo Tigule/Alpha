@@ -779,6 +779,13 @@ static void RenderUniformUVMapLayers(
   }
 }
 
+static inline void ComputeLayerColor(CModelRenderData *modelptr, CGeosetShared *geoShared, NTempest::CImVector *color, BYTE layerAlpha) {
+  const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
+  *color = geosetColor.animatedColor;
+  color->MultiplyRGB(&geosetColor.proceduralColor);
+  color->a = (BYTE)(color->a * layerAlpha / 255);
+}
+
 static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *geoShared, CMaterial *uniqueMtl, CStatus *status) {
   CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
@@ -790,10 +797,7 @@ static void RenderGeosetOneUvMapping(CModelRenderData *modelptr, CGeosetShared *
   for (layer = 0; layer < numLayers; ++layer) {
     layerAlpha = uniqueMtl->layers[layer].layerAlpha;
     if (layerAlpha) {
-      const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
-      color = geosetColor.animatedColor;
-      color.MultiplyRGB(&geosetColor.proceduralColor);
-      color.a = (BYTE)(color.a * layerAlpha / 255);
+      ComputeLayerColor(modelptr, geoShared, &color, layerAlpha);
       break;
     }
   }
@@ -871,10 +875,8 @@ static void RenderGeosetOneUvMapping(
   CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
   ASSERT(sharedMtl);
 
-  const CGeosetColor &geosetColor = modelptr->m_geosetColor[geoShared->geosetId];
-  NTempest::CImVector color = geosetColor.animatedColor;
-  color.MultiplyRGB(&geosetColor.proceduralColor);
-  color.a = (BYTE)(color.a * uniqueMtl->layers[firstLayerId].layerAlpha / 255);
+  NTempest::CImVector color(0ul);
+  ComputeLayerColor(modelptr, geoShared, &color, uniqueMtl->layers[firstLayerId].layerAlpha);
 
   RenderSingleUVMapPrep(modelptr, geoShared, *uniqueMtl, *sharedMtl, firstLayerId, geosetChanged);
   RenderUniformUVMapLayers(modelptr, geoShared, *uniqueMtl, *sharedMtl, color, status);
@@ -2716,16 +2718,16 @@ static void AddHitTestGeometryGeoset(HMODEL__ *modelHandle, HTEXTURE__ *tex) {
         break;
       }
 
-      case COLLIDE_CYLINDER:
-        CreateCylinderGeometry(
-            shared->hitTest[i].extent[0], shared->hitTest[i].extent[1], shared->hitTest[i].radius, &positions, &normals, &texCoords, &primVertIndices,
+      case COLLIDE_SPHERE:
+        CreateSphereGeometry(
+            NTempest::CAaSphere(shared->hitTest[i].extent[0], shared->hitTest[i].radius), &positions, &normals, &texCoords, &primVertIndices,
             &primitives
         );
         break;
 
-      case COLLIDE_SPHERE:
-        CreateSphereGeometry(
-            NTempest::CAaSphere(shared->hitTest[i].extent[0], shared->hitTest[i].radius), &positions, &normals, &texCoords, &primVertIndices,
+      case COLLIDE_CYLINDER:
+        CreateCylinderGeometry(
+            shared->hitTest[i].extent[0], shared->hitTest[i].extent[1], shared->hitTest[i].radius, &positions, &normals, &texCoords, &primVertIndices,
             &primitives
         );
         break;

@@ -94,7 +94,7 @@ void GxuXformCreateLookAtSgCompat(
     const NTempest::C3Vector &up,
     NTempest::C44Matrix      &dst
 ) {
-  dst = NTempest::C44Matrix();
+  dst.Identity();
 
   NTempest::C3Vector zv = center - eye;
   VALIDATEBEGIN;
@@ -127,7 +127,7 @@ void GxuXformCreateLookAtXXX(
     const NTempest::C3Vector &up,
     NTempest::C44Matrix      &dst
 ) {
-  dst = NTempest::C44Matrix();
+  dst.Identity();
 
   NTempest::C3Vector zv = center - eye;
   VALIDATEBEGIN;
@@ -161,14 +161,6 @@ void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest:
   float               zMax;
 
   if (NTempest::CMath::fabs_(proj.d3 - 1.0f) < 2.38418579e-7f) {
-    zMin = -1.0f;
-    zMax = 1.0f;
-  } else {
-    zMin = -(proj.d2 / (proj.c2 + 1.0f));
-    zMax = -(proj.d2 / (proj.c2 - 1.0f));
-  }
-
-  if (NTempest::CMath::fabs_(proj.d3 - 1.0f) < 2.38418579e-7f) {
     corners[0] = NTempest::C3Vector(NTempest::C4Vector(-1.0f, -1.0f, -1.0f, 1.0f) * inv);
     corners[1] = NTempest::C3Vector(NTempest::C4Vector(-1.0f, 1.0f, -1.0f, 1.0f) * inv);
     corners[2] = NTempest::C3Vector(NTempest::C4Vector(1.0f, 1.0f, -1.0f, 1.0f) * inv);
@@ -178,6 +170,8 @@ void GxuXformCalcFrustumCorners(const NTempest::C44Matrix &view, const NTempest:
     corners[6] = NTempest::C3Vector(NTempest::C4Vector(1.0f, 1.0f, 1.0f, 1.0f) * inv);
     corners[7] = NTempest::C3Vector(NTempest::C4Vector(1.0f, -1.0f, 1.0f, 1.0f) * inv);
   } else {
+    zMin = -(proj.d2 / (proj.c2 + 1.0f));
+    zMax = -(proj.d2 / (proj.c2 - 1.0f));
     corners[0] = NTempest::C3Vector(NTempest::C4Vector(-zMin, -zMin, -zMin, zMin) * inv);
     corners[1] = NTempest::C3Vector(NTempest::C4Vector(-zMin, zMin, -zMin, zMin) * inv);
     corners[2] = NTempest::C3Vector(NTempest::C4Vector(zMin, zMin, -zMin, zMin) * inv);
@@ -241,6 +235,24 @@ void GxuXformCalc2dScreenCoords(UINT count, const NTempest::C3Vector *src, NTemp
   }
 }
 
+template <class T>
+static void ScaleTexels(const T *srcPixels, UINT srcW, UINT srcH, UINT srcStrideInBytes, T *dstPixels, UINT dstW, UINT dstH, UINT dstStrideInBytes) {
+  UINT stepX = (srcW << 16) / dstW;
+  UINT stepY = (srcH << 16) / dstH;
+  UINT srcY = 0;
+  for (UINT y = 0; y != dstH; ++y) {
+    const T *srcRow = (const T *)((const BYTE *)srcPixels + HIWORD(srcY) * srcStrideInBytes);
+    T       *dst = dstPixels;
+    UINT     srcX = 0;
+    for (UINT x = 0; x != dstW; ++x) {
+      *dst++ = srcRow[HIWORD(srcX)];
+      srcX += stepX;
+    }
+    srcY += stepY;
+    dstPixels = (T *)((BYTE *)dstPixels + dstStrideInBytes);
+  }
+}
+
 void GxuTexScale(
     LPCVOID      srcPixels,
     EGxTexFormat srcFormat,
@@ -261,24 +273,16 @@ void GxuTexScale(
   VALIDATE(dstFormat < GxTexFormats_Last);
   VALIDATEENDVOID;
 
-  const BYTE *src = (const BYTE *)srcPixels;
-  BYTE       *dst = (BYTE *)dstPixels;
-  UINT        stepX = (srcW << 16) / dstW;
-  UINT        stepY = (srcH << 16) / dstH;
-  UINT        srcY = 0;
-  UINT        pixelSize = srcFormat == GxTex_Argb8888 ? 4 : 2;
-  for (UINT y = 0; y < dstH; ++y) {
-    UINT srcX = 0;
-    for (UINT x = 0; x < dstW; ++x) {
-      if (pixelSize == 4) {
-        *(UINT *)(dst + x * 4) = *(const UINT *)(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 4);
-      } else {
-        *(WORD *)(dst + x * 2) = *(const WORD *)(src + HIWORD(srcY) * srcStrideInBytes + HIWORD(srcX) * 2);
-      }
-      srcX += stepX;
-    }
-    srcY += stepY;
-    dst += dstStrideInBytes;
+  if (srcFormat == GxTex_Argb8888 && dstFormat == GxTex_Argb8888) {
+    ScaleTexels(
+        (const DWORD *)srcPixels, srcW, srcH, srcStrideInBytes,
+        (DWORD *)dstPixels, dstW, dstH, dstStrideInBytes
+    );
+  } else {
+    ScaleTexels(
+        (const WORD *)srcPixels, srcW, srcH, srcStrideInBytes,
+        (WORD *)dstPixels, dstW, dstH, dstStrideInBytes
+    );
   }
 }
 
@@ -390,7 +394,7 @@ BOOL GxuTestRayAndMesh(
     const NTempest::C3Vector  *pos,
     UINT                       posStride,
     UINT                       boneCount,
-    const BYTE                *bone,
+    const CGxPrimBone         *bone,
     UINT                       boneStride,
     EGxPrim                    primType,
     UINT                       indexCount,
@@ -558,72 +562,82 @@ UINT GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vect
 }
 
 void GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector tex[], UINT texW, UINT texH) {
-  UINT               i;
-  NTempest::C3Vector posScr[4];
-  NTempest::C3Vector iposScr[4];
-  NTempest::C3Vector texScr[4];
-  NTempest::C3Vector iposCntr(0.0f);
-  const CGxCaps      caps = GxCaps();
+  UINT                i;
+  NTempest::C3Vector  posScr[4];
+  NTempest::C3Vector  iposScr[4];
+  NTempest::C3Vector  iposCntr;
+  NTempest::C3Vector  texScr[4];
+  NTempest::C33Matrix iposM33;
+  NTempest::C33Matrix texM33;
+  const CGxCaps       caps = GxCaps();
 
   GxuXformCalc2dScreenCoords(4, pos, posScr);
-  texScr[0].Set(tex[0].x, tex[0].y, 0.0f);
-  texScr[1] = texScr[0];
-  for (i = 0; i < 4; ++i) {
+  texScr[0] = texScr[1] = tex[0];
+  for (i = 0; i != 4; ++i) {
     PixSnap(caps, posScr[i], iposScr[i]);
     iposCntr += iposScr[i] * 0.25f;
-    if (tex[i].x < texScr[0].x)
-      texScr[0].x = tex[i].x;
-    if (tex[i].y < texScr[0].y)
-      texScr[0].y = tex[i].y;
-    if (tex[i].x > texScr[1].x)
-      texScr[1].x = tex[i].x;
-    if (tex[i].y > texScr[1].y)
-      texScr[1].y = tex[i].y;
+    texScr[0].x = min(texScr[0].x, tex[i].x);
+    texScr[0].y = min(texScr[0].y, tex[i].y);
+    texScr[1].x = max(texScr[1].x, tex[i].x);
+    texScr[1].y = max(texScr[1].y, tex[i].y);
   }
 
   float texArea = (texScr[1].x - texScr[0].x) * (texScr[1].y - texScr[0].y) * (float)texW * (float)texH;
-  for (i = 0; i < 4; ++i) {
+  for (i = 0; i != 4; ++i) {
     if (iposScr[i].x > iposCntr.x)
       iposScr[i].x -= 1.0f;
     if (iposScr[i].y > iposCntr.y)
       iposScr[i].y -= 1.0f;
   }
 
-  NTempest::C3Vector normal = NTempest::C3Vector::Cross(iposScr[2] - iposScr[1], iposScr[0] - iposScr[1]);
-  float              pixArea = normal.Mag();
+  iposCntr = NTempest::C3Vector::Cross(iposScr[2] - iposScr[1], iposScr[0] - iposScr[1]);
+  float pixArea = iposCntr.SquaredMag();
   if (pixArea < 1.0f) {
     return;
   }
 
-  pixArea *= 3.0f;
+  pixArea = NTempest::CMath::sqrt_(pixArea) * 2.0f;
   UINT mip = 0;
-  while (pixArea <= texArea) {
+  for (pixArea *= 1.5f; pixArea <= texArea; ++mip)
     texArea *= 0.5f;
-    ++mip;
-  }
 
-  UINT mipW = texW >> mip;
-  UINT mipH = texH >> mip;
-  if (!mipW || !mipH) {
+  texW >>= mip;
+  texH >>= mip;
+  if (!texW || !texH) {
     return;
   }
 
-  float texCenterX = (texScr[1].x + texScr[0].x) * (float)mipW * 0.5f;
-  float texCenterY = (texScr[1].y + texScr[0].y) * (float)mipH * 0.5f;
-  for (i = 0; i < 4; ++i) {
-    texScr[i].x = tex[i].x * (float)mipW;
-    texScr[i].y = tex[i].y * (float)mipH;
-    texScr[i].z = 1.0f;
-    texScr[i].x += texScr[i].x >= texCenterX ? -0.5f : 0.5f;
-    texScr[i].y += texScr[i].y >= texCenterY ? -0.5f : 0.5f;
+  float texCenterX = (texScr[1].x + texScr[0].x) * (float)texW * 0.5f;
+  float texCenterY = (texScr[1].y + texScr[0].y) * (float)texH * 0.5f;
+  for (i = 0; i != 4; ++i) {
+    texScr[i].x = (float)texW * tex[i].x;
+    texScr[i].y = (float)texH * tex[i].y;
+    if (texScr[i].x < texCenterX) {
+      texScr[i].x += 0.5f;
+    } else {
+      texScr[i].x -= 0.5f;
+    }
+    if (texScr[i].y < texCenterY) {
+      texScr[i].y += 0.5f;
+    } else {
+      texScr[i].y -= 0.5f;
+    }
   }
 
-  NTempest::C33Matrix iposM33(iposScr[0].x, iposScr[0].y, 1.0f, iposScr[1].x, iposScr[1].y, 1.0f, iposScr[2].x, iposScr[2].y, 1.0f);
-  NTempest::C33Matrix texM33(texScr[0].x, texScr[0].y, 1.0f, texScr[1].x, texScr[1].y, 1.0f, texScr[2].x, texScr[2].y, 1.0f);
+  for (i = 0; i != 3; ++i) {
+    iposM33[i][0] = iposScr[i].x;
+    iposM33[i][1] = iposScr[i].y;
+    iposM33[i][2] = 1.0f;
+    texM33[i][0] = texScr[i].x;
+    texM33[i][1] = texScr[i].y;
+    texM33[i][2] = 1.0f;
+  }
+
   NTempest::C33Matrix fromPixToTexM33 = iposM33.Inverse(iposM33.Determinant()) * texM33;
-  for (i = 0; i < 4; ++i) {
-    NTempest::C3Vector snapped = fromPixToTexM33 * posScr[i];
-    tex[i].x = snapped.x / (float)mipW;
-    tex[i].y = snapped.y / (float)mipH;
+  for (i = 0; i != 4; ++i) {
+    iposCntr = posScr[i] * fromPixToTexM33;
+    tex[i].Set(iposCntr.x, iposCntr.y);
+    tex[i].x *= (1.0f / (float)texW);
+    tex[i].y *= (1.0f / (float)texH);
   }
 }

@@ -37,6 +37,10 @@ static void LoadRibbonMaterial(
   }
 }
 
+static inline BYTE ColorToByte(float c) {
+  return NTempest::CMath::ftol_0_256_(c * 255.0f);
+}
+
 static void LoadEmitterData(BYTE *emitterData, CModelComplex *modelptr, CRibbonEmitter *ribbon) {
   emitterData += *(UINT *)emitterData + 4;
   float staticHeightAbove = *(float *)emitterData;
@@ -44,10 +48,10 @@ static void LoadEmitterData(BYTE *emitterData, CModelComplex *modelptr, CRibbonE
   float staticHeightBelow = *(float *)emitterData;
   emitterData += 4;
   NTempest::CImVector diffColor(
-      NTempest::CMath::ftol_0_256_(((float *)emitterData)[0] * 255.0f),
-      NTempest::CMath::ftol_0_256_(((float *)emitterData)[1] * 255.0f),
-      NTempest::CMath::ftol_0_256_(((float *)emitterData)[2] * 255.0f),
-      NTempest::CMath::ftol_0_256_(((float *)emitterData)[3] * 255.0f)
+      ColorToByte(((float *)emitterData)[0]),
+      ColorToByte(((float *)emitterData)[1]),
+      ColorToByte(((float *)emitterData)[2]),
+      ColorToByte(((float *)emitterData)[3])
   );
   emitterData += 16;
   float edgeLifetime = *(float *)emitterData;

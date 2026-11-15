@@ -108,13 +108,20 @@ static void ValueTableInit() {
 }
 
 static inline float Interp(float range1, float range2, float percent) {
+  float result;
   if (range2 >= range1) {
-    percent *= range2 - range1;
-    return range1 + percent;
+    result = range2 - range1;
+    result = range1 + (result * percent);
+  } else {
+    result = range1 - range2;
+    result = range1 - (result * percent);
   }
 
-  percent *= range1 - range2;
-  return range1 - percent;
+  return result;
+}
+
+static inline NTempest::CImVector InterpColor(const NTempest::CImVector &color1, const NTempest::CImVector &color2, float percent) {
+  return NTempest::CImVector(255, Fast_ftol(Interp(color1.r, color2.r, percent)), Fast_ftol(Interp(color1.g, color2.g, percent)), Fast_ftol(Interp(color1.b, color2.b, percent)));
 }
 
 class LightQE {
@@ -164,28 +171,12 @@ static float InterpTable(const NTempest::C2Vector *table, DWORD size, float key)
 static void ScaleOutputs(CurrentLight &globalLight, CurrentLight &areaLight, float scale) {
   int i;
 
-  globalLight.AmbientColor = NTempest::CImVector(
-      255, Fast_ftol(Interp(globalLight.AmbientColor.r, areaLight.AmbientColor.r, scale)),
-      Fast_ftol(Interp(globalLight.AmbientColor.g, areaLight.AmbientColor.g, scale)),
-      Fast_ftol(Interp(globalLight.AmbientColor.b, areaLight.AmbientColor.b, scale))
-  );
-  globalLight.DirectColor = NTempest::CImVector(
-      255, Fast_ftol(Interp(globalLight.DirectColor.r, areaLight.DirectColor.r, scale)),
-      Fast_ftol(Interp(globalLight.DirectColor.g, areaLight.DirectColor.g, scale)),
-      Fast_ftol(Interp(globalLight.DirectColor.b, areaLight.DirectColor.b, scale))
-  );
-  globalLight.ShadowOpacity = NTempest::CImVector(
-      255, Fast_ftol(Interp(globalLight.ShadowOpacity.r, areaLight.ShadowOpacity.r, scale)),
-      Fast_ftol(Interp(globalLight.ShadowOpacity.g, areaLight.ShadowOpacity.g, scale)),
-      Fast_ftol(Interp(globalLight.ShadowOpacity.b, areaLight.ShadowOpacity.b, scale))
-  );
+  globalLight.AmbientColor = InterpColor(globalLight.AmbientColor, areaLight.AmbientColor, scale);
+  globalLight.DirectColor = InterpColor(globalLight.DirectColor, areaLight.DirectColor, scale);
+  globalLight.ShadowOpacity = InterpColor(globalLight.ShadowOpacity, areaLight.ShadowOpacity, scale);
 
   for (i = 0; i < 6; ++i) {
-    globalLight.SkyArray[i] = NTempest::CImVector(
-        255, Fast_ftol(Interp(globalLight.SkyArray[i].r, areaLight.SkyArray[i].r, scale)),
-        Fast_ftol(Interp(globalLight.SkyArray[i].g, areaLight.SkyArray[i].g, scale)),
-        Fast_ftol(Interp(globalLight.SkyArray[i].b, areaLight.SkyArray[i].b, scale))
-    );
+    globalLight.SkyArray[i] = InterpColor(globalLight.SkyArray[i], areaLight.SkyArray[i], scale);
   }
 
   globalLight.FogEnd = Interp(globalLight.FogEnd, areaLight.FogEnd, scale);
@@ -193,19 +184,11 @@ static void ScaleOutputs(CurrentLight &globalLight, CurrentLight &areaLight, flo
   globalLight.Darkness = Interp(globalLight.Darkness, areaLight.Darkness, scale);
 
   for (i = 0; i < 5; ++i) {
-    globalLight.CloudArray[i] = NTempest::CImVector(
-        255, Fast_ftol(Interp(globalLight.CloudArray[i].r, areaLight.CloudArray[i].r, scale)),
-        Fast_ftol(Interp(globalLight.CloudArray[i].g, areaLight.CloudArray[i].g, scale)),
-        Fast_ftol(Interp(globalLight.CloudArray[i].b, areaLight.CloudArray[i].b, scale))
-    );
+    globalLight.CloudArray[i] = InterpColor(globalLight.CloudArray[i], areaLight.CloudArray[i], scale);
   }
 
   for (i = 0; i < 4; ++i) {
-    globalLight.WaterArray[i] = NTempest::CImVector(
-        255, Fast_ftol(Interp(globalLight.WaterArray[i].r, areaLight.WaterArray[i].r, scale)),
-        Fast_ftol(Interp(globalLight.WaterArray[i].g, areaLight.WaterArray[i].g, scale)),
-        Fast_ftol(Interp(globalLight.WaterArray[i].b, areaLight.WaterArray[i].b, scale))
-    );
+    globalLight.WaterArray[i] = InterpColor(globalLight.WaterArray[i], areaLight.WaterArray[i], scale);
   }
 
   globalLight.CloudData[1] = Interp(globalLight.CloudData[1], areaLight.CloudData[1], scale);
@@ -1013,12 +996,7 @@ void DNSky::GenTexture(UINT w, UINT h, NTempest::CImVector *texels) {
       }
 
       for (UINT y = startY; y < endY; ++y) {
-        NTempest::CImVector clr;
-        clr.Set(
-            255, (BYTE)Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].r, s_dnInfo.light.SkyArray[next].r, blend)),
-            (BYTE)Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].g, s_dnInfo.light.SkyArray[next].g, blend)),
-            (BYTE)Fast_ftol(Interp(s_dnInfo.light.SkyArray[i].b, s_dnInfo.light.SkyArray[next].b, blend))
-        );
+        NTempest::CImVector clr = InterpColor(s_dnInfo.light.SkyArray[i], s_dnInfo.light.SkyArray[next], blend);
 
         for (UINT x = 0; x < w; ++x) {
           *texptr++ = clr;
@@ -1048,11 +1026,7 @@ void DNSky::SetColors() {
   float                darkness = InterpTable(m_darkTable, 6, s_dnInfo.dayProgression) * s_dnInfo.light.Darkness;
 
   for (int i = 0; i < 5; ++i) {
-    midColors[i + 1] = NTempest::CImVector(
-        255, Fast_ftol(Interp(s_dnInfo.light.SkyArray[i + 1].r, s_dnInfo.light.SkyArray[1].r, darkness)),
-        Fast_ftol(Interp(s_dnInfo.light.SkyArray[i + 1].g, s_dnInfo.light.SkyArray[1].g, darkness)),
-        Fast_ftol(Interp(s_dnInfo.light.SkyArray[i + 1].b, s_dnInfo.light.SkyArray[1].b, darkness))
-    );
+    midColors[i + 1] = InterpColor(s_dnInfo.light.SkyArray[i + 1], s_dnInfo.light.SkyArray[1], darkness);
   }
 
   NTempest::CImVector topColor = s_dnInfo.light.SkyArray[0];
@@ -1073,11 +1047,7 @@ void DNSky::SetColors() {
 
       float fade = InterpTable(m_fadeTable, 6, angle);
       if (fade >= 0.0f) {
-        NTempest::CImVector bandColor(
-            255, Fast_ftol(Interp(s_dnInfo.light.SkyArray[band].r, midColors[band].r, (1.0f - fade) * darkness)),
-            Fast_ftol(Interp(s_dnInfo.light.SkyArray[band].g, midColors[band].g, (1.0f - fade) * darkness)),
-            Fast_ftol(Interp(s_dnInfo.light.SkyArray[band].b, midColors[band].b, (1.0f - fade) * darkness))
-        );
+        NTempest::CImVector bandColor = InterpColor(s_dnInfo.light.SkyArray[band], midColors[band], (1.0f - fade) * darkness);
         if (s_dnInfo.eclipseAmount) {
           bandColor.Blend255RGB(s_dnInfo.eclipseAmount, s_dnInfo.eclipseColor);
         }
@@ -1085,16 +1055,8 @@ void DNSky::SetColors() {
       } else {
         NTempest::CImVector darkClr = midColors[band];
         darkClr.Scale255(Fast_ftol(darkness * 255.0f));
-        darkClr = NTempest::CImVector(
-            255, Fast_ftol(Interp(midColors[band].r, s_dnInfo.light.SkyArray[0].r, darkness * 0.69999999f)),
-            Fast_ftol(Interp(midColors[band].g, s_dnInfo.light.SkyArray[0].g, darkness * 0.69999999f)),
-            Fast_ftol(Interp(midColors[band].b, s_dnInfo.light.SkyArray[0].b, darkness * 0.69999999f))
-        );
-        darkClr = NTempest::CImVector(
-            255, Fast_ftol(Interp(midColors[band].r, darkClr.r, -fade * darkness)),
-            Fast_ftol(Interp(midColors[band].g, darkClr.g, -fade * darkness)),
-            Fast_ftol(Interp(midColors[band].b, darkClr.b, -fade * darkness))
-        );
+        darkClr = InterpColor(midColors[band], s_dnInfo.light.SkyArray[0], darkness * 0.69999999f);
+        darkClr = InterpColor(midColors[band], darkClr, -fade * darkness);
         if (s_dnInfo.eclipseAmount) {
           darkClr.Blend255RGB(s_dnInfo.eclipseAmount, s_dnInfo.eclipseColor);
         }

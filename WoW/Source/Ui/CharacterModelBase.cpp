@@ -101,12 +101,12 @@ void CGCharacterModelBase::SetUnit(DWORDLONG unitGUID) {
   ConfigureCamera();
 
   CGxLight light;
-  light.m_enabled = 1;
   light.m_dir = NTempest::C3Vector(0.0f, -0.707106f, -0.707106f);
-  light.m_ambColor.Set(0xFFFFFFFFUL);
+  light.m_dirIntensity = 0.8f;
   light.m_dirColor.Set(0xFFFFFFCCUL);
   light.m_ambIntensity = 0.7f;
-  light.m_dirIntensity = 0.8f;
+  light.m_ambColor.Set(0xFFFFFFFFUL);
+  light.m_enabled = 1;
   SetLight(light);
 }
 

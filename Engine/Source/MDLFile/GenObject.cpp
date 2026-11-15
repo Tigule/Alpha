@@ -500,18 +500,3 @@ UINT GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframe
   return (dataSize + 4) * keyframes.keys.Count() + 16;
 }
 
-void WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer) {
-  UINT numKeys = keyframes.keys.Count();
-  if (!numKeys) {
-    return;
-  }
-  MDL::WriteLine(buffer, "%s%s %u {\n", indent, MDL::TokenText(title), numKeys);
-  if (keyframes.globalSeqId != (UINT)-1) {
-    MDL::WriteLine(buffer, "%s\t%s %d,\n", indent, MDL::TokenText(MDLTOK_GLOBALSEQID), keyframes.globalSeqId);
-  }
-  const MDLINTKEY *key = keyframes.keys.Ptr();
-  for (UINT i = numKeys; i; --i, ++key) {
-    MDL::WriteLine(buffer, "%s\t%d: %u,\n", indent, key->time, key->value);
-  }
-  MDL::WriteLine(buffer, "%s}\n", indent);
-}

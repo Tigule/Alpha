@@ -802,7 +802,7 @@ namespace NTempest {
     static void  splitr_(float x, float &fraction, float &integer);
 
     static float copysign_(float x, float y) {
-      return (float)_copysign(x, y);
+      return int32asreal_(realasint32_(y) ^ ((realasint32_(x) ^ realasint32_(y)) & 0x7FFFFFFF));
     }
 
     static double copysign_(double x, double y) {

@@ -12,6 +12,8 @@
 class CDataStore;
 struct sockaddr_in;
 
+typedef int sock_t;
+
 enum WOW_CONN_STATE {
   WOWC_UNINITIALIZED = 0,
   WOWC_INITIALIZED = 1,
@@ -117,7 +119,7 @@ class WowConnection {
   int Release();
 
   WowConnection(WowConnectionResponse *response, void (*func)());
-  WowConnection(int sock, sockaddr_in *addr, WowConnectionResponse *response);
+  WowConnection(sock_t sock, sockaddr_in *addr, WowConnectionResponse *response);
   WowConnection(const WowConnection &connection);
   WowConnection(int connection, const NETCONNADDR *address, WowConnectionResponse *response, void (*func)());
   WowConnection &operator=(const WowConnection &connection);
@@ -177,10 +179,10 @@ class WowConnection {
   void Init(WowConnectionResponse *response, void (*func)());
   void SetState(WOW_CONN_STATE state);
   int  CreateSocket();
-  void CloseSocket(int sock);
+  void CloseSocket(sock_t sock);
 
-  int                    m_sock;
-  int                    m_oldsock;
+  sock_t                 m_sock;
+  sock_t                 m_oldsock;
   BYTE                   m_connectionFreed;
   WOW_CONN_STATE         m_connState;
   WowConnectionResponse *m_response;

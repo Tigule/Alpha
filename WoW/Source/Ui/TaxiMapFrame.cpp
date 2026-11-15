@@ -163,13 +163,15 @@ static int Script_SetTaxiMap(lua_State *L) {
 static int Script_SetTaxiRoute(lua_State *L) {
   CSimpleModel   *model = (CSimpleModel *)SimpleFrameRegistryGetEntry("TaxiRouteMap", 0);
   NTempest::CRect rect;
-  if (!model->GetModel() && model->GetRect(&rect)) {
-    float  scale = 1.0f / model->GetLayoutScale();
-    HMODEL route = TaxiGetRouteModel((rect.r - rect.l) * scale, (rect.b - rect.t) * scale);
-    model->SetModel(route);
-    if (route) {
-      HandleClose(route);
-    }
+  if (model->GetModel() || !model->GetRect(&rect)) {
+    return 0;
+  }
+
+  float  scale = 1.0f / model->GetLayoutScale();
+  HMODEL route = TaxiGetRouteModel((rect.r - rect.l) * scale, (rect.b - rect.t) * scale);
+  model->SetModel(route);
+  if (route) {
+    HandleClose(route);
   }
   return 0;
 }

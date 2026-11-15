@@ -125,7 +125,7 @@ void CSimpleMessageFrame::OnFrameSizeChanged(const NTempest::CRect &rect) {
   m_messageFrameArea.l = m_layoutScale * m_messageFrameInset.l + rect.l;
   m_messageFrameArea.r = rect.r - m_messageFrameInset.r * m_layoutScale;
   m_messageFrameArea.t = m_messageFrameInset.t * m_layoutScale + rect.t;
-  m_messageFrameArea.b = rect.b - m_layoutScale * m_messageFrameInset.b;
+  m_messageFrameArea.b = rect.b - m_messageFrameInset.b * m_layoutScale;
 
   float fontHeight = (m_attrib.GetSpacing() + m_attrib.GetFontHeight()) * m_layoutScale;
 

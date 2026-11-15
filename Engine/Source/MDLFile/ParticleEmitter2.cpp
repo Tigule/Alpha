@@ -506,70 +506,20 @@ static void IWriteParticleEmitter2(const MDLDATA &data, const MDLPARTICLEEMITTER
   IWritePE2Flags(emitter, buffer);
   MDL::WriteLine(buffer, "\t%s %d,\n", MDL::TokenText(MDLTOK_TYPE), emitter.emitterType);
 
-  if (emitter.speed.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_SPEED, "\t", emitter.speed, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_SPEED));
-    WriteKeyData(buffer, &emitter.staticSpeed, 1);
-  }
-  if (emitter.variation.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_VARIATION, "\t", emitter.variation, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_VARIATION));
-    WriteKeyData(buffer, &emitter.staticVariation, 1);
-  }
-  if (emitter.latitude.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_LATITUDE, "\t", emitter.latitude, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LATITUDE));
-    WriteKeyData(buffer, &emitter.staticLatitude, 1);
-  }
-  if (emitter.longitude.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_LONGITUDE, "\t", emitter.longitude, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LONGITUDE));
-    WriteKeyData(buffer, &emitter.staticLongitude, 1);
-  }
-  if (emitter.gravity.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_GRAVITY, "\t", emitter.gravity, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_GRAVITY));
-    WriteKeyData(buffer, &emitter.staticGravity, 1);
-  }
+  WriteKeyFramesOrStatic(MDLTOK_SPEED, "\t", emitter.speed, &emitter.staticSpeed, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_VARIATION, "\t", emitter.variation, &emitter.staticVariation, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_LATITUDE, "\t", emitter.latitude, &emitter.staticLatitude, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_LONGITUDE, "\t", emitter.longitude, &emitter.staticLongitude, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_GRAVITY, "\t", emitter.gravity, &emitter.staticGravity, 1, buffer);
   WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", emitter.visibilityKeys, buffer);
   if (emitter.squirts) {
     MDL::WriteLine(buffer, "\t%s,\n", MDL::TokenText(MDLTOK_SQUIRT));
   }
-  if (emitter.life.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_LIFESPAN, "\t", emitter.life, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LIFESPAN));
-    WriteKeyData(buffer, &emitter.staticLife, 1);
-  }
-  if (emitter.emissionRate.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_EMISSION_RATE, "\t", emitter.emissionRate, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_EMISSION_RATE));
-    WriteKeyData(buffer, &emitter.staticEmissionRate, 1);
-  }
-  if (emitter.width.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_WIDTH, "\t", emitter.width, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_WIDTH));
-    WriteKeyData(buffer, &emitter.staticWidth, 1);
-  }
-  if (emitter.length.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_LENGTH, "\t", emitter.length, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_LENGTH));
-    WriteKeyData(buffer, &emitter.staticLength, 1);
-  }
-  if (emitter.zsource.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_PARTICLE_ZSOURCE, "\t", emitter.zsource, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_PARTICLE_ZSOURCE));
-    WriteKeyData(buffer, &emitter.staticZsource, 1);
-  }
+  WriteKeyFramesOrStatic(MDLTOK_LIFESPAN, "\t", emitter.life, &emitter.staticLife, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_EMISSION_RATE, "\t", emitter.emissionRate, &emitter.staticEmissionRate, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_WIDTH, "\t", emitter.width, &emitter.staticWidth, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_LENGTH, "\t", emitter.length, &emitter.staticLength, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_PARTICLE_ZSOURCE, "\t", emitter.zsource, &emitter.staticZsource, 1, buffer);
 
   IWriteParticleEmitter2BlendMode(emitter, buffer);
   MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_ROWS), emitter.rows);

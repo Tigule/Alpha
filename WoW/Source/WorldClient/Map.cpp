@@ -27,29 +27,6 @@ static const float OO_COORD_TO_SUBCHUNK = 1.0f / (150.0f / 36.0f);
 static void AddDoodadFacets(const NTempest::CAaBox &aaBox, CMapDoodadDef *doodadDef, CWFacetData *facetData);
 static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollisionHandlerData &data, DWORDLONG guid, CWFacetData *facetData);
 
-UINT g_holeMask[4][4] = {
-    {   1,    2,     4,     8},
-    {  16,   32,    64,   128},
-    { 256,  512,  1024,  2048},
-    {4096, 8192, 16384, 32768}
-};
-
-static int iIndiciesP[4][2] = {
-    {17,  0},
-    { 0,  1},
-    {18, 17},
-    { 1, 18}
-};
-
-static int s_vertexIndex[4][3] = {
-    {17,  9,  0},
-    { 9,  1,  0},
-    { 9, 17, 18},
-    { 9, 18,  1}
-};
-
-static int s_vertexIndexFlat[5] = {0, 9, 17, 1, 18};
-
 UINT            CMap::uniqueId;
 bool            CMap::enablePixelShaders;
 bool            CMap::enableSpecular;
@@ -101,6 +78,20 @@ char                         CMap::wdtFilename[256];
 char                         CMap::wobFilename[256];
 char                         CMap::mapPath[256];
 char                         CMap::mapName[256];
+
+UINT g_holeMask[4][4] = {
+    {   1,    2,     4,     8},
+    {  16,   32,    64,   128},
+    { 256,  512,  1024,  2048},
+    {4096, 8192, 16384, 32768}
+};
+
+static int iIndiciesP[4][2] = {
+    {17,  0},
+    { 0,  1},
+    {18, 17},
+    { 1, 18}
+};
 
 void CMap::Initialize() {
   CMapArea::Initialize();
@@ -916,6 +907,15 @@ void CMap::TestQueryAdd(const NTempest::CAaBox &aabox, NTempest::CImVector color
   }
 }
 
+static int s_vertexIndex[4][3] = {
+    {17,  9,  0},
+    { 9,  1,  0},
+    { 9, 17, 18},
+    { 9, 18,  1}
+};
+
+static int s_vertexIndexFlat[5] = {0, 9, 17, 1, 18};
+
 bool CMap::GetFacet(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {
   bool hit = false;
   if (queryFlags & 0xFF) {
@@ -989,12 +989,12 @@ bool CMap::GetFacetTerrain(const NTempest::C3Segment &seg, float &t, NTempest::C
   float               nt = t;
   NTempest::C3Segment nb(seg.start, seg.start + (seg.end - seg.start) * nt);
 
-  if (GetFacetSubchunks(nb, nt, facet, queryFlags)) {
+  bool hit = GetFacetSubchunks(nb, nt, facet, queryFlags);
+  if (hit) {
     t = nt * t;
-    return true;
   }
 
-  return false;
+  return hit;
 }
 
 bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest::C4Plane &facet, UINT queryFlags) {

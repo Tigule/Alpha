@@ -241,86 +241,14 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
 
   switch (statusint) {
     case 0:
-      SStrCopy(buf, FrameScript_GetText("PLAYER_BUSY", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      if (s_initiator)
-        message = buf;
-      clearTrade = 1;
-      break;
-    case 1:
-      netmsg->Get(guid);
-      s_tradePartner = guid;
-      break;
-    case 2: {
-      CGUnit_C *partner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_tradePartner, __FILE__, __LINE__));
-      SStrCopy(buf, FrameScript_GetText("TRADE_INITIATED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      SStrPrintf(msgbuf, sizeof(msgbuf), buf, partner ? partner->GetUnitName() : "???");
-      message = msgbuf;
-      s_tradeStateIndex[1] = s_tradeStateIndex[0] = 1;
-      memset(s_tradeItems, 0, sizeof(s_tradeItems));
-      s_tradeGold[0] = s_tradeGold[1] = 0;
-      s_tradeProposedEnchantment[0] = s_tradeProposedEnchantment[1] = 0;
-      s_tradeProposedEnchantmentSlot[0] = s_tradeProposedEnchantmentSlot[1] = 0;
-      break;
-    }
-    case 3:
-    case 14:
-      SStrCopy(buf, FrameScript_GetText("TRADE_CANCELLED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      clearTrade = 1;
-      memset(s_tradeItems, 0, sizeof(s_tradeItems));
-      s_tradeGold[0] = s_tradeGold[1] = 0;
-      break;
-    case 4:
-      SStrCopy(buf, FrameScript_GetText("TRADE_ACCEPTED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      break;
-    case 5:
-      SStrCopy(buf, FrameScript_GetText("ALREADY_TRADING", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      clearTrade = 1;
-      break;
-    case 6:
-      SStrCopy(buf, FrameScript_GetText("PLAYER_NOT_FOUND", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      clearTrade = 1;
-      break;
-    case 7:
-      SStrCopy(buf, FrameScript_GetText("TRADE_STATE_CHANGED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      break;
-    case 8:
-      SStrCopy(buf, FrameScript_GetText("TRADE_COMPLETE", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      clearTrade = 1;
-      memset(s_tradeItems, 0, sizeof(s_tradeItems));
-      s_tradeGold[0] = s_tradeGold[1] = 0;
-      break;
-    case 9:
-      SStrCopy(buf, FrameScript_GetText("TRADE_UNACCEPTED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      break;
-    case 10:
-      SStrCopy(buf, FrameScript_GetText("TOO_FAR_TO_TRADE", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      clearTrade = 1;
-      break;
-    case 12:
-      netmsg->Get((int &)bagResult);
-      netmsg->Get(failureForMe);
-      netmsg->Get(itemID);
-      SStrCopy(buf, FrameScript_GetText("TRADE_FAILED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
-      clearTrade = 1;
-      memset(s_tradeItems, 0, sizeof(s_tradeItems));
-      s_tradeGold[0] = s_tradeGold[1] = 0;
-      break;
-    case 13:
-      SStrCopy(buf, FrameScript_GetText("TRADE_TARGET_DEAD", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
-      message = buf;
+      message = FrameScript_GetText("PLAYER_BUSY", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = s_initiator ? buf : 0;
       clearTrade = 1;
       break;
     case 15: {
       CGUnit_C *partner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_tradePartner, __FILE__, __LINE__));
+      message = 0;
       if (partner) {
         SStrPrintf(msgbuf, sizeof(msgbuf), FrameScript_GetText("ERR_IGNORING_YOU_S", -1, GENDER_NOT_APPLICABLE), partner->GetUnitName());
         message = msgbuf;
@@ -328,8 +256,100 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
       clearTrade = 1;
       break;
     }
+    case 1:
+      netmsg->Get(guid);
+      s_tradePartner = guid;
+      break;
+    case 2: {
+      CGUnit_C *partner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_tradePartner, __FILE__, __LINE__));
+      message = FrameScript_GetText("TRADE_INITIATED", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      SStrPrintf(msgbuf, sizeof(msgbuf), buf, partner ? partner->GetUnitName() : "???");
+      message = msgbuf;
+      s_tradeStateIndex[0] = 1;
+      s_tradeStateIndex[1] = 1;
+      memset(s_tradeItems, 0, sizeof(s_tradeItems));
+      s_tradeGold[0] = 0;
+      s_tradeGold[1] = 0;
+      s_tradeProposedEnchantment[0] = 0;
+      s_tradeProposedEnchantmentSlot[0] = 0;
+      s_tradeProposedEnchantment[1] = 0;
+      s_tradeProposedEnchantmentSlot[1] = 0;
+      break;
+    }
+    case 3:
+    case 14:
+      message = FrameScript_GetText("TRADE_CANCELLED", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      memset(s_tradeItems, 0, sizeof(s_tradeItems));
+      s_tradeGold[0] = 0;
+      s_tradeGold[1] = 0;
+      break;
+    case 12:
+      bagResult = (BAG_RESULT)netmsg->GetInt();
+      failureForMe = netmsg->GetUchar();
+      itemID = netmsg->GetInt();
+      message = FrameScript_GetText("TRADE_FAILED", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      memset(s_tradeItems, 0, sizeof(s_tradeItems));
+      s_tradeGold[0] = 0;
+      s_tradeGold[1] = 0;
+      break;
+    case 4:
+      message = FrameScript_GetText("TRADE_ACCEPTED", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      break;
+    case 5:
+      message = FrameScript_GetText("ALREADY_TRADING", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
+    case 6:
+      message = FrameScript_GetText("PLAYER_NOT_FOUND", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
+    case 7:
+      message = FrameScript_GetText("TRADE_STATE_CHANGED", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      break;
+    case 8:
+      message = FrameScript_GetText("TRADE_COMPLETE", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      memset(s_tradeItems, 0, sizeof(s_tradeItems));
+      s_tradeGold[0] = 0;
+      s_tradeGold[1] = 0;
+      break;
+    case 9:
+      message = FrameScript_GetText("TRADE_UNACCEPTED", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      break;
+    case 10:
+      message = FrameScript_GetText("TOO_FAR_TO_TRADE", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
+    case 13:
+      message = FrameScript_GetText("TRADE_TARGET_DEAD", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
+      message = buf;
+      clearTrade = 1;
+      break;
     default:
-      SStrCopy(buf, FrameScript_GetText("TRADE_STATUS_UNKNOWN", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
+      message = FrameScript_GetText("TRADE_STATUS_UNKNOWN", -1, GENDER_NOT_APPLICABLE);
+      SStrCopy(buf, message, sizeof(buf));
       message = buf;
       break;
   }

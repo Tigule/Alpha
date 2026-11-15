@@ -553,30 +553,22 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
     case GxRs_Culling:
       m_d3dDevice->SetRenderState(D3DRS_CULLMODE, s_cullmode[(m_appState.m_masterEnables & 0x10) && value != 0]);
       break;
-    case GxRs_Texture0:
-    case GxRs_Texture1:
-    case GxRs_Texture2:
-    case GxRs_Texture3:
-      ISetTexture(which - GxRs_Texture0, (CGxTex *)value);
-      break;
-    case GxRs_TexBlend0:
-    case GxRs_TexBlend1:
-    case GxRs_TexBlend2:
-    case GxRs_TexBlend3:
-      ISetTexBlend(which - GxRs_TexBlend0, (EGxTexBlend)value);
-      break;
-    case GxRs_TexLodBias0:
-    case GxRs_TexLodBias1:
-    case GxRs_TexLodBias2:
-    case GxRs_TexLodBias3:
-      ISetTexLodBias(which - GxRs_TexLodBias0, state.mValue.GetAsFloat());
-      break;
-    case GxRs_TexGen0:
-    case GxRs_TexGen1:
-    case GxRs_TexGen2:
-    case GxRs_TexGen3:
-      ISetTexGen(which - GxRs_TexGen0, (EGxTexGen)value);
-      break;
+    case GxRs_Texture0: ISetTexture(0, (CGxTex *)value); break;
+    case GxRs_Texture1: ISetTexture(1, (CGxTex *)value); break;
+    case GxRs_Texture2: ISetTexture(2, (CGxTex *)value); break;
+    case GxRs_Texture3: ISetTexture(3, (CGxTex *)value); break;
+    case GxRs_TexBlend0: ISetTexBlend(0, (EGxTexBlend)value); break;
+    case GxRs_TexBlend1: ISetTexBlend(1, (EGxTexBlend)value); break;
+    case GxRs_TexBlend2: ISetTexBlend(2, (EGxTexBlend)value); break;
+    case GxRs_TexBlend3: ISetTexBlend(3, (EGxTexBlend)value); break;
+    case GxRs_TexGen0: ISetTexGen(0, (EGxTexGen)value); break;
+    case GxRs_TexGen1: ISetTexGen(1, (EGxTexGen)value); break;
+    case GxRs_TexGen2: ISetTexGen(2, (EGxTexGen)value); break;
+    case GxRs_TexGen3: ISetTexGen(3, (EGxTexGen)value); break;
+    case GxRs_TexLodBias0: ISetTexLodBias(0, state.mValue.GetAsFloat()); break;
+    case GxRs_TexLodBias1: ISetTexLodBias(1, state.mValue.GetAsFloat()); break;
+    case GxRs_TexLodBias2: ISetTexLodBias(2, state.mValue.GetAsFloat()); break;
+    case GxRs_TexLodBias3: ISetTexLodBias(3, state.mValue.GetAsFloat()); break;
     case GxRs_TextureShader0:
     case GxRs_TextureShader1:
     case GxRs_TextureShader2:

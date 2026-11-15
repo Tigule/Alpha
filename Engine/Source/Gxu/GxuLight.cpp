@@ -52,7 +52,7 @@ LISTDECLEX(CGxuLightLink, m_lightLink, CGxuLight::s_linksFreeList);
 static DWORD                                        s_lastLightsHash;
 CLightList                                          s_dirLightList;
 static UINT                                         s_updateDirLights = 1;
-static UINT                                         s_dirLightSet;
+static UINT                                         s_dirLightSet = 0;
 static BYTE                                         s_forceSettingLights = 1;
 static UINT                                         s_maxLightsToUse = 8;
 static DWORD                                        s_selectionCount;

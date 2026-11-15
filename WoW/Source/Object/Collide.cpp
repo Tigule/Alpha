@@ -698,6 +698,29 @@ static inline BOOL AddNormal(const C3Vector &normal, UINT maxNormals, C3Vector *
   return 1;
 }
 
+static inline void UpdateFallHit(DWORDLONG guid, const CRedirect &hitInfo, float distanceFallen, float *shortestDist, C3Vector *surfNormals, UINT *numHits, int *foundWalkable) {
+  if (CMath::fequalz_(*shortestDist, distanceFallen, 0.013888889f)) {
+    if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, numHits)) {
+      CMovement::FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", guid);
+    }
+    if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, numHits)) {
+      CMovement::FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", guid);
+    }
+    if (*shortestDist > distanceFallen) {
+      *shortestDist = distanceFallen;
+    }
+    *foundWalkable |= (hitInfo.surfaceNorm[0].z <= 0.64278764f) == 0;
+  } else if (*shortestDist > distanceFallen) {
+    surfNormals[0] = hitInfo.surfaceNorm[0];
+    *numHits = 1;
+    if (hitInfo.flags & 0x80) {
+      AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, numHits);
+    }
+    *shortestDist = distanceFallen;
+    *foundWalkable = (hitInfo.surfaceNorm[0].z <= 0.64278764f) == 0;
+  }
+}
+
 float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameObjHit) {
   float     distanceFallen = distanceToFall;
   CRedirect hitInfo;
@@ -717,7 +740,7 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
     if (hitInfo.flags & 0x80) {
       AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
     }
-    foundWalkable = !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
+    foundWalkable = (hitInfo.surfaceNorm[0].z <= 0.64278764f) == 0;
     *gameObjHit = hitInfo.gameObjHit;
   }
   FallLogWrite("0x%016I64X: Hit info flags neg X: ", GetGUID());
@@ -731,26 +754,7 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
   distanceFallen = distanceToFall;
   FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
   if (hitInfo.flags) {
-    if (CMath::fequalz_(shortestDist, distanceFallen, 0.013888889f)) {
-      if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits)) {
-        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", GetGUID());
-      }
-      if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits)) {
-        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", GetGUID());
-      }
-      if (shortestDist > distanceFallen) {
-        shortestDist = distanceFallen;
-      }
-      foundWalkable |= !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
-    } else if (shortestDist > distanceFallen) {
-      surfNormals[0] = hitInfo.surfaceNorm[0];
-      numHits = 1;
-      if (hitInfo.flags & 0x80) {
-        AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
-      }
-      shortestDist = distanceFallen;
-      foundWalkable = !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
-    }
+    UpdateFallHit(GetGUID(), hitInfo, distanceFallen, &shortestDist, surfNormals, &numHits, &foundWalkable);
     *gameObjHit = hitInfo.gameObjHit;
   }
   FallLogWrite("0x%016I64X: Hit info flags pos X: ", GetGUID());
@@ -763,26 +767,7 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
   distanceFallen = distanceToFall;
   FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
   if (hitInfo.flags) {
-    if (CMath::fequalz_(shortestDist, distanceFallen, 0.013888889f)) {
-      if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits)) {
-        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", GetGUID());
-      }
-      if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits)) {
-        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", GetGUID());
-      }
-      if (shortestDist > distanceFallen) {
-        shortestDist = distanceFallen;
-      }
-      foundWalkable |= !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
-    } else if (shortestDist > distanceFallen) {
-      surfNormals[0] = hitInfo.surfaceNorm[0];
-      numHits = 1;
-      if (hitInfo.flags & 0x80) {
-        AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
-      }
-      shortestDist = distanceFallen;
-      foundWalkable = !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
-    }
+    UpdateFallHit(GetGUID(), hitInfo, distanceFallen, &shortestDist, surfNormals, &numHits, &foundWalkable);
     *gameObjHit = hitInfo.gameObjHit;
   }
   FallLogWrite("0x%016I64X: Hit info flags neg Y: ", GetGUID());
@@ -795,26 +780,7 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
   distanceFallen = distanceToFall;
   FindObstacles(unitMove, boxPlanes, 5, startPlane, 1, &distanceFallen, &hitInfo);
   if (hitInfo.flags) {
-    if (CMath::fequalz_(shortestDist, distanceFallen, 0.013888889f)) {
-      if (!AddNormal(hitInfo.surfaceNorm[0], 4, surfNormals, &numHits)) {
-        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", GetGUID());
-      }
-      if ((hitInfo.flags & 0x80) && !AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits)) {
-        FallLogWrite("0x%016I64X: failed to add normal to slide set, too many normals\n", GetGUID());
-      }
-      if (shortestDist > distanceFallen) {
-        shortestDist = distanceFallen;
-      }
-      foundWalkable |= !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
-    } else if (shortestDist > distanceFallen) {
-      surfNormals[0] = hitInfo.surfaceNorm[0];
-      numHits = 1;
-      if (hitInfo.flags & 0x80) {
-        AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
-      }
-      shortestDist = distanceFallen;
-      foundWalkable = !(hitInfo.surfaceNorm[0].z <= 0.64278764f);
-    }
+    UpdateFallHit(GetGUID(), hitInfo, distanceFallen, &shortestDist, surfNormals, &numHits, &foundWalkable);
     *gameObjHit = hitInfo.gameObjHit;
   }
   FallLogWrite("0x%016I64X: Hit info flags pos Y: ", GetGUID());

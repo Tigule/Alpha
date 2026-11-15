@@ -514,7 +514,7 @@ BOOL MinimapUpdate(
   }
 
   mmtp.size = s_minimapZoomSize[s_currentInsideZoom];
-  NTempest::C2iVector ibox((int)floor(pos.x / mmtp.size), (int)floor(pos.y / mmtp.size));
+  NTempest::C2iVector ibox((int)floor(pos.x * (1.0f / mmtp.size)), (int)floor(pos.y * (1.0f / mmtp.size)));
   s_queryCenterBox.b = NTempest::C3Vector(ibox.x * mmtp.size, ibox.y * mmtp.size, pos.z - mmtp.size * 0.5f);
   s_queryCenterBox.t = NTempest::C3Vector(mmtp.size, mmtp.size, mmtp.size * 0.5f) + s_queryCenterBox.b;
   s_queryCenter = s_queryCenterBox.Center();

@@ -1,4 +1,5 @@
 #include "MDLTypes.h"
+#include "GenObject.h"
 #include "MDLStatus.h"
 #include "Parser.h"
 #include "TSet.h"
@@ -116,16 +117,8 @@ BOOL MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
     if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &data.collision.vertices, &totalRead, status)) {
       return 0;
     }
-    if (buf.GetDword() != ' IRT') {
-      status->Add(STATUS_ERROR, "Invalid %s section.\n", "triangle index");
+    if (!IReadBinUintSection(buf, ' IRT', "triangle index", &data.collision.triIndices, &totalRead, status)) {
       return 0;
-    }
-    totalRead += 4;
-    data.collision.triIndices.SetCount(buf.GetUint());
-    totalRead += 4;
-    if (data.collision.triIndices.Count()) {
-      buf.GetWordArray(data.collision.triIndices.Ptr(), data.collision.triIndices.Count());
-      totalRead += 2 * data.collision.triIndices.Count();
     }
     if (!ReadBinC3VectorSection(buf, 'SMRN', "facet normal", &data.collision.facetNormals, &totalRead, status)) {
       return 0;

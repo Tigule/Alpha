@@ -24,9 +24,7 @@ class CMdlString {
   }
 
   CMdlString<Length> &operator=(const CMdlString<Length> &source) {
-    if (this != &source) {
-      memcpy(m_string, source.m_string, sizeof(m_string));
-    }
+    SStrCopy(m_string, source.m_string, Length);
     return *this;
   }
 

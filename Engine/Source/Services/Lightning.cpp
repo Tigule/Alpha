@@ -12,7 +12,7 @@
 #include <math.h>
 #include <stdio.h>
 
-static NTempest::CRndSeed sRandSeed;
+namespace { NTempest::CRndSeed sRandSeed; }
 
 CLightning::CLightning() {
   mAvgSegLen = -2.0f;

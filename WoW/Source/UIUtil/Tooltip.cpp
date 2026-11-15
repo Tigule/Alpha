@@ -3256,10 +3256,12 @@ static int CGTooltip_SetSpell(lua_State *L) {
                                         : tooltip->SetSpell(spellID, 0, 0, isPet))
       {
         lua_pushnumber(L, 1.0);
-        return 1;
+      } else {
+        lua_pushnil(L);
       }
+    } else {
+      lua_pushnil(L);
     }
-    lua_pushnil(L);
     return 1;
   }
   luaL_error(L, "Invalid spell slot in SetSpell");

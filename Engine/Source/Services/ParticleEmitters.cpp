@@ -47,10 +47,8 @@ void CPlaneParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, con
   if (m_useModelSpace) {
     p.m_velocity = NTempest::C3Vector(vel.x, vel.y, vel.z);
   } else {
-    p.m_velocity.x = vel.x * basis.a0 + vel.y * basis.b0 + vel.z * basis.c0;
-    p.m_velocity.y = vel.x * basis.a1 + vel.y * basis.b1 + vel.z * basis.c1;
-    p.m_velocity.z = vel.x * basis.a2 + vel.y * basis.b2 + vel.z * basis.c2;
-    p.m_position *= basis;
+    p.m_velocity = vel * basis;
+    p.m_position = p.m_position * basis;
     if (m_project) {
       ProjectParticle(p);
     }
@@ -126,10 +124,8 @@ void CSphereParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, co
   if (m_useModelSpace) {
     p.m_velocity = NTempest::C3Vector(vel.x, vel.y, vel.z);
   } else {
-    p.m_velocity.x = vel.x * basis.a0 + vel.y * basis.b0 + vel.z * basis.c0;
-    p.m_velocity.y = vel.x * basis.a1 + vel.y * basis.b1 + vel.z * basis.c1;
-    p.m_velocity.z = vel.x * basis.a2 + vel.y * basis.b2 + vel.z * basis.c2;
-    p.m_position *= basis;
+    p.m_velocity = vel * basis;
+    p.m_position = p.m_position * basis;
     if (m_project) {
       ProjectParticle(p);
     }
@@ -224,10 +220,8 @@ void CSplineParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, co
   if (m_useModelSpace) {
     p.m_velocity = NTempest::C3Vector(vel.x, vel.y, vel.z);
   } else {
-    p.m_velocity.x = vel.x * basis.a0 + vel.y * basis.b0 + vel.z * basis.c0;
-    p.m_velocity.y = vel.x * basis.a1 + vel.y * basis.b1 + vel.z * basis.c1;
-    p.m_velocity.z = vel.x * basis.a2 + vel.y * basis.b2 + vel.z * basis.c2;
-    p.m_position *= basis;
+    p.m_velocity = vel * basis;
+    p.m_position = p.m_position * basis;
     if (m_project) {
       ProjectParticle(p);
     }

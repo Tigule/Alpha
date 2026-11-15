@@ -20,6 +20,7 @@ namespace NTempest {
 }  // namespace NTempest
 
 typedef DWORD CArgb;
+typedef BYTE  CGxPrimBone;
 
 enum {
   Gx_MaxTexWidth = 0x200,
@@ -878,7 +879,7 @@ BOOL GxuTestRayAndMesh(
     const NTempest::C3Vector  *pos,
     UINT                       posStride,
     UINT                       boneCount,
-    const BYTE                *bone,
+    const CGxPrimBone         *bone,
     UINT                       boneStride,
     EGxPrim                    primType,
     UINT                       indexCount,
@@ -929,7 +930,7 @@ void           GxPrimLockVertexPtrs(
     UINT                       normalStride,
     const NTempest::CImVector *color,
     UINT                       colorStride,
-    const BYTE                *bone,
+    const CGxPrimBone         *bone,
     UINT                       boneStride,
     const NTempest::C2Vector  *tex0,
     UINT                       tex0Stride,

@@ -313,41 +313,6 @@ static int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, i
   }
   char string[32];
   switch (*token) {
-    case 'A':
-    case 'a': {
-      const SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[effect]);
-      SStrPrintf(string, sizeof(string), "%d", radius ? (int)radius->m_radius : 0);
-      SStrPack(buf, string, size);
-      break;
-    }
-    case 'C':
-    case 'c':
-      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetManaCost(spell->m_ID, isPet));
-      SStrPack(buf, string, size);
-      break;
-    case 'D':
-    case 'd': {
-      const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
-      if (duration) {
-        int milliseconds = duration->m_duration + level * duration->m_durationPerLevel;
-        if (milliseconds >= duration->m_maxDuration) {
-          milliseconds = duration->m_maxDuration;
-        }
-        if (milliseconds <= 0) {
-          SStrPack(buf, FrameScript_GetText("SPELL_DURATION_UNTIL_CANCELLED", -1, GENDER_NOT_APPLICABLE), size);
-        } else {
-          char format[64];
-          char formatted[64];
-          SStrCopy(
-              format, FrameScript_GetText(milliseconds < 60000 ? "SPELL_DURATION_SEC" : "SPELL_DURATION_MIN", -1, GENDER_NOT_APPLICABLE),
-              sizeof(format)
-          );
-          SStrPrintf(formatted, sizeof(formatted), format, milliseconds / (milliseconds >= 60000 ? 60000 : 1000));
-          SStrPack(buf, formatted, size);
-        }
-      }
-      break;
-    }
     case 'G':
     case 'g':
       ++token;
@@ -407,11 +372,36 @@ static int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, i
       SStrPack(buf, string, size);
       break;
     }
-    case 'P':
-    case 'p':
-      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetManaCostPerSecond(spell->m_ID, isPet));
+    case 'A':
+    case 'a': {
+      const SpellRadiusRec *radius = g_spellRadiusDB.GetRecord(spell->m_effectRadiusIndex[effect]);
+      SStrPrintf(string, sizeof(string), "%d", radius ? (int)radius->m_radius : 0);
       SStrPack(buf, string, size);
       break;
+    }
+    case 'D':
+    case 'd': {
+      const SpellDurationRec *duration = g_spellDurationDB.GetRecord(spell->m_durationIndex);
+      if (duration) {
+        int milliseconds = duration->m_duration + level * duration->m_durationPerLevel;
+        if (milliseconds >= duration->m_maxDuration) {
+          milliseconds = duration->m_maxDuration;
+        }
+        if (milliseconds <= 0) {
+          SStrPack(buf, FrameScript_GetText("SPELL_DURATION_UNTIL_CANCELLED", -1, GENDER_NOT_APPLICABLE), size);
+        } else {
+          char format[64];
+          char formatted[64];
+          SStrCopy(
+              format, FrameScript_GetText(milliseconds < 60000 ? "SPELL_DURATION_SEC" : "SPELL_DURATION_MIN", -1, GENDER_NOT_APPLICABLE),
+              sizeof(format)
+          );
+          SStrPrintf(formatted, sizeof(formatted), format, milliseconds / (milliseconds >= 60000 ? 60000 : 1000));
+          SStrPack(buf, formatted, size);
+        }
+      }
+      break;
+    }
     case 'R':
     case 'r': {
       const SpellRangeRec *range = g_spellRangeDB.GetRecord(spell->m_rangeIndex > 1 ? spell->m_rangeIndex : 1);
@@ -420,15 +410,25 @@ static int SpellParserReplaceText(char *buf, UINT size, const SpellRec *spell, i
       }
       break;
     }
-    case 'T':
-    case 't':
-      SStrPrintf(string, sizeof(string), "%d", ((spell->m_procFlags & 8) ? 5000 : spell->m_effectAuraPeriod[effect]) / 1000);
+    case 'C':
+    case 'c':
+      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetManaCost(spell->m_ID, isPet));
+      SStrPack(buf, string, size);
+      break;
+    case 'P':
+    case 'p':
+      SStrPrintf(string, sizeof(string), "%d", Spell_C_GetManaCostPerSecond(spell->m_ID, isPet));
       SStrPack(buf, string, size);
       break;
     case 'X':
     case 'x':
       s_lastNumber = spell->m_effectChainTargets[effect];
       SStrPrintf(string, sizeof(string), "%d", s_lastNumber);
+      SStrPack(buf, string, size);
+      break;
+    case 'T':
+    case 't':
+      SStrPrintf(string, sizeof(string), "%d", ((spell->m_procFlags & 8) ? 5000 : spell->m_effectAuraPeriod[effect]) / 1000);
       SStrPack(buf, string, size);
       break;
     default:

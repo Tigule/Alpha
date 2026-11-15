@@ -99,7 +99,9 @@ void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
 
 HCAMERA CameraCreate() {
   CCamera *camera = NEWHANDLE(HCAMERA, CCamera);
-  return camera ? CREATEHANDLE(HCAMERA, camera) : 0;
+  if (!camera)
+    return 0;
+  return CREATEHANDLE(HCAMERA, camera);
 }
 
 HCAMERA CameraDuplicate(HCAMERA source) {

@@ -317,21 +317,15 @@ void CMapLight::Project() {
   worldTransMat.Translate(CWorldScene::camPos - pos);
 
   NTempest::C44Matrix texScale;
-  texScale.a0 = 1.0f / (aaBox.t.x - aaBox.b.x);
-  texScale.b1 = texScale.a0;
-  texScale.c2 = texScale.a0;
+  texScale.c2 = texScale.b1 = texScale.a0 = 1.0f / (aaBox.t.x - aaBox.b.x);
 
   texMtx0 = worldTransMat * texScale;
-  texMtx0.d0 += 0.5f;
-  texMtx0.d1 += 0.5f;
-  texMtx0.d2 += 0.5f;
+  *texMtx0.Row3AsVec3() += 0.5f;
 
   texMtx1 = worldTransMat * texScale;
   NTempest::C44Matrix RtoS(0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
   texMtx1 = texMtx1 * RtoS;
-  texMtx1.d0 += 0.5f;
-  texMtx1.d1 += 0.5f;
-  texMtx1.d2 += 0.5f;
+  *texMtx1.Row3AsVec3() += 0.5f;
 
   GxXformSet(GxXform_Tex0, texMtx0);
   GxXformSet(GxXform_Tex1, texMtx1);

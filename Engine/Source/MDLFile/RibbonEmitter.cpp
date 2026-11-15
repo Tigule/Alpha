@@ -134,40 +134,15 @@ BOOL MDL::ReadRibbonEmitter(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 
 static void IWriteRibbonEmitter(const MDLDATA &data, const MDLRIBBONEMITTER &emitter, int needObjIds, TSGrowableArray<char> &buffer) {
   WriteObjectHeader(data, emitter, MDLTOK_RIBBONEMITTER, needObjIds, buffer);
-  if (emitter.heightAbove.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_HEIGHT_ABOVE, "\t", emitter.heightAbove, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_HEIGHT_ABOVE));
-    WriteKeyData(buffer, &emitter.staticHeightAbove, 1);
-  }
-  if (emitter.heightBelow.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_HEIGHT_BELOW, "\t", emitter.heightBelow, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_HEIGHT_BELOW));
-    WriteKeyData(buffer, &emitter.staticHeightBelow, 1);
-  }
-  if (emitter.alphaKeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_ALPHA, "\t", emitter.alphaKeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_ALPHA));
-    WriteKeyData(buffer, &emitter.staticAlpha, 1);
-  }
-  if (emitter.colorKeys.keys.Count()) {
-    WriteFloatKeyFrames(MDLTOK_COLOR, "\t", emitter.colorKeys, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_COLOR));
-    WriteKeyData(buffer, &emitter.staticColor.b, 3);
-  }
-  if (emitter.textureSlot.keys.Count()) {
-    WriteIntKeyFrames(MDLTOK_TEXTURE_SLOT, "\t", emitter.textureSlot, buffer);
-  } else {
-    MDL::WriteLine(buffer, "%s%s %s ", "\t", MDL::TokenText(MDLTOK_STATIC), MDL::TokenText(MDLTOK_TEXTURE_SLOT));
-    WriteUintKeyData(buffer, &emitter.staticTextureSlot, 1);
-  }
+  WriteKeyFramesOrStatic(MDLTOK_HEIGHT_ABOVE, "\t", emitter.heightAbove, &emitter.staticHeightAbove, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_HEIGHT_BELOW, "\t", emitter.heightBelow, &emitter.staticHeightBelow, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_ALPHA, "\t", emitter.alphaKeys, &emitter.staticAlpha, 1, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_COLOR, "\t", emitter.colorKeys, &emitter.staticColor.b, 3, buffer);
+  WriteKeyFramesOrStatic(MDLTOK_TEXTURE_SLOT, "\t", emitter.textureSlot, &emitter.staticTextureSlot, 1, buffer);
   WriteFloatKeyFrames(MDLTOK_VISIBILITY, "\t", emitter.visibilityKeys, buffer);
   MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_EMISSION_RATE), emitter.edgesPerSecond);
   MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_LIFESPAN), emitter.edgeLifetime);
-  if (fabs(emitter.gravity) >= 2.3841858e-7f) {
+  if (NTempest::CMath::fnotequal_(emitter.gravity, 0.0f)) {
     MDL::WriteLine(buffer, "\t%s %g,\n", MDL::TokenText(MDLTOK_GRAVITY), emitter.gravity);
   }
   MDL::WriteLine(buffer, "\t%s %u,\n", MDL::TokenText(MDLTOK_ROWS), emitter.textureRows);

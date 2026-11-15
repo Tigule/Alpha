@@ -182,10 +182,13 @@ static void IProcessEvent(const InterpInfo &animInfo, CAnimEventObj *currEvent) 
 }
 
 static void PlaceModelObject(const AnimInfo &animInfo, CAnimModelObj *modelObj) {
+  CAnimModelObjStatus *modelStatus = (CAnimModelObjStatus *)animInfo.unique->status[modelObj->animObjId];
   modelObj->visibility.InterpolateRetained(
-      animInfo, animInfo.unique->status[modelObj->animObjId]->base,
-      &((CAnimModelObjStatus *)animInfo.unique->status[modelObj->animObjId])->visibility, 1.0f,
-      &((CAnimModelObjStatus *)animInfo.unique->status[modelObj->animObjId])->visible
+      animInfo,
+      modelStatus->base,
+      &modelStatus->visibility,
+      1.0f,
+      &modelStatus->visible
   );
   FATALASSERT(modelObj->splitIndex < animInfo.data.numAttached);
   WorldMatrixGet(animInfo.data.attached + modelObj->splitIndex);

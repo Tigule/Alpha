@@ -105,7 +105,41 @@ def build_line_tag_normalizer(names: Iterable[str | None]) -> Callable[[str | No
             return name
         return _rewrite(name, table, None).replace(_DONE, "")
 
+    normalize.table = table
     return normalize
 
 
-__all__ = ["build_line_tag_normalizer"]
+_NORMALIZED_TAIL = re.compile(r",(\d+),__LINE__#(\d+)>")
+
+
+def line_argument_pairs(name: str | None, original: Callable[[str | None], str | None] | None,
+                        rebuilt: Callable[[str | None], str | None] | None) -> frozenset[tuple[int, int]]:
+    """Return the (original line, rebuilt line) pair behind every __LINE__#n site of a normalized
+    plain name, taken from the two normalizer tables that gave both lines the same ordinal."""
+    left, right = getattr(original, "table", None), getattr(rebuilt, "table", None)
+    if not name or left is None or right is None:
+        return frozenset()
+    pairs = set()
+    for match in _NORMALIZED_TAIL.finditer(name):
+        depth, pos = 0, match.start() - 1
+        while pos >= 0:
+            char = name[pos]
+            if char == ">":
+                depth += 1
+            elif char == "<":
+                if depth == 0:
+                    break
+                depth -= 1
+            pos -= 1
+        head = _PLAIN_HEAD.search(name[:pos]) if pos >= 0 else None
+        if head is None:
+            continue
+        key = (head.group(0), name[pos + 1 : match.start()], match.group(1))
+        ordinal = int(match.group(2))
+        lines = [{value: line for line, value in side.get(key, {}).items()}.get(ordinal) for side in (left, right)]
+        if None not in lines:
+            pairs.add((lines[0], lines[1]))
+    return frozenset(pairs)
+
+
+__all__ = ["build_line_tag_normalizer", "line_argument_pairs"]

@@ -110,6 +110,8 @@ class TypeRepository:
     aliases: dict[int, int] = field(default_factory=dict)
     normalize_name: Any = None
     matches: dict[int, tuple[Any, set[tuple[int, int]]]] = field(default_factory=dict, compare=False, repr=False)
+    groups: dict[tuple[str, str], list[list[int]]] = field(default_factory=dict, compare=False, repr=False)
+    forward_failures: dict[int, dict[tuple[int, int], tuple[Any, str]]] = field(default_factory=dict, compare=False, repr=False)
 
     def describe(self, index: int | None, depth: int = 0) -> str:
         if index is None:
@@ -177,6 +179,24 @@ class TypeRepository:
                    and self.records[candidate].reason != "forward declaration"
                    for candidate in self.named_types.get(node.name, ()))
 
+    def definition_groups(self, node: TypeNode) -> list[list[int]]:
+        if (node.name, node.kind) in self.groups:
+            return self.groups[(node.name, node.kind)]
+        self.groups[(node.name, node.kind)] = []
+        groups: list[list[int]] = []
+        for candidate in self.named_types.get(node.name, ()):
+            record = self.records[candidate]
+            if record.kind != node.kind or not record.supported or candidate in self.aliases:
+                continue
+            for group in groups:
+                if self.compare(group[0], self, candidate).equal is True:
+                    group.append(candidate)
+                    break
+            else:
+                groups.append([candidate])
+        self.groups[(node.name, node.kind)] = groups
+        return groups
+
     def compare(self, index: int, other: "TypeRepository", other_index: int) -> TypeComparison:
         active: set[tuple[int, int]] = set()
         proven: set[tuple[int, int]] = set()
@@ -198,6 +218,26 @@ class TypeRepository:
                     and not self.has_definition(a) and not other.has_definition(b)):
                 proven.add(key)
                 return True, "forward-only types match by name"
+            if (a.reason == "forward declaration" and b.reason == "forward declaration" and a.name
+                    and a.kind == b.kind and a.name == b.name and a.scalars == b.scalars):
+                left, right = self.definition_groups(a), other.definition_groups(b)
+                failed = self.forward_failures.setdefault(id(other), {})
+                if key in failed:
+                    return failed[key]
+                if len(left) > 1 and len(left) == len(right):
+                    active.add(key)
+                    unused = list(right)
+                    for group in left:
+                        found = next((candidate for candidate in unused
+                                      if cmp(group[0], candidate[0], f"{where}.definition")[0] is True), None)
+                        if found is None:
+                            active.remove(key)
+                            failed[key] = (None, f"{where}: forward declaration definitions differ")
+                            return failed[key]
+                        unused.remove(found)
+                    active.remove(key)
+                    proven.add(key)
+                    return True, "forward declarations resolve to the same definition set"
             if not a.supported or not b.supported:
                 return None, f"{where}: unsupported {a.reason or a.kind} / {b.reason or b.kind}"
             if a.kind != b.kind:
@@ -258,6 +298,7 @@ class PDBData:
     types: TypeRepository = field(default_factory=TypeRepository)
     diagnostics: list[str] = field(default_factory=list)
     data: list[DataSymbol] = field(default_factory=list)
+    anonymous_data: list[DataSymbol] = field(default_factory=list)
 
 
 class _Reader:
@@ -770,6 +811,25 @@ def _module_symbols(data: bytes, byte_count: int, module: str) -> tuple[str | No
     return compiler, language, flags, options, functions, data_symbols
 
 
+def _anonymous_data(records: bytes) -> list[DataSymbol]:
+    found: dict[tuple[str, int, int], DataSymbol] = {}
+    position = records.find(b"@?%")
+    while position >= 0:
+        for start in range(max(0, position - 300), position):
+            length, kind = struct.unpack_from("<HH", records, start)
+            name_length = records[start + 14] if start + 15 <= len(records) else 0
+            name_end = start + 15 + name_length
+            if (kind in (0x1007, 0x1008) and records[start + 15:start + 16] == b"?" and name_end > position
+                    and name_end <= start + 2 + length <= name_end + 3 and name_end <= len(records)):
+                type_index, offset, section = struct.unpack_from("<IIH", records, start + 4)
+                name = records[start + 15:name_end].decode("latin-1")
+                found[(name, section, offset)] = DataSymbol("", name, section, offset,
+                                                            "local" if kind == 0x1007 else "global", type_index)
+                break
+        position = records.find(b"@?%", position + 3)
+    return list(found.values())
+
+
 def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
     diagnostics: list[str] = []
     try:
@@ -797,7 +857,11 @@ def parse_pdb(path: str | Path, data: bytes | None = None) -> PDBData:
                 checked.append(replace(function, status="unsupported", reason=node.reason or f"unexpected function type {node.kind}"))
             else:
                 checked.append(function)
-        return PDBData(signature, age, "MSF/PDB 2.00", False, checked, compilands, types, diagnostics, data_symbols)
+        dbi = msf.stream(3)
+        records = struct.unpack_from("<H", dbi, 20)[0] if len(dbi) >= 22 else 0xFFFF
+        anonymous = _anonymous_data(msf.stream(records)) if records != 0xFFFF else []
+        return PDBData(signature, age, "MSF/PDB 2.00", False, checked, compilands, types, diagnostics, data_symbols,
+                       anonymous)
     except (OSError, PDBError, struct.error, OverflowError) as exc:
         diagnostics.append(str(exc))
         return PDBData(None, None, "unknown", True, diagnostics=diagnostics)

@@ -85,7 +85,7 @@ static HLAYER__           *s_layerBackground;
 static HLAYER__           *s_layerText;
 static int                 s_completionMode;
 static LPCSTR              s_completedCmd;
-static LPCSTR              s_previousCmd;
+static LPCSTR              s_previousCmd = 0;
 static char                s_partial[0x100];
 static int                 s_historyIndex = -1;
 static NTempest::CImVector s_colorArray[NUM_COLORTYPES] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFF808080, 0xFFFF0000, 0xFFFFFF00,
@@ -96,7 +96,7 @@ static char                s_fontName[0x104];
 static CONSOLERESIZESTATE  s_consoleResizeState;
 static HIGHLIGHTSTATE      s_highlightState;
 static float               s_consoleLines = 10.0f;
-static float               s_consoleHeight = s_consoleLines * s_fontHeight;
+static float               s_consoleHeight = s_fontHeight * s_consoleLines;
 static char                s_repeatBuffer[0x20];
 static UINT                s_repeatCount;
 static RECTF               s_hRect = {0.0f, 0.0f, 1.0f, 1.0f};

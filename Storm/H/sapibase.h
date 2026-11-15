@@ -353,20 +353,20 @@ class Sha1 {
 
 // clang-format off
 #ifdef ASSERTIONS_ENABLED
-#define ASSERT(a)                         \
-  if (!(a))                              \
-    SErrDisplayError(STORM_ERROR_ASSERTION, \
-                     __FILE__,           \
-                     __LINE__,           \
-                     #a,                 \
-                     FALSE)
-#define FATALASSERT(a)                    \
-  if (!(a))                              \
-    SErrDisplayError(STORM_ERROR_ASSERTION, \
-                     __FILE__,           \
-                     __LINE__,           \
-                     #a,                 \
-                     FALSE)
+#define ASSERT(a)                                       \
+  ((a) ? 0 : (SErrDisplayError(STORM_ERROR_ASSERTION, \
+                               __FILE__,              \
+                               __LINE__,              \
+                               #a,                    \
+                               FALSE),                \
+              0))
+#define FATALASSERT(a)                                  \
+  ((a) ? 0 : (SErrDisplayError(STORM_ERROR_ASSERTION, \
+                               __FILE__,              \
+                               __LINE__,              \
+                               #a,                    \
+                               FALSE),                \
+              0))
 #define FATALERROR(args)                  \
   if (1) {                                \
     SErrPrepareAppFatal(__FILE__, __LINE__); \

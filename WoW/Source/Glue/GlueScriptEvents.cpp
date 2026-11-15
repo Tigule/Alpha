@@ -203,8 +203,7 @@ static int Script_GetRealmInfo(lua_State *L) {
     return 0;
   }
 
-  int               index = (int)lua_tonumber(L, 1) - 1;
-  const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex(index);
+  const REALM_INFO *realm = ClientServices_GetRealmInfoByIndex((int)lua_tonumber(L, 1) - 1);
   if (realm) {
     lua_pushstring(L, realm->name);
     lua_pushnumber(L, realm->players);
@@ -214,12 +213,12 @@ static int Script_GetRealmInfo(lua_State *L) {
     } else {
       lua_pushnil(L);
     }
-  } else {
-    lua_pushnil(L);
-    lua_pushnumber(L, 0.0);
-    lua_pushnil(L);
+    return 3;
   }
 
+  lua_pushnil(L);
+  lua_pushnumber(L, 0.0);
+  lua_pushnil(L);
   return 3;
 }
 

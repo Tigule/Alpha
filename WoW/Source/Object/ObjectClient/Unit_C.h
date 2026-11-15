@@ -614,7 +614,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   friend void CreatureQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted);
   friend BOOL UnitModeUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID oldValue, LPVOID param);
   friend BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-
+  friend void UnitCombatLogUnitDead(DWORDLONG unit);
   friend void MovementFixOutOfBoundsUnit(DWORDLONG guid);
 
  public:
@@ -1457,10 +1457,6 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void SetShowHandArrowFlag(int show);
   bool GetShowingHandArrow() const {
     return (m_flags >> 19) & 1;
-  }
-  // todo: real name
-  bool IsXPGainPending() const {
-    return (m_flags >> 7) & 1;
   }
   void SetShowingHandArrowFlag(int showing);
   void      SetAmmoDisplay(UINT displayID, UINT inventoryType) {

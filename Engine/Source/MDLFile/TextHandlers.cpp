@@ -63,11 +63,11 @@ namespace MDL {
                                        WriteParticleEmitters2, WriteRibbonEmitters, WriteCameras,      WriteEventObjects,
                                        WriteHitTests,          WriteCollision};
 
-  void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR format, ...) {
+  void __cdecl WriteLine(TSGrowableArray<char> &buffer, LPCSTR pszFmt, ...) {
     static char buf[1024];
     va_list     args;
-    va_start(args, format);
-    int numchars = _vsnprintf(buf, sizeof(buf), format, args);
+    va_start(args, pszFmt);
+    int numchars = _vsnprintf(buf, sizeof(buf), pszFmt, args);
     va_end(args);
 
     if (numchars == sizeof(buf)) {

@@ -56,6 +56,7 @@ static UINT  s_unitSoundChances[NUM_UNITSOUNDTYPES] = {70, 100, 60, 100, 100, 10
 static UINT  s_unitSoundTimers[NUM_UNITSOUNDTYPES];
 static CVar *s_footstepSoundCVar;
 static int   soundDataOffsets[NUM_UNITSOUNDTYPES] = {4, 8, 12, 16, 24, 28, 32, 0, 36, 40, 44, 52, 20, 48, 100, 104};
+static int   fidgetDataOffsets[4] = {56, 60, 64, 68};
 
 int GetSoundID(const CreatureSoundDataRec *soundData, UNITSOUNDTYPE soundType) {
   FATALASSERT(soundData);

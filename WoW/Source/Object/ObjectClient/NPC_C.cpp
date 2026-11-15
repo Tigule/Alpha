@@ -32,9 +32,9 @@
 
 static int       s_questQueriesPending;
 static int       s_questRewardQueriesPending;
-static BYTE      s_numQuestsOffered;
+static BYTE      s_numQuestsOffered = 0;
 static DWORDLONG s_npcGUID;
-static int       s_pendingNPCQuest;
+static int       s_pendingNPCQuest = 0;
 
 void NPC_C_OfferItem(DWORDLONG npc, DWORDLONG itemGUID) {
   CDataStore msg;

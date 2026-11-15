@@ -648,7 +648,7 @@ static const int                             CHARACTER_POINT_BONUS_PER_THRESHOLD
 static UINT                                  s_areaTriggerCheck_TimerEvent;
 static int                                   s_enableDeathHoldLog;
 static int                                   s_renderPlayer;
-static UINT                                  s_numLootItems;
+static UINT                                  s_numLootItems = 0;
 #define MAX_LOOT_ITEMS 16
 #define MAX_UNIT_SKILL_LINES 64
 

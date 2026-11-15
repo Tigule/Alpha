@@ -854,8 +854,9 @@ void WaveTrain::Init(const NTempest::C2Vector &pPos, const NTempest::C2Vector &p
   pos = pPos;
   halfSize = 0.5f * pSize;
 
-  phaseSize.x = (int)ceil(pSize.x * (1.0f / PHASE_GRID_SIZE)) + 1;
-  phaseSize.y = (int)ceil(pSize.y * (1.0f / PHASE_GRID_SIZE)) + 1;
+  NTempest::C2Vector phaseExtent = (1.0f / PHASE_GRID_SIZE) * pSize;
+  phaseSize.x = (int)ceil(phaseExtent.x) + 1;
+  phaseSize.y = (int)ceil(phaseExtent.y) + 1;
   speed = pSpeed;
   localToWorld = NTempest::C22Matrix::Rotation(radAngle);
 

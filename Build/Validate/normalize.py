@@ -188,6 +188,29 @@ def _matching_macro_pair(left: Evidence | None, right: Evidence | None) -> bool:
     return len({str((value.detail or {}).get(file_key)).replace("\\", "/").rsplit("/", 1)[-1].lower() for value in (left, right)}) == 1
 
 
+def _pairing_audit(a: Instruction, b: Instruction, field: tuple[int, int, str, int],
+                   left: Evidence | None, right: Evidence | None) -> dict[str, Any] | None:
+    if not (left and right and left.kind == right.kind):
+        return None
+    left_keys = (left.detail or {}).get("pairing") or {}
+    right_keys = (right.detail or {}).get("pairing") or {}
+    for rule in sorted(set(left_keys) & set(right_keys)):
+        shared = sorted(set(left_keys[rule]) & set(right_keys[rule]))
+        if shared:
+            return {"kind": "relocation", "instruction_offset_original": a.offset,
+                    "instruction_offset_rebuilt": b.offset, "field": field[2], "size": field[1],
+                    "identity": left.identity, "rebuilt_identity": right.identity,
+                    "pairing": rule, "pairing_key": shared[0]}
+    return None
+
+
+def _argument_scan(left: Evidence | None, right: Evidence | None) -> dict[str, Any]:
+    scans = {side: (value.detail or {}).get("interleaved_offsets")
+             for side, value in (("original", left), ("rebuilt", right)) if value is not None}
+    scans = {side: offsets for side, offsets in scans.items() if offsets}
+    return {"argument_scan": "interleaved_arguments", "interleaved_offsets": scans} if scans else {}
+
+
 def _jump_table_evidence(procedure: DecodedProcedure) -> list[Evidence]:
     instruction_indexes = {instruction.offset: index for index, instruction in enumerate(procedure.instructions)}
     result: list[Evidence] = []
@@ -317,6 +340,7 @@ def compare_code(
     rebuilt_macro_evidence: Sequence[Any] = (),
     original_decoded: DecodedProcedure | None = None,
     rebuilt_decoded: DecodedProcedure | None = None,
+    line_pairs: frozenset[tuple[int, int]] = frozenset(),
 ) -> NormalizationResult:
     raw_bytes_equal = original == rebuilt
     try:
@@ -419,7 +443,7 @@ def compare_code(
                               "size_original": sa, "size_rebuilt": sb, "identity": macro_a.identity,
                               "sink": (macro_a.detail or {}).get("sink"),
                               "original_value": (macro_a.detail or {}).get("value"),
-                              "rebuilt_value": (macro_b.detail or {}).get("value")})
+                              "rebuilt_value": (macro_b.detail or {}).get("value"), **_argument_scan(macro_a, macro_b)})
                 mutable_a = mutable_b
                 continue
             bytes_match = mutable_a[oa : oa + sa] == mutable_b[ob : ob + sb]
@@ -438,6 +462,14 @@ def compare_code(
                 if (not semantic_matches and (semantic_a is None or semantic_a.kind == "bitwise_immediate")
                         and (semantic_b is None or semantic_b.kind == "bitwise_immediate")):
                     continue
+                if (not semantic_matches and kind_a == "immediate" and a.operands[field_a[3]][0] == "imm"
+                        and not a.mnemonic.startswith(("call", "j", "loop"))
+                        and (semantic_a is None or (semantic_a.kind == "address" and not semantic_a.resolved))):
+                    audit.append({"kind": "numeric_immediate", "instruction_offset_original": a.offset,
+                                  "instruction_offset_rebuilt": b.offset, "field": kind_a, "size": sa,
+                                  "value": int.from_bytes(mutable_a[oa : oa + sa], "little"),
+                                  "rebuilt_identity": semantic_b.identity if semantic_b else None})
+                    continue
                 if not semantic_matches:
                     macro_a = _field_evidence(macro_left, a, field_a)
                     macro_b = _field_evidence(macro_right, b, field_b)
@@ -448,7 +480,11 @@ def compare_code(
                                       "size": sa, "identity": macro_a.identity,
                                       "sink": (macro_a.detail or {}).get("sink"),
                                       "original_value": (macro_a.detail or {}).get("value"),
-                                      "rebuilt_value": (macro_b.detail or {}).get("value")})
+                                      "rebuilt_value": (macro_b.detail or {}).get("value"), **_argument_scan(macro_a, macro_b)})
+                        continue
+                    pairing = _pairing_audit(a, b, field_a, semantic_a, semantic_b)
+                    if pairing is not None:
+                        audit.append(pairing)
                         continue
                     return NormalizationResult(
                         False,
@@ -468,6 +504,20 @@ def compare_code(
                 eb = _field_evidence(macro_right, b, field_b)
                 category = "macro"
                 if not _matching_macro_pair(ea, eb):
+                    values = (int.from_bytes(a.raw[oa : oa + sa], "little"), int.from_bytes(b.raw[ob : ob + sb], "little"))
+                    if kind_a == "immediate" and semantic_a is None and semantic_b is None and values in line_pairs:
+                        mutable_a[oa : oa + sa] = b"\0" * sa
+                        mutable_b[ob : ob + sb] = b"\0" * sb
+                        audit.append({"kind": "line_template_argument", "instruction_offset_original": a.offset,
+                                      "instruction_offset_rebuilt": b.offset, "field": kind_a, "size": sa,
+                                      "original_value": values[0], "rebuilt_value": values[1]})
+                        continue
+                    pairing = _pairing_audit(a, b, field_a, semantic_a, semantic_b)
+                    if pairing is not None:
+                        mutable_a[oa : oa + sa] = b"\0" * sa
+                        mutable_b[ob : ob + sb] = b"\0" * sb
+                        audit.append(pairing)
+                        continue
                     return NormalizationResult(
                         False, "mismatch", "changed encoded value lacks matching resolved evidence", tuple(audit), a.offset
                     )
@@ -484,7 +534,7 @@ def compare_code(
                     "identity": ea.identity,
                     **({"sink": (ea.detail or {}).get("sink"),
                         "original_value": (ea.detail or {}).get("value"),
-                        "rebuilt_value": (eb.detail or {}).get("value")} if category == "macro" else {}),
+                        "rebuilt_value": (eb.detail or {}).get("value"), **_argument_scan(ea, eb)} if category == "macro" else {}),
                 }
             )
         if mutable_a != mutable_b:
