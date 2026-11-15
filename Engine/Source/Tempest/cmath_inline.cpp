@@ -345,6 +345,7 @@ namespace NTempest {
     z *= inverse;
   }
 
+#if !BUILD_PORTABLE
   float CMath::frsqrte_(float x, DWORD magic) {
     DWORD bits = *(DWORD *)&x;
     bits = magic - ((bits >> 1) & 0x3FFFFFFF);
@@ -378,6 +379,64 @@ namespace NTempest {
     ((DWORD *)x)[1] = magic - ((DWORD *)x)[1];
     return *x;
   }
+#else
+  float CMath::frsqrte_(float x, DWORD magic) {
+    UINT bits;
+    memcpy(&bits, &x, sizeof(bits));
+    bits = magic - ((bits >> 1) & 0x3FFFFFFF);
+    memcpy(&x, &bits, sizeof(x));
+    return x;
+  }
+  double CMath::frsqrte_(double x, DWORD magic) {
+    UINT high;
+    memcpy(&high, (BYTE *)&x + 4, sizeof(high));
+    high = magic - ((high >> 1) & 0x3FFFFFFF);
+    memcpy((BYTE *)&x + 4, &high, sizeof(high));
+    return x;
+  }
+  float CMath::frsqrte_(float *x, DWORD magic) {
+    UINT bits;
+    memcpy(&bits, x, sizeof(bits));
+    bits = magic - ((bits >> 1) & 0x3FFFFFFF);
+    memcpy(x, &bits, sizeof(bits));
+    return *x;
+  }
+  double CMath::frsqrte_(double *x, DWORD magic) {
+    UINT high;
+    memcpy(&high, (BYTE *)x + 4, sizeof(high));
+    high = magic - ((high >> 1) & 0x3FFFFFFF);
+    memcpy((BYTE *)x + 4, &high, sizeof(high));
+    return *x;
+  }
+  float CMath::fres_(float x, DWORD magic) {
+    UINT bits;
+    memcpy(&bits, &x, sizeof(bits));
+    bits = magic - bits;
+    memcpy(&x, &bits, sizeof(x));
+    return x;
+  }
+  double CMath::fres_(double x, DWORD magic) {
+    UINT high;
+    memcpy(&high, (BYTE *)&x + 4, sizeof(high));
+    high = magic - high;
+    memcpy((BYTE *)&x + 4, &high, sizeof(high));
+    return x;
+  }
+  float CMath::fres_(float *x, DWORD magic) {
+    UINT bits;
+    memcpy(&bits, x, sizeof(bits));
+    bits = magic - bits;
+    memcpy(x, &bits, sizeof(bits));
+    return *x;
+  }
+  double CMath::fres_(double *x, DWORD magic) {
+    UINT high;
+    memcpy(&high, (BYTE *)x + 4, sizeof(high));
+    high = magic - high;
+    memcpy((BYTE *)x + 4, &high, sizeof(high));
+    return *x;
+  }
+#endif
 
   void CMath::split_(double xlr, double &xf, long &xi) {
     xi = xlr;

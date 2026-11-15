@@ -631,6 +631,7 @@ extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFrames
   process = GetCurrentProcess();
   thread = GetCurrentThread();
 
+#if !BUILD_PORTABLE
   __asm {
     call nextline
   nextline:
@@ -640,6 +641,13 @@ extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFrames
     push esp
     pop registerEsp
   }
+#else
+  CONTEXT current;
+  RtlCaptureContext(&current);
+  registerEip = current.Eip;
+  registerEbp = current.Ebp;
+  registerEsp = current.Esp;
+#endif
 
   memset(&stackFrame, 0, sizeof(stackFrame));
   stackFrame.AddrPC.Offset = registerEip;
@@ -957,7 +965,7 @@ void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID lo
 #endif
     stackFramesToSkip = 0;
   } else {
-#if defined(_M_IX86) || defined(_X86_)
+#if !BUILD_PORTABLE
     __asm {
       call nextline
     nextline:
@@ -967,6 +975,12 @@ void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID lo
       push esp
       pop registerEsp
     }
+#elif defined(_M_IX86) || defined(_X86_)
+    CONTEXT current;
+    RtlCaptureContext(&current);
+    registerEip = current.Eip;
+    registerEbp = current.Ebp;
+    registerEsp = current.Esp;
 #endif
     logOptions &= 0xFFEEFFFF;
     ++stackFramesToSkip;

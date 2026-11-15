@@ -3542,10 +3542,14 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
       }
       if (speed > 0.00000095367432f) {
         squaredDist = distance / speed * 1000.0f;
+#if !BUILD_PORTABLE
         __asm {
           fld squaredDist
           fistp moveTime
         }
+#else
+        moveTime = lrint(squaredDist);
+#endif
         if ((int)moveTime <= 1) {
           moveTime = 1;
         }

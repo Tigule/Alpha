@@ -318,6 +318,7 @@ static unreal u_2pow19ovpi = unreal::fromBits(0x4822F983);
 static unreal u_12865 = unreal::fromInt(12865);
 static unreal u_n12865 = unreal::fromInt(-12865);
 
+#if !BUILD_PORTABLE
 inline int CountLeadingZeros(UINT value) {
   __asm {
     bsr edx, value
@@ -330,6 +331,16 @@ zero:
 done:
   }
 }
+#else
+inline int CountLeadingZeros(UINT value) {
+  int count = 32;
+  while (value) {
+    value >>= 1;
+    --count;
+  }
+  return count;
+}
+#endif
 
 unreal operator*(const unreal &a, const unreal &b) {
   UINT   sign = (a.bits ^ b.bits) & 0x80000000;

@@ -299,8 +299,8 @@ void DetectHardware(Hardware &hardware, bool &changed) {
   {
     SetVideoIdx(hardware);
 
-#if 0
-    // tigule: annoying popup disabled for now
+#if !BUILD_FIXES
+    // tigule: disabled annoying popup, pretty much all modern hardware is unrecognized.
     if (!hardware.videoIdx && hardware.videoDevice.vendorID && hardware.videoDevice.deviceID) {
       PrintUnknownHardware(hardware);
     }

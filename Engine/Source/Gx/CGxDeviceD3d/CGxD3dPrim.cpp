@@ -458,6 +458,7 @@ void CGxDeviceD3d::BufDestroy(CGxBuf *&b) {
   b = 0;
 }
 
+#if !BUILD_PORTABLE
 __declspec(naked) void IPrimSetupPos_PNT0(LPVOID) {
   __asm {
     push ebx
@@ -542,6 +543,17 @@ __declspec(naked) void IPrimSetupPos_PNT0(LPVOID) {
     ret
   }
 }
+#else
+void IPrimSetupPos_PNT0(LPVOID dstBuf) {
+  BYTE *dst = (BYTE *)dstBuf;
+  for (UINT ndx = 0; ndx != s_vertexCount; ++ndx) {
+    memcpy(dst, &s_pos[ndx], sizeof(NTempest::C3Vector));
+    memcpy(dst + 12, &s_normal[ndx], sizeof(NTempest::C3Vector));
+    memcpy(dst + 24, &s_tex[0][ndx], sizeof(NTempest::C2Vector));
+    dst += 32;
+  }
+}
+#endif
 
 void CGxDeviceD3d::IPrimSetupPos(LPVOID dstBuf) {
   if ((m_cpuFeatures & 0x2) && m_vertexShader == GxVS_PassThru && m_vertexBufferFormat == GxVBF_PNT0 && s_posStride == sizeof(NTempest::C3Vector) &&

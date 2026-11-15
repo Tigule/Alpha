@@ -160,10 +160,14 @@ static void AddStormMessages() {
 }
 
 static void Breakpoint() {
-#if defined(_MSC_VER) && defined(_M_IX86)
+#if !BUILD_PORTABLE
   __try {
     __asm int 3
   } __except (EXCEPTION_EXECUTE_HANDLER) {
+  }
+#else
+  if (IsDebuggerPresent()) {
+    DebugBreak();
   }
 #endif
 }

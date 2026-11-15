@@ -110,6 +110,7 @@ class CDebugLock : public T {
   static void  IEnterEntry(DWORD e);
 };
 
+#if !BUILD_PORTABLE
 void Pause() {
   __asm {
     nop
@@ -154,6 +155,11 @@ void Pause() {
     nop
   }
 }
+#else
+void Pause() {
+  YieldProcessor();
+}
+#endif
 
 void SRWLock::IInitialize() {
   SYSTEM_INFO sysinfo;

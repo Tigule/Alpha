@@ -13,6 +13,10 @@
 #include <string.h>
 #include <windows.h>
 
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#include <intrin.h>
+#endif
+
 #include "Os/W32/Debugging.h"
 #include "Os/W32/OSSystem.h"
 #include "Os/OsTime.h"
@@ -1536,12 +1540,24 @@ float CGxDevice::CpuFrequency() {
   return frequency;
 }
 
+#if !BUILD_PORTABLE
 __declspec(naked) LONGLONG CGxDevice::CpuTicks() {
   __asm {
     rdtsc
     ret
   }
 }
+#else
+LONGLONG CGxDevice::CpuTicks() {
+#if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
+  return (LONGLONG)__rdtsc();
+#else
+  LARGE_INTEGER ticks;
+  QueryPerformanceCounter(&ticks);
+  return ticks.QuadPart;
+#endif
+}
+#endif
 
 void __cdecl CGxDevice::DbgPrintf(LPCSTR format, ...) {
   char    buffer[256];

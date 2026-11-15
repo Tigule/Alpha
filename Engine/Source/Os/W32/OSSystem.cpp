@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(_MSC_VER) && _MSC_VER >= 1400
+#include <intrin.h>
+#endif
+
 #include <storm.h>
 
 #include "OSSystem.h"
@@ -75,6 +79,7 @@ static int __cdecl IOsGetProcessorFeatures(BYTE vendor[12], DWORD *featuresStd, 
 
   int result = 0;
 
+#if !BUILD_PORTABLE
   __asm {
     push eax
     push ebx
@@ -117,6 +122,23 @@ static int __cdecl IOsGetProcessorFeatures(BYTE vendor[12], DWORD *featuresStd, 
     pop ebx
     pop eax
   }
+#elif defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
+  int regs[4];
+  __cpuid(regs, 0);
+  if (regs[0]) {
+    result = 1;
+    ((DWORD *)vendor)[0] = regs[1];
+    ((DWORD *)vendor)[1] = regs[3];
+    ((DWORD *)vendor)[2] = regs[2];
+    __cpuid(regs, 1);
+    *featuresStd = regs[3];
+    __cpuid(regs, 0x80000000);
+    if ((DWORD)regs[0] > 0x80000000) {
+      __cpuid(regs, 0x80000001);
+      *featuresExt = regs[3];
+    }
+  }
+#endif
 
   return result;
 }
@@ -200,6 +222,7 @@ void OsSetBackgroundSleepMs(DWORD sleepMs) {
   s_backgroundSleepMs = sleepMs;
 }
 
+#if !BUILD_PORTABLE
 void OsPause() {
   __asm {
     nop
@@ -244,6 +267,11 @@ void OsPause() {
     nop
   }
 }
+#else
+void OsPause() {
+  YieldProcessor();
+}
+#endif
 
 OsType OsGetVersion() {
   OSVERSIONINFOEX osvi;

@@ -55,7 +55,7 @@ class OsTimeManager {
 
 static OsTimeManager *s_OsTimeMgr;
 
-#if defined(_MSC_VER) && _MSC_VER < 1400 && defined(_M_IX86)
+#if !BUILD_PORTABLE
 __declspec(naked) LONGLONG __cdecl OsGetAsyncTimeClocks() {
   __asm {
     rdtsc

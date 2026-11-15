@@ -12,6 +12,7 @@ LPVOID SInterlockedCompareExchangePointer(LPVOID *destPtr, LPVOID exchange, LPVO
   return InterlockedCompareExchangePointer(destPtr, exchange, comperand);
 }
 
+#if !BUILD_PORTABLE
 __declspec(naked) long SInterlockedIncrement(long *valuePtr) {
   __asm {
     mov eax, 1
@@ -316,3 +317,172 @@ __declspec(naked) void SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLO
     ret
   }
 }
+#elif defined(_MSC_VER)
+long SInterlockedIncrement(long *valuePtr) {
+  return InterlockedIncrement(valuePtr);
+}
+
+long SInterlockedDecrement(long *valuePtr) {
+  return InterlockedDecrement(valuePtr);
+}
+
+long SInterlockedExchangeAdd(long *valuePtr, long delta) {
+  return InterlockedExchangeAdd(valuePtr, delta);
+}
+
+long SInterlockedExchangeSub(long *valuePtr, long delta) {
+  return InterlockedExchangeAdd(valuePtr, -delta);
+}
+
+long SInterlockedExchange(long *destPtr, long exchange) {
+  return InterlockedExchange(destPtr, exchange);
+}
+
+long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand) {
+  return InterlockedCompareExchange(destPtr, exchange, comperand);
+}
+
+LONGLONG SInterlockedIncrement(LONGLONG *valuePtr) {
+  return InterlockedIncrement64(valuePtr);
+}
+
+LONGLONG SInterlockedDecrement(LONGLONG *valuePtr) {
+  return InterlockedDecrement64(valuePtr);
+}
+
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, long delta) {
+  return InterlockedExchangeAdd64(valuePtr, delta);
+}
+
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, long delta) {
+  return InterlockedExchangeAdd64(valuePtr, -(LONGLONG)delta);
+}
+
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, const LONGLONG &delta) {
+  return InterlockedExchangeAdd64(valuePtr, delta);
+}
+
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, const LONGLONG &delta) {
+  return InterlockedExchangeAdd64(valuePtr, -delta);
+}
+
+LONGLONG SInterlockedRead(const LONGLONG *sourcePtr) {
+  return InterlockedCompareExchange64((LONGLONG *)sourcePtr, 0, 0);
+}
+
+LONGLONG SInterlockedExchange(LONGLONG *destPtr, const LONGLONG &exchange) {
+  return InterlockedExchange64(destPtr, exchange);
+}
+
+LONGLONG SInterlockedCompareExchange(LONGLONG *destPtr, const LONGLONG &exchange, const LONGLONG &comperand) {
+  return InterlockedCompareExchange64(destPtr, exchange, comperand);
+}
+
+void SInterlockedIncrementNonAtomic(LONGLONG *valuePtr) {
+  InterlockedIncrement64(valuePtr);
+}
+
+void SInterlockedDecrementNonAtomic(LONGLONG *valuePtr) {
+  InterlockedDecrement64(valuePtr);
+}
+
+void SInterlockedAddNonAtomic(LONGLONG *valuePtr, long delta) {
+  InterlockedExchangeAdd64(valuePtr, delta);
+}
+
+void SInterlockedSubNonAtomic(LONGLONG *valuePtr, long delta) {
+  InterlockedExchangeAdd64(valuePtr, -(LONGLONG)delta);
+}
+
+void SInterlockedAddNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
+  InterlockedExchangeAdd64(valuePtr, delta);
+}
+
+void SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
+  InterlockedExchangeAdd64(valuePtr, -delta);
+}
+#else
+long SInterlockedIncrement(long *valuePtr) {
+  return __atomic_add_fetch(valuePtr, 1, __ATOMIC_SEQ_CST);
+}
+
+long SInterlockedDecrement(long *valuePtr) {
+  return __atomic_sub_fetch(valuePtr, 1, __ATOMIC_SEQ_CST);
+}
+
+long SInterlockedExchangeAdd(long *valuePtr, long delta) {
+  return __atomic_fetch_add(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+long SInterlockedExchangeSub(long *valuePtr, long delta) {
+  return __atomic_fetch_sub(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+long SInterlockedExchange(long *destPtr, long exchange) {
+  return __atomic_exchange_n(destPtr, exchange, __ATOMIC_SEQ_CST);
+}
+
+long SInterlockedCompareExchange(long *destPtr, long exchange, long comperand) {
+  return __sync_val_compare_and_swap(destPtr, comperand, exchange);
+}
+
+LONGLONG SInterlockedIncrement(LONGLONG *valuePtr) {
+  return __atomic_add_fetch(valuePtr, 1, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedDecrement(LONGLONG *valuePtr) {
+  return __atomic_sub_fetch(valuePtr, 1, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, long delta) {
+  return __atomic_fetch_add(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, long delta) {
+  return __atomic_fetch_sub(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, const LONGLONG &delta) {
+  return __atomic_fetch_add(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, const LONGLONG &delta) {
+  return __atomic_fetch_sub(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedRead(const LONGLONG *sourcePtr) {
+  return __atomic_load_n(sourcePtr, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedExchange(LONGLONG *destPtr, const LONGLONG &exchange) {
+  return __atomic_exchange_n(destPtr, exchange, __ATOMIC_SEQ_CST);
+}
+
+LONGLONG SInterlockedCompareExchange(LONGLONG *destPtr, const LONGLONG &exchange, const LONGLONG &comperand) {
+  return __sync_val_compare_and_swap(destPtr, comperand, exchange);
+}
+
+void SInterlockedIncrementNonAtomic(LONGLONG *valuePtr) {
+  __atomic_add_fetch(valuePtr, 1, __ATOMIC_SEQ_CST);
+}
+
+void SInterlockedDecrementNonAtomic(LONGLONG *valuePtr) {
+  __atomic_sub_fetch(valuePtr, 1, __ATOMIC_SEQ_CST);
+}
+
+void SInterlockedAddNonAtomic(LONGLONG *valuePtr, long delta) {
+  __atomic_add_fetch(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+void SInterlockedSubNonAtomic(LONGLONG *valuePtr, long delta) {
+  __atomic_sub_fetch(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+void SInterlockedAddNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
+  __atomic_add_fetch(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+
+void SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
+  __atomic_sub_fetch(valuePtr, delta, __ATOMIC_SEQ_CST);
+}
+#endif

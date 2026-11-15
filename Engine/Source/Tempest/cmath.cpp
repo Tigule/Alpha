@@ -122,36 +122,64 @@ namespace NTempest {
     if (x <= 1.0e-307) {
       return 0.0;
     }
+#if !BUILD_PORTABLE
     DWORD *words = (DWORD *)&x;
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
     return ((long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
+#else
+    UINT exponent;
+    memcpy(&exponent, (BYTE *)&x + 4, sizeof(exponent));
+    UINT high = exponent & 0xFFFFF | 0x3FF00000;
+    memcpy((BYTE *)&x + 4, &high, sizeof(high));
+    exponent = (exponent >> 20 & 0x7FF) - 1023;
+    return ((int)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
+#endif
   }
 
   double CMath::logoid2_(double x, const double _a, const double _b, const double _c, const double _d) {
     if (x <= 1.0e-307) {
       return 0.0;
     }
+#if !BUILD_PORTABLE
     DWORD *words = (DWORD *)&x;
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
     return (long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d));
+#else
+    UINT exponent;
+    memcpy(&exponent, (BYTE *)&x + 4, sizeof(exponent));
+    UINT high = exponent & 0xFFFFF | 0x3FF00000;
+    memcpy((BYTE *)&x + 4, &high, sizeof(high));
+    exponent = (exponent >> 20 & 0x7FF) - 1023;
+    return (int)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d));
+#endif
   }
 
   double CMath::logoid10_(double x, const double _a, const double _b, const double _c, const double _d, const double _ln10) {
     if (x <= 1.0e-307) {
       return 0.0;
     }
+#if !BUILD_PORTABLE
     DWORD *words = (DWORD *)&x;
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
     return ((long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
+#else
+    UINT exponent;
+    memcpy(&exponent, (BYTE *)&x + 4, sizeof(exponent));
+    UINT high = exponent & 0xFFFFF | 0x3FF00000;
+    memcpy((BYTE *)&x + 4, &high, sizeof(high));
+    exponent = (exponent >> 20 & 0x7FF) - 1023;
+    return ((int)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
+#endif
   }
 
   double CMath::log2_(double y) {
+#if !BUILD_PORTABLE
     double q = y;
     DWORD  high = ((DWORD *)&q)[1];
     ((DWORD *)&q)[1] = high & 0xFFFFF | 0x3FF00000;
@@ -165,9 +193,26 @@ namespace NTempest {
     return v * (((0.2883070248990067 - v * 0.22949900023246153) * v2 + (0.48089833404997356 - v * 0.36067132973951144)) * v2 +
                 (1.442695040888937 - v * 0.7213475204127876)) +
            ((long)((high >> 20 & 0x7FF) - 1023) + *(const double *)((const BYTE *)logadd_ + index));
+#else
+    double q = y;
+    UINT   high;
+    memcpy(&high, (BYTE *)&q + 4, sizeof(high));
+    UINT   mantissa = high & 0xFFFFF | 0x3FF00000;
+    memcpy((BYTE *)&q + 4, &mantissa, sizeof(mantissa));
+    UINT   index = high >> 11 & 0x1F8;
+    double v = q * *(const double *)((const BYTE *)logmul_ + index) - 1.0;
+    double v2 = v * v;
+    if (!(y > 1.0e-307)) {
+      return -HUGE_VAL;
+    }
+    return v * (((0.2883070248990067 - v * 0.22949900023246153) * v2 + (0.48089833404997356 - v * 0.36067132973951144)) * v2 +
+                (1.442695040888937 - v * 0.7213475204127876)) +
+           ((int)((high >> 20 & 0x7FF) - 1023) + *(const double *)((const BYTE *)logadd_ + index));
+#endif
   }
 
   double CMath::exp2_(double x) {
+#if !BUILD_PORTABLE
     long   exponent = (long)(x + 1023.0) - 1;
     double base;
     ((DWORD *)&base)[0] = 0;
@@ -182,6 +227,25 @@ namespace NTempest {
     illegal:
       return exponent > 0 ? (float)HUGE_VAL : 0.0f;
     }
+#else
+    int    exponent = (int)(x + 1023.0) - 1;
+    double base;
+    UINT   word = 0;
+    memcpy(&base, &word, sizeof(word));
+    double q = x + 1023.0 - (UINT)exponent;
+    UINT   high;
+    memcpy(&high, (BYTE *)&q + 4, sizeof(high));
+    UINT   index = high & 0xFC000;
+    high ^= index;
+    memcpy((BYTE *)&q + 4, &high, sizeof(high));
+    word = (UINT)exponent << 20;
+    memcpy((BYTE *)&base + 4, &word, sizeof(word));
+    double q2 = q * q;
+    base *= *(const double *)((const BYTE *)expmul_ + (index >> 11));
+    if ((UINT)exponent > 0x7FF) {
+      return exponent > 0 ? (float)HUGE_VAL : 0.0f;
+    }
+#endif
     return (((q * 0.0026811946517564956 + 0.005830032491308937) * q2 + (q * 0.06087614283854009 + 0.23603244393034895)) * q2 +
             (q * 0.6948749415195616 + 0.9997052445684839)) *
            base;
@@ -246,6 +310,7 @@ namespace NTempest {
   }
 
   void CMath::invertarray_(double *a, DWORD n) {
+#if !BUILD_PORTABLE
     DWORD count = div3_(n);
     DWORD i;
     n -= count * 3;
@@ -307,9 +372,33 @@ namespace NTempest {
       if (n != 1)
         a[1] = 1.0 / a[1];
     }
+#else
+    DWORD count = div3_(n);
+    DWORD i;
+    n -= count * 3;
+    for (i = 0; i < count * 3; ++i) {
+      double x = *a;
+      double y = x;
+      UINT   high;
+      memcpy(&high, (BYTE *)&y + 4, sizeof(high));
+      high = 0x7FDE61EE - high;
+      memcpy((BYTE *)&y + 4, &high, sizeof(high));
+      y = y * (2.0 - x * y);
+      y = y * (2.0 - x * y);
+      y = y * (2.0 - x * y);
+      y = y * (2.0 - x * y);
+      *a++ = y;
+    }
+    if (n >= 1) {
+      a[0] = 1.0 / a[0];
+      if (n != 1)
+        a[1] = 1.0 / a[1];
+    }
+#endif
   }
 
   void CMath::sqrtarray_(double *a, DWORD n) {
+#if !BUILD_PORTABLE
     DWORD count = div3_(n);
     DWORD i;
     n -= count * 3;
@@ -381,9 +470,33 @@ namespace NTempest {
       if (n != 1)
         a[1] = sqrt_(a[1]);
     }
+#else
+    DWORD count = div3_(n);
+    DWORD i;
+    n -= count * 3;
+    for (i = 0; i < count * 3; ++i) {
+      double x = *a;
+      double half = x * 0.5;
+      double y = x;
+      UINT   high;
+      memcpy(&high, (BYTE *)&y + 4, sizeof(high));
+      high = 0x5FE732F7 - ((high >> 1) & 0x3FFFFFFF);
+      memcpy((BYTE *)&y + 4, &high, sizeof(high));
+      y = y * (1.5 - y * y * half);
+      y = y * (1.5 - y * y * half);
+      y = y * (1.5 - y * y * half);
+      *a++ = y * (1.5 - y * y * half) * x;
+    }
+    if (n >= 1) {
+      a[0] = sqrt_(a[0]);
+      if (n != 1)
+        a[1] = sqrt_(a[1]);
+    }
+#endif
   }
 
   void CMath::sqrtinvarray_(double *a, DWORD n) {
+#if !BUILD_PORTABLE
     DWORD count = div3_(n);
     DWORD i;
     n -= count * 3;
@@ -458,6 +571,29 @@ namespace NTempest {
       if (n != 1)
         a[1] = sqrtinv_(a[1]);
     }
+#else
+    DWORD count = div3_(n);
+    DWORD i;
+    n -= count * 3;
+    for (i = 0; i < count * 3; ++i) {
+      double half = *a * 0.5;
+      double y = *a;
+      UINT   high;
+      memcpy(&high, (BYTE *)&y + 4, sizeof(high));
+      high = 0x5FE732F7 - ((high >> 1) & 0x3FFFFFFF);
+      memcpy((BYTE *)&y + 4, &high, sizeof(high));
+      y = y * (1.5 - y * y * half);
+      y = y * (1.5 - y * y * half);
+      y = y * (1.5 - y * y * half);
+      y = y * (1.5 - y * y * half);
+      *a++ = y;
+    }
+    if (n >= 1) {
+      a[0] = sqrtinv_(a[0]);
+      if (n != 1)
+        a[1] = sqrtinv_(a[1]);
+    }
+#endif
   }
 
   double CMath::spline_(double x, double *k, DWORD n) {

@@ -121,7 +121,13 @@ namespace NTempest {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x <= 255.4999f", "x", x);
       }
       x += 512.5f;
+#if !BUILD_PORTABLE
       return (BYTE)(*(DWORD *)&x >> 14);
+#else
+      UINT bits;
+      memcpy(&bits, &x, sizeof(bits));
+      return (BYTE)(bits >> 14);
+#endif
     }
 
     static uint8 ftol_0_256_(real x) {
@@ -132,7 +138,13 @@ namespace NTempest {
         SErrDisplayErrorFmt(STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1, "\"%s\", %s = %f", "x <= 255.9999f", "x", x);
       }
       x += 512.0f;
+#if !BUILD_PORTABLE
       return (BYTE)(*(DWORD *)&x >> 14);
+#else
+      UINT bits;
+      memcpy(&bits, &x, sizeof(bits));
+      return (BYTE)(bits >> 14);
+#endif
     }
 
     static uint8 ftol_0_1_(real x) {
@@ -329,6 +341,7 @@ namespace NTempest {
       return (long)(x + (x < 0.0f ? -0.5f : 0.5f));
     }
 
+#if !BUILD_PORTABLE
     static real int32asreal_(int32 x) {
       return *(float *)&x;
     }
@@ -344,6 +357,31 @@ namespace NTempest {
     static int64 lrealasint64_(lreal x) {
       return *(LONGLONG *)&x;
     }
+#else
+    static real int32asreal_(int32 x) {
+      real r;
+      memcpy(&r, &x, sizeof(r));
+      return r;
+    }
+
+    static int32 realasint32_(real x) {
+      int bits;
+      memcpy(&bits, &x, sizeof(bits));
+      return bits;
+    }
+
+    static lreal int64aslreal_(int64 x) {
+      lreal r;
+      memcpy(&r, &x, sizeof(r));
+      return r;
+    }
+
+    static int64 lrealasint64_(lreal x) {
+      int64 bits;
+      memcpy(&bits, &x, sizeof(bits));
+      return bits;
+    }
+#endif
 
     static DWORD rotl16_(DWORD x) {
       return rotl_(x, 16);

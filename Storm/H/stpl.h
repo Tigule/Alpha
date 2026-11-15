@@ -1967,7 +1967,7 @@ class TSHashObjectChunk {
 template <class T, class KEY, int REUSE>
 class TSHashTableReuse : public TSHashTable<T, KEY> {
  private:
-#if defined(_MSC_VER) && _MSC_VER == 1200 && defined(_M_IX86)
+#if !BUILD_PORTABLE
   LISTEXDYN(T) m_reuseList;
   DWORD                                         m_chunkSize;
   TSExplicitList<TSHashObjectChunk<T, KEY>, 20> m_chunkList;

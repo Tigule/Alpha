@@ -100,6 +100,7 @@ static int   s_enable = 1;
 int __cdecl   OsCallEnter(DWORD funcAddr, DWORD retAddr);
 DWORD __cdecl OsCallExit();
 
+#if !BUILD_PORTABLE
 extern "C" __declspec(naked) void __cdecl _pexit() {
   __asm {
     push eax
@@ -138,6 +139,7 @@ extern "C" __declspec(naked) void __cdecl _penter() {
     ret
   }
 }
+#endif
 
 void OsCallInitialize(LPCSTR threadName) {
   s_critsect.Enter();

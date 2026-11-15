@@ -96,7 +96,7 @@ jobs:
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
           cd Build
-          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G "NMake Makefiles" ..
+          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -DBUILD_FIXES=OFF -G "NMake Makefiles" ..
           nmake
 
       - name: Upload executables
