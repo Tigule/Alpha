@@ -129,8 +129,14 @@ static void LogStats() {
   char message[128];
 
   SStrPrintf(
-      message, sizeof(message), "Client net stats: %Lu bytes sent, %Lu bytes received, %Lu msec elapsed", s_stats.bytesSent, s_stats.bytesReceived,
-      OsGetAsyncTimeMs() - s_stats.logTimestamp
+      message, sizeof(message),
+#if !BUILD_PORTABLE
+      // %Lu is probably a typo from the original author holding shift or looking at too much float code that day.
+      "Client net stats: %Lu bytes sent, %Lu bytes received, %Lu msec elapsed",
+#else
+      "Client net stats: %lu bytes sent, %lu bytes received, %lu msec elapsed",
+#endif
+      s_stats.bytesSent, s_stats.bytesReceived, OsGetAsyncTimeMs() - s_stats.logTimestamp
   );
   ConsoleWrite(message, DEFAULT_COLOR);
 }
