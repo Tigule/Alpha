@@ -560,7 +560,7 @@ static void SetSplitBodySequence(CAnim *unique, CAnimData *shared, UINT sequence
       timeOffset = GetSeqSyncTime(unique, shared, sequence, status->base.currSeq);
     }
 
-    unique->seq[sequence].elapsed = shared->seq[sequence].time.l + timeOffset;
+    unique->seq[sequence].elapsed = timeOffset + shared->seq[sequence].time.l;
     unique->seq[sequence].seqFinished = 0;
   }
 

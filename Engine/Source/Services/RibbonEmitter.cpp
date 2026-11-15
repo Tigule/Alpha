@@ -391,7 +391,7 @@ void CRibbonEmitter::Update(float elapsedSec, int suppressNewEdges) {
     v1.pos.z += z;
 
     m_edges[start] += elapsedSec;
-    float u = m_edges[start] * m_tmpDU * m_ooLifeSpan + m_texSlotBox.l;
+    float u = m_edges[start] * m_ooLifeSpan * m_tmpDU + m_texSlotBox.l;
     v0.texCoord = NTempest::C2Vector(u, m_texSlotBox.t);
     v1.texCoord = NTempest::C2Vector(u, m_texSlotBox.b);
 

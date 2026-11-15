@@ -1594,13 +1594,11 @@ static void GameObjectStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, b
     return;
   }
   CGObject_C *caster = ClntObjMgrObjectPtr(s_spellCast.casterUnit, __FILE__, __LINE__);
-  if (!caster) {
-    return;
+  if (caster) {
+    NTempest::C3Vector pos = caster->GetPosition();
+    s_spellWorldModel = CWorld::ObjectCreate(display->m_modelName, pos, 0.0f, 0, 0, 0);
+    CWorld::ObjectEnableCollision(s_spellWorldModel, 0);
   }
-
-  NTempest::C3Vector pos = caster->GetPosition();
-  s_spellWorldModel = CWorld::ObjectCreate(display->m_modelName, pos, 0.0f, 0, 0, 0);
-  CWorld::ObjectEnableCollision(s_spellWorldModel, 0);
 }
 
 bool Spell_C_CastSpell(LPCSTR name) {

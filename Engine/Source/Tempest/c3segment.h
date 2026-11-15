@@ -14,7 +14,9 @@ namespace NTempest {
     C3Segment() {
     }
 
-    C3Segment(const C3Vector &start, const C3Vector &end) : start(start), end(end) {
+    C3Segment(const C3Vector &start, const C3Vector &end) {
+      this->start = start;
+      this->end = end;
     }
 
     C3Vector Direction() const {

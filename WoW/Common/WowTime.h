@@ -58,4 +58,10 @@ inline WowTime::WowTime(int hour, int minute) {
   WowDecodeTime(value, this);
 }
 
+inline WowTime::operator UINT() const {
+  UINT value;
+  WowEncodeTime(value, this);
+  return value;
+}
+
 #endif

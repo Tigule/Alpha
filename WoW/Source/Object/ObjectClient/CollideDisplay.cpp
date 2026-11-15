@@ -55,7 +55,7 @@ void RenderCollisionInfo() {
   CGxLight debugLight;
   debugLight.m_enabled = 1;
   debugLight.m_isOmni = 0;
-  debugLight.m_dir = NTempest::C3Vector(0.0f, 0.0f, -1.0f);
+  debugLight.m_dir.Set(0.0f, 0.0f, -1.0f);
   debugLight.m_ambColor = NTempest::CImVector(0xFFFFFFFF);
   debugLight.m_dirColor = NTempest::CImVector(0xFFFFFFFF);
   debugLight.m_ambIntensity = 0.3f;
@@ -79,7 +79,7 @@ void RenderCollisionInfo() {
   GxVertexShaderSelect(GxVS_PassThru);
   GxXformPush(GxXform_World, worldMtx);
 
-  if (g_debugVerts.Count() || g_debugIndices.Count()) {
+  if (g_debugVerts.Count() > 0 || g_debugIndices.Count() > 0) {
     GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0xFFFFFFFF));
     GxPrimLockVertexPtrs(
         g_debugVerts.Count(), g_debugVerts.Ptr(), sizeof(NTempest::C3Vector), 0, 0, g_debugVertColors.Ptr(), sizeof(NTempest::CImVector), 0, 0, 0, 0,
@@ -89,7 +89,7 @@ void RenderCollisionInfo() {
     GxPrimUnlockVertexPtrs();
   }
 
-  if (g_debugBoxVerts.Count() || g_debugBoxIndices.Count()) {
+  if (g_debugBoxVerts.Count() > 0 || g_debugBoxIndices.Count() > 0) {
     GxRsSet(GxRs_MatDiffuse, NTempest::CImVector(0x80FF0000));
     GxPrimLockVertexPtrs(
         g_debugBoxVerts.Count(), g_debugBoxVerts.Ptr(), sizeof(NTempest::C3Vector), g_debugBoxNormals.Ptr(), sizeof(NTempest::C3Vector), 0, 0, 0, 0,
@@ -99,7 +99,7 @@ void RenderCollisionInfo() {
     GxPrimUnlockVertexPtrs();
   }
 
-  if (g_debugNormalVerts.Count() || g_debugNormalIndices.Count()) {
+  if (g_debugNormalVerts.Count() > 0 || g_debugNormalIndices.Count() > 0) {
     GxRsSet(GxRs_Lighting, 0);
     NTempest::CImVector blue(0xFF0000FF);
     GxPrimLockVertexPtrs(g_debugNormalVerts.Count(), g_debugNormalVerts.Ptr(), sizeof(NTempest::C3Vector), 0, 0, &blue, 0, 0, 0, 0, 0, 0, 0);

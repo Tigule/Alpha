@@ -21,7 +21,8 @@
 #include "Tempest/cmath.h"
 #include "Tempest/crandom.h"
 
-UINT g_sndInterfaceFlags;
+VOCALUISOUND g_vocalUISounds[66];
+UINT         g_sndInterfaceFlags;
 
 static HASHKEY_NONE                               s_nullHashKey;
 static TSHashTable<SOUNDDEFINITION, HASHKEY_NONE> s_fileNameHash;

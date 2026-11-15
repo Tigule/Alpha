@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Object/Unit.h"
+#include "Object/UnitConst.h"
 
 #include <stpl.h>
 

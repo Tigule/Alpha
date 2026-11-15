@@ -758,12 +758,8 @@ int AnimObjectUsingFaceDir(HANIM anim, UINT objectId) {
 
 int AnimApplyObjectFaceDir(HANIM anim, UINT objectId, NTempest::C3Vector direction) {
   float magnitude = direction.Mag();
-  if (NTempest::CMath::fabs_(magnitude) >= 0.00000023841858f) {
-    float inverseMagnitude = 1.0f / magnitude;
-    direction.x *= inverseMagnitude;
-    direction.y *= inverseMagnitude;
-    direction.z *= inverseMagnitude;
-  }
+  if (NTempest::CMath::fnotequal_(magnitude, 0.0f))
+    direction /= magnitude;
   return ApplyObjectLookAtType(anim, objectId, direction, 0x40);
 }
 

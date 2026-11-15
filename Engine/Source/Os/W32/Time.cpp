@@ -363,9 +363,8 @@ void OsTimeManager::Calibrate() {
   }
 
   Snapshot(&baseTime);
-  waitObjectPtrs[0] = &shutdownEvt;
 
-  while (WaitMultiplePtr(1, waitObjectPtrs, TRUE, sleepVal)) {
+  while (waitObjectPtrs[0] = &shutdownEvt, WaitMultiplePtr(1, waitObjectPtrs, TRUE, sleepVal)) {
     Snapshot(&interval);
 
     if (interval.tickCount - baseTime.tickCount >= 30000) {
@@ -375,8 +374,9 @@ void OsTimeManager::Calibrate() {
     LONGLONG deltaCpu = interval.rdtsc - baseTime.rdtsc;
 
     if (hasQPF) {
-      if (interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) {
-        cpuTicksPerSecond_qp = (LONGLONG)((double)qPerfFreq.QuadPart / (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart) * (double)deltaCpu);
+      double deltaQp = (double)(interval.qperfCount.QuadPart - baseTime.qperfCount.QuadPart);
+      if (deltaQp) {
+        cpuTicksPerSecond_qp = (LONGLONG)((double)qPerfFreq.QuadPart / deltaQp * (double)deltaCpu);
       }
     }
 
@@ -402,7 +402,7 @@ void OsTimeStartup() {
 
   DWORD len;
   if (!SRegLoadData("Internal", "CpuTicksPerSecond", 0, &s_cpuTicksPerSecond, sizeof(s_cpuTicksPerSecond), &len)) {
-    s_cpuTicksPerSecond = 0;
+    memset(&s_cpuTicksPerSecond, 0, sizeof(s_cpuTicksPerSecond));
   }
   Sleep(0);
 }

@@ -399,18 +399,20 @@ namespace ProfileInternal {
 
     WriteLine(buffer, "%s=", key->GetString());
     value = key->values.Ptr();
-    for (loop = key->values.Count(); loop; --loop, ++value) {
-      if (SStrChr(*value, ',')) {
-        *buffer.New() = '"';
+    loop = key->values.Count();
+    while (loop--) {
+      if (!SStrChr(*value, ',')) {
         WriteLine(buffer, *value);
-        *buffer.New() = '"';
       } else {
+        *buffer.New() = '"';
         WriteLine(buffer, *value);
+        *buffer.New() = '"';
       }
 
-      if (loop > 1) {
+      if (loop) {
         *buffer.New() = ',';
       }
+      ++value;
     }
     WriteLine(buffer, "\n");
   }

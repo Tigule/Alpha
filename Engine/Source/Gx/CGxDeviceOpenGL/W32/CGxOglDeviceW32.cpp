@@ -450,6 +450,13 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   return formats.Count() != 0;
 }
 
+inline NTempest::CRect::CRect(const tagRECT &value) {
+  t = value.top;
+  l = value.left;
+  b = value.bottom;
+  r = value.right;
+}
+
 void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   const NTempest::CRect &windowRect = DeviceCurWindow();
 
@@ -458,8 +465,5 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   RECT wrect = {0, 0, windowRect.r, windowRect.b};
   MapWindowPoints(m_hwnd, 0, (LPPOINT)&wrect, 2);
 
-  dst.t = wrect.top;
-  dst.l = wrect.left;
-  dst.b = wrect.bottom;
-  dst.r = wrect.right;
+  dst = NTempest::CRect(wrect);
 }

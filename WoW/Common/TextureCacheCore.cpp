@@ -154,13 +154,8 @@ CACHEOBJECT::CACHEOBJECT() : m_cacheSize(0x00100000), m_currentCacheSize(0), m_c
 }
 
 CACHEOBJECT::~CACHEOBJECT() {
-  CACHEENTRY *curr = m_cacheTable.Head();
-
-  while (curr) {
-    CACHEENTRY *next = m_cacheTable.Next(curr);
-
+  SAFEITERATELIST(CACHEENTRY, m_cacheTable, curr) {
     HandleClose(curr->m_selfReference);
-    curr = next;
   }
 }
 

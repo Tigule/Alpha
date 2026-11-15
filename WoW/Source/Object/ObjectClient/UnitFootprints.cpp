@@ -203,20 +203,20 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
     color.a = alpha <= 0 ? 0 : alpha;
   } else {
     static const int   FADEIN = 50;
-    static const int   HOLD = 7000;
+    static const int   FADEDONE = 7050;
     static const int   FADEOUT = 5000;
     static const float MAXALPHA = 128.0f;
     int                elapsed = s_currentTime - startTime;
-    if (elapsed < 0 || elapsed > FADEIN + HOLD + FADEOUT) {
+    if (elapsed < 0 || elapsed > FADEDONE + FADEOUT) {
       nuke = 1;
       return 1;
     }
     if (elapsed < FADEIN) {
       color.a = MAXALPHA * ((float)elapsed / FADEIN);
-    } else if (elapsed < FADEIN + HOLD) {
+    } else if (elapsed < FADEDONE) {
       color.a = MAXALPHA;
-    } else if (elapsed < FADEIN + HOLD + FADEOUT) {
-      color.a = MAXALPHA - MAXALPHA * ((float)(elapsed - (FADEIN + HOLD)) / FADEOUT);
+    } else if (elapsed < FADEDONE + FADEOUT) {
+      color.a = MAXALPHA - MAXALPHA * ((float)(elapsed - FADEDONE) / FADEOUT);
     }
   }
   chunk->m_vertCount += data.Count();

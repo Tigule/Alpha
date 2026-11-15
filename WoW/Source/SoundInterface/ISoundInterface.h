@@ -144,6 +144,7 @@ extern TSHashTable<SHEATHSOUNDHASH, HASHKEY_NONE> g_sheathSoundList;
 extern TSHashTable<UISOUNDLOOKUP, HASHKEY_STRI>   g_uiSoundLookups;
 extern TSFixedArray<IMPACTSOUNDARRAY>             g_impactSounds;
 extern WEAPONSOUNDS                               g_weaponSwingSounds[3];
+extern VOCALUISOUND                               g_vocalUISounds[66];
 
 SOUNDDEFINITION                  *ISndInterfaceGetSndEntry(UINT soundID);
 _FSOUND_REVERB_CHANNELPROPERTIES *GetReverbType(int index);

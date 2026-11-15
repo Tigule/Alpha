@@ -38,16 +38,16 @@ HMODEL ModelCreateSimpleMesh(
     UINT                      replaceableId
 );
 
+static int                       s_continent = -1;
+static HTEXTURE                  s_solidColor;
+static LONGLONG                  s_knownNodes;
+static LONGLONG                  s_currentReachable;
+static int                       s_currentTaxiNode;
 static HTEXTURE                  s_texture;
 static C4Pixel                   s_textureData[512 * 512];
 static const TaxiPathRec        *s_taxiPathCosts[63][63];
-static int                       s_continent = -1;
 static NTempest::CRect           s_taxiTextureRect;
 static NTempest::CRect           s_visibleWorldRect;
-static int                       s_currentTaxiNode;
-static LONGLONG                  s_currentReachable;
-static LONGLONG                  s_knownNodes;
-static HTEXTURE                  s_solidColor;
 static TSGrowableArray<TAXILINE> s_lines;
 
 static void FixupRegionRect(NTempest::CRect &rect) {

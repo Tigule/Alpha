@@ -476,9 +476,9 @@ CreateEmitter(const MDLPARTICLEEMITTER2 &emitterData, const TSGrowableArray<MDLT
 }
 
 static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTION *textures, UINT flags, CStatus *status) {
+  const UINT emitterBytes = *(UINT *)emitterData;
   const UINT emitterFlags = GetEmitterFlags(emitterData);
-  BYTE      *cursor = emitterData;
-  cursor += *(UINT *)cursor + 4;
+  BYTE      *cursor = emitterData + emitterBytes + 4;
   const UINT emitterType = *(UINT *)cursor;
   cursor += 4;
 
@@ -531,15 +531,23 @@ static CParticleEmitter2 *CreateEmitter(BYTE *emitterData, const MDLTEXTURESECTI
 
   cursor = CreateChildEmitter(cursor, flags, status, emitter);
 
-  const float *twinkle = (const float *)cursor;
-  emitter->SetTwinkleFPS(twinkle[0]);
-  emitter->SetTwinkleOnOff(twinkle[1]);
-  if (twinkle[1] == 0.0f) {
+  emitter->SetTwinkleFPS(*(float *)cursor);
+  cursor += 4;
+  float twinkleOnOff = *(float *)cursor;
+  cursor += 4;
+  emitter->SetTwinkleOnOff(twinkleOnOff);
+  if (twinkleOnOff == 0.0f) {
     status->Add(STATUS_WARNING, "Particle system with 0 twinkle\n");
   }
-  emitter->SetTwinkleScale(twinkle[2], twinkle[3]);
-  emitter->SetInstantVelScale(twinkle[4]);
-  cursor += 5 * sizeof(float);
+
+  float twinkleScaleMin = *(float *)cursor;
+  cursor += 4;
+  float twinkleScaleMax = *(float *)cursor;
+  cursor += 4;
+  emitter->SetTwinkleScale(twinkleScaleMin, twinkleScaleMax);
+
+  emitter->SetInstantVelScale(*(float *)cursor);
+  cursor += 4;
 
   cursor = SetParticleTumble(cursor, emitter);
   emitter->SetDrag(*(float *)cursor);

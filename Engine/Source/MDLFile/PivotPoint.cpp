@@ -52,10 +52,9 @@ BOOL MDL::ReadPivotPoints(Parser &parse, MDLDATA &data, CMDLStatus *) {
 BOOL MDL::WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.pivotPoints.Count()) {
     MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(MDLTOK_PIVOTPOINTS), data.pivotPoints.Count());
-    for (UINT i = 0; i < data.pivotPoints.Count(); ++i) {
-      const NTempest::C3Vector &pivot = data.pivotPoints.Ptr()[i];
-      MDL::WriteLine(buffer, "\t{ %g, %g, %g },\n", pivot.x, pivot.y, pivot.z);
-    }
+    const NTempest::C3Vector *pivot = data.pivotPoints.Ptr();
+    for (UINT i = data.pivotPoints.Count(); i; --i, ++pivot)
+      MDL::WriteLine(buffer, "\t{ %g, %g, %g },\n", pivot->x, pivot->y, pivot->z);
     MDL::WriteLine(buffer, "}\n");
   }
   return 1;
@@ -72,10 +71,9 @@ BOOL MDL::WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *
 }
 
 BOOL MDL::ReadBinPivotPoints(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
+  UINT totalRead = 0;
   data.pivotPoints.SetCount(0);
   data.pivotPoints.ReserveSpace(length / 12);
-
-  UINT totalRead = 0;
   while (totalRead < length) {
     NTempest::C3Vector *pivot = data.pivotPoints.New();
     if (!pivot) {

@@ -84,10 +84,10 @@ void ItemStats_C::Unpack(CDataStore *msg) {
   for (i = 0; i < 4; ++i) {
     msg->GetString(itemName, 0x100);
 
-    if (!itemName[0] && i > 0) {
-      m_displayName[i] = SStrDupA(m_displayName[i - 1], __FILE__, __LINE__);
-    } else {
+    if (itemName[0] || !i) {
       m_displayName[i] = SStrDupA(itemName, __FILE__, __LINE__);
+    } else {
+      m_displayName[i] = SStrDupA(m_displayName[i - 1], __FILE__, __LINE__);
     }
   }
 

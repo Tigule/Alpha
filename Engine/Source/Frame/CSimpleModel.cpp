@@ -154,8 +154,10 @@ void CSimpleModel::SetModel(HMODEL model) {
 }
 
 void CSimpleModel::SetCameraInternal(HCAMERA camera) {
-  if (!(m_flags & 0x4) && m_camera) {
-    HandleClose(m_camera);
+  if (!(m_flags & 0x4)) {
+    if (m_camera) {
+      HandleClose(m_camera);
+    }
   }
 
   m_camera = camera;
@@ -271,8 +273,8 @@ void CSimpleModel::OnFrameRender(CRenderBatch *batch, UINT layer) {
 }
 
 void CSimpleModel::UpdateModel() {
-  NTempest::C3Vector cameraTarg(0.0f);
   NTempest::C3Vector cameraPos(0.0f);
+  NTempest::C3Vector cameraTarg(0.0f);
 
   if (!(m_flags & 0x1) && ModelIsLoaded(m_model, 0)) {
     FinishLoadingModel();
@@ -326,8 +328,8 @@ void CSimpleModel::RenderModel(LPVOID param) {
   GxXformViewport(minX, maxX, minY, maxY, minZ, maxZ);
 
   HCAMERA            camera = (simpleModel->m_flags & 0x4) ? 0 : simpleModel->m_camera;
-  NTempest::C3Vector cameraTarg(0.0f);
   NTempest::C3Vector cameraPos(0.0f);
+  NTempest::C3Vector cameraTarg(0.0f);
 
   if (camera) {
     DataMgrGetCoord(camera, 7, &cameraPos);

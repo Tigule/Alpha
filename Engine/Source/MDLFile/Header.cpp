@@ -13,7 +13,7 @@ namespace MDL {
 
   BOOL WriteHeaderComment(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     char timebuf[80];
-    WriteLine(buffer, "// MDLFile version\tDec 11 2003 17:58:18\n");
+    WriteLine(buffer, "// MDLFile version\t" __DATE__ " " __TIME__ "\n");
     OsGetTimeStr(timebuf, sizeof(timebuf));
     WriteLine(buffer, "// Exported on %s", timebuf);
     if (SStrLen(data.header.userName)) {

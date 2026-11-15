@@ -248,10 +248,10 @@ void CalcLightColors(int time, CurrentLight *current, LightDataItem *lightdata, 
     current->CloudArray[2] = *current->CloudArray[2].IV_() * nonstormpercent / 100 + *currentStorm.CloudArray[2].IV_() * stormpercent / 100;
     current->CloudArray[3] = *current->CloudArray[3].IV_() * nonstormpercent / 100 + *currentStorm.CloudArray[3].IV_() * stormpercent / 100;
     current->CloudArray[4] = *current->CloudArray[4].IV_() * nonstormpercent / 100 + *currentStorm.CloudArray[4].IV_() * stormpercent / 100;
-    current->FogEnd = currentStorm.FogEnd * stormpercent * 0.01f + current->FogEnd * nonstormpercent * 0.01f;
-    current->FogStartScalar = currentStorm.FogStartScalar * stormpercent * 0.01f + current->FogStartScalar * nonstormpercent * 0.01f;
+    current->FogEnd = (currentStorm.FogEnd * stormpercent * 0.01f) + (current->FogEnd * nonstormpercent * 0.01f);
+    current->FogStartScalar = (currentStorm.FogStartScalar * stormpercent * 0.01f) + (current->FogStartScalar * nonstormpercent * 0.01f);
     current->ShadowOpacity = *current->ShadowOpacity.IV_() * nonstormpercent / 100 + *currentStorm.ShadowOpacity.IV_() * stormpercent / 100;
-    current->CloudData[1] = currentStorm.CloudData[1] * stormpercent * 0.01f + current->CloudData[1] * nonstormpercent * 0.01f;
+    current->CloudData[1] = (currentStorm.CloudData[1] * stormpercent * 0.01f) + (current->CloudData[1] * nonstormpercent * 0.01f);
   }
 
   current->Darkness = lightdata->m_highlightSky;

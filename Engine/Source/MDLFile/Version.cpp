@@ -49,12 +49,12 @@ namespace MDL {
 
   BOOL ReadBinVersion(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
     VALIDATE2(status != 0);
-    if (len == 4) {
-      data.version = buf.GetUint();
-      return 1;
+    if (len != 4) {
+      status->Add(STATUS_ERROR, "Invalid VERX section detected in model.\n");
+      return 0;
     }
-    status->Add(STATUS_ERROR, "Invalid VERX section detected in model.\n");
-    return 0;
+    data.version = buf.GetUint();
+    return 1;
   }
 
   BOOL WriteBinVersion(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {

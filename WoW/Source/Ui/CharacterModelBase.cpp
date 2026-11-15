@@ -45,8 +45,8 @@ static FrameScript_Method CGCharacterModelBaseMethods[3] = {
 TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> CGCharacterModelBase::s_scriptMethods;
 
 void CGCharacterModelBase::UpdateModel() {
-  NTempest::C3Vector cameraTarg(0.0f);
   NTempest::C3Vector cameraPos(0.0f);
+  NTempest::C3Vector cameraTarg(0.0f);
 
   if (!(m_flags & 0x1) && ModelIsLoaded(m_model, 1)) {
     FinishLoadingModel();
@@ -135,10 +135,11 @@ static int Script_UpdateModel(lua_State *L) {
 
 static int Script_SetRotation(lua_State *L) {
   CGCharacterModelBase *object = (CGCharacterModelBase *)FrameScript_GetObjectThis(L);
-  if (!lua_isnumber(L, 2)) {
-    return luaL_error(L, "Usage: SetRotation(rotation (in radians))");
+  if (lua_isnumber(L, 2)) {
+    object->SetRotationScale(lua_tonumber(L, 2));
+  } else {
+    luaL_error(L, "Usage: SetRotation(rotation (in radians))");
   }
-  object->SetRotationScale(lua_tonumber(L, 2));
   return 0;
 }
 

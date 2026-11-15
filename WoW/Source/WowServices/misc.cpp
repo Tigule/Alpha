@@ -9,5 +9,5 @@ float LinearSmooth(float from, float to, float progress) {
 }
 
 float OrganicSmooth(float from, float to, float progress) {
-  return (1.0f - (float)cos(PI * progress)) * 0.5f * (to - from) + from;
+  return (to - from) * ((1.0f - (float)cos(PI * progress)) * 0.5f) + from;
 }

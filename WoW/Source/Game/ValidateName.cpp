@@ -49,7 +49,6 @@ void ValidateNameDestroy() {
 static VALIDATE_NAME_RESULT ValidateName(WOW_LOCALE locale, WORD *validChars, LPCSTR name, UINT &nameLength, CHARSET &charset) {
   WORD       uniName[0x400];
   regmatch_t match;
-  UINT       usedGrave = 0;
 
   if (!name) {
     return NAME_TOO_SHORT;
@@ -66,28 +65,36 @@ static VALIDATE_NAME_RESULT ValidateName(WOW_LOCALE locale, WORD *validChars, LP
 
   nameLength = SStrLen(uniName);
   charset = CHARSET_UNKNOWN;
-  for (WORD *ch = uniName; *ch; ++ch) {
-    if (IsAlpha(locale, *ch)) {
-      CHARSET current = GetCharSet(*ch);
+  BYTE  usedGrave = 0;
+  WORD *cursor = uniName;
+  for (WORD ch = *cursor++; ch; ch = *cursor++) {
+    if (IsAlpha(locale, ch)) {
       if (charset == CHARSET_UNKNOWN) {
-        charset = current;
-      } else if (charset != current) {
+        charset = GetCharSet(ch);
+      } else if (charset != GetCharSet(ch)) {
         return NAME_MIXED_LANGUAGES;
       }
     } else {
-      WORD *valid = validChars;
-      while (valid && *valid && *valid != *ch) {
-        ++valid;
+      if (validChars) {
+        BYTE found = 0;
+        for (WORD *valid = validChars; *valid; ++valid) {
+          if (*valid == ch) {
+            found = 1;
+            break;
+          }
+        }
+        if (found) {
+          continue;
+        }
       }
 
-      if (!valid || !*valid) {
-        if (*ch != GRAVE) {
-          return NAME_INVALID_CHARACTER;
-        }
+      if (ch == GRAVE) {
         if (usedGrave) {
           return NAME_TWO_GRAVES;
         }
         usedGrave = 1;
+      } else {
+        return NAME_INVALID_CHARACTER;
       }
     }
   }
@@ -99,9 +106,12 @@ static VALIDATE_NAME_RESULT ValidateName(WOW_LOCALE locale, WORD *validChars, LP
     return nameLength ? NAME_TOO_SHORT : NAME_NO_NAME;
   }
 
-  for (UINT i = 0; i < g_profanityTokens.Count(); ++i) {
-    if (!regexec(&g_profanityTokens[i], name, 1, &match, 0) && match.rm_so >= 0) {
-      return NAME_PROFANE;
+  UINT count = g_profanityTokens.Count();
+  for (UINT i = 0; i < count; ++i) {
+    while (!regexec(&g_profanityTokens[i], name, 1, &match, 0)) {
+      if (match.rm_so >= 0) {
+        return NAME_PROFANE;
+      }
     }
   }
 

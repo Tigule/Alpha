@@ -72,6 +72,8 @@ struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
   }
   ANIMHASH(const ANIMHASH &);
   ~ANIMHASH() {
+    if (anim)
+      HandleClose(anim);
   }
 
   HANIM anim;

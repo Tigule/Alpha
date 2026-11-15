@@ -185,7 +185,7 @@ static TInstanceAllocator<ONESHOTSTANDALONEEFFECTNODE> s_freeStandaloneEffects(4
 static TInstanceAllocator<MISSILENODE> s_freeMissiles(10);
 static CVar                           *s_showEffectsStandalone;
 UINT                                   g_specialSpellIDs[43];
-static UINT                            s_timer;
+static int                             s_timer;
 static int                             s_timerExpiry;
 
 static void SpellUnitAnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {

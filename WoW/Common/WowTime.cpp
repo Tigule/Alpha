@@ -294,58 +294,54 @@ LPCSTR WowTime::WowGetTimeString(UINT value, char *string, int maxlen) {
 }
 
 LPCSTR WowTime::WowGetTimeString(WowTime *time, char *string, int maxlen) {
-  {
-    UINT value;
-    WowEncodeTime(value, time);
-    if (!value) {
-      SStrPrintf(string, maxlen, "Not Set");
-      return string;
+  if (!*time) {
+    SStrPrintf(string, maxlen, "Not Set");
+    return string;
+  } else {
+    char buffMonth[8];
+    char buffmonthDay[8];
+    char buffYear[8];
+    char buffWeekDay[8];
+    char buffHour[8];
+    char buffMinute[8];
+
+    if (time->m_year < 0) {
+      SStrPrintf(buffYear, sizeof(buffYear), "A");
+    } else {
+      SStrPrintf(buffYear, sizeof(buffYear), "%i", time->m_year + 2000);
     }
+
+    if (time->m_month < 0) {
+      SStrPrintf(buffMonth, sizeof(buffMonth), "A");
+    } else {
+      SStrPrintf(buffMonth, sizeof(buffMonth), "%i", time->m_month + 1);
+    }
+
+    if (time->m_monthDay < 0) {
+      SStrPrintf(buffmonthDay, sizeof(buffmonthDay), "A");
+    } else {
+      SStrPrintf(buffmonthDay, sizeof(buffmonthDay), "%i", time->m_monthDay + 1);
+    }
+
+    if (time->m_weekday < 0) {
+      SStrPrintf(buffWeekDay, sizeof(buffWeekDay), "Any");
+    } else {
+      SStrPrintf(buffWeekDay, sizeof(buffWeekDay), s_WeekDays[time->m_weekday]);
+    }
+
+    if (time->m_hour < 0) {
+      SStrPrintf(buffHour, sizeof(buffHour), "A");
+    } else {
+      SStrPrintf(buffHour, sizeof(buffHour), "%i", time->m_hour);
+    }
+
+    if (time->m_minute < 0) {
+      SStrPrintf(buffMinute, sizeof(buffMinute), "A");
+    } else {
+      SStrPrintf(buffMinute, sizeof(buffMinute), "%2.2i", time->m_minute);
+    }
+
+    SStrPrintf(string, maxlen, "%s/%s/%s (%s) %s:%s", buffMonth, buffmonthDay, buffYear, buffWeekDay, buffHour, buffMinute);
+    return string;
   }
-
-  char buffMonth[8];
-  char buffmonthDay[8];
-  char buffYear[8];
-  char buffWeekDay[8];
-  char buffHour[8];
-  char buffMinute[8];
-
-  if (time->m_year < 0) {
-    SStrPrintf(buffYear, sizeof(buffYear), "A");
-  } else {
-    SStrPrintf(buffYear, sizeof(buffYear), "%i", time->m_year + 2000);
-  }
-
-  if (time->m_month < 0) {
-    SStrPrintf(buffMonth, sizeof(buffMonth), "A");
-  } else {
-    SStrPrintf(buffMonth, sizeof(buffMonth), "%i", time->m_month + 1);
-  }
-
-  if (time->m_monthDay < 0) {
-    SStrPrintf(buffmonthDay, sizeof(buffmonthDay), "A");
-  } else {
-    SStrPrintf(buffmonthDay, sizeof(buffmonthDay), "%i", time->m_monthDay + 1);
-  }
-
-  if (time->m_weekday < 0) {
-    SStrPrintf(buffWeekDay, sizeof(buffWeekDay), "Any");
-  } else {
-    SStrPrintf(buffWeekDay, sizeof(buffWeekDay), s_WeekDays[time->m_weekday]);
-  }
-
-  if (time->m_hour < 0) {
-    SStrPrintf(buffHour, sizeof(buffHour), "A");
-  } else {
-    SStrPrintf(buffHour, sizeof(buffHour), "%i", time->m_hour);
-  }
-
-  if (time->m_minute < 0) {
-    SStrPrintf(buffMinute, sizeof(buffMinute), "A");
-  } else {
-    SStrPrintf(buffMinute, sizeof(buffMinute), "%2.2i", time->m_minute);
-  }
-
-  SStrPrintf(string, maxlen, "%s/%s/%s (%s) %s:%s", buffMonth, buffmonthDay, buffYear, buffWeekDay, buffHour, buffMinute);
-  return string;
 }

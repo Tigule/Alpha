@@ -737,11 +737,10 @@ static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
     static NTempest::C3Vector pts[4] = {
         NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.1f, 1.0f, 0.0f), NTempest::C3Vector(0.2f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
     };
-    pts[1].y = IPT2_SCALE * scale;
-    pts[2].y = IPT1_SCALE * scale;
-    pts[3].y = scale;
-    NTempest::C3Spline_Bezier3 spline;
-    spline.SetPoints(pts, 4);
+    pts[1].y = IPT2_SCALE * desc->scale;
+    pts[2].y = IPT1_SCALE * desc->scale;
+    pts[3].y = desc->scale;
+    NTempest::C3Spline_Bezier3 spline(pts, 4);
     float scalar = desc->CalcScalar();
     scalar = scalar < 0.0f ? 0.0f : (scalar > 1.0f ? 1.0f : scalar);
     NTempest::C3Vector pt;
@@ -753,11 +752,10 @@ static float GetSpellEffectDescScale(SPELLEFFECTDESC *desc) {
     static NTempest::C3Vector pts[4] = {
         NTempest::C3Vector(0.0f, 1.0f, 0.0f), NTempest::C3Vector(0.25f, 1.0f, 0.0f), NTempest::C3Vector(0.5f, 1.0f, 0.0f), NTempest::C3Vector(1.0f, 1.0f, 0.0f)
     };
-    pts[1].y = OPT1_SCALE * scale;
-    pts[2].y = OPT2_SCALE * scale;
-    pts[3].y = scale;
-    NTempest::C3Spline_Bezier3 spline;
-    spline.SetPoints(pts, 4);
+    pts[1].y = OPT1_SCALE * desc->scale;
+    pts[2].y = OPT2_SCALE * desc->scale;
+    pts[3].y = desc->scale;
+    NTempest::C3Spline_Bezier3 spline(pts, 4);
     float scalar = desc->CalcScalar();
     scalar = scalar < 0.0f ? 0.0f : (scalar > 1.0f ? 1.0f : scalar);
     NTempest::C3Vector pt;

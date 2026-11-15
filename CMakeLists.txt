@@ -20,7 +20,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY $<CONFIG>)
 
+add_compile_definitions($<$<CONFIG:Debug>:_DEBUG>)
 add_compile_definitions($<$<NOT:$<CONFIG:Release>>:ASSERTIONS_ENABLED>)
+
+add_compile_definitions(BUILD_PATCH=5.3)
+add_compile_definitions(BUILD_VERSION=3368)
+add_compile_definitions("$<$<CONFIG:Release>:BUILD_TYPE=\"Release\">")
+add_compile_definitions("$<$<CONFIG:Release_Assertions_Enabled>:BUILD_TYPE=\"Release Assertions Enabled\">")
+add_compile_definitions("$<$<CONFIG:Debug>:BUILD_TYPE=\"Debug\">")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/WoW/bin")
 set(CMAKE_C_OUTPUT_EXTENSION_REPLACE ON)

@@ -108,8 +108,8 @@ static LPCSTR s_wglExts;
 
 void BindGlExtensions() {
   int    maxIdxs;
-  int    versionLow = -1;
   int    versionHigh = -1;
+  int    versionLow = -1;
   LPCSTR version = (LPCSTR)glGetString(GL_VERSION);
   sscanf(version, "%d.%d", &versionHigh, &versionLow);
   glVersion = (versionHigh << 16) | versionLow;

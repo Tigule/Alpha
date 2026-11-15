@@ -92,11 +92,11 @@ static void CreateCursorIconModel(HTEXTURE texture) {
       NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, 1.0f), NTempest::C3Vector(0.0f, 0.0f, 1.0f),
       NTempest::C3Vector(0.0f, 0.0f, 1.0f)
   };
-  WORD primVertIndices[4] = {1, 0, 3, 2};
   const NTempest::C3Vector vertices[4] = {
       NTempest::C3Vector(-0.0144f, -0.0144f, 0.01f), NTempest::C3Vector(-0.0144f, 0.0144f, 0.01f), NTempest::C3Vector(0.0144f, -0.0144f, 0.01f),
       NTempest::C3Vector(0.0144f, 0.0144f, 0.01f)
   };
+  WORD primVertIndices[4] = {1, 0, 3, 2};
 
   s_cursorModel = ModelCreateSimpleMesh(
       "CursorGrabSpell", 4, vertices, normals, texCoords, GxPrim_TriangleStrip, primVertIndices, 4, texture, GxBlend_Alpha, 0x21,

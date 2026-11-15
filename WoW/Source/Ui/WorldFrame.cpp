@@ -651,7 +651,6 @@ CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
   }
 
   SmartScreenRectInitialize();
-  s_spellShadowStyle = SPELL_GOOD;
   s_fadeOutModelTable.Clear();
   ConsoleCommandRegister("SeeIfWorldFrameSucks", CheckFadeOutModels, DEBUG, 0);
   GxMasterEnableSet(GxMasterEnable_ClearOnPresent, 0);

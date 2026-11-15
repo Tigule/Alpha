@@ -146,6 +146,21 @@ _PCI_CLASSCODETABLE PciClassCodeTable[] = {
     {0xFF, 0x00, 0x00, "Unknown", "Device Does Not Fit in a Defined Class", "UDF"},
 };
 
+char *PciCommandFlags[] = {
+    "I/O Access",   "Memory Access",     "Bus Mastering", "Special Cycles", "Memory Write & Invalidate", "Palette Snoop",
+    "Parity Errors", "Wait Cycles",      "System Errors", "Fast Back-To-Back", "Reserved 10",            "Reserved 11",
+    "Reserved 12",  "Reserved 13",       "Reserved 14",   "Reserved 15"
+};
+
+char *PciStatusFlags[] = {
+    "Reserved 0",           "Reserved 1",            "Reserved 2",            "Reserved 3",
+    "Reserved 4",           "66 MHz Capable",        "User-Defined Features", "Fast Back-To-Back",
+    "Data Parity Reported", "",                      "",                      "Signalled Target Abort",
+    "Received Target Abort", "Received Master Abort", "Signalled System Error", "Detected Parity Error"
+};
+
+char *PciDevSelFlags[] = {"Fast Devsel Speed", "Medium Devsel Speed", "Slow Devsel Speed", "Reserved 9&10"};
+
 WowClientDB<VideoHardwareRec> g_videoHardwareDB;
 
 static CpuHardware s_cpuHwSettings[2] = {
@@ -171,7 +186,7 @@ static float s_terrainLODDist[4] = {80.0f, 80.0f, 100.0f, 100.0f};
 
 static UINT s_detailDoodadDensity[4] = {8, 12, 16, 24};
 
-static BYTE s_animatingDoodads[2][2] = {
+static bool s_animatingDoodads[2][2] = {
     {0, 0},
     {0, 1}
 };
@@ -323,10 +338,10 @@ void DetectHardware(Hardware &hardware, bool &changed) {
 }
 
 void SaveHardware(const Hardware &hardware, bool &changed) {
-  int memIdx = -1;
-  int soundIdx = -1;
-  int videoIdx = -1;
   int cpuIdx = -1;
+  int memIdx = -1;
+  int videoIdx = -1;
+  int soundIdx = -1;
 
   changed = false;
 

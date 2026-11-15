@@ -39,8 +39,8 @@ enum {
 
 static const BYTE s_vendorGenuineIntel[12] = {'G', 'e', 'n', 'u', 'i', 'n', 'e', 'I', 'n', 't', 'e', 'l'};
 static const BYTE s_vendorAuthenticAMD[12] = {'A', 'u', 't', 'h', 'e', 'n', 't', 'i', 'c', 'A', 'M', 'D'};
-static const BYTE s_vendorCentaurHalls[12] = {'C', 'e', 'n', 't', 'a', 'u', 'r', 'H', 'a', 'u', 'l', 's'};
 static const BYTE s_vendorCyrixInstead[12] = {'C', 'y', 'r', 'i', 'x', 'I', 'n', 's', 't', 'e', 'a', 'd'};
+static const BYTE s_vendorCentaurHalls[12] = {'C', 'e', 'n', 't', 'a', 'u', 'r', 'H', 'a', 'u', 'l', 's'};
 
 static const char s_xtoi[256] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -121,41 +121,44 @@ static int __cdecl IOsGetProcessorFeatures(BYTE vendor[12], DWORD *featuresStd, 
 }
 
 DWORD OsGetProcessorFeaturesEx(int &vendorID) {
+  vendorID = s_processorVendor;
+  if (s_processorFeatures) {
+    return s_processorFeatures;
+  }
+
   BYTE  vendor[12];
   DWORD featuresStd;
   DWORD featuresExt;
   DWORD features = 0;
 
-  vendorID = s_processorVendor;
-  if (!s_processorFeatures) {
-    if (IOsGetProcessorFeatures(vendor, &featuresStd, &featuresExt)) {
-      if (featuresStd & 0x00000010) {
-        features |= 0x01;
-      }
-      if (featuresStd & 0x00800000) {
-        features |= 0x02;
-      }
-      if (featuresStd & 0x02000000) {
-        features |= 0x04;
-      }
-      if (featuresExt & 0x80000000) {
-        features |= 0x08;
-      }
-
-      if (!memcmp(vendor, s_vendorGenuineIntel, sizeof(vendor))) {
-        if (featuresStd & 0x04000000) {
-          features |= 0x10;
-        }
-        s_processorVendor = OS_PROCESSOR_VENDOR_INTEL;
-      } else if (!memcmp(vendor, s_vendorAuthenticAMD, sizeof(vendor))) {
-        s_processorVendor = OS_PROCESSOR_VENDOR_AMD;
-      }
+  if (IOsGetProcessorFeatures(vendor, &featuresStd, &featuresExt)) {
+    if (featuresStd & 0x00000010) {
+      features |= 0x01;
+    }
+    if (featuresStd & 0x00800000) {
+      features |= 0x02;
+    }
+    if (featuresStd & 0x02000000) {
+      features |= 0x04;
+    }
+    if (featuresExt & 0x80000000) {
+      features |= 0x08;
     }
 
-    s_processorFeatures = features | 0x80000000;
-    vendorID = s_processorVendor;
+    if (((DWORD *)vendor)[0] == ((DWORD *)s_vendorGenuineIntel)[0] && ((DWORD *)vendor)[1] == ((DWORD *)s_vendorGenuineIntel)[1] && ((DWORD *)vendor)[2] == ((DWORD *)s_vendorGenuineIntel)[2]) {
+      if (featuresStd & 0x04000000) {
+        features |= 0x10;
+      }
+      s_processorVendor = OS_PROCESSOR_VENDOR_INTEL;
+    } else if (((DWORD *)vendor)[0] == ((DWORD *)s_vendorAuthenticAMD)[0] && ((DWORD *)vendor)[1] == ((DWORD *)s_vendorAuthenticAMD)[1] && ((DWORD *)vendor)[2] == ((DWORD *)s_vendorAuthenticAMD)[2]) {
+      s_processorVendor = OS_PROCESSOR_VENDOR_AMD;
+    } else if (((DWORD *)vendor)[0] == ((DWORD *)s_vendorCyrixInstead)[0] && ((DWORD *)vendor)[1] == ((DWORD *)s_vendorCyrixInstead)[1] && ((DWORD *)vendor)[2] == ((DWORD *)s_vendorCyrixInstead)[2]) {
+    } else if (((DWORD *)vendor)[0] == ((DWORD *)s_vendorCentaurHalls)[0] && ((DWORD *)vendor)[1] == ((DWORD *)s_vendorCentaurHalls)[1] && ((DWORD *)vendor)[2] == ((DWORD *)s_vendorCentaurHalls)[2]) {
+    }
   }
 
+  s_processorFeatures = features | 0x80000000;
+  vendorID = s_processorVendor;
   return s_processorFeatures;
 }
 
@@ -356,7 +359,9 @@ BOOL OsLaunchURL(LPCSTR url) {
   fixedURLPos = fixedURL;
   urlPos = url + 1;
   while (urlChar) {
-    if (urlChar == '%') {
+    if (urlChar != '%') {
+      *fixedURLPos = urlChar;
+    } else {
       char high = *urlPos++;
       if (!high) {
         break;
@@ -368,12 +373,10 @@ BOOL OsLaunchURL(LPCSTR url) {
       }
 
       *fixedURLPos = (s_xtoi[high] << 4) | s_xtoi[low];
-    } else {
-      *fixedURLPos = urlChar;
     }
 
-    urlChar = *urlPos++;
     ++fixedURLPos;
+    urlChar = *urlPos++;
   }
 
   *fixedURLPos = 0;

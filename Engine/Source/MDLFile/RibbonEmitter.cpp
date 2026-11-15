@@ -48,32 +48,9 @@ static void IReadRibbonEmitterKeyFrames(Parser &parse, UINT savedtoken, LPCSTR t
     case MDLTOK_VISIBILITY:
       ReadObjectFloatKeyframes(parse, &emitter->visibilityKeys);
       return;
-    case MDLTOK_TEXTURE_SLOT: {
-      UINT       token;
-      LPCSTR     text;
-      UTokenData tokenData;
-      long       actual = 0;
-      long       expected = parse.GetOptionalInt(&token, &text, &tokenData);
-      if (expected > 0) {
-        emitter->textureSlot.keys.ReserveSpace(expected);
-      }
-      parse.Expect('{', token, text);
-      token = ReadIntTrackHeader(parse, &emitter->textureSlot, &text, &tokenData);
-      while (token == MDLTOK_LONG) {
-        MDLINTKEY *key = emitter->textureSlot.keys.New();
-        key->time = tokenData.lVal;
-        parse.Expect(':');
-        key->value = parse.ExpectInt();
-        parse.Expect(',');
-        ++actual;
-        token = parse.Token(&text, &tokenData);
-      }
-      parse.Expect('}', token, text);
-      if (expected >= 0 && actual != expected) {
-        parse.WarningCount("key frames", expected, actual);
-      }
+    case MDLTOK_TEXTURE_SLOT:
+      ReadObjectIntKeyframes(parse, &emitter->textureSlot);
       return;
-    }
     case MDLTOK_EMISSION_RATE:
       emitter->edgesPerSecond = parse.ExpectInt();
       break;

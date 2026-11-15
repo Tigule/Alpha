@@ -2,6 +2,7 @@
 #include <Gx/Gx.h>
 #include <WowConst.h>
 #include <MapDefs.h>
+#include "Object/Object.h"
 
 #include <Component/Component.h>
 
@@ -155,6 +156,8 @@ extern const SECTIONPRIORITIES g_sectionPriorities[INDEX_NUMSLOTS] = {
     {{LAYERPRIORITY_0, LAYERPRIORITY_0, LAYERPRIORITY_0, LAYERPRIORITY_0, LAYERPRIORITY_0, LAYERPRIORITY_0, LAYERPRIORITY_0, LAYERPRIORITY_0,
       LAYERPRIORITY_0, LAYERPRIORITY_0}}
 };
+
+static LPCSTR s_widgetDirectoryPrefix = "Item\\Widget";
 
 BOOL CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height) {
   VALIDATEBEGIN;

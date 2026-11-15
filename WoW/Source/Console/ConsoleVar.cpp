@@ -171,28 +171,30 @@ static BOOL CVarSaveFile() {
   char  buffer[MAX_PATH];
   char  fileName[MAX_PATH];
   DWORD count;
+  BOOL  result = 0;
 
   SStrCopy(fileName, "WTF\\", sizeof(fileName));
   SStrPack(fileName, s_filename, sizeof(fileName));
   HOSFILE file = OsCreateFile(fileName, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-  if (file == (HOSFILE)-1) {
-    return 0;
-  }
-
-  ITERATELIST(CVar, s_registeredCVars, cvar) {
-    if (cvar->IsArchived()) {
-      SStrPrintf(buffer, sizeof(buffer), "SET %s \"%s\"\n", cvar->GetName(), cvar->GetString());
-      count = 0;
-      OsWriteFile(file, buffer, SStrLen(buffer), &count);
-      if (!count) {
-        OsCloseFile(file);
-        return 0;
+  if (file != (HOSFILE)-1) {
+    CONSTITERATELIST(CVar, s_registeredCVars, cvar) {
+      if (cvar->IsArchived()) {
+        SStrPrintf(buffer, sizeof(buffer), "SET %s \"%s\"\n", cvar->GetName(), cvar->GetString());
+        count = 0;
+        OsWriteFile(file, buffer, SStrLen(buffer), &count);
+        if (!count) {
+          result = 0;
+          goto finallylabel;
+        }
       }
     }
+
+    result = 1;
+  finallylabel:
+    OsCloseFile(file);
   }
 
-  OsCloseFile(file);
-  return 1;
+  return result;
 }
 
 void CVar::Initialize(LPCSTR filename) {

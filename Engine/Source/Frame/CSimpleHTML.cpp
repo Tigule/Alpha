@@ -22,22 +22,21 @@ void CSimpleHTML::LoadXML(const XMLNode *node, CStatus *status) {
 
   const XMLNode *child;
   for (child = node->GetChild(); child; child = child->GetSibling()) {
-    CSimpleFontStringAttributes *attrib = 0;
-    LPCSTR                       name = child->GetName();
-
-    if (!SStrCmpI(name, "FontString", 0x7FFFFFFF)) {
-      attrib = &m_attrib[HTML_TEXT_NORMAL];
-    } else if (!SStrCmpI(name, "FontStringHeader1", 0x7FFFFFFF)) {
-      attrib = &m_attrib[HTML_TEXT_HEADER1];
-    } else if (!SStrCmpI(name, "FontStringHeader2", 0x7FFFFFFF)) {
-      attrib = &m_attrib[HTML_TEXT_HEADER2];
-    } else if (!SStrCmpI(name, "FontStringHeader3", 0x7FFFFFFF)) {
-      attrib = &m_attrib[HTML_TEXT_HEADER3];
-    }
-
-    if (attrib) {
+    if (!SStrCmpI(child->GetName(), "FontString", 0x7FFFFFFF)) {
       CSimpleFontString *string = LoadXML_String(child, this, status);
-      *attrib = *string;
+      m_attrib[HTML_TEXT_NORMAL] = *string;
+      DELIFUSED(string);
+    } else if (!SStrCmpI(child->GetName(), "FontStringHeader1", 0x7FFFFFFF)) {
+      CSimpleFontString *string = LoadXML_String(child, this, status);
+      m_attrib[HTML_TEXT_HEADER1] = *string;
+      DELIFUSED(string);
+    } else if (!SStrCmpI(child->GetName(), "FontStringHeader2", 0x7FFFFFFF)) {
+      CSimpleFontString *string = LoadXML_String(child, this, status);
+      m_attrib[HTML_TEXT_HEADER2] = *string;
+      DELIFUSED(string);
+    } else if (!SStrCmpI(child->GetName(), "FontStringHeader3", 0x7FFFFFFF)) {
+      CSimpleFontString *string = LoadXML_String(child, this, status);
+      m_attrib[HTML_TEXT_HEADER3] = *string;
       DELIFUSED(string);
     }
   }

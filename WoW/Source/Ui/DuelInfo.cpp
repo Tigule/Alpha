@@ -144,8 +144,7 @@ BOOL CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
   msg->Get(fled);
   msg->GetString(winner, sizeof(winner));
   msg->GetString(beaten, sizeof(beaten));
-  LPCSTR format = FrameScript_GetText(fled ? "DUEL_WINNER_RETREAT" : "DUEL_WINNER_KNOCKOUT", -1, GENDER_NOT_APPLICABLE);
-  SStrPrintf(message, sizeof(message), format, winner, beaten);
+  SStrPrintf(message, sizeof(message), FrameScript_GetText(fled ? "DUEL_WINNER_RETREAT" : "DUEL_WINNER_KNOCKOUT", -1, GENDER_NOT_APPLICABLE), winner, beaten);
   CGChat::AddChatMessage(message, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   return 1;
 }

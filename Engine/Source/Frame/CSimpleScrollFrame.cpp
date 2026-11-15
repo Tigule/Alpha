@@ -137,12 +137,8 @@ void CSimpleScrollFrame::UpdateScrollChildRect(float w, float h) {
 
     GetScrollChildRect(m_scrollChild, rect);
 
-    const float inverseScale = 1.0f / m_layoutScale;
-    const float horizontalRange = rect.r - rect.l - w;
-    const float verticalRange = rect.b - rect.t - h;
-
-    m_scrollRange.x = inverseScale * (horizontalRange > 0.0f ? horizontalRange : 0.0f);
-    m_scrollRange.y = inverseScale * (verticalRange > 0.0f ? verticalRange : 0.0f);
+    m_scrollRange.x = (rect.r - rect.l - w > 0.0f ? rect.r - rect.l - w : 0.0f) * (1.0f / GetLayoutScale());
+    m_scrollRange.y = (rect.b - rect.t - h > 0.0f ? rect.b - rect.t - h : 0.0f) * (1.0f / GetLayoutScale());
 
     if (NTempest::CMath::fnotequal_(m_scrollRange.x, lastRange.x) || NTempest::CMath::fnotequal_(m_scrollRange.y, lastRange.y)) {
       RunOnScrollRangeChangedScript();

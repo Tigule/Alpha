@@ -86,14 +86,16 @@ void GlueScriptEventsInitialize() {
 
 static int Script_GetBuildInfo(lua_State *L) {
   lua_pushstring(L, FrameScript_GetText("ALPHA_BUILD", -1, GENDER_NOT_APPLICABLE));
-#ifdef ASSERTIONS_ENABLED
+#if defined(_DEBUG)
+  lua_pushstring(L, FrameScript_GetText("DEBUG_BUILD", -1, GENDER_NOT_APPLICABLE));
+#elif defined(ASSERTIONS_ENABLED)
   lua_pushstring(L, FrameScript_GetText("ASSERTIONS_ENABLED_BUILD", -1, GENDER_NOT_APPLICABLE));
 #else
   lua_pushstring(L, FrameScript_GetText("RELEASE_BUILD", -1, GENDER_NOT_APPLICABLE));
 #endif
-  lua_pushstring(L, "5.3");
-  lua_pushstring(L, "3368");
-  lua_pushstring(L, "Dec 11 2003");
+  lua_pushstring(L, STRINGIFY(BUILD_PATCH));
+  lua_pushstring(L, STRINGIFY(BUILD_VERSION));
+  lua_pushstring(L, __DATE__);
   return 5;
 }
 

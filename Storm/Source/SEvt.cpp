@@ -151,12 +151,16 @@ extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, LPVOI
   for (;;) {
     SEVTHANDLER handler;
     s_critsect.Enter();
+    BOOL breakfound = FALSE;
     ITERATELIST(BREAKCMD, s_breakcmdlist, breakcmd) {
       if (breakcmd->data == data) {
-        s_breakcmdlist.DeleteNode(breakcmd);
-        s_critsect.Leave();
-        goto dispatchdone;
+        breakfound = TRUE;
+        ITERATE_DELETEANDBREAK;
       }
+    }
+    if (breakfound) {
+      s_critsect.Leave();
+      break;
     }
 
     if (!currptr || s_modified) {
@@ -165,7 +169,7 @@ extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, LPVOI
 
       currptr = NULL;
       typeentry = FindTypeHashEntry(type, subtype);
-      if (typeentry && typeentry->idhashtable) {
+      if (typeentry) {
         table = typeentry->idhashtable;
         if (table->data && table->size) {
           currptr = table->data[id & (table->size - 1)];
@@ -200,7 +204,6 @@ extern "C" BOOL APIENTRY SEvtDispatch(DWORD type, DWORD subtype, DWORD id, LPVOI
     }
   }
 
-dispatchdone:
   InterlockedDecrement((LPLONG)&s_dispatchesinprogress);
 
   if (s_breakcmdlist.Head()) {
@@ -256,7 +259,6 @@ extern "C" BOOL APIENTRY SEvtPushState(DWORD type, DWORD subtype) {
 
 extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id, DWORD flags, SEVTHANDLER handler) {
   TYPEHASHENTRYPTR typeentry;
-  IDHASHTABLEPTR   table;
   IDHASHENTRYPTR   entry;
   DWORD            bucket;
 
@@ -277,7 +279,7 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
       newsize = ComputeNewTableSize(s_typehashtableused);
       newtable = (TYPEHASHENTRYPTR *)SMemAlloc(newsize * sizeof(TYPEHASHENTRYPTR), __FILE__, __LINE__, 8);
 
-      if (s_typehashtable) {
+      if (s_typehashtable && s_typehashtablesize) {
         for (loop = 0; loop < s_typehashtablesize; ++loop) {
           TYPEHASHENTRYPTR current;
           TYPEHASHENTRYPTR next;
@@ -293,6 +295,8 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
             current = next;
           }
         }
+      }
+      if (s_typehashtable) {
         SMemFree(s_typehashtable, __FILE__, __LINE__, 0);
       }
 
@@ -300,24 +304,24 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
       s_typehashtablesize = newsize;
     }
 
+    bucket = (type ^ subtype) & (s_typehashtablesize - 1);
     typeentry = new (SMemAlloc(sizeof(TYPEHASHENTRY), __FILE__, __LINE__, 8)) TYPEHASHENTRY;
     typeentry->type = type;
     typeentry->subtype = subtype;
     typeentry->idhashtable = new (SMemAlloc(sizeof(IDHASHTABLE), __FILE__, __LINE__, 8)) IDHASHTABLE;
-    bucket = (type ^ subtype) & (s_typehashtablesize - 1);
     typeentry->next = s_typehashtable[bucket];
     s_typehashtable[bucket] = typeentry;
     ++s_typehashtableused;
+    typeentry = s_typehashtable[bucket];
   }
 
-  table = typeentry->idhashtable;
-  if (table->used >= table->size / 2) {
+  if (typeentry->idhashtable->used >= typeentry->idhashtable->size / 2) {
     DWORD            newsize;
     IDHASHENTRYPTR **newtail;
     DWORD            loop;
     IDHASHENTRYPTR  *newtable;
 
-    newsize = ComputeNewTableSize(table->size);
+    newsize = ComputeNewTableSize(typeentry->idhashtable->size);
     newtable = (IDHASHENTRYPTR *)SMemAlloc(newsize * sizeof(IDHASHENTRYPTR), __FILE__, __LINE__, 8);
     newtail = (IDHASHENTRYPTR **)SMemAlloc(newsize * sizeof(IDHASHENTRYPTR *), __FILE__, __LINE__, 8);
 
@@ -325,17 +329,17 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
       newtail[loop] = &newtable[loop];
     }
 
-    if (table->data) {
-      for (loop = 0; loop < table->size; ++loop) {
+    if (typeentry->idhashtable->data && typeentry->idhashtable->size) {
+      for (loop = 0; loop < typeentry->idhashtable->size; ++loop) {
         IDHASHENTRYPTR current;
 
-        current = table->data[loop];
+        current = typeentry->idhashtable->data[loop];
         while (current) {
           IDHASHENTRYPTR next;
           DWORD          bucket;
 
-          next = current->next;
           bucket = current->id & (newsize - 1);
+          next = current->next;
           current->next = NULL;
           *newtail[bucket] = current;
           newtail[bucket] = &current->next;
@@ -345,23 +349,23 @@ extern "C" BOOL APIENTRY SEvtRegisterHandler(DWORD type, DWORD subtype, DWORD id
     }
 
     SMemFree(newtail, __FILE__, __LINE__, 0);
-    if (table->data) {
-      SMemFree(table->data, __FILE__, __LINE__, 0);
+    if (typeentry->idhashtable->data) {
+      SMemFree(typeentry->idhashtable->data, __FILE__, __LINE__, 0);
     }
 
-    table->data = newtable;
-    table->size = newsize;
+    typeentry->idhashtable->data = newtable;
+    typeentry->idhashtable->size = newsize;
   }
 
+  bucket = id & (typeentry->idhashtable->size - 1);
   entry = new (SMemAlloc(sizeof(IDHASHENTRY), __FILE__, __LINE__, 8)) IDHASHENTRY;
 
   entry->id = id;
   entry->sequence = ++typeentry->sequence;
   entry->handler = handler;
-  bucket = id & (table->size - 1);
-  entry->next = table->data[bucket];
-  table->data[bucket] = entry;
-  ++table->used;
+  entry->next = typeentry->idhashtable->data[bucket];
+  typeentry->idhashtable->data[bucket] = entry;
+  ++typeentry->idhashtable->used;
   s_modified = TRUE;
 
   s_critsect.Leave();

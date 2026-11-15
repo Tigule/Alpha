@@ -426,6 +426,10 @@ BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
   char string[512];
 
   switch (evt.message) {
+    case 0:
+      UpdateLanguageIndicator();
+      break;
+
     case 2:
       if (evt.lParam & 4) {
         OsIMEGetCompositionResult(string, sizeof(string));

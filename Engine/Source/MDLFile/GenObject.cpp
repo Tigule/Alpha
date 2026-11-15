@@ -500,26 +500,6 @@ UINT GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframe
   return (dataSize + 4) * keyframes.keys.Count() + 16;
 }
 
-UINT ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *keyTrack, LPCSTR *tokentext, UTokenData *value) {
-  for (;;) {
-    UINT token = parse.Token(tokentext, value);
-    switch (token) {
-      case MDLTOK_DONTINTERP:
-        break;
-      case MDLTOK_GLOBALSEQID:
-        if (keyTrack) {
-          keyTrack->globalSeqId = parse.ExpectInt();
-        } else {
-          parse.ExpectInt();
-        }
-        break;
-      default:
-        return token;
-    }
-    parse.Expect(',');
-  }
-}
-
 void WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer) {
   UINT numKeys = keyframes.keys.Count();
   if (!numKeys) {

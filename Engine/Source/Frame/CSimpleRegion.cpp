@@ -6,7 +6,11 @@
 
 #include <storm.h>
 
-CSimpleRegion::CSimpleRegion(CSimpleFrame *frame, UINT drawlayer, int show) : m_GxColor(0), m_frame(0), m_drawlayer(0), m_visible(0) {
+CSimpleRegion::CSimpleRegion(CSimpleFrame *frame, UINT drawlayer, int show) {
+  m_GxColor = 0;
+  m_frame = 0;
+  m_drawlayer = 0;
+  m_visible = 0;
   m_color_a = 0xFF;
   m_color.r = 0xFF;
   m_color.g = 0xFF;

@@ -249,9 +249,9 @@ static void CheckDamageClassConsistency() {
   if (numDamageClasses != 6) {
     FATALERROR(("Error, the DamageClass table doesn't have the right # of entries!"));
   }
-  int nonphysicalToPhysical = 0;
-  int physicalToNonPhysical = 0;
   int nonPhysicalFound = 0;
+  int physicalToNonPhysical = 0;
+  int nonphysicalToPhysical = 0;
 
   s_damageTypeRecordIDs.SetCount(numDamageClasses);
 

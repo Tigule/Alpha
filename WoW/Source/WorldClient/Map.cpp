@@ -618,9 +618,8 @@ bool CMap::VectorIntersectSubchunks(const NTempest::C3Vector *p0, const NTempest
   float      hitT = *t;
 
   while (scCnt) {
-    UINT sx = scPtr[0];
-    UINT sy = scPtr[1];
-    scPtr += 2;
+    UINT sx = *scPtr++;
+    UINT sy = *scPtr++;
     scCnt -= 2;
 
     if (sx > 0x2000 || sy > 0x2000) {
@@ -638,8 +637,8 @@ bool CMap::VectorIntersectSubchunks(const NTempest::C3Vector *p0, const NTempest
         return false;
       }
 
-      bMaskY = sy & 0x1FF8;
       bMaskX = sx & 0x1FF8;
+      bMaskY = sy & 0x1FF8;
 
       if (queryFlags & 0xF) {
         float thisdHitT = 1.0f;
@@ -1013,9 +1012,8 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
   }
 
   do {
-    UINT sx = scPtr[0];
-    UINT sy = scPtr[1];
-    scPtr += 2;
+    UINT sx = *scPtr++;
+    UINT sy = *scPtr++;
     scCnt -= 2;
 
     if (sx > 0x2000 || sy > 0x2000) {
@@ -1039,9 +1037,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
 
     sx &= 7;
     sy &= 7;
-    NTempest::C3Segment localSeg;
-    localSeg.start = seg.start - chunk->corner;
-    localSeg.end = seg.end - chunk->corner;
+    NTempest::C3Segment localSeg(seg.start - chunk->corner, seg.end - chunk->corner);
 
     if (chunk->holes & g_holeMask[sy >> 1][sx >> 1]) {
       continue;
@@ -1065,11 +1061,11 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
         continue;
       }
 
-      NTempest::C3Vector tempIp = (localSeg.end - localSeg.start) * it + localSeg.start;
+      NTempest::C3Vector tempIp = localSeg.Point(it);
       if (VectorIntersectTri(&tempIp, &v[9], &v[iIndiciesP[triangle][0]], &v[iIndiciesP[triangle][1]], &p->n) && it < t) {
         t = it;
-        facet = *p;
         hit = true;
+        facet = *p;
       }
     }
   } while (scCnt);

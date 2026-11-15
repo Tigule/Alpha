@@ -152,7 +152,7 @@ static LPCSTR s_archiveNames[8] = {"Data\\model.MPQ",     "Data\\texture.MPQ", "
                                    "Data\\interface.MPQ", "Data\\fonts.MPQ",   "Data\\speech.MPQ", "Data\\dbc.MPQ"};
 
 static SArchive          *s_archive[8];
-static LoginData          s_loginData;
+LoginData                 s_loginData;
 static CVar              *s_errorFileCvar;
 static CVar              *s_errorsCvar;
 static CVar              *s_minErrorLevelCvar;
@@ -189,7 +189,7 @@ static void FormatTime(char *buf, int len, int secs);
 static BOOL NotifyHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
 static BOOL TransferAbortedHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
 static BOOL TransferPendingHandler(LPVOID param, NETMESSAGE msgId, DWORD timestamp, CDataStore *msg);
-void        MovementInit();
+static void MovementInit();
 static BOOL LoadNewWorld(LPCVOID eventData, LPVOID param);
 static BOOL NewWorldHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg);
 static BOOL ClientIdle(LPCVOID data, LPVOID);
@@ -300,8 +300,14 @@ static BOOL MovementLoggingHandler(LPVOID param, NETMESSAGE msgID, DWORD time, C
   return 1;
 }
 
+struct LOOKUPRESULT {
+  UINT id;
+  char strings[3][64];
+};
+
 static BOOL LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
   UINT numResults;
+  UINT i;
 
   msg->Get(numResults);
   if (!numResults) {
@@ -310,14 +316,13 @@ static BOOL LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDat
   }
 
   LPVOID data;
-  msg->GetDataInSitu(data, numResults * 0xC4);
-  ASSERT(data);
+  msg->GetDataInSitu(data, numResults * sizeof(LOOKUPRESULT));
+  LOOKUPRESULT *results = (LOOKUPRESULT *)data;
+  ASSERT(results);
 
-  char *result = (char *)data + 68;
-  for (UINT i = 0; i < numResults; ++i, result += 0xC4) {
-    UINT id = *(UINT *)(result - 68);
-    ConsoleWriteA("[%.04d] \"%s\" \"%s\" %s", DEFAULT_COLOR, id, result - 64, result, result + 64);
-    OsOutputDebugString("[%.04d] \"%s\" \"%s\" %s\n", id, result - 64, result, result + 64);
+  for (i = 0; i < numResults; ++i) {
+    ConsoleWriteA("[%.04d] \"%s\" \"%s\" %s", DEFAULT_COLOR, results[i].id, results[i].strings[0], results[i].strings[1], results[i].strings[2]);
+    OsOutputDebugString("[%.04d] \"%s\" \"%s\" %s\n", results[i].id, results[i].strings[0], results[i].strings[1], results[i].strings[2]);
   }
 
   return 1;
@@ -369,7 +374,7 @@ static BOOL TransferAbortedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   return 1;
 }
 
-void MovementInit() {
+static void MovementInit() {
   char buffer[MAX_PATH];
 
   if (!SRegLoadString("Wow\\Client", "MoveLogFile", 0, buffer, sizeof(buffer)) || !buffer[0]) {
@@ -1340,7 +1345,7 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   CGObject_C *object;
   DWORDLONG   guid;
 
-  SStrPrintf(log, size, "WoWBuild: %d\r\n", 3368);
+  SStrPrintf(log, size, "WoWBuild: %d\r\n", BUILD_VERSION);
 
   if (!ClntObjMgrIsValid(0)) {
     return 1;
@@ -1391,7 +1396,10 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
 static void LaunchWoWError(LPCSTR logFileName) {
   char cmd[520];
 
-#ifdef ASSERTIONS_ENABLED
+#if defined(_DEBUG)
+  SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowErrorD.exe", logFileName);
+  SCreateProcess("WowErrorD.exe", cmd, 0, 0);
+#elif defined(ASSERTIONS_ENABLED)
   SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowErrorAE.exe", logFileName);
   SCreateProcess("WowErrorAE.exe", cmd, 0, 0);
 #else
@@ -1420,10 +1428,12 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
     SRegSaveValue("Wow\\Client", "SendErrorLogs", 0, sendErrorLogs);
   }
 
-#ifdef ASSERTIONS_ENABLED
-  SErrSetLogTitleString("World of WarCraft: Assertions Enabled Build (build 3368)");
+#if defined(_DEBUG)
+  SErrSetLogTitleString("World of WarCraft: Debug Build (build " STRINGIFY(BUILD_VERSION) ")");
+#elif defined(ASSERTIONS_ENABLED)
+  SErrSetLogTitleString("World of WarCraft: Assertions Enabled Build (build " STRINGIFY(BUILD_VERSION) ")");
 #else
-  SErrSetLogTitleString("World of WarCraft (build 3368)");
+  SErrSetLogTitleString("World of WarCraft (build " STRINGIFY(BUILD_VERSION) ")");
 #endif
   SErrSetLogCallback(WowLogHeader);
 

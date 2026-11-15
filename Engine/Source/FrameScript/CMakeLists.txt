@@ -10,6 +10,6 @@ target_include_directories(FrameScript PRIVATE
 )
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(FrameScript PRIVATE /Gr /GX /Ob0 /Zd)
+    target_compile_options(FrameScript PRIVATE /Gr /GX /Ob0)
     set_source_files_properties(FrameScriptMethods.cpp PROPERTIES COMPILE_OPTIONS "/GX-;/Ob1")
 endif()

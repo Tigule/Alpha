@@ -71,7 +71,7 @@ static const UINT ControlStyles[20] = {0x00010000, 0x00000080, 0x00000100, 0x000
                                        0x00000009, 0x00000000, 0x00A1000D, 0x00001100, 0x00000000, 0x00040100};
 static const UINT ControlStylesExt[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static const UINT ControlFont[20] = {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static LPCSTR     ControlClassName[20] = {
+LPCSTR            ControlClassName[20] = {
     "BUTTON",
     "BUTTON",
     "STATIC",
@@ -3080,13 +3080,18 @@ void COsTreeView::EnumerateAllItems(void (*inFunc)(COsTreeView *, LPVOID, LPVOID
 }
 
 void COsTreeView::SetItemImage(LPVOID inItem, int inWidth, int inHeight, LPVOID inData) {
+  HDC     dc;
+  HBITMAP hbmp;
+  int     numImages;
+  HBITMAP hmask;
+
   VALIDATE2VOID(inWidth == 16);
   VALIDATE2VOID(inHeight == 16);
 
-  HDC     dc = GetDC((HWND)mHandle);
-  HBITMAP hbmp = sBitmapFromImageData(16, 16, inData, dc);
-  HBITMAP hmask = sMaskFromImageData(16, 16, inData, dc);
-  int     numImages = ImageList_GetImageCount((HIMAGELIST)mImages);
+  dc = GetDC((HWND)mHandle);
+  hbmp = sBitmapFromImageData(16, 16, inData, dc);
+  hmask = sMaskFromImageData(16, 16, inData, dc);
+  numImages = ImageList_GetImageCount((HIMAGELIST)mImages);
 
   if (!inItem) {
     if (!numImages) {
@@ -3362,7 +3367,7 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
         case CDDS_ITEMPREPAINT: {
           LPVOID item = (LPVOID)drawInfo->nmcd.dwItemSpec;
           if (!IsItemSelected(item)) {
-            NTempest::CImVector color(&GetParams(item)->color);
+            NTempest::CImVector color = GetParams(item)->color;
             if (color.a) {
               drawInfo->clrText = RGB(color.r, color.g, color.b);
             }

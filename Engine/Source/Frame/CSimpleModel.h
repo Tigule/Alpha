@@ -71,10 +71,23 @@ class CSimpleModel : public CSimpleFrame {
     }
   }
 
-  BOOL IsModelLoaded() const;
+  BOOL IsModelLoaded() const {
+    return (m_flags & MODEL_LOADED) != 0;
+  }
+
   BOOL ModelJustLoaded() const;
-  BOOL IsUserFlagSet(UINT flag) const;
-  void SetUserFlag(UINT flag, int set);
+
+  BOOL IsUserFlagSet(UINT flag) const {
+    return (m_flags & flag) != 0;
+  }
+
+  void SetUserFlag(UINT flag, int set) {
+    if (set) {
+      m_flags |= flag;
+    } else {
+      m_flags &= ~flag;
+    }
+  }
 
  protected:
   void SetModelLoaded(int loaded);

@@ -322,38 +322,38 @@ static int Script_GetContainerItemCooldown(lua_State *L) {
     return 0;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  if (!player) {
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-    lua_pushnumber(L, 0.0);
-    return 3;
-  }
-  CGBag_C *bag = 0;
-  int      index = (int)lua_tonumber(L, 1) - 1;
-  if (index == -1) {
-    bag = player->CGPlayer_C::GetBag();
-  } else if (index >= 0 && index < 10) {
-    CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
-    if (object) {
-      bag = object->GetBag();
+  if (player) {
+    CGBag_C *bag = 0;
+    int      index = (int)lua_tonumber(L, 1) - 1;
+    if (index == -1) {
+      bag = player->CGPlayer_C::GetBag();
+    } else if (index >= 0 && index < 10) {
+      CGObject_C *object = ClntObjMgrObjectPtr(CGContainerInfo::GetContainer(index), __FILE__, __LINE__);
+      if (object) {
+        bag = object->GetBag();
+      }
+    }
+    int slot = (int)lua_tonumber(L, 2) - 1;
+    if (bag == player->CGPlayer_C::GetBag()) {
+      slot += BACKPACK_FIRST;
+    }
+    if (bag && slot >= 0 && slot < (int)bag->NumSlots()) {
+      CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__));
+      if (item) {
+        DWORD startTime = 0;
+        UINT  duration = 0;
+        UINT  enable = 0;
+        Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, &enable);
+        lua_pushnumber(L, (double)startTime * 0.001);
+        lua_pushnumber(L, (double)duration * 0.001);
+        lua_pushnumber(L, enable);
+        return 3;
+      }
     }
   }
-  int slot = (int)lua_tonumber(L, 2) - 1;
-  if (bag == player->CGPlayer_C::GetBag()) {
-    slot += BACKPACK_FIRST;
-  }
-  CGItem_C *item = bag && slot >= 0 && slot < (int)bag->NumSlots()
-                       ? static_cast<CGItem_C *>(ClntObjMgrObjectPtr(bag->GetItem(slot), __FILE__, __LINE__))
-                       : 0;
-  UINT      duration = 0;
-  DWORD     startTime = 0;
-  UINT      enable = 0;
-  if (item) {
-    Spell_C_GetItemCooldown(item->GetEntryID(), &duration, &startTime, &enable);
-  }
-  lua_pushnumber(L, (double)startTime * 0.001);
-  lua_pushnumber(L, (double)duration * 0.001);
-  lua_pushnumber(L, enable);
+  lua_pushnumber(L, 0.0);
+  lua_pushnumber(L, 0.0);
+  lua_pushnumber(L, 0.0);
   return 3;
 }
 

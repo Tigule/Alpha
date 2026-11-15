@@ -4,9 +4,6 @@
 
 #include "SHA.h"
 
-static const unsigned char s_sha1Padding = 0x80;
-static unsigned char       s_sha1Zero;
-
 #define SHA1_ROL(value, bits) _lrotl((value), (bits))
 #define SHA1_BLK0(i)          (block->l[i] = (SHA1_ROL(block->l[i], 24) & 0xFF00FF00) | (SHA1_ROL(block->l[i], 8) & 0x00FF00FF))
 #define SHA1_BLK(i) \
@@ -176,9 +173,9 @@ void SHA1_Final(unsigned char digest[], SHA1_CONTEXT *context) {
     finalcount[i] = (context->count[(i >= 4) ? 0 : 1] >> ((3 - (i & 3)) * 8)) & 0xFF;
   }
 
-  SHA1_Update(context, &s_sha1Padding, 1);
+  SHA1_Update(context, (unsigned char *)"\200", 1);
   while ((context->count[0] & 0x1F8) != 0x1C0) {
-    SHA1_Update(context, &s_sha1Zero, 1);
+    SHA1_Update(context, (unsigned char *)"\0", 1);
   }
   SHA1_Update(context, finalcount, 8);
 

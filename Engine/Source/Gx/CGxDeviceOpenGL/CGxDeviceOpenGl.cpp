@@ -127,7 +127,7 @@ void CGxDeviceOpenGl::IAllocVAR() {
       if (freq == GxBWF_Dynamic) {
         bytes += GxVertexSize(GxVBF_PNCT0T1) << 15;
       } else {
-        for (UINT format = 0; format < GxVertexBufferFormats_Last; ++format) {
+        for (UINT format = 0; format != GxVertexBufferFormats_Last; ++format) {
           bytes += m_VBReserve[freq][format] * GxVertexSize((EGxVertexBufferFormat)format);
         }
       }

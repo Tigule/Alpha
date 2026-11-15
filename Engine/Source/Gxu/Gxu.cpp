@@ -231,15 +231,13 @@ void GxuXformCalc2dScreenCoords(UINT count, const NTempest::C3Vector *src, NTemp
   GxXformViewport(vpMin.x, vpMax.x, vpMin.y, vpMax.y, vpMin.z, vpMax.z);
   GxXformViewProj(viewProj);
 
-  float vpWidth = vpMax.x - vpMin.x;
-  float vpHeight = vpMax.y - vpMin.y;
-  for (UINT i = 0; i < count; ++i) {
+  for (UINT i = 0; i != count; ++i) {
     dst[i].x = viewProj.a0 * src[i].x + viewProj.b0 * src[i].y + viewProj.d0;
     dst[i].y = viewProj.a1 * src[i].x + viewProj.b1 * src[i].y + viewProj.d1;
     dst[i].z = 1.0f;
-    dst[i].x = ((dst[i].x + 1.0f) * vpWidth * 0.5f + vpMin.x) * winRect.r;
-    dst[i].y = winRect.b - ((dst[i].y + 1.0f) * vpHeight * 0.5f + vpMin.y) * winRect.b;
-    dst[i].z = 1.0f;
+    dst[i].x = (dst[i].x + 1.0f) * (vpMax.x - vpMin.x) * 0.5f + vpMin.x;
+    dst[i].y = (dst[i].y + 1.0f) * (vpMax.y - vpMin.y) * 0.5f + vpMin.y;
+    dst[i] = NTempest::C3Vector(dst[i].x * winRect.r, winRect.b - dst[i].y * winRect.b, 1.0f);
   }
 }
 

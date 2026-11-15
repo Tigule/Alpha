@@ -217,9 +217,9 @@ namespace NTempest {
   }
 
   void C34Matrix::Translate(const C3Vector &move) {
-    d0 += a0 * move.x + b0 * move.y + c0 * move.z;
-    d1 += a1 * move.x + b1 * move.y + c1 * move.z;
-    d2 += a2 * move.x + b2 * move.y + c2 * move.z;
+    d0 += move.x * a0 + move.y * b0 + move.z * c0;
+    d1 += move.x * a1 + move.y * b1 + move.z * c1;
+    d2 += move.x * a2 + move.y * b2 + move.z * c2;
   }
 
   void C34Matrix::Scale(const C3Vector &scale) {

@@ -18,6 +18,7 @@ LISTDECL(IGXUTEXTLINE, g_freeTextLines);
 LISTDECL(CGxString, g_freeStrings);
 LISTDECL(CGxString, g_strings);
 
+static const UINT                                   s_advanceNeeded[NUM_QUOTEDCODES] = {10, 2, 2, 2, 2, 2, 0};
 static const float                                  ONEOVERTEXSIZE = 1.0f / 256.0f;
 static const float                                  ONEHALFONEOVERTEXSIZE = ONEOVERTEXSIZE * 0.5f;
 static TSHashTable<STRINGVIEWMATRICES, HASHKEY_PTR> s_stringViewMatrices;
@@ -103,7 +104,7 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         break;
       }
 
-      advance = 2;
+      advance = s_advanceNeeded[CODE_HYPERLINKSTOP];
       result = CODE_HYPERLINKSTOP;
       break;
 
@@ -116,8 +117,8 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         break;
       }
 
-      advance = 2;
-      if (remainingBytes < 2) {
+      advance = s_advanceNeeded[CODE_NEWLINE];
+      if (remainingBytes < s_advanceNeeded[CODE_NEWLINE]) {
         advance = firstCharAdvance;
         wide = '|';
       }
@@ -133,8 +134,8 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         break;
       }
 
-      advance = 2;
-      if (remainingBytes < 2) {
+      advance = s_advanceNeeded[CODE_COLORRESTORE];
+      if (remainingBytes < s_advanceNeeded[CODE_COLORRESTORE]) {
         advance = firstCharAdvance;
         wide = '|';
       }
@@ -148,7 +149,7 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
         wide = '|';
         result = CODE_INVALIDCODE;
       }
-      advance = 2;
+      advance = s_advanceNeeded[CODE_PIPE];
       break;
 
     case 'C':
@@ -161,8 +162,8 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
       }
 
       result = CODE_COLORON;
-      advance = 10;
-      if (remainingBytes < 10) {
+      advance = s_advanceNeeded[CODE_COLORON];
+      if (remainingBytes < s_advanceNeeded[CODE_COLORON]) {
         advance = firstCharAdvance;
         wide = '|';
         result = CODE_INVALIDCODE;

@@ -8,7 +8,7 @@
 #include <storm.h>
 #include <stpl.h>
 
-const UINT NUM_ITEMCLASSES = 16;
+const int NUM_ITEMCLASSES = 16;
 
 static TSFixedArray<const ItemSubClassRec *> s_itemSubClassList[NUM_ITEMCLASSES];
 

@@ -364,11 +364,11 @@ static int __cdecl QSortCompareByCategoryAndLevel(LPCVOID a, LPCVOID b) {
 
 void CGCharacterInfo::OrderSkillLines() {
   const SkillLineRec *skillInfo[64];
-  UINT                count = 0;
   CGPlayer_C         *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!playerPtr) {
     return;
   }
+  UINT count = 0;
   UINT i;
   UINT numClassSkills = 0;
   for (i = 0; i < 69; ++i) {
@@ -395,9 +395,9 @@ void CGCharacterInfo::OrderSkillLines() {
   if (numProfs) {
     ++numProfs;
   }
+  UINT skillCount = 1;
   m_skillInfoList[0].isProf = 0;
   m_skillInfoList[0].skillID = 0;
-  UINT skillCount = 1;
   for (i = 0; i < count; ++i) {
     if (!m_specialOffset && skillInfo[i]->m_skillType == 1) {
       m_specialOffset = numProfs + skillCount;

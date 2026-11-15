@@ -138,6 +138,18 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
   }
 }
 
+static inline CPlayerMoveEvent *NewPlayerMoveEvent() {
+  FATALASSERT(s_localMoveHeap != 0xffffffff);
+  UINT memHandle;
+  if (!ObjectAlloc(s_localMoveHeap, &memHandle)) {
+    return NULL;
+  }
+  CPlayerMoveEvent *event = (CPlayerMoveEvent *)ObjectPtr(memHandle);
+  new (event) CPlayerMoveEvent;
+  event->memHandle = memHandle;
+  return event;
+}
+
 BOOL CMovement::UpdatePlayerMovement(DWORD timeNow) {
   while (((CMovementGlobals *)MovementGetGlobals())->m_localMoveQueue.HasEntries()) {
     CPlayerMoveEvent *event = ((CMovementGlobals *)MovementGetGlobals())->m_localMoveQueue.Root();
@@ -1364,18 +1376,7 @@ void CMovement::AddPlayerMoveEvent(DWORD eventTime, int eventType, float facing)
 
   RemoveSpline();
 
-  FATALASSERT(s_localMoveHeap != 0xffffffff);
-  UINT              memHandle;
-  CPlayerMoveEvent *event;
-  if (!ObjectAlloc(s_localMoveHeap, &memHandle)) {
-    event = NULL;
-  } else {
-    event = new (ObjectPtr(memHandle)) CPlayerMoveEvent;
-    if (event) {
-      event->memHandle = memHandle;
-    }
-  }
-
+  CPlayerMoveEvent *event = NewPlayerMoveEvent();
   event->eventType = (PLAYER_MOVE_EVT)eventType;
   event->timeStamp = eventTime;
   event->facing = facing;

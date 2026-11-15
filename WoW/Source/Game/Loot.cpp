@@ -31,16 +31,19 @@ void CurrencyBreakdown(int money, int coins[]) {
   FATALASSERT(s_lootInitialized);
   FATALASSERT(coins);
 
-  for (int coinType = 2; coinType > 0; --coinType) {
+  for (int coinType = 2; coinType >= 0; --coinType) {
+    if (!coinType) {
+      coins[coinType] = money;
+      return;
+    }
     int multiplier = CurrencyMultiplier(coinType);
-    if (money < multiplier) {
-      coins[coinType] = 0;
-    } else {
+    if (money >= multiplier) {
       coins[coinType] = money / multiplier;
       money %= multiplier;
+    } else {
+      coins[coinType] = 0;
     }
   }
-  coins[0] = money;
 }
 
 UINT CurrencyTotal(int coins[]) {

@@ -86,29 +86,7 @@ static BOOL IReadFlipbook(Parser &parse, int expectanimation, MDLTEXLAYER *layer
     layer->textureId = parse.ExpectInt();
     return 0;
   }
-  UINT       token;
-  LPCSTR     tokenText;
-  UTokenData tokenData;
-  long       expected = parse.GetOptionalInt(&token, &tokenText, &tokenData);
-  if (expected > 0) {
-    layer->flipKeys.keys.ReserveSpace(expected);
-  }
-  parse.Expect('{', token, tokenText);
-  token = ReadIntTrackHeader(parse, &layer->flipKeys, &tokenText, &tokenData);
-  long actual = 0;
-  while (token == MDLTOK_LONG) {
-    MDLINTKEY *key = layer->flipKeys.keys.New();
-    key->time = tokenData.lVal;
-    parse.Expect(':');
-    key->value = parse.ExpectInt();
-    parse.Expect(',');
-    ++actual;
-    token = parse.Token(&tokenText, &tokenData);
-  }
-  parse.Expect('}', token, tokenText);
-  if (expected >= 0 && actual != expected) {
-    parse.WarningCount("key frames", expected, actual);
-  }
+  ReadObjectIntKeyframes(parse, &layer->flipKeys);
   return 1;
 }
 

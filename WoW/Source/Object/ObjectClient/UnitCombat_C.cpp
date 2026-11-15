@@ -661,6 +661,7 @@ void CGUnit_C::SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criti
 
 BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int processNow) {
   FATALASSERT(roundInfo);
+  UINT seqDuration;
 
   COMBATHAND hand = COMBAT_MAINHAND;
   if (roundInfo->flags & 0x200) {
@@ -705,7 +706,6 @@ BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int proces
     PlayUnitSound((roundInfo->flags & 8) ? UNITSOUNDTYPE_EXERTIONCRITICAL : UNITSOUNDTYPE_EXERTION, 0);
 
     UINT sequence = ChooseAnimation(state);
-    UINT seqDuration;
     if (ModelGetSequenceDuration(GetObjectModel(), sequence, &seqDuration)) {
       UINT random = NTempest::CRandom::dice_(16, g_rndSeed);
       UINT scaledDuration = NTempest::CMath::fint_((random + 85.0f) * seqDuration * 0.01f);
@@ -1284,7 +1284,7 @@ void CGUnit_C::InitializeResEffectModel() {
     if (activePlayer->CanAssist(this)) {
       ClearResEffectModel();
 
-      static int effectVisualID = UnitEffectGetSpecialVisual(SPECIALEFFECT_RES_EFFECT);
+      static UINT effectVisualID = UnitEffectGetSpecialVisual(SPECIALEFFECT_RES_EFFECT);
 
       m_resEffectModel = UnitEffectCreateAuraModel(effectVisualID);
       AttachResEffectModel();

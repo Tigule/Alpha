@@ -607,8 +607,8 @@ BOOL GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *
     NTempest::CImVector foundColor;
     switch (GxuDetermineQuotedCode(string, advance, &foundColor, 0, wide, numBytes)) {
     case CODE_COLORON:
-      colorCode = foundColor;
       found = 1;
+      colorCode = foundColor;
       break;
     case CODE_COLORRESTORE:
       found = 0;

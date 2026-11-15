@@ -88,11 +88,12 @@ static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
   };
   static NTempest::C3Vector normal(0.0f, 0.0f, 1.0f);
 
-  float               elapsed = 0.0f;
+  BYTE                fadeComplete = 0;
   NTempest::CImVector color(0xFFFFFFFF);
-  UINT                fadeComplete = 0;
+  float               elapsed;
 
   if (s_fadingMode) {
+    elapsed = 0.0f;
     if (s_drawingFadingScreen) {
       elapsed = (float)(OsGetAsyncTimeMs() - s_fadingStart) * 0.001f;
     } else {
@@ -101,10 +102,16 @@ static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
 
     if (elapsed >= s_fadingTime) {
       fadeComplete = 1;
-      color.a = s_fadingMode == 2 ? 255 : 0;
+      if (s_fadingMode == FADING_IN)
+        color.SetA(255);
+      else
+        color.SetA(0);
     } else {
-      BYTE fadeAlpha = elapsed / s_fadingTime * 255.0f;
-      color.a = s_fadingMode == 2 ? fadeAlpha : (BYTE)(255 - fadeAlpha);
+      BYTE fadeAlpha = NTempest::CMath::ftol_0_256_(elapsed / s_fadingTime * 255.0f);
+      if (s_fadingMode == FADING_IN)
+        color.SetA(fadeAlpha);
+      else
+        color.SetA(255 - fadeAlpha);
     }
   }
 
@@ -130,8 +137,8 @@ static void FadingScreenPaint(LPVOID, const RECTF *, const RECTF *, float) {
     if (s_fadedCallback) {
       s_fadedCallback(s_fadedCallbackParam);
     }
-  } else {
-    s_fadingComplete = fadeComplete;
+  } else if (fadeComplete) {
+    s_fadingComplete = 1;
   }
 }
 

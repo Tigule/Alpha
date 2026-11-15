@@ -188,8 +188,8 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
   }
 
   while (size) {
-    blockStartOffset = object->instances[instanceNumber].currentOffset & ~(CACHE_BLOCK_SIZE - 1);
     hashKey = (LONGLONG)object->hash << 32;
+    blockStartOffset = object->instances[instanceNumber].currentOffset & ~(CACHE_BLOCK_SIZE - 1);
     if (!bigFile) {
       hashKey |= blockStartOffset;
     }

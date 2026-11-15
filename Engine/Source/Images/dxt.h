@@ -6,7 +6,7 @@
 #pragma pack(push, 1)
 
 struct C4Pixel {
-  C4Pixel() {
+  C4Pixel() : b(0), g(0), r(0), a(0) {
   }
 
   C4Pixel(BYTE b, BYTE g, BYTE r, BYTE a) : b(b), g(g), r(r), a(a) {

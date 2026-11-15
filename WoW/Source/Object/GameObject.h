@@ -1,6 +1,7 @@
 #ifndef WOW_SOURCE_OBJECT_GAMEOBJECT_H
 #define WOW_SOURCE_OBJECT_GAMEOBJECT_H
 
+#include "Object/Object.h"
 #include "Tempest/c44matrix.h"
 
 namespace NTempest {

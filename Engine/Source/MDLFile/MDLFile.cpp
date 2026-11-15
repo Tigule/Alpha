@@ -35,17 +35,15 @@ class CMdlScanner : public mdl_scan {
   CMdlScanner(CMDLStatus *status, LPCSTR input, int size) : mdl_scan(input, size), m_status(status) {
   }
 
-  virtual void __cdecl mdlerror(char *format, ...);
+  virtual void __cdecl mdlerror(char *format, ...) {
+    static char buffer[256];
+    va_list     args;
+    va_start(args, format);
+    SStrVPrintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    m_status->Add(STATUS_FATAL, "Error (line %d): %s\n", mdllineno, buffer);
+  }
 };
-
-void __cdecl CMdlScanner::mdlerror(char *format, ...) {
-  static char buffer[256];
-  va_list     args;
-  va_start(args, format);
-  SStrVPrintf(buffer, sizeof(buffer), format, args);
-  va_end(args);
-  m_status->Add(STATUS_FATAL, "Error (line %d): %s\n", mdllineno, buffer);
-}
 
 static CNullStatus s_nullStatus;
 static UINT        s_defaultWriteFormat = 1;

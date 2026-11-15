@@ -24,7 +24,7 @@ struct MACRODESC {
   }
 };
 
-static TSGrowableArray<MACRODESC> s_macroRaceDescs;
+TSGrowableArray<MACRODESC> s_macroRaceDescs;
 
 static int Script_PlayVocalCategory(lua_State *L) {
   if (!lua_isnumber(L, 1)) {

@@ -1211,8 +1211,8 @@ static int Script_GetNumLanguages(lua_State *L) {
 
   int  numEntries = g_languagesDB.GetNumRecords();
   UINT count = 0;
+  UINT skill;
   for (int i = 0; i < numEntries; ++i) {
-    UINT                skill;
     const LanguagesRec *rec = g_languagesDB.GetRecordByIndex(i);
     if (rec && player->GetLanguageSkill(rec->m_ID, skill)) {
       ++count;
@@ -1291,8 +1291,8 @@ static int Script_ChatFrameLog(lua_State *L) {
     s_loggingEnabled = lua_tonumber(L, 1);
     if (s_logHandle) {
       SLogClose(s_logHandle);
-      s_logHandle = 0;
     }
+    s_logHandle = 0;
     if (s_loggingEnabled) {
       ConsoleWrite(SLogCreate("WOWChatLog.txt", 0, &s_logHandle) ? "Chat logging enabled" : "Error creating chat log..logging disabled", DEFAULT_COLOR);
     } else {

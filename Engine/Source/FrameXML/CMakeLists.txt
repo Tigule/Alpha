@@ -13,5 +13,5 @@ target_include_directories(FrameXML PRIVATE
 target_compile_definitions(FrameXML PRIVATE _STATIC)
 
 if(MSVC_VERSION EQUAL 1200)
-    target_compile_options(FrameXML PRIVATE /Gr /GX /Ob0 /Zd)
+    target_compile_options(FrameXML PRIVATE /Gr /GX /Ob0)
 endif()

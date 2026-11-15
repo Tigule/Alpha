@@ -322,14 +322,14 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
   CentralDirectoryFileHeader cdirFileHeader;
   LocalFileHeader            localFileHeader;
   DataDescriptor             trailer;
-  DWORD                      compressedDataOffset;
-  DWORD                      saveOffset;
+  UINT                       compressedDataOffset;
+  UINT                       saveOffset;
   ZipFileDirEntry           *entry;
   if (fread(&cdirFileHeader, sizeof(cdirFileHeader), 1, file) != 1) {
     return 0;
   }
   cdirFileHeader.EndianCorrect();
-  if (memcmp(cdirFileHeader.signature, centralDirectoryFileSignature, sizeof(cdirFileHeader.signature)) != 0) {
+  if (*(DWORD *)cdirFileHeader.signature != *(DWORD *)centralDirectoryFileSignature) {
     return 0;
   }
 
@@ -342,8 +342,12 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
 
   fseek(file, cdirFileHeader.extraFieldSize, SEEK_CUR);
   fseek(file, cdirFileHeader.commentSize, SEEK_CUR);
-  if (cdirFileHeader.compressionMethod != 0 && cdirFileHeader.compressionMethod != 8) {
-    return 0;
+  switch (cdirFileHeader.compressionMethod) {
+    case 0:
+    case 8:
+      break;
+    default:
+      return 0;
   }
   if (s_directory.Ptr(filename)) {
     return 0;
@@ -355,7 +359,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
     return 0;
   }
   localFileHeader.EndianCorrect();
-  if (memcmp(localFileHeader.signature, localFileSignature, sizeof(localFileHeader.signature)) != 0) {
+  if (*(DWORD *)localFileHeader.signature != *(DWORD *)localFileSignature) {
     return 0;
   }
 
@@ -381,10 +385,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
   }
   compressedDataOffset = ftell(file);
 
-  entry = (ZipFileDirEntry *)SMemAlloc(sizeof(ZipFileDirEntry), __FILE__, __LINE__, 0);
-  if (entry) {
-    new (entry) ZipFileDirEntry;
-  }
+  entry = new (SMemAlloc(sizeof(ZipFileDirEntry), __FILE__, __LINE__, 0)) ZipFileDirEntry;
   entry->archive = this;
   SStrCopy(entry->filename, cdirFilename, sizeof(entry->filename));
   entry->startOffset = compressedDataOffset;

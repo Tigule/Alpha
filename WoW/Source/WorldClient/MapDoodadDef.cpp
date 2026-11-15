@@ -270,12 +270,7 @@ void CMapDoodadDef::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGro
     for (UINT tries = 0; tries < 2; ++tries) {
       float               closestT = FLT_MAX;
       NTempest::CImVector closestC(0ul);
-      float               radius;
-      if (!tries) {
-        radius = max(3.0f, aaSphere.r);
-      } else {
-        radius = 50.0f * invScale;
-      }
+      float               radius = (!tries ? max(3.0f, aaSphere.r) : 50.0f) * invScale;
 
       for (UINT i = 0; i < 6; ++i) {
         NTempest::C3Vector localRadVec = NTempest::C44Matrix::mul3v33m_(dirs[i], lMat);

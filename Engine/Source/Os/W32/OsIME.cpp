@@ -54,8 +54,9 @@ static BOOL GetCompositionString(int which, char *string, int maxlen) {
   WORD wtemp[512];
   ImmGetCompositionStringA(context, which, string, maxlen);
   MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, string, -1, wtemp, 512);
-  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, (UINT *)&maxlen, 0);
-  string[maxlen] = 0;
+  UINT written;
+  ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, &written, 0);
+  string[written] = 0;
   ImmReleaseContext(wnd, context);
   return 1;
 }
@@ -76,7 +77,7 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
     return 0;
   }
 
-  UINT cursor = (WORD)ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0);
+  UINT cursor = ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0) & 0xFFFF;
   UINT length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
   if (!length) {
     ImmReleaseContext(wnd, context);
@@ -86,6 +87,7 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   UINT *clauses = (UINT *)SMemAlloc(length, __FILE__, __LINE__, 0);
   memset(clauses, 0, length);
   length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, clauses, length);
+  UINT currentClause = 0;
   if (length == IMM_ERROR_NODATA || length == IMM_ERROR_GENERAL) {
     SMemFree(clauses, __FILE__, __LINE__, 0);
     ImmReleaseContext(wnd, context);
@@ -93,17 +95,18 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   }
 
   length /= sizeof(UINT);
-  UINT currentClause = 0;
   UINT i;
-  for (i = 0; i + 1 < length; ++i) {
-    if (cursor >= clauses[i] && cursor < clauses[i + 1]) {
-      currentClause = i;
+  if (length > 2) {
+    for (i = 0; i < length - 1; ++i) {
+      if (cursor >= clauses[i] && cursor < clauses[i + 1]) {
+        currentClause = i;
+      }
     }
   }
 
-  BYTE attrib[512];
+  char attrib[512];
   ImmGetCompositionStringA(context, GCS_COMPATTR, attrib, sizeof(attrib));
-  for (i = 0; i + 1 < length; ++i) {
+  for (i = 0; i < length - 1; ++i) {
     if (!attrib[clauses[i]]) {
       currentClause = i;
     }
@@ -115,11 +118,11 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
 
   UINT cursorLen = MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, cursor, 0, 0);
   length = MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, clauses[currentClause], 0, 0);
-  currentClause =
-      length + MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, clauses[currentClause + 1] - clauses[currentClause], 0, 0);
+  UINT clauseLen =
+      MultiByteToWideChar(codepage, MB_PRECOMPOSED, string, clauses[currentClause + 1] - clauses[currentClause], 0, 0);
   SMemFree(clauses, __FILE__, __LINE__, 0);
   clauseLeft = length;
-  clauseRight = currentClause;
+  clauseRight = length + clauseLen;
   cursorPos = cursorLen;
   return 1;
 }
@@ -129,10 +132,12 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
 
   HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC hIMC = ImmGetContext(wnd);
-  if (!hIMC || !which) {
-    if (hIMC) {
-      ImmReleaseContext(wnd, hIMC);
-    }
+  if (!hIMC) {
+    return 0;
+  }
+
+  if (!which) {
+    ImmReleaseContext(wnd, hIMC);
     return 0;
   }
 
@@ -148,6 +153,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     return 0;
   }
 
+  int            pageStartChanged = 0;
   CANDIDATELIST *pcl = (CANDIDATELIST *)SMemAlloc(size, __FILE__, __LINE__, 0);
   ImmGetCandidateListA(hIMC, listIndex, pcl, size);
 
@@ -158,24 +164,17 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     return 0;
   }
 
-  int pageStartChanged = 0;
-  if (pcl->dwSelection < pcl->dwPageStart) {
-    pageStartChanged = 1;
-    while (pcl->dwPageStart > pcl->dwPageSize) {
+  while (pcl->dwSelection < pcl->dwPageStart) {
+    if (pcl->dwPageStart > pcl->dwPageSize) {
       pcl->dwPageStart -= pcl->dwPageSize;
-      if (pcl->dwSelection >= pcl->dwPageStart) {
-        break;
-      }
-    }
-    if (pcl->dwSelection < pcl->dwPageStart) {
+    } else {
       pcl->dwPageStart = 0;
     }
+    pageStartChanged = 1;
   }
 
-  if (pcl->dwSelection >= pcl->dwPageStart + pcl->dwPageSize) {
-    do {
-      pcl->dwPageStart += pcl->dwPageSize;
-    } while (pcl->dwSelection >= pcl->dwPageStart + pcl->dwPageSize);
+  while (pcl->dwPageStart + pcl->dwPageSize <= pcl->dwSelection) {
+    pcl->dwPageStart += pcl->dwPageSize;
     pageStartChanged = 1;
   }
 
@@ -190,14 +189,13 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
   count = pcl->dwCount;
   selection = pcl->dwSelection;
 
-  for (UINT i = 0; i < pagesize; ++i) {
+  for (UINT i = 0; i < pcl->dwPageSize; ++i) {
     OsIMECandidate *candidate = candidates.New();
     UINT            written = 0;
 
     if (pcl->dwPageStart + i < pcl->dwCount) {
-      WORD   wtemp[512];
-      LPCSTR source = (LPCSTR)pcl + pcl->dwOffset[pcl->dwPageStart + i];
-      MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, source, -1, wtemp, 512);
+      WORD wtemp[512];
+      MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, (LPCSTR)pcl + pcl->dwOffset[pcl->dwPageStart + i], -1, wtemp, 512);
       ConvertUTF16toUTF8(candidate->candidate, 1023, wtemp, 512, &written, 0);
     }
 

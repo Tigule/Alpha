@@ -22,6 +22,36 @@ typedef int(__stdcall *FSOUND_READCALLBACK)(LPVOID, int, UINT);
 typedef int(__stdcall *FSOUND_SEEKCALLBACK)(UINT, int, signed char);
 typedef int(__stdcall *FSOUND_TELLCALLBACK)(UINT);
 
+enum FSOUND_OUTPUTTYPES {
+  FSOUND_OUTPUT_NOSOUND,
+  FSOUND_OUTPUT_WINMM,
+  FSOUND_OUTPUT_DSOUND,
+  FSOUND_OUTPUT_A3D,
+  FSOUND_OUTPUT_OSS,
+  FSOUND_OUTPUT_ESD,
+  FSOUND_OUTPUT_ALSA,
+  FSOUND_OUTPUT_ASIO,
+  FSOUND_OUTPUT_XBOX,
+  FSOUND_OUTPUT_PS2,
+  FSOUND_OUTPUT_MAC,
+  FSOUND_OUTPUT_GC,
+  FSOUND_OUTPUT_NOSOUND_NONREALTIME
+};
+
+enum FSOUND_MIXERTYPES {
+  FSOUND_MIXER_AUTODETECT,
+  FSOUND_MIXER_BLENDMODE,
+  FSOUND_MIXER_MMXP5,
+  FSOUND_MIXER_MMXP6,
+  FSOUND_MIXER_QUALITY_AUTODETECT,
+  FSOUND_MIXER_QUALITY_FPU,
+  FSOUND_MIXER_QUALITY_MMXP5,
+  FSOUND_MIXER_QUALITY_MMXP6,
+  FSOUND_MIXER_MONO,
+  FSOUND_MIXER_QUALITY_MONO,
+  FSOUND_MIXER_MAX
+};
+
 typedef bool (*SOUND_GET_PARAM_INT)(LPCSTR, int &);
 typedef bool (*SOUND_GET_PARAM_FLOAT)(LPCSTR, float &);
 typedef bool (*SOUND_GET_PARAM_STRING)(LPCSTR, LPCSTR &);
@@ -1194,8 +1224,7 @@ int Sound::GetNumOutputSystems() {
 }
 
 LPCSTR Sound::GetOutputSystemName(int index) {
-  // todo: ASSERT(index >= 0 && index <= FSOUND_OUTPUT_NOSOUND_NONREALTIME)
-  ASSERT(index >= 0 && index <= 12);
+  ASSERT(index >= 0 && index <= FSOUND_OUTPUT_NOSOUND_NONREALTIME);
   return s_outputSystemName[index];
 }
 
@@ -1213,8 +1242,7 @@ int Sound::GetNumMixers() {
 }
 
 LPCSTR Sound::GetMixerName(int index) {
-  // todo: ASSERT(index >= 0 && index < FSOUND_MIXER_MAX)
-  ASSERT(index >= 0 && index < 10);
+  ASSERT(index >= 0 && index < FSOUND_MIXER_MAX);
   return s_mixerName[index];
 }
 

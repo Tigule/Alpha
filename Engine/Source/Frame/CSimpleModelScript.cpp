@@ -115,9 +115,8 @@ static int CSimpleModel_SetCamera(lua_State *L) {
 }
 
 static int CSimpleModel_SetLight(lua_State *L) {
-  CSimpleModel *object = (CSimpleModel *)FrameScript_GetObjectThis(L);
+  CSimpleModel *model = (CSimpleModel *)FrameScript_GetObjectThis(L);
 
-  CSimpleModel *model = object;
   if (lua_isnumber(L, 2)) {
     CGxLight light;
     light.m_enabled = (int)lua_tonumber(L, 2) != 0;
@@ -127,7 +126,7 @@ static int CSimpleModel_SetLight(lua_State *L) {
 
     if (lua_isnumber(L, 3) && lua_isnumber(L, 4) && lua_isnumber(L, 5) && lua_isnumber(L, 6) && lua_isnumber(L, 7)) {
       light.m_isOmni = (int)lua_tonumber(L, 3) != 0;
-      light.m_dir = NTempest::C3Vector(lua_tonumber(L, 4), lua_tonumber(L, 5), lua_tonumber(L, 6));
+      light.m_dir.Set(lua_tonumber(L, 4), lua_tonumber(L, 5), lua_tonumber(L, 6));
 
       int index = 8;
       light.m_ambIntensity = lua_tonumber(L, 7);

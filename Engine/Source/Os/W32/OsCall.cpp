@@ -391,26 +391,29 @@ void OsCallDump(LPCSTR fileName) {
   }
 
   FILE *file = fopen(fileName, "wb");
-  if (file) {
-    setvbuf(file, 0, _IOFBF, 0x7FFF);
-    fprintf(file, ";Call Trace Log %s, %s\r\n", "Dec 11 2003", "17:58:40");
+  if (!file) {
+    // known misbehavior: returns without leaving s_critsect
+    return;
+  }
 
-    ITERATELIST(ContextData, s_contextDataList, contextData) {
-      ThreadData *threadData = contextData->m_threadData;
-      if (threadData && threadData->m_threadId != GetCurrentThreadId() &&
-          SuspendThread(threadData->m_threadHandle) == (DWORD)-1)
-      {
-        fprintf(file, ";Couldn't dump thread: %s\r\n", threadData->m_title);
-      } else {
-        OsCallDumpContextData(file, contextData);
-        OsCallDumpProfileData(fileName, contextData);
-        if (threadData && threadData->m_threadId != GetCurrentThreadId()) {
-          ResumeThread(threadData->m_threadHandle);
-        }
+  setvbuf(file, 0, _IOFBF, 0x7FFF);
+  fprintf(file, ";Call Trace Log %s, %s\r\n", __DATE__, __TIME__);
+
+  ITERATELIST(ContextData, s_contextDataList, contextData) {
+    ThreadData *threadData = contextData->m_threadData;
+    if (threadData && threadData->m_threadId != GetCurrentThreadId() &&
+        SuspendThread(threadData->m_threadHandle) == (DWORD)-1)
+    {
+      fprintf(file, ";Couldn't dump thread: %s\r\n", threadData->m_title);
+    } else {
+      OsCallDumpContextData(file, contextData);
+      OsCallDumpProfileData(fileName, contextData);
+      if (threadData && threadData->m_threadId != GetCurrentThreadId()) {
+        ResumeThread(threadData->m_threadHandle);
       }
     }
-    fclose(file);
   }
+  fclose(file);
 
   s_critsect.Leave();
 }

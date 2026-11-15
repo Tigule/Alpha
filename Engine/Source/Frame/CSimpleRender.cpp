@@ -945,20 +945,19 @@ static LPCSTR LanguageRule1(LPCSTR text) {
     if (*readpos == '|') {
       ++readpos;
 
-      if (*readpos == '1' && (readpos[1] < '0' || readpos[1] > '9')) {
+      if (*readpos == '1' && (readpos[1] > '9' || readpos[1] < '0')) {
         WORD *jongsungText = readpos + 1;
         WORD *nonJongsungText = jongsungText;
-        WORD *end;
         WORD *selectedText;
 
         while (*nonJongsungText && *nonJongsungText++ != ';') {
         }
 
-        end = nonJongsungText;
-        while (*end && *end++ != ';') {
+        readpos = nonJongsungText;
+        while (*readpos && *readpos++ != ';') {
         }
 
-        readpos = end - 1;
+        --readpos;
         selectedText = CheckJongsung(output16, (writepos - output16) - 1) ? jongsungText : nonJongsungText;
 
         while (*selectedText && *selectedText != ';') {

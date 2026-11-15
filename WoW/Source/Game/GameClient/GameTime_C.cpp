@@ -273,8 +273,12 @@ void ClientDestroyGameTime() {
 
 void SetGameTimeForcedChangeCallback(int set, void (*callback)(UINT oldTime, UINT newTime)) {
   for (UINT index = 0; index < 4; ++index) {
-    if ((!s_forcedChangeCallbacks[index] && set) || (s_forcedChangeCallbacks[index] == callback && !set)) {
-      s_forcedChangeCallbacks[index] = set ? callback : 0;
+    if (!s_forcedChangeCallbacks[index] && set) {
+      s_forcedChangeCallbacks[index] = callback;
+      return;
+    }
+    if (s_forcedChangeCallbacks[index] == callback && !set) {
+      s_forcedChangeCallbacks[index] = 0;
       return;
     }
   }

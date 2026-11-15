@@ -24,7 +24,7 @@ static const ZoneMusicRec *s_currentMusic;
 static Sound              *s_sound;
 static int                 s_elapsed;
 static int                 s_nextPlay = -1;
-static NTempest::CRndSeed  s_rndSeed;
+NTempest::CRndSeed         s_rndSeed;
 
 static int GetNextPlayTime() {
   if (s_flags & 4) {

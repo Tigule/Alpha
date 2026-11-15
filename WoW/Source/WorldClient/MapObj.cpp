@@ -22,6 +22,7 @@
 
 #include <math.h>
 
+static const char                 *s_defaultWmoName = "World\\wmo\\Dungeon\\test\\missingwmo.wmo";
 UINT                               CMapObj::MAX_SOUND_RLEVEL = 2;
 CMapObjDef                        *CMapObj::curMapObjDef;
 UINT                               CMapObj::sMinimapTag;

@@ -44,9 +44,6 @@ static TSFixedArray<CAMERAFILENAMES>            s_cameraFileNames;
 static TSGrowableArray<CHARACTERRACEVARIATIONS> s_raceTextureFileNames;
 static const UINT                               NUM_UNDERWEARHIDESECTIONS = 2;
 UINT                                            g_defaultGeosetIDOffsets[NUM_CHARGEOSETS] = {1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0};
-static const CHARACTER_GEOSET_SECTIONS          s_clothingGeosetRanges[9] = {CHARGEOSET_GLOVE,  CHARGEOSET_BOOT,    CHARGEOSET_SLEEVES,
-                                                                             CHARGEOSET_PANTS,  CHARGEOSET_DOUBLET, CHARGEOSET_PANTDOUBLET,
-                                                                             CHARGEOSET_TABARD, CHARGEOSET_ROBE,    CHARGEOSET_LOINCLOTH};
 
 static const UINT s_itemGeosetPriorities[INDEX_NUMSLOTS][9] = {
     {0, 0,  0, 0,  0,  0, 0, 0, 0},
@@ -107,6 +104,10 @@ static const int s_overridePriorities[INDEX_NUMSLOTS][9] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}
 };
+
+static const CHARACTER_GEOSET_SECTIONS s_clothingGeosetRanges[9] = {CHARGEOSET_GLOVE,   CHARGEOSET_BOOT,  CHARGEOSET_SLEEVES, CHARGEOSET_PANTS,
+                                                                    CHARGEOSET_DOUBLET, CHARGEOSET_PANTDOUBLET, CHARGEOSET_TABARD, CHARGEOSET_ROBE,
+                                                                    CHARGEOSET_LOINCLOTH};
 
 static struct {
   UINT disableGeosetFlags[9];
@@ -187,6 +188,8 @@ static const INVHOLDINFO s_itemTypeTextureHolds[INDEX_NUMSLOTS] = {
     INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION),
     INVHOLDINFO(INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION, INVALID_CHARITEMGEOSET, TCS_INVALIDSECTION)
 };
+
+static LPCSTR s_nakedTorsoString[2] = {"Torso", "Pelvis"};
 
 class CharGeosetInfo {
  public:

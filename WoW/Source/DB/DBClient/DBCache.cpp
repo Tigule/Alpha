@@ -227,7 +227,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Load() {
   }
 
   header.Get(build);
-  if (build != 3368) {
+  if (build != BUILD_VERSION) {
     OsCloseFile(file);
     return;
   }
@@ -299,7 +299,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
   LPVOID     ptr;
 
   store.Put((int)m_fileTag);
-  store.Put(3368);
+  store.Put(BUILD_VERSION);
   store.Put((int)sizeof(RECORD));
   store.Put(RECORD::Version());
   store.Finalize();

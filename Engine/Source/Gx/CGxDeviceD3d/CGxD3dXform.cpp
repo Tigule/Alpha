@@ -26,39 +26,39 @@ void CGxDeviceD3d::XformSetViewport(float minX, float maxX, float minY, float ma
 void CGxDeviceD3d::XformSetProjection(const NTempest::C44Matrix &matrix) {
   CGxDevice::XformSetProjection(matrix);
 
-  D3DXMATRIX tmp = *(const D3DXMATRIX *)&matrix;
-  if (!(fabsf(tmp._34 - 1.0f) < 0.00000023841858f) && !(fabsf(tmp._34) < 0.00000023841858f)) {
-    tmp *= 1.0f / tmp._34;
+  D3DXMATRIX matProj = *(const D3DXMATRIX *)&matrix;
+  if (!(fabsf(matProj._34 - 1.0f) < 0.00000023841858f) && !(fabsf(matProj._34) < 0.00000023841858f)) {
+    matProj *= 1.0f / matProj._34;
   }
 
-  if (tmp._44 == 0.0f) {
-    float zNear = -(tmp._43 / (tmp._33 + 1.0f));
-    float zFar = -(tmp._43 / (tmp._33 - 1.0f));
+  if (matProj._44 == 0.0f) {
+    float zNear = -(matProj._43 / (matProj._33 + 1.0f));
+    float zFar = -(matProj._43 / (matProj._33 - 1.0f));
 
-    tmp._33 = zFar / (zFar - zNear);
-    tmp._43 = zNear * zFar / (zNear - zFar);
+    matProj._33 = zFar / (zFar - zNear);
+    matProj._43 = zNear * zFar / (zNear - zFar);
   } else {
-    float oneOverA = 1.0f / tmp._33;
-    float zNear = (-1.0f - tmp._43) * oneOverA;
-    float zFar = (1.0f - tmp._43) * oneOverA;
+    float oneOverA = 1.0f / matProj._33;
+    float zNear = (-1.0f - matProj._43) * oneOverA;
+    float zFar = (1.0f - matProj._43) * oneOverA;
 
-    tmp._33 = 1.0f / (zFar - zNear);
-    tmp._43 = zNear / (zNear - zFar);
+    matProj._33 = 1.0f / (zFar - zNear);
+    matProj._43 = zNear / (zNear - zFar);
   }
 
-  if (!(m_appState.m_masterEnables & (1U << GxMasterEnable_NormalProjection)) && tmp._44 != 1.0f) {
-    D3DXMATRIX matProj = tmp;
+  if (!(m_appState.m_masterEnables & (1U << GxMasterEnable_NormalProjection)) && matProj._44 != 1.0f) {
+    D3DXMATRIX tmp = matProj;
     D3DXMATRIX shrink(0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 
     for (UINT row = 0; row < 4; ++row) {
       for (UINT column = 0; column < 4; ++column) {
-        tmp.m[row][column] = matProj.m[row][0] * shrink.m[0][column] + matProj.m[row][1] * shrink.m[1][column] +
-                             matProj.m[row][2] * shrink.m[2][column] + matProj.m[row][3] * shrink.m[3][column];
+        matProj.m[row][column] = tmp.m[row][0] * shrink.m[0][column] + tmp.m[row][1] * shrink.m[1][column] +
+                                 tmp.m[row][2] * shrink.m[2][column] + tmp.m[row][3] * shrink.m[3][column];
       }
     }
   }
 
-  m_d3dDevice->SetTransform(D3DTS_PROJECTION, &tmp);
+  m_d3dDevice->SetTransform(D3DTS_PROJECTION, &matProj);
 }
 
 void CGxDeviceD3d::XformSetView(const NTempest::C44Matrix &matrix) {

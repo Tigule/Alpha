@@ -37,7 +37,6 @@ BOOL         ReadBinGenObject(MDLGENOBJECT &object, CMsgBuffer &buffer, CMDLStat
 void         WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &track, DWORD magic, CMsgBuffer &buffer);
 BOOL         ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &track, CMsgBuffer &buffer, UINT &totalRead);
 UINT         GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &track);
-UINT         ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<MDLINTKEY> *keyTrack, LPCSTR *tokentext, UTokenData *value);
 void         WriteIntKeyFrames(UINT title, LPCSTR indent, const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, TSGrowableArray<char> &buffer);
 
 template <class T>
@@ -107,6 +106,57 @@ inline void ReadObjectFloatKeyframes(Parser &parse, MDLKEYTRACK<T> *keyframes) {
       ReadFloatKeyData(parse, (float *)&key->outTan, sizeof(T) / sizeof(float));
       parse.Expect(',');
     }
+    savedtoken = parse.Token(&tokentext, &value);
+  }
+  parse.Expect('}', savedtoken, tokentext);
+  if (count >= 0 && actual != count) {
+    parse.WarningCount("key frames", count, actual);
+  }
+}
+
+template <class T>
+inline UINT ReadIntTrackHeader(Parser &parse, MDLSIMPLEKEYTRACK<T> *keyTrack, LPCSTR *tokentext, UTokenData *value) {
+  for (;;) {
+    UINT token = parse.Token(tokentext, value);
+    switch (token) {
+      case MDLTOK_DONTINTERP:
+        break;
+      case MDLTOK_GLOBALSEQID:
+        if (keyTrack) {
+          keyTrack->globalSeqId = parse.ExpectInt();
+        } else {
+          parse.ExpectInt();
+        }
+        break;
+      default:
+        return token;
+    }
+    parse.Expect(',');
+  }
+}
+
+template <class T>
+inline void ReadObjectIntKeyframes(Parser &parse, MDLSIMPLEKEYTRACK<T> *keyframes) {
+  UINT       savedtoken;
+  LPCSTR     tokentext;
+  UTokenData value;
+  T         *key = 0;
+  long       actual = 0;
+  long       count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
+  if (count > 0 && keyframes) {
+    keyframes->keys.ReserveSpace(count);
+  }
+  parse.Expect('{', savedtoken, tokentext);
+  savedtoken = ReadIntTrackHeader(parse, keyframes, &tokentext, &value);
+  while (savedtoken == MDLTOK_LONG) {
+    if (keyframes) {
+      key = keyframes->keys.New();
+      key->time = value.lVal;
+    }
+    parse.Expect(':');
+    key->value = parse.ExpectInt();
+    parse.Expect(',');
+    ++actual;
     savedtoken = parse.Token(&tokentext, &value);
   }
   parse.Expect('}', savedtoken, tokentext);

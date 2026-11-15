@@ -117,7 +117,7 @@ void CGLootInfo::ClearSlot(BYTE _slot) {
   UINT index;
 
   for (index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
-    if (m_loot[index].itemID && m_loot[index].slot == _slot) {
+    if (m_loot[index].itemID && _slot == m_loot[index].slot) {
       break;
     }
   }
@@ -289,15 +289,14 @@ LPCSTR CGLootInfo::GetLootSlotLink(UINT slot, char *link, UINT size) {
     --slot;
   }
   FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
-  int itemID = m_loot[slot].itemID;
-  if (!itemID) {
+  if (!m_loot[slot].itemID) {
     return 0;
   }
-  const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, m_object, 0, 0);
+  const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
   if (!stats) {
     return 0;
   }
-  SStrPrintf(link, size, "|Hitem:%d|h[%s]|h", itemID, stats->m_displayName[0]);
+  SStrPrintf(link, size, "|Hitem:%d|h[%s]|h", m_loot[slot].itemID, stats->m_displayName[0]);
   return link;
 }
 

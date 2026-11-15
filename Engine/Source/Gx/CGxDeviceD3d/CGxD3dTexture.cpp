@@ -15,14 +15,13 @@ const _D3DCUBEMAP_FACES CGxDeviceD3d::s_d3dCubeMapFaces[6] = {D3DCUBEMAP_FACE_PO
 EGxTexFormat CGxDeviceD3d::s_GxTexFmtToUse[GxTexFormats_Last] = {GxTex_Unknown, GxTex_Argb8888, GxTex_Argb4444, GxTex_Argb1555,
                                                                  GxTex_Rgb565,  GxTex_Dxt1,     GxTex_Dxt3,     GxTex_Dxt5};
 
-static NTempest::CiRect emptyRect;
-
 void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
   UINT i = m_textures.Count();
 
   while (i) {
     CGxTex *texture = m_textures[--i];
     if (texture && texture->m_apiSpecificData && (freeTextures || texture->m_flags.m_renderTarget)) {
+      static NTempest::CiRect emptyRect;
       ((IUnknown *)texture->m_apiSpecificData)->Release();
       texture->m_apiSpecificData = 0;
       texture->m_needsCreation = 1;

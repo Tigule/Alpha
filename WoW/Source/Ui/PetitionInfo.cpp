@@ -126,7 +126,9 @@ void CGPetitionInfo::SetPetition(DWORDLONG petition, int petitionID) {
 
 void CGPetitionInfo::SetSignatures(BYTE count, DWORDLONG *signers, int *choices) {
   ClearSignatures();
-  m_signatures.SetCount(count);
+  if (count > m_signatures.Count()) {
+    m_signatures.SetCount(count);
+  }
   m_numSignatures = count;
   for (UINT i = 0; i < count; ++i) {
     m_signatures[i].guid = signers[i];

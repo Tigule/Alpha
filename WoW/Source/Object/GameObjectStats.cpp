@@ -24,7 +24,7 @@ void GameObjectStats::Pack(CDataStore *msg) {
 }
 
 void GameObjectStats_C::Unpack(CDataStore *msg) {
-  int  i;
+  UINT i;
   char string[0x100];
 
   msg->Get(m_typeID);
@@ -33,10 +33,10 @@ void GameObjectStats_C::Unpack(CDataStore *msg) {
   for (i = 0; i < 4; ++i) {
     msg->GetString(string, 0x100);
 
-    if (!string[0] && i > 0) {
-      m_name[i] = SStrDupA(m_name[i - 1], __FILE__, __LINE__);
-    } else {
+    if (string[0] || !i) {
       m_name[i] = SStrDupA(string, __FILE__, __LINE__);
+    } else {
+      m_name[i] = SStrDupA(m_name[i - 1], __FILE__, __LINE__);
     }
   }
 

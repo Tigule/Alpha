@@ -6,8 +6,8 @@
 
 const unreal u_n2_5 = unreal::fromBits(0xC0200000);
 const unreal u_n2 = unreal::fromInt(-2);
-const unreal u_n1 = unreal::fromInt(-1);
 const unreal u_n1_5 = unreal::fromBits(0xBFC00000);
+const unreal u_n1 = unreal::fromInt(-1);
 const unreal u_n0_5 = unreal::fromBits(0xBF000000);
 const unreal u_n0_01 = unreal::fromBits(0xBC23D70A);
 const unreal u_0 = unreal::fromInt(0);
@@ -103,7 +103,6 @@ const unreal u_1ovln2 = unreal::fromBits(0x3FB8AA3B);
 const unreal u_npi = unreal::fromBits(0xC0490FDB);
 const unreal u_npiov2 = unreal::fromBits(0xBFC90FDB);
 const unreal u_piov180 = unreal::fromBits(0x3C8EFA35);
-const unreal u_180ovpi = unreal::fromBits(0x42652EE1);
 const unreal u_1ov2pi = unreal::fromBits(0x3E22F983);
 const unreal u_1ovpi = unreal::fromBits(0x3EA2F983);
 const unreal u_piov6 = unreal::fromBits(0x3F060A92);
@@ -112,6 +111,7 @@ const unreal u_piov2 = unreal::fromBits(0x3FC90FDB);
 const unreal u_pi = unreal::fromBits(0x40490FDB);
 const unreal u_3piov2 = unreal::fromBits(0x4096CBE4);
 const unreal u_2pi = unreal::fromBits(0x40C90FDB);
+const unreal u_180ovpi = unreal::fromBits(0x42652EE1);
 const unreal u_epsilon = unreal::fromBits(0x33D6BF95);
 const unreal u_epsilon2 = unreal::fromBits(0x3456BF95);
 const unreal u_epsilon4 = unreal::fromBits(0x34D6BF95);

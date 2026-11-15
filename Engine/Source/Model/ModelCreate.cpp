@@ -496,7 +496,7 @@ static void ComputeBoundingBox(const CGeosetShared *geosets, UINT numGeosets, NT
 static void IModelComputeBounds(CModelShared *shared) {
   ASSERT(shared);
   ComputeBoundingBox(shared->geosets.Ptr(), shared->geosets.Count(), &shared->bounds.extent);
-  shared->bounds.sphere.c = (shared->bounds.extent.b + shared->bounds.extent.t) * 0.5f;
+  shared->bounds.sphere.c = shared->bounds.extent.Center();
   ComputeBoundingRadius(shared->geosets.Ptr(), shared->geosets.Count(), shared->bounds.sphere.c, &shared->bounds.sphere.r);
 }
 

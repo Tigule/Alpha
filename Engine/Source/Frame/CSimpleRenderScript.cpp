@@ -117,10 +117,10 @@ static int CSimpleTexture_SetTexCoord(lua_State *L) {
 static int CSimpleTexture_SetPoint(lua_State *L) {
   CSimpleTexture *object = (CSimpleTexture *)FrameScript_GetObjectThis(L);
   if (lua_isstring(L, 2) && lua_isstring(L, 3)) {
+    float         offsetX = 0.0f;
+    float         offsetY = 0.0f;
     char          message[128];
     CLayoutFrame *relativeFrame;
-    float         offsetY = 0.0f;
-    float         offsetX = 0.0f;
     FRAMEPOINT    point;
     FRAMEPOINT    relativePoint;
     if (!StringToFramePoint(lua_tostring(L, 2), point)) {
@@ -396,10 +396,10 @@ static int CSimpleFontString_GetHeight(lua_State *L) {
 static int CSimpleFontString_SetPoint(lua_State *L) {
   CSimpleFontString *object = (CSimpleFontString *)FrameScript_GetObjectThis(L);
   if (lua_isstring(L, 2) && lua_isstring(L, 3)) {
+    float         offsetX = 0.0f;
+    float         offsetY = 0.0f;
     char          message[128];
     CLayoutFrame *relativeFrame;
-    float         offsetY = 0.0f;
-    float         offsetX = 0.0f;
     FRAMEPOINT    point;
     FRAMEPOINT    relativePoint;
     if (!StringToFramePoint(lua_tostring(L, 2), point)) {

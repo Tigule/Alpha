@@ -318,6 +318,19 @@ static unreal u_2pow19ovpi = unreal::fromBits(0x4822F983);
 static unreal u_12865 = unreal::fromInt(12865);
 static unreal u_n12865 = unreal::fromInt(-12865);
 
+inline int CountLeadingZeros(UINT value) {
+  __asm {
+    bsr edx, value
+    jz zero
+    neg edx
+    lea eax, [edx + 31]
+    jmp done
+zero:
+    mov eax, 32
+done:
+  }
+}
+
 unreal operator*(const unreal &a, const unreal &b) {
   UINT   sign = (a.bits ^ b.bits) & 0x80000000;
   int    aExponent = a.bits & 0x7F800000;
@@ -350,133 +363,137 @@ unreal operator/(const unreal &a, const unreal &b) {
 }
 
 unreal operator-(const unreal &a, const unreal &b) {
-  unreal result;
-  int    aBits = a.bits;
-  int    bBits = b.bits ^ 0x80000000;
-  int    aExponent = aBits & 0x7F800000;
-  int    bExponent = bBits & 0x7F800000;
+  int  aBits;
+  int  bBits;
+  int  aExponent;
+  int  bExponent;
+  int  aMantissa;
+  int  bMantissa;
+  int  exponent;
+  int  mantissa;
+  UINT sign;
+  int  shift;
 
+  aBits = a.bits;
+  bBits = b.bits ^ 0x80000000;
+  aExponent = aBits & 0x7F800000;
   if (!aExponent) {
-    result.bits = bBits;
-    return result;
+    goto returnB;
   }
 
+  bExponent = bBits & 0x7F800000;
   if (!bExponent) {
-    result.bits = aBits;
-    return result;
+    goto returnA;
   }
 
-  int aMantissa = ((aBits >> 31) ^ (2 * (0x00800000 | (aBits & 0x007FFFFF)))) - (aBits >> 31);
-  int bMantissa = ((bBits >> 31) ^ (2 * (0x00800000 | (bBits & 0x007FFFFF)))) - (bBits >> 31);
-  int exponentDelta = bExponent - aExponent;
-  int exponent;
+  aMantissa = ((aBits >> 31) ^ (2 * (0x00800000 | (aBits & 0x007FFFFF)))) - (aBits >> 31);
+  bMantissa = ((bBits >> 31) ^ (2 * (0x00800000 | (bBits & 0x007FFFFF)))) - (bBits >> 31);
 
-  if (exponentDelta > 0) {
-    if (exponentDelta >= 0x0B800000) {
-      result.bits = bBits;
-      return result;
+  if (bExponent - aExponent > 0) {
+    if (bExponent - aExponent >= 0x0B800000) {
+returnB:
+      return unreal::fromBits(bBits);
     }
 
     exponent = bExponent;
-    aMantissa >>= (UINT)exponentDelta >> 23;
+    aMantissa >>= (UINT)(bExponent - aExponent) >> 23;
   } else {
-    if (exponentDelta <= -0x0B800000) {
-      result.bits = aBits;
-      return result;
+    if (bExponent - aExponent <= -0x0B800000) {
+returnA:
+      return a;
     }
 
     exponent = aExponent;
-    bMantissa >>= (aExponent - bExponent) >> 23;
+    bMantissa >>= (UINT)(aExponent - bExponent) >> 23;
   }
 
-  int mantissa = aMantissa + bMantissa;
+  mantissa = aMantissa + bMantissa;
   if (!mantissa) {
-    result.bits = 0;
-    return result;
+returnZero:
+    return unreal::fromBits(0);
   }
 
-  UINT sign = mantissa & 0x80000000;
-  UINT magnitude = mantissa;
+  sign = mantissa & 0x80000000;
   if (mantissa < 0) {
     mantissa = -mantissa;
-    magnitude = mantissa;
   }
 
-  UINT highBit = 0;
-  for (UINT scan = magnitude; scan >>= 1;) {
-    ++highBit;
+  shift = 8 - CountLeadingZeros(mantissa);
+  if (shift >= 0) {
+    mantissa >>= shift;
+  } else {
+    mantissa <<= -shift;
   }
 
-  int leading = 31 - highBit;
-  int shift = 8 - leading;
-  int normalized = shift < 0 ? mantissa << (leading - 8) : mantissa >> shift;
-  result.bits = (normalized & 0x007FFFFF) | sign | (exponent + ((shift - 1) << 23));
-  return result;
+  mantissa &= 0x007FFFFF;
+  return unreal::fromBits((exponent + ((shift - 1) << 23)) | sign | mantissa);
 }
 
 unreal operator+(const unreal &a, const unreal &b) {
-  unreal result;
-  int    aBits = a.bits;
-  int    bBits = b.bits;
-  int    aExponent = aBits & 0x7F800000;
-  int    bExponent = bBits & 0x7F800000;
+  int  aBits;
+  int  bBits;
+  int  aExponent;
+  int  bExponent;
+  int  aMantissa;
+  int  bMantissa;
+  int  exponent;
+  int  mantissa;
+  UINT sign;
+  int  shift;
 
+  aBits = a.bits;
+  aExponent = aBits & 0x7F800000;
   if (!aExponent) {
-    result.bits = bBits;
-    return result;
+    goto returnB;
   }
 
+  bBits = b.bits;
+  bExponent = bBits & 0x7F800000;
   if (!bExponent) {
-    result.bits = aBits;
-    return result;
+    goto returnA;
   }
 
-  int aMantissa = ((aBits >> 31) ^ (2 * (0x00800000 | (aBits & 0x007FFFFF)))) - (aBits >> 31);
-  int bMantissa = ((bBits >> 31) ^ (2 * (0x00800000 | (bBits & 0x007FFFFF)))) - (bBits >> 31);
-  int exponentDelta = bExponent - aExponent;
-  int exponent;
+  aMantissa = ((aBits >> 31) ^ (2 * (0x00800000 | (aBits & 0x007FFFFF)))) - (aBits >> 31);
+  bMantissa = ((bBits >> 31) ^ (2 * (0x00800000 | (bBits & 0x007FFFFF)))) - (bBits >> 31);
 
-  if (exponentDelta > 0) {
-    if (exponentDelta >= 0x0B800000) {
-      result.bits = bBits;
-      return result;
+  if (bExponent - aExponent > 0) {
+    if (bExponent - aExponent >= 0x0B800000) {
+returnB:
+      return b;
     }
 
     exponent = bExponent;
-    aMantissa >>= (UINT)exponentDelta >> 23;
+    aMantissa >>= (UINT)(bExponent - aExponent) >> 23;
   } else {
-    if (exponentDelta <= -0x0B800000) {
-      result.bits = aBits;
-      return result;
+    if (bExponent - aExponent <= -0x0B800000) {
+returnA:
+      return a;
     }
 
     exponent = aExponent;
-    bMantissa >>= (aExponent - bExponent) >> 23;
+    bMantissa >>= (UINT)(aExponent - bExponent) >> 23;
   }
 
-  int mantissa = aMantissa + bMantissa;
+  mantissa = aMantissa + bMantissa;
   if (!mantissa) {
-    result.bits = 0;
-    return result;
+returnZero:
+    return unreal::fromBits(0);
   }
 
-  UINT sign = mantissa & 0x80000000;
-  UINT magnitude = mantissa;
+  sign = mantissa & 0x80000000;
   if (mantissa < 0) {
     mantissa = -mantissa;
-    magnitude = mantissa;
   }
 
-  UINT highBit = 0;
-  for (UINT scan = magnitude; scan >>= 1;) {
-    ++highBit;
+  shift = 8 - CountLeadingZeros(mantissa);
+  if (shift >= 0) {
+    mantissa >>= shift;
+  } else {
+    mantissa <<= -shift;
   }
 
-  int leading = 31 - highBit;
-  int shift = 8 - leading;
-  int normalized = shift < 0 ? mantissa << (leading - 8) : mantissa >> shift;
-  result.bits = (normalized & 0x007FFFFF) | sign | (exponent + ((shift - 1) << 23));
-  return result;
+  mantissa &= 0x007FFFFF;
+  return unreal::fromBits((exponent + ((shift - 1) << 23)) | sign | mantissa);
 }
 
 unreal reciprocal(const unreal &a) {
@@ -598,22 +615,16 @@ unreal unreal::fromInt(int in) {
     return unreal::fromBits(0);
   }
 
-  int  magnitude = in;
   UINT sign = in & 0x80000000;
   if (in < 0) {
-    magnitude = -in;
+    in = -in;
   }
 
-  UINT unsignedMagnitude = magnitude;
-  UINT highBit = 0;
-  for (UINT scan = unsignedMagnitude; scan >>= 1;) {
-    ++highBit;
-  }
-
-  int leading = 31 - highBit;
-  int normalized = leading - 8 < 0 ? magnitude >> (8 - leading) : magnitude << (leading - 8);
-
-  return unreal::fromBits(sign | (normalized & 0x007FFFFF) | ((31 - leading + 127) << 23));
+  int leading = CountLeadingZeros(in);
+  int highBit = 31 - leading;
+  int shift = leading - 8;
+  in = shift >= 0 ? in << shift : in >> -shift;
+  return unreal::fromBits(sign | (in & 0x007FFFFF) | ((highBit + 127) << 23));
 }
 
 int unreal::asInt(const unreal &in) {

@@ -292,8 +292,10 @@ static int Script_FactionToggleAtWar(lua_State *L) {
     CGReputationInfo::SetAtWar(faction, !CGReputationInfo::IsAtWar(faction));
     if (CGReputationInfo::IsAtWar(faction)) {
       lua_pushnumber(L, 1.0);
-      return 1;
+    } else {
+      lua_pushnil(L);
     }
+    return 1;
   }
   lua_pushnil(L);
   return 1;

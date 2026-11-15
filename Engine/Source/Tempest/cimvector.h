@@ -214,7 +214,10 @@ namespace NTempest {
     void  Get(DWORD &alpha, DWORD &red, DWORD &green, DWORD &blue) const;
     void  Get(float &alpha, float &red, float &green, float &blue) const;
     DWORD GetRGB() const;
-    void  SetA(BYTE alpha);
+    void SetA(BYTE alpha) {
+      *IV_() = ((DWORD)alpha << eAlphaS) | (*IV_() & eNotAlphaMask);
+    }
+
     void  SetR(BYTE red);
     void  SetG(BYTE green);
     void  SetB(BYTE blue);

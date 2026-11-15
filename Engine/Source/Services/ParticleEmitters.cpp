@@ -167,8 +167,13 @@ void CSphereParticleEmitter::SetLongitude(float longInRadians) {
   m_longitude = longInRadians;
 }
 
-CSplineParticleEmitter::CSplineParticleEmitter()
-    : m_requestedEmissionRate(0.0f), m_start(0.0f), m_end(0.0f), m_latitude(0.0f), m_radius(0.0f), m_emitAtEnd(0) {
+CSplineParticleEmitter::CSplineParticleEmitter() {
+  m_start = 0.0f;
+  m_end = 0.0f;
+  m_latitude = 0.0f;
+  m_radius = 0.0f;
+  m_emitAtEnd = 0;
+  m_requestedEmissionRate = 0.0f;
   m_emitterType = PET_SPLINE_EMITTER;
 }
 

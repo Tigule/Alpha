@@ -82,7 +82,6 @@ static HASHKEY_NONE                                s_nullHashKey;
 static TSHashTable<FOOTSTEPSNDCACHE, HASHKEY_NONE> s_footstepHash;
 static UINT                                        s_footstepRequest;
 static UINT                                        s_footstepAccept;
-VOCALUISOUND                                       g_vocalUISounds[66];
 static VOCALUISOUNDS                               s_lastPlayedVocalUISound = VUI_NONE;
 static VOCALUISOUNDTYPE                            s_currentVocalUISoundType;
 static UINT                                        s_vocalUISoundPlayCount;
@@ -340,9 +339,7 @@ static BOOL WorldIdle(LPCVOID dataPtr, LPVOID ptr) {
   SndInterfaceZoneIntroIdler();
 
   AMBIENCE ambience = AMB_NIGHT;
-  WowTime  valMax(20, 0);
-  WowTime  valMin(5, 30);
-  if (g_clientGameTime.InRange(valMin, valMax)) {
+  if (g_clientGameTime.InRange(WowTime(5, 30), WowTime(20, 0))) {
     ambience = AMB_DAY;
   }
   if (ambience != g_currentAmbience) {
@@ -365,9 +362,7 @@ void SndInterfaceWorldInitialize() {
     SndInterfaceZoneIntroInitialize();
 
     g_currentAmbience = AMB_NIGHT;
-    WowTime valMax(20, 0);
-    WowTime valMin(5, 30);
-    if (g_clientGameTime.InRange(valMin, valMax)) {
+    if (g_clientGameTime.InRange(WowTime(5, 30), WowTime(20, 0))) {
       g_currentAmbience = AMB_DAY;
     }
   }
@@ -577,14 +572,12 @@ static bool InternalPlaySound(SOUNDCATEGORIES category, UINT soundID, int forceI
   }
 
   sound = Sound::Play2D(category, filename, definition->GetOsFlags(), true);
-  if (!sound) {
-    return false;
-  }
-
-  definition->SetFrequencyAndVolume(sound, 1.0f, false);
-  if (!sound->SetPaused(false)) {
-    Sound::KillSound(sound);
-    return false;
+  if (sound) {
+    definition->SetFrequencyAndVolume(sound, 1.0f, false);
+    if (!sound->SetPaused(false)) {
+      Sound::KillSound(sound);
+      return false;
+    }
   }
 
   return sound != 0;

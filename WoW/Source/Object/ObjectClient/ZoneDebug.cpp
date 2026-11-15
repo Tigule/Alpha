@@ -63,18 +63,22 @@ void ZoneDebugDestroy() {
   ClientServices_ClearMessageHandler(SMSG_ZONE_MAP);
 }
 
-bool ZoneDebugIsInCurrentZone(float x, float y) {
-  NTempest::C2iVector cellPos;
-  cellPos.x = ((int)x * 36 + 614400) / 4800;
-  cellPos.y = ((int)y * 36 + 614400) / 4800;
+inline NTempest::C2iVector ProxMapCellPos(int x, int y) {
+  return NTempest::C2iVector((x * 36 + 614400) / 4800, (y * 36 + 614400) / 4800);
+}
 
+inline NTempest::C2iVector ProxMapCellPos(const NTempest::C3Vector &pos) {
+  return NTempest::C2iVector((int)((pos.x * 36.0f + 614400.0f) / 4800.0f), (int)((pos.y * 36.0f + 614400.0f) / 4800.0f));
+}
+
+bool ZoneDebugIsInCurrentZone(float x, float y) {
+  NTempest::C2iVector cellPos = ProxMapCellPos((int)x, (int)y);
   CGObject_C *player = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!player) {
     return true;
   }
 
-  NTempest::C3Vector position = player->GetPosition();
-  UINT               playerX = (position.x * 36.0f + 614400.0f) * 0.00020833334f;
-  UINT               playerY = (position.y * 36.0f + 614400.0f) * 0.00020833334f;
-  return s_zoneIDMap[playerX][playerY] == s_zoneIDMap[cellPos.x][cellPos.y];
+  NTempest::C2iVector playerPos = ProxMapCellPos(player->GetPosition());
+
+  return s_zoneIDMap[playerPos.x][playerPos.y] == s_zoneIDMap[cellPos.x][cellPos.y];
 }

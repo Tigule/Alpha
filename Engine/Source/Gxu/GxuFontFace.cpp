@@ -32,10 +32,10 @@ struct FACEDATA : public TSHashObject<FACEDATA, HASHKEY_STRI>, public CHandleObj
 static TSHashTable<FACEDATA, HASHKEY_STRI> s_faceHash;
 
 HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
-  LPVOID    data = 0;
+  LPVOID    data;
   DWORD     size;
   FT_Face   theFace;
-  HFACE__  *handle = 0;
+  HFACE__  *handle;
   FACEDATA *faceData;
   LPVOID    storage;
 
@@ -49,6 +49,8 @@ HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
     return (HFACE)HandleDuplicate(faceData->selfReference);
   }
 
+  data   = 0;
+  handle = 0;
   if (!SFile::Load(0, fileName, &data, &size, 0, 3, 0)) {
     goto finallylabel;
   }

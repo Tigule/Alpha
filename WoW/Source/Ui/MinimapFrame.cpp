@@ -280,7 +280,7 @@ void QUADDATA::UpdateData(UINT quad, const NTempest::C2Vector centerPoint, float
 void CGMinimapFrame::OnLayerUpdate(float elapsedSec) {
   CSimpleFrame::OnLayerUpdate(elapsedSec);
 
-  if (m_playerArrowFrame->ModelJustLoaded() || (!(m_playerArrowFrame->m_flags & MODEL_ARROW_LOADED) && (m_playerArrowFrame->m_flags & 0x1))) {
+  if (m_playerArrowFrame->ModelJustLoaded() || (!m_playerArrowFrame->IsUserFlagSet(MODEL_ARROW_LOADED) && m_playerArrowFrame->IsModelLoaded())) {
     SetPlayerArrowPosition();
   }
 
@@ -1008,7 +1008,7 @@ CGMinimapFrame::CGMinimapFrame(CSimpleFrame *parent) : CSimpleFrame(parent), m_l
 void CGMinimapFrame::SetPlayerArrowPosition() {
   NTempest::C3Vector offset(m_playerArrowFrame->GetWidth() * 0.5f, m_playerArrowFrame->GetHeight() * 0.5f, 0.0f);
   m_playerArrowFrame->SetPosition(offset);
-  m_playerArrowFrame->m_flags |= MODEL_ARROW_LOADED;
+  m_playerArrowFrame->SetUserFlag(MODEL_ARROW_LOADED, 1);
 }
 
 void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
@@ -1036,10 +1036,10 @@ void CGMinimapFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
   m_playerArrowFrame = NEW(CSimpleModel)(this);
   m_playerArrowFrame->SetPoint(FRAMEPOINT_CENTER, this, FRAMEPOINT_CENTER, 0.001f, 0.001f, 1);
   m_playerArrowFrame->SetModel(node->GetAttributeByName("minimapPlayerModel"), 0, status);
-  if (m_playerArrowFrame->m_flags & 0x1) {
+  if (m_playerArrowFrame->IsModelLoaded()) {
     SetPlayerArrowPosition();
   } else {
-    m_playerArrowFrame->m_flags &= ~MODEL_ARROW_LOADED;
+    m_playerArrowFrame->SetUserFlag(MODEL_ARROW_LOADED, 0);
   }
 
   char name[128];

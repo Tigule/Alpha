@@ -30,6 +30,10 @@ SRP6_Random::SRP6_Random(unsigned int seed) {
 void SRP6_Random::GenerateRandomBytes(unsigned char *data, unsigned int size) {
   SHA1_CONTEXT context;
 
+  if (!size) {
+    return;
+  }
+
   while (size > this->m_inpool) {
     memcpy(data, &this->m_randpool[sizeof(this->m_randpool) - this->m_inpool], this->m_inpool);
     data += this->m_inpool;
@@ -44,7 +48,7 @@ void SRP6_Random::GenerateRandomBytes(unsigned char *data, unsigned int size) {
     this->m_inpool = sizeof(this->m_randpool);
   }
 
-  if (size) {
+  if (size > 0) {
     memcpy(data, &this->m_randpool[sizeof(this->m_randpool) - this->m_inpool], size);
     this->m_inpool -= size;
   }

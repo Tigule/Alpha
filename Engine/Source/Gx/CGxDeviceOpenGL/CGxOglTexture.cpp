@@ -261,17 +261,16 @@ void CGxDeviceOpenGl::ITexMarkAsUpdated(CGxTex *texId, UINT tmu) {
 }
 
 void CGxDeviceOpenGl::ITexForceRecreation() {
-  static CGxTex *tex;
   UINT ndx = m_textures.Count();
 
   while (ndx) {
-    tex = m_textures[--ndx];
+    CGxTex *tex = m_textures[--ndx];
     if (tex->m_apiSpecificData) {
+      static NTempest::CiRect emptyRect;
       glDeleteTextures(1, (GLuint *)&tex->m_apiSpecificData);
       tex->m_apiSpecificData = 0;
       tex->m_needsCreation = 1;
       tex->m_needsFlagUpdate = 1;
-      static NTempest::CiRect emptyRect;
       TexMarkForUpdate(tex, emptyRect, 0);
     }
   }

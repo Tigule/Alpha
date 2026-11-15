@@ -13,14 +13,14 @@
 
 TSHashTable<CONSOLECOMMAND, HASHKEY_CONSTSTRI> g_consoleCommandHash;
 CONSOLECOMMANDHANDLER                          g_defaultCommand = 0;
+char                                           g_commandHistory[32][80];
+UINT                                           g_commandHistoryIndex;
+char                                           g_ExecBuffer[0x2000];
+EXECMODE                                       g_ExecCreateMode = EM_NOTACTIVE;
 
 static char       cmd[32];
 static const char whitespace[] = " ,;\t\"\r\n";
-#ifdef ASSERTIONS_ENABLED
-static const char verstr[] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003)";
-#else
-static const char verstr[] = "WoW [Release] Build 3368 (Dec 11 2003)";
-#endif
+static const char verstr[] = "WoW [" BUILD_TYPE "] Build " STRINGIFY(BUILD_VERSION) " (" __DATE__ ")";
 static LPCSTR     NOHELPTEXT = "No help yet";
 static char       s_fileName[MAX_PATH];
 

@@ -139,8 +139,8 @@ namespace NTempest {
   }
 
   C4Quaternion C4Quaternion::Slerp(float t, const C4Quaternion &p, const C4Quaternion &q) {
+    float c = C4Vector::Dot(p, q);
     float sign = 1.0f;
-    float c = p.x * q.x + p.y * q.y + p.z * q.z + p.w * q.w;
     if (c < 0.0f) {
       sign = -1.0f;
       c = -c;
@@ -153,8 +153,8 @@ namespace NTempest {
 
     float angle = atan2(s, c);
     float coef0 = CMath::sin_((1.0f - t) * angle) * (1.0f / s);
-    float endScale = CMath::sin_(t * angle) * (1.0f / s) * sign;
-    return C4Quaternion(endScale * q.w + coef0 * p.w, endScale * q.x + coef0 * p.x, endScale * q.y + coef0 * p.y, endScale * q.z + coef0 * p.z);
+    float coef1 = CMath::sin_(t * angle) * (1.0f / s) * sign;
+    return p * coef0 + q * coef1;
   }
 
   C4Quaternion C4Quaternion::Squad(float t, const C4Quaternion &p, const C4Quaternion &a, const C4Quaternion &b, const C4Quaternion &q) {

@@ -483,9 +483,14 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function],
                 continue
             identity = f"data:{key}:{symbol.name}"
             data_rvas[identity].add(rva); located.append((rva, identity))
+        owned = _static_owners(artifact, functions, pdb, module_keys, data_rvas)
+        located = [(rva, owned.get((rva, identity), identity)) for rva, identity in located]
+        for (rva, old), new in owned.items():
+            data_rvas[new].add(rva)
+            data_rvas[old].discard(rva)
         renames: dict[tuple[int, str], str] = {}
         if objects:
-            added, renames = _object_statics(pdb, module_keys, artifact, objects, data_rvas)
+            added, renames = _object_statics(pdb, module_keys, artifact, objects, data_rvas, functions)
             located.extend(added)
             located = [(rva, renames.get((rva, identity), identity)) for rva, identity in located]
             for (rva, old), new in renames.items():
@@ -499,6 +504,50 @@ def _target_maps(artifact: ArtifactData, functions: Sequence[_Function],
 
 
 _COFF_RENAMES: dict[int, dict[tuple[int, str], str]] = {}
+
+
+def _static_owners(artifact: ArtifactData, functions: Sequence[_Function], pdb: PDBData,
+                   module_keys: Mapping[str, str], data_rvas: Mapping[str, set[int]]
+                   ) -> dict[tuple[int, str], str]:
+    module_counts: dict[str, int] = defaultdict(int)
+    for compiland in pdb.compilands:
+        module_counts[compiland.module_name] += 1
+    groups: dict[tuple[str, str], set[int]] = defaultdict(set)
+    for symbol in pdb.data:
+        key = module_keys.get(symbol.module)
+        rva = _data_rva(artifact, symbol.section, symbol.offset)
+        if key is not None and rva is not None and symbol.procedure is None:
+            groups[(symbol.module, symbol.name)].add(rva)
+    result: dict[tuple[int, str], str] = {}
+    base = artifact.identity.image_base
+    for (module, name), rvas in groups.items():
+        identity = f"data:{module_keys[module]}:{name}"
+        if len(rvas) < 2 or module_counts[module] != 1 or data_rvas.get(identity) != rvas:
+            continue
+        wanted = {base + rva: rva for rva in rvas}
+        users: dict[int, set[int]] = defaultdict(set)
+        names: dict[int, set[str]] = {}
+        for function in functions:
+            code = artifact.read_rva(function.rva, function.size)
+            if code is None or not any(struct.pack("<I", value) in code for value in wanted):
+                continue
+            names[function.rva] = {symbol.name for symbol in function.symbols if symbol.module == module}
+            for instruction in decode_procedure(code, base + function.rva).instructions:
+                for _, _, _, operand_index in instruction.fields:
+                    operand = instruction.operands[operand_index] if 0 <= operand_index < len(instruction.operands) else None
+                    value = (int(operand[1]) if operand is not None and operand[0] == "imm"
+                             else int(operand[5]) if operand is not None and operand[0] == "mem" else None)
+                    if value in wanted:
+                        users[wanted[value]].add(function.rva)
+        owner_of = {rva: next(iter(names[next(iter(users[rva]))])) for rva in rvas
+                    if len(users[rva]) == 1 and len(names[next(iter(users[rva]))]) == 1}
+        counts: dict[str, int] = defaultdict(int)
+        for owner in owner_of.values():
+            counts[owner] += 1
+        for rva, owner in owner_of.items():
+            if counts[owner] == 1:
+                result[(rva, identity)] = f"data:{module_keys[module]}:{owner}::{name}"
+    return result
 
 
 _FUNCTION_STATIC = re.compile(r"^\?([^?@][^@]*)@\?(?:[0-9]|[A-P]+@)\?\?.+@4.+$")
@@ -534,8 +583,13 @@ def _object_index(root: Path) -> dict[str, list[Path]]:
 
 
 def _object_statics(pdb: PDBData, module_keys: Mapping[str, str], artifact: ArtifactData,
-                    objects: Mapping[str, list[Path]], data_rvas: dict[str, set[int]]
+                    objects: Mapping[str, list[Path]], data_rvas: dict[str, set[int]],
+                    functions: Sequence[_Function] = ()
                     ) -> tuple[list[tuple[int, str]], dict[tuple[int, str], str]]:
+    map_rvas: dict[str, set[int]] = defaultdict(set)
+    for map_symbol in artifact.map_symbols:
+        map_rvas[map_symbol.name].add(map_symbol.rva)
+    function_at = {function.rva: function for function in functions}
     by_module: dict[str, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
     for symbol in pdb.data:
         rva = _data_rva(artifact, symbol.section, symbol.offset)
@@ -583,13 +637,22 @@ def _object_statics(pdb: PDBData, module_keys: Mapping[str, str], artifact: Arti
                         renames[(delta + value, f"data:{key}:{match.group(1)}")] = f"data:{key}:{name}"
                     continue
                 plain = match.group(1)
+                owned = False
                 if plain.startswith("$S"):
                     identity = f"data:{key}:{name}"
                 elif plain_counts[plain] == 1:
                     identity = f"data:{key}:{plain}"
                 else:
-                    continue
-                if identity in data_rvas or _section_at(artifact, delta + value) is None:
+                    scope = name[name.index("??") + 2:]
+                    enclosing = {rva for position in range(len(scope)) if scope.startswith("@4", position)
+                                 for rva in map_rvas.get("?" + scope[:position], ())}
+                    function = function_at.get(next(iter(enclosing))) if len(enclosing) == 1 else None
+                    owners = ({symbol.name for symbol in function.symbols if symbol.module == compiland.module_name}
+                              if function is not None else set())
+                    if len(owners) != 1:
+                        continue
+                    identity, owned = f"data:{key}:{owners.pop()}::{plain}", True
+                if (identity in data_rvas and not owned) or _section_at(artifact, delta + value) is None:
                     continue
                 data_rvas[identity].add(delta + value)
                 result.append((delta + value, identity))
@@ -608,6 +671,25 @@ def _read_string(artifact: ArtifactData, rva: int) -> str | None:
     return None
 
 
+_BUILD_STAMP = re.compile(
+    r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (?:[ 12][0-9]|3[01]) [0-9]{4}\b"
+    r"|\b(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\b")
+
+
+def _build_stamp_identity(artifact: ArtifactData, rva: int, printable: bool) -> str | None:
+    for section in artifact.sections:
+        offset = rva - section.rva
+        if section.executable or not 0 <= offset < min(section.raw_size, len(section.data)):
+            continue
+        raw = section.data[offset:offset + 512]; end = raw.find(b"\0")
+        if end < 0 or (printable and _read_string(artifact, rva) is None):
+            return None
+        text, count = _BUILD_STAMP.subn(lambda match: "<__TIME__>" if ":" in match.group(0) else "<__DATE__>",
+                                        raw[:end].decode("latin-1"))
+        return "string-stamp:" + text if count else None
+    return None
+
+
 def _resolve_target(artifact: ArtifactData, function_targets: Mapping[int, str],
                     map_targets: Mapping[int, tuple[str, ...]], current: _Function,
                     value: int) -> tuple[str | None, bool]:
@@ -622,7 +704,9 @@ def _resolve_target(artifact: ArtifactData, function_targets: Mapping[int, str],
         return function_targets[rva], True
     names = map_targets.get(rva, ())
     if names:
-        return "|".join(names), True
+        stamp = (_build_stamp_identity(artifact, rva, False)
+                 if any(name.startswith("map:??_C@_0") for name in names) else None)
+        return stamp or "|".join(names), True
     ordered = _SORTED_TARGETS.get(id(map_targets))
     if ordered is None:
         ordered = _SORTED_TARGETS[id(map_targets)] = sorted(map_targets)
@@ -640,7 +724,7 @@ def _resolve_target(artifact: ArtifactData, function_targets: Mapping[int, str],
         return relative, True
     string = _read_string(artifact, rva)
     if string is not None:
-        return "string:" + string, True
+        return _build_stamp_identity(artifact, rva, True) or "string:" + string, True
     if relative is not None:
         return relative, True
     return None, False
@@ -743,6 +827,16 @@ def _macro_evidence(artifact: ArtifactData, functions: Sequence[_Function], func
             {"sink": sink, "paired_call_verified": True, "value": source_file, "paired_line": line_value}))
         result.append(Evidence(line_instruction.offset + lo, ls, "macro_line", common + ":line", True,
             {"sink": sink, "paired_call_verified": True, "value": line_value, "paired_file": source_file}))
+        if line_position == 0:
+            continue
+        covered = {value.offset for value in result}
+        merged_lines = _merged_line_arguments(instructions, line_instruction, call.offset, covered, base,
+                                              pushes[line_position - 1].offset)
+        for alternate, merged in enumerate(merged_lines):
+            mo, ms, _, _ = merged.fields[0]
+            result.append(Evidence(merged.offset + mo, ms, "macro_line", f"{common}:line:merged{alternate}", True,
+                {"sink": sink, "paired_call_verified": True, "value": int(merged.operands[-1][1]),
+                 "paired_file": source_file}))
     result.extend(_file_line_argument_evidence(artifact, instructions, {value.offset for value in result}, base))
     return result
 
@@ -758,7 +852,7 @@ def _immediate_argument(instruction: Any) -> int | None:
 
 
 def _merged_line_arguments(instructions: Sequence[Any], line_instruction: Any, call_offset: int,
-                           covered: set[int], base: int) -> list[Any]:
+                           covered: set[int], base: int, exact_target: int | None = None) -> list[Any]:
     found: list[Any] = []
     for index, candidate in enumerate(instructions[:-1]):
         if candidate is line_instruction or candidate.offset >= line_instruction.offset:
@@ -772,6 +866,8 @@ def _merged_line_arguments(instructions: Sequence[Any], line_instruction: Any, c
         if jump.mnemonic != "jmp" or not jump.operands or jump.operands[0][0] != "imm":
             continue
         target = int(jump.operands[0][1]) - base
+        if exact_target is not None and target != exact_target:
+            continue
         if line_instruction.offset < target <= call_offset:
             found.append(candidate)
     return found
@@ -1056,23 +1152,37 @@ def _compare_compilands(original: PDBData, rebuilt: PDBData) -> tuple[list[dict[
     results: list[dict[str, Any]] = []; matched = 0
     original_order = {id(value): index for index, value in enumerate(original.compilands)}
     rebuilt_order = {id(value): index for index, value in enumerate(rebuilt.compilands)}
+    def member(value: Compiland) -> tuple[str, str]:
+        archive = _archive_key(value.object_name) if value.object_name else None
+        return ("" if archive is None else archive.rsplit("/", 1)[-1], _member_key(value.module_name).rsplit("/", 1)[-1])
+
     for key in sorted(left):
         originals, candidates = left[key], right.get(key, [])
+        paired: dict[int, Compiland] = {}
+        if len(originals) > 1 or len(candidates) > 1:
+            left_members: dict[tuple[str, str], list[Compiland]] = defaultdict(list)
+            right_members: dict[tuple[str, str], list[Compiland]] = defaultdict(list)
+            for value in originals: left_members[member(value)].append(value)
+            for value in candidates: right_members[member(value)].append(value)
+            paired = {id(values[0]): right_members[name][0] for name, values in left_members.items()
+                      if len(values) == 1 and len(right_members.get(name, ())) == 1}
         for occurrence, a in enumerate(originals):
             identity = f"{key}#{occurrence}"
-            counterpart = candidates[0] if len(candidates) == 1 else None
+            counterpart = paired.get(id(a)) or (candidates[0] if len(candidates) == 1 else None)
             linkage = {"original_object": a.object_name, "original_order": original_order[id(a)],
                        "original_sources": list(a.source_files),
                        "rebuilt_object": counterpart.object_name if counterpart else None,
                        "rebuilt_order": rebuilt_order[id(counterpart)] if counterpart else None,
                        "rebuilt_sources": list(counterpart.source_files) if counterpart else []}
-            if len(originals) != 1 or len(candidates) > 1:
+            if id(a) in paired:
+                linkage["pairing"] = "archive and object member name"
+            if (len(originals) != 1 or len(candidates) > 1) and id(a) not in paired:
                 results.append({"identity": identity, "status": "ambiguous", "original_count": len(originals),
                                 "rebuilt_count": len(candidates), "reason": "compiland key is not unique", **linkage})
             elif not candidates:
                 results.append({"identity": identity, "status": "missing", "reason": "compiland absent from rebuilt PDB", **linkage})
             else:
-                b = candidates[0]
+                b = counterpart
                 original_metadata = {"compiler": a.compiler, "language": a.language, "flags": dict(a.flags),
                                      "options": list(a.raw_options), "sources": sorted(map(_basename, a.source_files))}
                 rebuilt_metadata = {"compiler": b.compiler, "language": b.language, "flags": dict(b.flags),

@@ -187,21 +187,17 @@ static void MaybeSendGhostRequest() {
 }
 
 void CGPlayer_C::GMIdle() {
-  if (!s_ghostTarget) {
-    return;
-  }
-
-  CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_ghostTarget, __FILE__, __LINE__));
-  if (!target) {
-    MaybeSendGhostRequest();
-    return;
-  }
-
-  CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
-  player->OnTeleportLocalNoUpdate(OsGetAsyncTimeMs(), target->GetPosition(), target->GetFacing());
-
-  if (OsGetAsyncTimeMs() - s_lastGhostUpdate > 500) {
-    player->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
-    s_lastGhostUpdate = OsGetAsyncTimeMs();
+  if (s_ghostTarget) {
+    CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_ghostTarget, __FILE__, __LINE__));
+    if (target) {
+      CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_realActivePlayer, __FILE__, __LINE__));
+      player->OnTeleportLocalNoUpdate(OsGetAsyncTimeMs(), target->GetPosition(), target->GetFacing());
+      if (OsGetAsyncTimeMs() - s_lastGhostUpdate > 500) {
+        player->SendMovementUpdate(MSG_MOVE_HEARTBEAT);
+        s_lastGhostUpdate = OsGetAsyncTimeMs();
+      }
+    } else {
+      MaybeSendGhostRequest();
+    }
   }
 }

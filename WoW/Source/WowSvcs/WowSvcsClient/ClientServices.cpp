@@ -38,11 +38,7 @@ void BotClientSetAccount(LPCSTR accountName, LPCSTR password);
 static char              text[0x100];
 static LPCSTR            s_vendors[4] = {"Unknown", "intel", "AMD", "PPC"};
 static DWORDLONG         mhzCutoff = 990000000ui64;
-#ifdef ASSERTIONS_ENABLED
-static const char        verstr[0x43] = "WoW [Release Assertions Enabled] Build 3368 (Dec 11 2003 18:01:27)";
-#else
-static const char        verstr[] = "WoW [Release] Build 3368 (Dec 11 2003 18:01:27)";
-#endif
+static const char        verstr[] = "WoW [" BUILD_TYPE "] Build " STRINGIFY(BUILD_VERSION) " (" __DATE__ " " __TIME__ ")";
 static LPCSTR            s_sexNames[3] = {"Male", "Female", "Neuter"};
 static BYTE              s_accountNameValid;
 static char              s_accountName[64];
@@ -429,7 +425,7 @@ BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *
 
   WDataStore resp;
   resp.Put(CMSG_AUTH_SESSION);
-  resp.Put(3368);
+  resp.Put(BUILD_VERSION);
   resp.Put(m_loginData.m_loginServerID);
   resp.PutString(m_loginData.m_account);
 

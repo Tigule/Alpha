@@ -46,14 +46,14 @@ static const float                               AREA_WORLD_SIZE_X = 533.33331f;
 static const float                               AREA_WORLD_SIZE_Y = 533.33331f;
 static const float                               HALF_AREA_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 0.5f;
 static const float                               HALF_AREA_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 0.5f;
-static const float                               HALF_WORLD_SIZE_X = AREA_WORLD_SIZE_X * 64.0f * 0.5f;
-static const float                               HALF_WORLD_SIZE_Y = AREA_WORLD_SIZE_Y * 64.0f * 0.5f;
+static const float                               HALF_WORLD_SIZE_X = (AREA_WORLD_SIZE_X * 64.0f) * 0.5f;
+static const float                               HALF_WORLD_SIZE_Y = (AREA_WORLD_SIZE_Y * 64.0f) * 0.5f;
 static const float                               CLOSEENOUGH = 0.013888889f;
 static const float                               MAX_POI_DISTANCE = 694.44446f;
 static UINT                s_currentContinent = -1;
 static NTempest::C3Vector  s_currentPosition(0.0f, 0.0f, 0.0f);
-static NTempest::C2iVector s_currentUpperLeftArea(-1);
-static NTempest::C2iVector s_currentLowerRightArea(-1);
+static NTempest::C2iVector s_currentUpperLeftArea;
+static NTempest::C2iVector s_currentLowerRightArea;
 #define NUM_ZOOMS 6
 
 static UINT                                      s_currentZoom = 3;

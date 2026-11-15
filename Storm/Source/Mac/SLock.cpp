@@ -2,7 +2,7 @@
 #include "ISThread.h"
 
 SCritSect::SCritSect() {
-  static DWORD _ASSERTSAMESIZE_SCritSect_pthread_mutex_t[sizeof(SCritSect) == sizeof(pthread_mutex_t)];
+  static unsigned _ASSERTSAMESIZE_SCritSect_pthread_mutex_t[sizeof(SCritSect) == sizeof(pthread_mutex_t)];
 
   pthread_mutexattr_t attributes;
 

@@ -324,25 +324,6 @@ static void               IModelSimpleAddToScene(CModel *model, UINT renderFlags
 
 void ModelRenderSceneLogStop();
 
-int CTexLayer::Compare(const CModelTexture *aTextures, const CModelTexture *bTextures, const CTexLayer &a, const CTexLayer &b) {
-  if (a.vertexFormat != b.vertexFormat) {
-    return a.vertexFormat - b.vertexFormat;
-  }
-  if (a.disables != b.disables) {
-    return a.disables - b.disables;
-  }
-  if (a.blendMode != b.blendMode) {
-    return a.blendMode - b.blendMode;
-  }
-  for (UINT tmu = 0; tmu < 2; ++tmu) {
-    int result = CTmuPassUnique::Compare(aTextures, bTextures, a.tmuPass[tmu], b.tmuPass[tmu]);
-    if (result) {
-      return result;
-    }
-  }
-  return 0;
-}
-
 static void SaveFog() {
   GxRsGet(GxRs_FogColor, s_fogColor);
   GxRsGet(GxRs_FogStart, s_fogStart);

@@ -92,6 +92,7 @@ bool                              CMap::oceanDiffTexUpdated;
 CGxPixelShader           *CMap::psOcean0;
 
 static UINT                       s_lodSubdivs[5] = {0, 1, 3, 7, 15};
+static UINT                       s_lodLookup[15] = {4, 4, 3, 2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0};
 static TSGrowableArray<LODArrays> s_lodArrays;
 static const UINT                 MAX_SUBDIVS = s_lodSubdivs[4];
 static const float                MD_AREA_POLY_SIZE = 533.33331f;
