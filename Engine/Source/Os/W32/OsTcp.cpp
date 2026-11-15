@@ -1792,11 +1792,9 @@ namespace OsNet {
 
     for (list = 0; list < CONNLISTS; ++list) {
       NETCONNSIMPLELIST connSimpleList;
-      NETCONN          *conn;
-      NETCONN          *next;
 
       m_connList[list].UnlinkAll(connSimpleList);
-      for (conn = connSimpleList.Head(); (int)conn > 0 ? (next = connSimpleList.RawNext(conn), 1) : 0; conn = next) {
+      SAFEITERATELIST(NETCONN, connSimpleList, conn) {
         conn->DecRef();
       }
     }
@@ -2189,12 +2187,10 @@ namespace OsNet {
       }
       if (s_baseShutdown) {
         LISTDECLEX(NETCONNECT, m_link, connectFailList);
-        NETCONNECT *connect;
 
         net->m_connectList[CONNECTLIST_LOOP_CONNECTED].UnlinkAll(connectFailList);
-        NETCONNECT *next;
 
-        for (connect = connectFailList.Head(); (int)connect > 0 ? (next = connectFailList.RawNext(connect), 1) : 0; connect = next) {
+        SAFEITERATELIST(NETCONNECT, connectFailList, connect) {
           if (!connect->IsClosed()) {
             connect->Fail();
           }
@@ -2208,15 +2204,12 @@ namespace OsNet {
 
         {
           LISTDECLEX(NETCONNECT, m_link, connectFailList);
-          NETCONNECT *connect;
 
           net->m_connectList[CONNECTLIST_TCP_CONNECTING].UnlinkAll(connectFailList);
           net->m_connectList[CONNECTLIST_TCP_CONNECTED].UnlinkAll(connectFailList);
           connectIt.Reset();
 
-          NETCONNECT *next;
-
-          for (connect = connectFailList.Head(); (int)connect > 0 ? (next = connectFailList.RawNext(connect), 1) : 0; connect = next) {
+          SAFEITERATELIST(NETCONNECT, connectFailList, connect) {
             if (!connect->IsClosed()) {
               connect->Fail();
             }
@@ -2261,9 +2254,8 @@ namespace OsNet {
 
       {
         LISTDECLEX(LOOPCONN::INPUT, m_linkNet, loopInputList);
-        LISTLOOPCONN     loopDisconnectList;
-        LOOPCONN::INPUT *pinput;
-        LOOPCONN        *conn;
+        LISTLOOPCONN loopDisconnectList;
+        LOOPCONN    *conn;
 
         net->LoopLock();
         loopInputList.Combine(&net->m_loopInputList, LIST_TAIL, 0);
@@ -2283,9 +2275,7 @@ namespace OsNet {
         }
 
         net->LoopLock();
-        LOOPCONN::INPUT *next;
-
-        for (pinput = loopInputList.Head(); (int)pinput > 0 ? (next = loopInputList.RawNext(pinput), 1) : 0; pinput = next) {
+        SAFEITERATELIST(LOOPCONN::INPUT, loopInputList, pinput) {
           net->LoopFreeInput(pinput);
         }
         net->LoopUnlock();

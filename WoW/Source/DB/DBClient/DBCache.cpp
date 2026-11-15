@@ -178,9 +178,7 @@ void DBCache<RECORD, KEY, HASHKEY>::CancelCallback(KEY id, DBCACHECALLBACKPROC c
     return;
   }
 
-  DBCACHECALLBACK *callbackEntry;
-  DBCACHECALLBACK *next;
-  for (callbackEntry = entry->m_callbacks.Head(); (int)callbackEntry > 0 ? (next = entry->m_callbacks.RawNext(callbackEntry), 1) : 0; callbackEntry = next) {
+  SAFEITERATELIST(DBCACHECALLBACK, entry->m_callbacks, callbackEntry) {
     if (callbackEntry->m_callback == cb && callbackEntry->m_cbArg == cbArg) {
       entry->m_callbacks.DeleteNode(callbackEntry);
     }

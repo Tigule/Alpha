@@ -115,7 +115,7 @@ static BOOL ConsoleCommand_Help(LPCSTR command, LPCSTR arguments) {
 
     UINT counter = 0;
     buffer[0] = 0;
-    for (CONSOLECOMMAND *entry = g_consoleCommandHash.Head(); (int)entry > 0; entry = g_consoleCommandHash.RawNext(entry)) {
+    ITERATELIST(CONSOLECOMMAND, g_consoleCommandHash, entry) {
       if (entry->m_category == category) {
         SStrPack(buffer, entry->GetString(), sizeof(buffer));
         SStrPack(buffer, ", ", sizeof(buffer));

@@ -734,7 +734,7 @@ extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int 
     result = continueresult;
 
   BOOL handled = FALSE;
-  for (HANDLER *handler = s_handlerlist.Head(); (LONG)handler > 0; handler = s_handlerlist.RawNext(handler)) {
+  ITERATELIST(HANDLER, s_handlerlist, handler) {
     if (!handler->handler(errorcode, errorstr, localnameptr, linenumber, description ? description : "")) {
       handled = TRUE;
       break;

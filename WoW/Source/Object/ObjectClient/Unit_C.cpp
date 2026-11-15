@@ -1546,7 +1546,7 @@ CGUnit_C::~CGUnit_C() {
     m_auraVisual[index].Clear();
   }
 
-  for (ACTIVEAURAINFO *active = m_activeAuraInfo.Head(); (int)active > 0; active = m_activeAuraInfo.RawNext(active)) {
+  ITERATELIST(ACTIVEAURAINFO, m_activeAuraInfo, active) {
     s_auraInfoFreeList.Put(active);
   }
 
@@ -1568,7 +1568,7 @@ CGUnit_C::~CGUnit_C() {
   ClearWeaponTrailHandles();
 
   for (index = 0; index < sizeof(m_spellEffectLists) / sizeof(m_spellEffectLists[0]); ++index) {
-    for (SPELLEFFECTDESC *effect = m_spellEffectLists[index].Head(); (int)effect > 0; effect = m_spellEffectLists[index].RawNext(effect)) {
+    ITERATELIST(SPELLEFFECTDESC, m_spellEffectLists[index], effect) {
       s_spellEffectFreeList.Put(effect);
     }
   }

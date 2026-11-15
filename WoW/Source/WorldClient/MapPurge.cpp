@@ -81,22 +81,17 @@ void CMap::PurgeMapObjDefGroup(CMapObjDefGroup *mapObjDefGroup) {
   FATALASSERT(mapObjDefGroup);
 
   if (!mapObjDefGroup->refCount) {
-    CMapBaseObjLink *next;
-    for (CMapBaseObjLink *doodadDefLink = mapObjDefGroup->doodadDefLinkList.Head();
-         (int)doodadDefLink > 0 ? ((next = mapObjDefGroup->doodadDefLinkList.RawNext(doodadDefLink)), 1) : 0;
-         doodadDefLink = next) {
+    SAFEITERATELIST(CMapBaseObjLink, mapObjDefGroup->doodadDefLinkList, doodadDefLink) {
       CMapDoodadDef *doodadDef = (CMapDoodadDef *)doodadDefLink->owner;
       FreeBaseObjLink(doodadDefLink);
       PurgeDoodadDef(doodadDef);
     }
 
-    for (CMapBaseObjLink *entityLink = mapObjDefGroup->entityLinkList.Head();
-         (int)entityLink > 0 ? ((next = mapObjDefGroup->entityLinkList.RawNext(entityLink)), 1) : 0; entityLink = next) {
+    SAFEITERATELIST(CMapBaseObjLink, mapObjDefGroup->entityLinkList, entityLink) {
       FreeBaseObjLink(entityLink);
     }
 
-    for (CMapBaseObjLink *lightLink = mapObjDefGroup->lightLinkList.Head();
-         (int)lightLink > 0 ? ((next = mapObjDefGroup->lightLinkList.RawNext(lightLink)), 1) : 0; lightLink = next) {
+    SAFEITERATELIST(CMapBaseObjLink, mapObjDefGroup->lightLinkList, lightLink) {
       FreeBaseObjLink(lightLink);
     }
 
@@ -202,28 +197,23 @@ void CMapChunk::Purge() {
     }
   }
 
-  CMapBaseObjLink *next;
-  for (CMapBaseObjLink *doodadDefLink = doodadDefLinkList.Head();
-       (int)doodadDefLink > 0 ? ((next = doodadDefLinkList.RawNext(doodadDefLink)), 1) : 0; doodadDefLink = next) {
+  SAFEITERATELIST(CMapBaseObjLink, doodadDefLinkList, doodadDefLink) {
     CMapDoodadDef *doodadDef = (CMapDoodadDef *)doodadDefLink->owner;
     CMap::FreeBaseObjLink(doodadDefLink);
     CMap::PurgeDoodadDef(doodadDef);
   }
 
-  for (CMapBaseObjLink *mapObjDefLink = mapObjDefLinkList.Head();
-       (int)mapObjDefLink > 0 ? ((next = mapObjDefLinkList.RawNext(mapObjDefLink)), 1) : 0; mapObjDefLink = next) {
+  SAFEITERATELIST(CMapBaseObjLink, mapObjDefLinkList, mapObjDefLink) {
     CMapObjDef *mapObjDef = (CMapObjDef *)mapObjDefLink->owner;
     CMap::FreeBaseObjLink(mapObjDefLink);
     CMap::PurgeMapObjDef(mapObjDef);
   }
 
-  for (CMapBaseObjLink *entityLink = entityLinkList.Head();
-       (int)entityLink > 0 ? ((next = entityLinkList.RawNext(entityLink)), 1) : 0; entityLink = next) {
+  SAFEITERATELIST(CMapBaseObjLink, entityLinkList, entityLink) {
     CMap::FreeBaseObjLink(entityLink);
   }
 
-  for (CMapBaseObjLink *lightLink = lightLinkList.Head();
-       (int)lightLink > 0 ? ((next = lightLinkList.RawNext(lightLink)), 1) : 0; lightLink = next) {
+  SAFEITERATELIST(CMapBaseObjLink, lightLinkList, lightLink) {
     CMap::FreeBaseObjLink(lightLink);
   }
 

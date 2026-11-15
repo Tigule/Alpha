@@ -1016,9 +1016,7 @@ void CModel::DeleteAsyncObj() {
 }
 
 static void AsyncModelHandler() {
-  UINT          bufferRemaining;
-  CAsyncObject *asyncObject;
-  CAsyncObject *asyncObjectnext_node;
+  UINT bufferRemaining;
 
   ASSERT(s_asyncPending >= 0);
 
@@ -1029,10 +1027,7 @@ static void AsyncModelHandler() {
   s_asyncLoadBufferUsed = 0;
   bufferRemaining = s_asyncLoadBuffer.MaxCount();
 
-  for (asyncObject = s_asyncLoadList.Head();
-       (int)asyncObject > 0 ? ((asyncObjectnext_node = s_asyncLoadList.RawNext(asyncObject)), 1) : 0;
-       asyncObject = asyncObjectnext_node)
-  {
+  SAFEITERATELIST(CAsyncObject, s_asyncLoadList, asyncObject) {
     if (bufferRemaining < asyncObject->size) {
       continue;
     }
