@@ -189,6 +189,9 @@ static void PostLoadCallback(LPVOID userArg) {
 
   HRESULT            status;
   MY_DMUS_OBJECTDESC objDesc;
+#if BUILD_FIXES
+  memset(&objDesc, 0, sizeof(objDesc));
+#endif
   objDesc.dwSize = sizeof(DMUS_OBJECTDESC);
   objDesc.dwValidData = 0x402;
   objDesc.guidClass = CLSID_DirectMusicSegment;
