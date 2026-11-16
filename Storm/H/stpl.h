@@ -1290,13 +1290,13 @@ class TSExplicitList : public TSList<T, TSGetExplicitLink<T> > {
 #define NODEDECL(structname)            struct structname : public TSLinkedNode<structname>
 #define NODEDECLEX(structname)          typedef struct structname : public TSExplicitNode<structname>
 
-#define LISTEX(structname, linkname) TSExplicitList<structname, (int)&(((structname *)0)->linkname)>
+#define LISTEX(structname, linkname) TSExplicitList<structname, (int)offsetof(structname, linkname)>
 
 #define LISTEXDYN(structname) TSExplicitList<structname, (int)0xDDDDDDDD>
 
-#define LISTEXSETLINK(structname, listname, linkname) listname.ChangeLinkOffset((int)&(((structname *)0)->linkname));
+#define LISTEXSETLINK(structname, listname, linkname) listname.ChangeLinkOffset((int)offsetof(structname, linkname));
 
-#define LISTDECLEX(structname, linkname, varname) TSExplicitList<structname, (int)&(((structname *)0)->linkname)> varname
+#define LISTDECLEX(structname, linkname, varname) TSExplicitList<structname, (int)offsetof(structname, linkname)> varname
 
 #define ITERATEFORWARDTEMPLATE(structname, listname, start, ptrname, op)                                                                        \
   for (structname *ptrname = start, *iterate_delete = NULL; (INT_PTR)ptrname > 0;                                                                   \
@@ -1733,14 +1733,14 @@ class TSHashTable {
 
  protected:
   int GetLinkOffset() const {
-    return (int)(&((T *)0)->m_linktoslot);
+    return (int)offsetof(T, m_linktoslot);
   }
 
  public:
   TSHashTable(const TSHashTable<T, KEY> &);
   TSHashTable() {
     m_fullnessIndicator = 0;
-    m_fulllist.ChangeLinkOffset((int)(&((T *)0)->m_linktofull));
+    m_fulllist.ChangeLinkOffset((int)offsetof(T, m_linktofull));
     m_slotmask = 0xFFFFFFFF;
   }
   TSHashTable<T, KEY> &operator=(const TSHashTable<T, KEY> &);

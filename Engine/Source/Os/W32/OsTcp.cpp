@@ -684,7 +684,7 @@ namespace OsNet {
     friend struct TCPNET;
   };
 
-#define SLOTTEDLISTEX(structname, linkname, slots) TSSlottedListEx<structname, (int)&(((structname *)0)->linkname), slots>
+#define SLOTTEDLISTEX(structname, linkname, slots) TSSlottedListEx<structname, (int)offsetof(structname, linkname), slots>
 
   NODEDECL(TCPACCEPT) {
     NETOVERLAP m_overlap;

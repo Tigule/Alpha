@@ -67,7 +67,7 @@ struct EvtTimer {
 
 class EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
  public:
-  EvtTimerQueue() : TSPriorityQueue<EvtTimer>((int)&((EvtTimer *)0)->targetTime) {
+  EvtTimerQueue() : TSPriorityQueue<EvtTimer>((int)offsetof(EvtTimer, targetTime)) {
   }
 };
 
@@ -332,7 +332,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
 
 class EvtContextQueue : public TSPriorityQueue<EvtContext> {
  public:
-  EvtContextQueue() : TSPriorityQueue<EvtContext>((int)&((EvtContext *)0)->m_schedNextWakeTime) {
+  EvtContextQueue() : TSPriorityQueue<EvtContext>((int)offsetof(EvtContext, m_schedNextWakeTime)) {
   }
 };
 
