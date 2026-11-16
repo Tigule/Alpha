@@ -21,9 +21,16 @@ void CGxDeviceD3d::IShaderForceRecreation(int freeShaders) {
 }
 
 void CGxDeviceD3d::IPixelShaderCreate(CGxPixelShader *ps) {
+#ifdef _WIN32_WINNT_WIN8
+  // tigule: no D3DXAssembleShader in Windows SDK
+  ID3DBlob *buffer = 0;
+
+  if (D3DAssemble(ps->code.Ptr(), ps->code.Count(), 0, 0, 0, 0, &buffer, 0) == 0) {
+#else
   ID3DXBuffer *buffer = 0;
 
   if (D3DXAssembleShader((LPCSTR)ps->code.Ptr(), ps->code.Count(), 0, 0, 0, &buffer, 0) == 0) {
+#endif
     IDirect3DPixelShader9 *shader;
     if (m_d3dDevice->CreatePixelShader((const DWORD *)buffer->GetBufferPointer(), &shader) == 0) {
       ps->apiSpecific = (UINT_PTR)shader;

@@ -28,7 +28,17 @@ void CGxDeviceD3d::XformSetProjection(const NTempest::C44Matrix &matrix) {
 
   D3DXMATRIX matProj = *(const D3DXMATRIX *)&matrix;
   if (!(fabsf(matProj._34 - 1.0f) < 0.00000023841858f) && !(fabsf(matProj._34) < 0.00000023841858f)) {
+#ifdef _WIN32_WINNT_WIN8
+    // tigule: no D3DXMATRIX helpers in Windows SDK
+    float scale = 1.0f / matProj._34;
+    for (UINT row = 0; row < 4; ++row) {
+      for (UINT column = 0; column < 4; ++column) {
+        matProj.m[row][column] *= scale;
+      }
+    }
+#else
     matProj *= 1.0f / matProj._34;
+#endif
   }
 
   if (matProj._44 == 0.0f) {
@@ -48,7 +58,12 @@ void CGxDeviceD3d::XformSetProjection(const NTempest::C44Matrix &matrix) {
 
   if (!(m_appState.m_masterEnables & (1U << GxMasterEnable_NormalProjection)) && matProj._44 != 1.0f) {
     D3DXMATRIX tmp = matProj;
+#ifdef _WIN32_WINNT_WIN8
+    // tigule: no D3DXMATRIX helpers in Windows SDK
+    D3DXMATRIX shrink = {0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+#else
     D3DXMATRIX shrink(0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 0.2f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+#endif
 
     for (UINT row = 0; row < 4; ++row) {
       for (UINT column = 0; column < 4; ++column) {

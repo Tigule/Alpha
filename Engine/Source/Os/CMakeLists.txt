@@ -23,12 +23,20 @@ target_include_directories(Os PRIVATE
     .
     ..
     ../../../Storm/H
-    "$ENV{DXSDK_DIR}/Include"
 
     ../../../Storm/Source
 )
 
-if(NOT EXISTS "$ENV{DXSDK_DIR}/Include/dmusici.h")
+if(NOT HAVE_WIN8_SDK)
+    target_include_directories(Os PRIVATE "$ENV{DXSDK_DIR}/Include")
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY INCLUDE_DIRECTORIES "$ENV{DXSDK_DIR}/Include")
+endif()
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    # dmusic was never ported to 64-bit
+    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS TIGULE_NO_AMBIENCE)
+elseif(NOT EXISTS "$ENV{DXSDK_DIR}/Include/dmusici.h")
     message(STATUS "DXSDK_DIR has no DirectMusic headers (dmusici.h): building without ambience music")
     set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS TIGULE_NO_AMBIENCE)
 endif()

@@ -4,7 +4,16 @@
 
 #include <windows.h>
 
+#ifdef _WIN32_WINNT_WIN8
+#include <d3d9.h>
+#include <d3dcompiler.h>
+
+typedef D3DMATRIX D3DXMATRIX;
+
+extern "C" HRESULT WINAPI D3DAssemble(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName, const D3D_SHADER_MACRO *pDefines, ID3DInclude *pInclude, UINT Flags, ID3DBlob **ppCode, ID3DBlob **ppErrorMsgs);
+#else
 #include <d3dx9.h>
+#endif
 
 class CGxVertexBuffer_D3d : public CGxVertexBuffer {
  private:

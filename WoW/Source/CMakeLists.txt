@@ -107,20 +107,22 @@ endif()
 
 if(WIN32)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(DXSDK_ARCH x64)
         set(FMOD_IMPORT_LIBRARY "${CMAKE_SOURCE_DIR}/Engine/Source/FMOD/api/lib/fmod64vc.lib")
     else()
-        set(DXSDK_ARCH x86)
         set(FMOD_IMPORT_LIBRARY "${CMAKE_SOURCE_DIR}/Engine/Source/FMOD/api/lib/fmodvc.lib")
     endif()
+
     unset(D3DX9_IMPORT_LIBRARY CACHE)
-    find_library(
-        D3DX9_IMPORT_LIBRARY
-        d3dx9
-        PATHS
-            "$ENV{DXSDK_DIR}/Lib/${DXSDK_ARCH}"
-            "$ENV{DXSDK_DIR}/Lib"
-        NO_DEFAULT_PATH)
+    if(NOT HAVE_WIN8_SDK)
+        find_library(
+            D3DX9_IMPORT_LIBRARY
+            d3dx9
+            PATHS
+                "$ENV{DXSDK_DIR}/Lib/x86"
+                "$ENV{DXSDK_DIR}/Lib"
+            NO_DEFAULT_PATH)
+    endif()
+
     target_link_libraries(Wow PRIVATE
         comctl32
         winmm

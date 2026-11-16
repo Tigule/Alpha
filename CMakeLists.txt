@@ -88,6 +88,11 @@ elseif(MSVC)
     add_link_options($<$<NOT:$<CONFIG:Debug>>:/DEBUG> $<$<NOT:$<CONFIG:Debug>>:/OPT:REF> $<$<NOT:$<CONFIG:Debug>>:/OPT:ICF>)
 endif()
 
+if(MSVC AND MSVC_VERSION GREATER 1200)
+    include(CheckSymbolExists)
+    check_symbol_exists(_WIN32_WINNT_WIN8 windows.h HAVE_WIN8_SDK)
+endif()
+
 add_subdirectory(Engine)
 add_subdirectory(Storm)
 add_subdirectory(WoW)
