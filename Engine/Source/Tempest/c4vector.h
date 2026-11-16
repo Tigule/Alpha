@@ -207,7 +207,7 @@ namespace NTempest {
   }
 
   inline C4iVector::C4iVector(const C4Vector &vector)
-      : x((long)vector.x), y((long)vector.y), z((long)vector.z), w((long)vector.w) {
+      : x((LONG)vector.x), y((LONG)vector.y), z((LONG)vector.z), w((LONG)vector.w) {
   }
 
 }  // namespace NTempest

@@ -201,7 +201,7 @@ void CMap::PrepareChunks() {
             PrepareArea(chunkIndex.x >> 4, chunkIndex.y >> 4);
           }
           if (areaInfo[areaIndex].asyncId) {
-#ifdef _WIN64
+#if BUILD_64BIT
             AsyncFileReadWait(areaAsync[areaIndex]);
 #else
             AsyncFileReadWait((CAsyncObject *)areaInfo[areaIndex].asyncId);
@@ -216,7 +216,7 @@ void CMap::PrepareChunks() {
             PrepareChunk(area, chunkIndex.x & 0xF, chunkIndex.y & 0xF);
           }
           if (area->chunkInfo[cIdx].asyncId) {
-#ifdef _WIN64
+#if BUILD_64BIT
             AsyncFileReadWait(area->chunkAsync[cIdx]);
 #else
             AsyncFileReadWait((CAsyncObject *)area->chunkInfo[cIdx].asyncId);

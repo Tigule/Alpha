@@ -46,10 +46,10 @@ namespace NTempest {
     static DWORD uint32_(CRndSeed &seed) {
       DWORD vls = seed.rndvls;
       DWORD acc = seed.rndacc;
-      long  r1 = (long)(vls >> 24);
-      long  r2 = (long)((vls >> 16) & 0xFF);
-      long  r3 = (long)((vls >> 8) & 0xFF);
-      long  r4 = (long)(vls & 0xFF);
+      LONG  r1 = (LONG)(vls >> 24);
+      LONG  r2 = (LONG)((vls >> 16) & 0xFF);
+      LONG  r3 = (LONG)((vls >> 8) & 0xFF);
+      LONG  r4 = (LONG)(vls & 0xFF);
       r1 -= 4;
       r2 -= 12;
       if (r1 < 0) {
@@ -80,8 +80,8 @@ namespace NTempest {
       return acc;
     }
 
-    static long int32_(CRndSeed &seed) {
-      return (long)uint32_(seed);
+    static LONG int32_(CRndSeed &seed) {
+      return (LONG)uint32_(seed);
     }
 
     static float real_(CRndSeed &seed) {
@@ -115,7 +115,7 @@ namespace NTempest {
       DWORD bits = (value & 0x007FFFFF) | 0x3F800000;
       float real = *(float *)&bits;
 
-      return (long)value < 0 ? 2.0f - real : real - 2.0f;
+      return (LONG)value < 0 ? 2.0f - real : real - 2.0f;
     }
 
     static double lreals_(CRndSeed &seed) {
@@ -125,7 +125,7 @@ namespace NTempest {
       ((DWORD *)&value)[1] = (hi & lrmant) | lrexp;
       ((DWORD *)&value)[0] = lo;
       float real = value;
-      return (long)hi < 0 ? 2.0f - real : real - 2.0f;
+      return (LONG)hi < 0 ? 2.0f - real : real - 2.0f;
     }
 
     static float  reale_(CRndSeed &seed);
@@ -150,7 +150,7 @@ namespace NTempest {
       return low + dice_(sides, seed);
     }
     static bool coin_(CRndSeed &seed) {
-      return (long)uint32_(seed) < 0;
+      return (LONG)uint32_(seed) < 0;
     }
     static bool coin_(DWORD sides, CRndSeed &seed) {
       return dice_(sides, seed) == 0;
@@ -163,7 +163,7 @@ namespace NTempest {
     }
 
     static void array_(DWORD *buf, DWORD count, CRndSeed &seed);
-    static void array_(long *buf, DWORD count, CRndSeed &seed);
+    static void array_(LONG *buf, DWORD count, CRndSeed &seed);
     static void array_(float *buf, DWORD count, CRndSeed &seed);
     static void array_(double *buf, DWORD count, CRndSeed &seed);
     static void array_(C2Vector *buf, DWORD count, CRndSeed &seed);
@@ -186,7 +186,7 @@ namespace NTempest {
     static void shuffle_(BYTE *buf, DWORD count, CRndSeed &seed);
     static void shuffle_(short *buf, DWORD count, CRndSeed &seed);
     static void shuffle_(WORD *buf, DWORD count, CRndSeed &seed);
-    static void shuffle_(long *buf, DWORD count, CRndSeed &seed);
+    static void shuffle_(LONG *buf, DWORD count, CRndSeed &seed);
     static void shuffle_(DWORD *buf, DWORD count, CRndSeed &seed);
     static void shuffle_(float *buf, DWORD count, CRndSeed &seed);
     static void shuffle_(double *buf, DWORD count, CRndSeed &seed);
@@ -207,16 +207,16 @@ namespace NTempest {
     static void  checksumm8_(const BYTE *values, DWORD count, BYTE mask, DWORD &checksum);
     static void  checksumms_(LPCSTR *strings, DWORD count, DWORD &checksum);
 
-    static DWORD lattice_(long x);
-    static DWORD lattice_(long x, long y);
-    static DWORD lattice_(long x, long y, long z);
-    static DWORD lattice_(long x, long y, long z, long w);
-    static void  lattice2_(long x, DWORD *vertices);
-    static void  lattice4_(long x, long y, DWORD *vertices);
-    static void  lattice8_(long x, long y, long z, DWORD *vertices);
-    static void  lattice3_(long x, DWORD *vertices);
-    static void  lattice9_(long x, long y, DWORD *vertices);
-    static void  lattice27_(long x, long y, long z, DWORD *vertices);
+    static DWORD lattice_(LONG x);
+    static DWORD lattice_(LONG x, LONG y);
+    static DWORD lattice_(LONG x, LONG y, LONG z);
+    static DWORD lattice_(LONG x, LONG y, LONG z, LONG w);
+    static void  lattice2_(LONG x, DWORD *vertices);
+    static void  lattice4_(LONG x, LONG y, DWORD *vertices);
+    static void  lattice8_(LONG x, LONG y, LONG z, DWORD *vertices);
+    static void  lattice3_(LONG x, DWORD *vertices);
+    static void  lattice9_(LONG x, LONG y, DWORD *vertices);
+    static void  lattice27_(LONG x, LONG y, LONG z, DWORD *vertices);
     static float noise_(double x);
     static float noise_(double x, double y);
     static float noise_(double x, double y, double z);

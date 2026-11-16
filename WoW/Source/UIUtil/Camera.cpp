@@ -742,7 +742,7 @@ void CGCamera::PerformTerrainTilt(DWORD timestamp, NTempest::C3Vector position, 
     nextUpdate = m_lastDeltaZ + 25;
   }
 
-  if (!updateOnly && (long)(timestamp - nextUpdate) < 0) {
+  if (!updateOnly && (LONG)(timestamp - nextUpdate) < 0) {
     return;
   }
   m_lastDeltaZ = timestamp;
@@ -1292,7 +1292,7 @@ void CGCamera::UpdateMotion(DWORD timestamp) {
       continue;
     }
 
-    if (m_motionTimeout[move] && (long)(timestamp - m_motionTimeout[move]) >= 0) {
+    if (m_motionTimeout[move] && (LONG)(timestamp - m_motionTimeout[move]) >= 0) {
       StopMotion((CGCameraMotion)move, timestamp);
     }
 

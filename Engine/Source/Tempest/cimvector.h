@@ -138,9 +138,11 @@ namespace NTempest {
       Set(0, red, green, blue);
     }
 
+#if !defined(__LP64__)
     CImVector(const CImVector *value) {
       *(DWORD *)this = *(const DWORD *)value;
     }
+#endif
 
     CImVector(const CImVector &value) {
       *(DWORD *)this = *(const DWORD *)&value;
@@ -229,7 +231,9 @@ namespace NTempest {
     void  Set(BYTE red, BYTE green, BYTE blue);
 
     void  Set(const CImVector &value);
+#if !defined(__LP64__)
     void  Set(const CImVector *value);
+#endif
 
     void Set(DWORD value) {
       *IV_() = value;

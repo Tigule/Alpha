@@ -401,7 +401,7 @@ void CMapObjGroup::InitPtrs() {
 
 void CMapObjGroup::Clear() {
   FreeLightmaps();
-#ifdef _WIN64
+#if BUILD_64BIT
   if (lightmapTexList) {
     SMemFree(lightmapTexList, __FILE__, __LINE__, 0);
   }

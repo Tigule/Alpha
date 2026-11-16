@@ -250,7 +250,7 @@ void CMapObj::CreateDataPointers() {
   pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOMT');
-#ifdef _WIN64
+#if BUILD_64BIT
   UINT materialBytes = offsetof(SMOMaterial, groundType) + sizeof(materialList->groundType);
   UINT materialStride = materialBytes + sizeof(materialList->inMemPad);
   materialCount = pIffChunk->size / materialStride;
@@ -593,7 +593,7 @@ void CMapObjGroup::CreateLightmapPointers(BYTE *&pData) {
   pIffChunk = (SIffChunk *)pData;
   FATALASSERT(pIffChunk->token=='MOLD');
   pData += sizeof(SIffChunk);
-#ifdef _WIN64
+#if BUILD_64BIT
   UINT lightmapStride = sizeof(lightmapTexList->texels) + sizeof(lightmapTexList->inMemPad);
   lightmapTexCount = pIffChunk->size / lightmapStride;
   lightmapTexList = (SMOLightmapTex *)SMemAlloc(lightmapTexCount * sizeof(*lightmapTexList), __FILE__, __LINE__, 0);

@@ -9,17 +9,17 @@ namespace NTempest {
 
   class C2iVector {
    public:
-    long x;
-    long y;
+    LONG x;
+    LONG y;
 
     enum {
       eComponents = 2
     };
 
-    C2iVector(long value = 0) : x(value), y(value) {
+    C2iVector(LONG value = 0) : x(value), y(value) {
     }
 
-    C2iVector(long xValue, long yValue) : x(xValue), y(yValue) {
+    C2iVector(LONG xValue, LONG yValue) : x(xValue), y(yValue) {
     }
 
     C2iVector(const C2Vector &vector);
@@ -30,12 +30,12 @@ namespace NTempest {
     ~C2iVector() {
     }
 
-    void Get(long &xValue, long &yValue) const {
+    void Get(LONG &xValue, LONG &yValue) const {
       xValue = x;
       yValue = y;
     }
 
-    void Set(long xValue, long yValue) {
+    void Set(LONG xValue, LONG yValue) {
       x = xValue;
       y = yValue;
     }
@@ -51,7 +51,7 @@ namespace NTempest {
       return *this;
     }
 
-    C2iVector &operator+=(long a) {
+    C2iVector &operator+=(LONG a) {
       x += a;
       y += a;
       return *this;
@@ -62,7 +62,7 @@ namespace NTempest {
       return *this;
     }
 
-    C2iVector &operator-=(long a) {
+    C2iVector &operator-=(LONG a) {
       x -= a;
       y -= a;
       return *this;
@@ -73,7 +73,7 @@ namespace NTempest {
       return *this;
     }
 
-    C2iVector &operator*=(long a) {
+    C2iVector &operator*=(LONG a) {
       x *= a;
       y *= a;
       return *this;
@@ -84,7 +84,7 @@ namespace NTempest {
       return *this;
     }
 
-    C2iVector &operator/=(long a) {
+    C2iVector &operator/=(LONG a) {
       x /= a;
       y /= a;
       return *this;
@@ -95,7 +95,7 @@ namespace NTempest {
       return *this;
     }
 
-    C2iVector &operator>>=(long a) {
+    C2iVector &operator>>=(LONG a) {
       x >>= a;
       y >>= a;
       return *this;
@@ -106,7 +106,7 @@ namespace NTempest {
       return *this;
     }
 
-    C2iVector &operator<<=(long a) {
+    C2iVector &operator<<=(LONG a) {
       x <<= a;
       y <<= a;
       return *this;
@@ -115,13 +115,13 @@ namespace NTempest {
       return C2iVector(-x, -y);
     }
 
-    long SquaredMag() const {
+    LONG SquaredMag() const {
       return x * x + y * y;
     }
-    long Mag() const {
-      return (long)sqrt((double)SquaredMag());
+    LONG Mag() const {
+      return (LONG)sqrt((double)SquaredMag());
     }
-    long SumC() const {
+    LONG SumC() const {
       return x + y;
     }
     bool IsUnit() const {
@@ -130,7 +130,7 @@ namespace NTempest {
     void Normalize() {
       *this /= Mag();
     }
-    void Scale(const long magnitude) {
+    void Scale(const LONG magnitude) {
       Normalize();
       *this *= magnitude;
     }
@@ -155,7 +155,7 @@ namespace NTempest {
         y = a.y;
     }
 
-    static long Dot(const C2iVector &a, const C2iVector &b) {
+    static LONG Dot(const C2iVector &a, const C2iVector &b) {
       return a.x * b.x + a.y * b.y;
     }
   };

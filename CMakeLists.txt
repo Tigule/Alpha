@@ -55,6 +55,12 @@ else()
     add_compile_definitions(BUILD_FIXES=0)
 endif()
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_compile_definitions(BUILD_64BIT=1)
+else()
+    add_compile_definitions(BUILD_64BIT=0)
+endif()
+
 if(MSVC AND MSVC_VERSION GREATER_EQUAL 1400)
     add_compile_options(/MP)
 endif()

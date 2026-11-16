@@ -170,7 +170,7 @@ typedef struct _CONTEXT     CONTEXT;
 #include <cstring>
 
 typedef unsigned int  uint;
-typedef unsigned long ulong;
+typedef DWORD         ulong;
 
 #if defined(_MSC_VER) && _MSC_VER == 1200
 const UINT  INFINITY_ENCODING = 0x7F800000;
@@ -195,16 +195,16 @@ const float INFINITY = *(const float *)&INFINITY_ENCODING;
 
 LPVOID   SInterlockedExchangePointer(LPVOID *destPtr, LPVOID exchange);
 LPVOID   SInterlockedCompareExchangePointer(LPVOID *destPtr, LPVOID exchange, LPVOID comperand);
-long     SInterlockedIncrement(long *valuePtr);
-long     SInterlockedDecrement(long *valuePtr);
-long     SInterlockedExchangeAdd(long *valuePtr, long delta);
-long     SInterlockedExchangeSub(long *valuePtr, long delta);
-long     SInterlockedExchange(long *destPtr, long exchange);
-long     SInterlockedCompareExchange(long *destPtr, long exchange, long comperand);
+LONG     SInterlockedIncrement(LONG *valuePtr);
+LONG     SInterlockedDecrement(LONG *valuePtr);
+LONG     SInterlockedExchangeAdd(LONG *valuePtr, LONG delta);
+LONG     SInterlockedExchangeSub(LONG *valuePtr, LONG delta);
+LONG     SInterlockedExchange(LONG *destPtr, LONG exchange);
+LONG     SInterlockedCompareExchange(LONG *destPtr, LONG exchange, LONG comperand);
 LONGLONG SInterlockedIncrement(LONGLONG *valuePtr);
 LONGLONG SInterlockedDecrement(LONGLONG *valuePtr);
-LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, long delta);
-LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, long delta);
+LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, LONG delta);
+LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, LONG delta);
 LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, const LONGLONG &delta);
 LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, const LONGLONG &delta);
 LONGLONG SInterlockedRead(const LONGLONG *sourcePtr);
@@ -212,8 +212,8 @@ LONGLONG SInterlockedExchange(LONGLONG *destPtr, const LONGLONG &exchange);
 LONGLONG SInterlockedCompareExchange(LONGLONG *destPtr, const LONGLONG &exchange, const LONGLONG &comperand);
 void     SInterlockedIncrementNonAtomic(LONGLONG *valuePtr);
 void     SInterlockedDecrementNonAtomic(LONGLONG *valuePtr);
-void     SInterlockedAddNonAtomic(LONGLONG *valuePtr, long delta);
-void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, long delta);
+void     SInterlockedAddNonAtomic(LONGLONG *valuePtr, LONG delta);
+void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, LONG delta);
 void     SInterlockedAddNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
 void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
 
@@ -571,9 +571,9 @@ extern "C" void APIENTRY SLogGetDefaultDirectory(char *dirname, DWORD dirnamesiz
 extern "C" void APIENTRY SLogInitialize();
 extern "C" BOOL APIENTRY SLogIsInitialized();
 extern "C" void __cdecl  SLogPend(HSLOG log, LPCSTR format, ...);
-extern "C" long APIENTRY SLogSetAbsIndent(HSLOG log, long indent);
+extern "C" LONG APIENTRY SLogSetAbsIndent(HSLOG log, LONG indent);
 extern "C" void APIENTRY SLogSetDefaultDirectory(LPCSTR dirname);
-extern "C" long APIENTRY SLogSetIndent(HSLOG log, long deltaIndent);
+extern "C" LONG APIENTRY SLogSetIndent(HSLOG log, LONG deltaIndent);
 extern "C" void APIENTRY SLogSetTimestamp(HSLOG log, BOOL timeStamp);
 extern "C" void APIENTRY SLogVWrite(HSLOG log, LPCSTR format, va_list arglist);
 extern "C" void __cdecl  SLogWrite(HSLOG log, LPCSTR format, ...);

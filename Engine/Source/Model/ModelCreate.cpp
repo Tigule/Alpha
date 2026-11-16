@@ -931,7 +931,7 @@ BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status) {
       break;
     }
 
-    if ((long)(currentTime - modelHash->timeStamp) < 30000L) {
+    if ((LONG)(currentTime - modelHash->timeStamp) < 30000L) {
       break;
     }
 
@@ -1651,12 +1651,12 @@ void CModel::RemoveModelCommandsFromQueue() {
         case MPARAM_UINT:
         case MPARAM_FLOAT:
         case MPARAM_CARGB:
-#ifndef _WIN64
+#if !BUILD_64BIT
         case MPARAM_PTR:
 #endif
           paramData += sizeof(UINT);
           break;
-#ifdef _WIN64
+#if BUILD_64BIT
         case MPARAM_PTR:
           paramData += sizeof(LPVOID);
           break;

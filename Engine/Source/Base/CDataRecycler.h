@@ -34,7 +34,7 @@ class CDataRecycler {
     eDefaultMaxNodes = 0x7FFFFFFF
   };
 
-  CDataRecycler(UINT nodesPerBlock = eDefaultNodesPerBlock, long maxNodes = eDefaultMaxNodes);
+  CDataRecycler(UINT nodesPerBlock = eDefaultNodesPerBlock, LONG maxNodes = eDefaultMaxNodes);
   CDataRecycler(const CDataRecycler &);
   virtual ~CDataRecycler();
 
@@ -88,7 +88,7 @@ class CDataRecycler {
 
   void Link(Node **list, NodeBlock *nodeBlock);
 
-  long       m_nodesRecyclable;
+  LONG       m_nodesRecyclable;
   UINT       m_nodesPerBlock;
   NodeBlock *m_nodeBlockList;
   Node      *m_nodeFullList;
@@ -102,7 +102,7 @@ class TExtraInstanceRecycler : protected CDataRecycler {
     eDefaultMaxBytesPerInstance = -1
   };
 
-  TExtraInstanceRecycler(UINT nodesPerBlock = 0, long maxNodes = 0, DWORD maxBytesPerInstance = eDefaultMaxBytesPerInstance)
+  TExtraInstanceRecycler(UINT nodesPerBlock = 0, LONG maxNodes = 0, DWORD maxBytesPerInstance = eDefaultMaxBytesPerInstance)
       : CDataRecycler(nodesPerBlock, maxNodes), m_maxBytesPerInstance(maxBytesPerInstance) {
   }
 

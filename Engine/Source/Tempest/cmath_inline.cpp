@@ -37,7 +37,7 @@ namespace NTempest {
 
   float CMath::sinoid_(float x, const float oneOverPi) {
     float fraction;
-    long  integer;
+    LONG  integer;
     split_(x * oneOverPi - 0.5f, fraction, integer);
     float result = 1.0f - (6.0f - fraction * 4.0f) * fraction * fraction;
     return integer & 1 ? -result : result;
@@ -45,13 +45,13 @@ namespace NTempest {
 
   float CMath::cosoid_(float x, const float oneOverPi) {
     float fraction;
-    long  integer;
+    LONG  integer;
     split_(x * oneOverPi, fraction, integer);
     float result = 1.0f - (6.0f - fraction * 4.0f) * fraction * fraction;
     return integer & 1 ? -result : result;
   }
 
-  long CMath::mulhw_(long x, long y) {
+  LONG CMath::mulhw_(LONG x, LONG y) {
     return ((LONGLONG)x * y) >> 32;
   }
 
@@ -62,7 +62,7 @@ namespace NTempest {
   DWORD CMath::div3_(DWORD n) {
     return mulhwu_(0xAAAAAAAB, n) >> 1;
   }
-  long CMath::div3_(long n) {
+  LONG CMath::div3_(LONG n) {
     return mulhw_(1431655766, n);
   }
 
@@ -74,7 +74,7 @@ namespace NTempest {
     return (x + 2) >> 4;
   }
 
-  long CMath::div5_(long x) {
+  LONG CMath::div5_(LONG x) {
     x *= 3;
     x += x >> 4;
     x += x >> 8;
@@ -90,7 +90,7 @@ namespace NTempest {
     return (x + 2) >> 6;
   }
 
-  long CMath::div9_(long x) {
+  LONG CMath::div9_(LONG x) {
     x *= 7;
     x += x >> 6;
     x += x >> 12;
@@ -98,31 +98,31 @@ namespace NTempest {
     return (x + 62) >> 6;
   }
 
-  long CMath::min_(long a, long b, long c) {
+  LONG CMath::min_(LONG a, LONG b, LONG c) {
     a = min(a, b);
     return min(a, c);
   }
-  long CMath::med_(long a, long b, long c) {
+  LONG CMath::med_(LONG a, LONG b, LONG c) {
     return ((a - b) ^ (c - b)) < 0 ? b : ((a - b) ^ (a - c)) < 0 ? a : c;
   }
-  long CMath::max_(long a, long b, long c) {
+  LONG CMath::max_(LONG a, LONG b, LONG c) {
     a = max(a, b);
     return max(a, c);
   }
-  long CMath::span_(long a, long b, long c) {
+  LONG CMath::span_(LONG a, LONG b, LONG c) {
     return ((c - b) ^ (a - b)) < 0 ? iabs_(c - a) : ((a - c) ^ (a - b)) < 0 ? iabs_(c - b) : iabs_(a - b);
   }
-  long CMath::mean_(long a, long b, long c) {
+  LONG CMath::mean_(LONG a, LONG b, LONG c) {
     return div3_(a + b + c);
   }
-  long CMath::min_(long a, long b, long c, long d, long e) {
+  LONG CMath::min_(LONG a, LONG b, LONG c, LONG d, LONG e) {
     a = min(a, b);
     a = min(a, d);
     a = min(a, e);
     return min(a, c);
   }
-  long CMath::med_(long a, long b, long c, long d, long e) {
-    long ablo, abhi, deLo, deHi;
+  LONG CMath::med_(LONG a, LONG b, LONG c, LONG d, LONG e) {
+    LONG ablo, abhi, deLo, deHi;
 
     if (a > b) { ablo = b; abhi = a; } else { ablo = a; abhi = b; }
     if (e < d) { deHi = d; deLo = e; } else { deHi = e; deLo = d; }
@@ -132,14 +132,14 @@ namespace NTempest {
 
     return med_(abhi, c, deLo);
   }
-  long CMath::max_(long a, long b, long c, long d, long e) {
+  LONG CMath::max_(LONG a, LONG b, LONG c, LONG d, LONG e) {
     a = max(a, b);
     a = max(a, d);
     a = max(a, e);
     return max(a, c);
   }
-  long CMath::span_(long a, long b, long c, long d, long e) {
-    long ablo, abhi, deLo, deHi;
+  LONG CMath::span_(LONG a, LONG b, LONG c, LONG d, LONG e) {
+    LONG ablo, abhi, deLo, deHi;
 
     if (a > b) { ablo = b; abhi = a; } else { ablo = a; abhi = b; }
     if (e < d) { deHi = d; deLo = e; } else { deHi = e; deLo = d; }
@@ -149,10 +149,10 @@ namespace NTempest {
 
     return span_(ablo, c, deHi);
   }
-  long CMath::mean_(long a, long b, long c, long d, long e) {
+  LONG CMath::mean_(LONG a, LONG b, LONG c, LONG d, LONG e) {
     return div5_(a + b + c + d + e);
   }
-  long CMath::min_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  LONG CMath::min_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i) {
     a = min(a, c);
     a = min(a, g);
     a = min(a, i);
@@ -162,8 +162,8 @@ namespace NTempest {
     a = min(a, h);
     return min(a, e);
   }
-  long CMath::med_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
-    long t;
+  LONG CMath::med_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i) {
+    LONG t;
     if ((t = d - a) < 0) {
       a += t;
       d -= t;
@@ -246,7 +246,7 @@ namespace NTempest {
     }
     return e;
   }
-  long CMath::max_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  LONG CMath::max_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i) {
     a = max(a, c);
     a = max(a, g);
     a = max(a, i);
@@ -256,8 +256,8 @@ namespace NTempest {
     a = max(a, h);
     return max(a, e);
   }
-  long CMath::span_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
-    long  lo;
+  LONG CMath::span_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i) {
+    LONG  lo;
     DWORD range;
     if (a > i) {
       lo = i;
@@ -318,7 +318,7 @@ namespace NTempest {
     }
     return range;
   }
-  long CMath::mean_(long a, long b, long c, long d, long e, long f, long g, long h, long i) {
+  LONG CMath::mean_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i) {
     return div9_(a + b + c + d + e + f + g + h + i);
   }
 
@@ -438,18 +438,18 @@ namespace NTempest {
   }
 #endif
 
-  void CMath::split_(double xlr, double &xf, long &xi) {
+  void CMath::split_(double xlr, double &xf, LONG &xi) {
     xi = xlr;
     xi = xlr < 0.0 ? xi - 1 : xi;
     xf = xlr - xi;
   }
-  void CMath::split_(float xr, float &xf, long &xi) {
+  void CMath::split_(float xr, float &xf, LONG &xi) {
     xi = fint_(xr);
     xi = xr < 0.0f ? xi - 1 : xi;
     xf = xr - xi;
   }
   void CMath::splitr_(double xlr, double &xf, double &xi) {
-    xi = (long)xlr;
+    xi = (LONG)xlr;
     xi = xlr < 0.0 ? xi - 1.0 : xi;
     xf = xlr - xi;
   }

@@ -767,7 +767,7 @@ class CMapArea : public CMapBaseObj {
   TSGrowableArray<SMMapObjDef> mapObjDefList;
   SMChunkInfo                  chunkInfo[256];
   CMapChunk                   *chunkTable[256];
-#ifdef _WIN64
+#if BUILD_64BIT
   CAsyncObject                *chunkAsync[256];
 #endif
 
@@ -923,7 +923,7 @@ class CMap {
   static BOOL         bPreload;
   static BOOL         bDungeon;
   static SMAreaInfo   areaInfo[4096];
-#ifdef _WIN64
+#if BUILD_64BIT
   static CAsyncObject *areaAsync[4096];
 #endif
   static CMapArea    *areaTable[4096];

@@ -118,7 +118,7 @@ void CMapArea::Load(SMAreaInfo *areaInfo) {
       s_asyncLoadList.LinkNode(asyncObject, LIST_TAIL, 0);
     }
 
-#ifdef _WIN64
+#if BUILD_64BIT
     CMap::areaAsync[infoIndex] = asyncObject;
     areaInfo->asyncId = 1;
 #else

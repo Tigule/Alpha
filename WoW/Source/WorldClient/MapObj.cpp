@@ -146,7 +146,7 @@ void CMapObj::Clear() {
       }
     }
   }
-#ifdef _WIN64
+#if BUILD_64BIT
   if (materialList) {
     SMemFree(materialList, __FILE__, __LINE__, 0);
   }

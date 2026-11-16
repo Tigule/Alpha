@@ -256,8 +256,10 @@ class CDataStore {
   CDataStore &Set(UINT pos, WORD val);
   CDataStore &Set(UINT pos, int val);
   CDataStore &Set(UINT pos, UINT val);
-  CDataStore &Set(UINT pos, long val);
+#if !defined(__LP64__)
+  CDataStore &Set(UINT pos, LONG val);
   CDataStore &Set(UINT pos, DWORD val);
+#endif
   CDataStore &Set(UINT pos, LONGLONG val);
   CDataStore &Set(UINT pos, DWORDLONG val);
   CDataStore &Set(UINT pos, float val);
@@ -268,8 +270,10 @@ class CDataStore {
   CDataStore &Put(WORD val);
   CDataStore &Put(int val);
   CDataStore &Put(UINT val);
-  CDataStore &Put(long val);
+#if !defined(__LP64__)
+  CDataStore &Put(LONG val);
   CDataStore &Put(DWORD val);
+#endif
   CDataStore &Put(LONGLONG val);
   CDataStore &Put(DWORDLONG val);
   CDataStore &Put(float val);
@@ -292,7 +296,7 @@ class CDataStore {
   CDataStore &PutArray(const short *pval, UINT count) {
     return PutArray((const WORD *)pval, count);
   }
-  CDataStore &PutArray(const long *pval, UINT count) {
+  CDataStore &PutArray(const LONG *pval, UINT count) {
     return PutArray((const DWORD *)pval, count);
   }
   CDataStore &PutArray(const unreal *pval, UINT count);
@@ -327,7 +331,7 @@ class CDataStore {
   CDataStore &PutUint(UINT val) {
     return Put(val);
   }
-  CDataStore &PutLong(long val) {
+  CDataStore &PutLong(LONG val) {
     return Put(val);
   }
   CDataStore &PutUlong(DWORD val) {
@@ -389,12 +393,14 @@ class CDataStore {
   CDataStore &operator<<(UINT val) {
     return Put(val);
   }
-  CDataStore &operator<<(long val) {
+#if !defined(__LP64__)
+  CDataStore &operator<<(LONG val) {
     return Put(val);
   }
   CDataStore &operator<<(DWORD val) {
     return Put(val);
   }
+#endif
   CDataStore &operator<<(LONGLONG val) {
     return Put(val);
   }
@@ -417,8 +423,10 @@ class CDataStore {
   CDataStore &Get(WORD &val);
   CDataStore &Get(int &val);
   CDataStore &Get(UINT &val);
-  CDataStore &Get(long &val);
+#if !defined(__LP64__)
+  CDataStore &Get(LONG &val);
   CDataStore &Get(DWORD &val);
+#endif
   CDataStore &Get(LONGLONG &val);
   CDataStore &Get(DWORDLONG &val);
   CDataStore &Get(float &val);
@@ -435,7 +443,7 @@ class CDataStore {
   CDataStore &GetArray(short *pval, UINT count) {
     return GetArray((WORD *)pval, count);
   }
-  CDataStore &GetArray(long *pval, UINT count) {
+  CDataStore &GetArray(LONG *pval, UINT count) {
     return GetArray((DWORD *)pval, count);
   }
   CDataStore &GetArray(unreal *pval, UINT count);
@@ -513,11 +521,11 @@ class CDataStore {
     Get(val);
     return val;
   }
-  CDataStore &GetLong(long &val) {
+  CDataStore &GetLong(LONG &val) {
     return Get(val);
   }
-  long GetLong() {
-    long val = 0;
+  LONG GetLong() {
+    LONG val = 0;
     Get(val);
     return val;
   }
@@ -600,12 +608,14 @@ class CDataStore {
   CDataStore &operator>>(UINT &val) {
     return Get(val);
   }
-  CDataStore &operator>>(long &val) {
+#if !defined(__LP64__)
+  CDataStore &operator>>(LONG &val) {
     return Get(val);
   }
   CDataStore &operator>>(DWORD &val) {
     return Get(val);
   }
+#endif
   CDataStore &operator>>(LONGLONG &val) {
     return Get(val);
   }

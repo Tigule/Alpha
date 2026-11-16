@@ -443,7 +443,7 @@ BOOL SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *s
   ITERATELIST(SPELLHISTORY, m_spellHistory, history) {
     if (history->spellID == spellID && history->itemID == itemID && history->recoveryTime) {
       DWORD end = (history->onHold ? now : history->recoveryStart) + history->recoveryTime;
-      if ((long)(end - latestEnd) >= 0) {
+      if ((LONG)(end - latestEnd) >= 0) {
         if (duration) {
           *duration = history->recoveryTime;
         }
@@ -459,7 +459,7 @@ BOOL SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *s
 
     if (history->category == category && history->categoryRecoveryTime) {
       DWORD end = (history->onHold ? now : history->categoryRecoveryStart) + history->categoryRecoveryTime;
-      if ((long)(end - latestEnd) >= 0) {
+      if ((LONG)(end - latestEnd) >= 0) {
         if (duration) {
           *duration = history->categoryRecoveryTime;
         }
@@ -475,7 +475,7 @@ BOOL SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *s
 
     if (history->startRecoveryCategory == startCategory && history->startRecoveryTime) {
       DWORD end = (history->onHold ? now : history->recoveryStart) + history->startRecoveryTime;
-      if ((long)(end - latestEnd) >= 0) {
+      if ((LONG)(end - latestEnd) >= 0) {
         if (duration) {
           *duration = history->startRecoveryTime;
         }
@@ -555,14 +555,14 @@ void SpellHistory::GarbageCollect(DWORD timestamp) {
 
     if (node->recoveryTime) {
       DWORD endTime = node->recoveryStart + node->recoveryTime;
-      if ((long)(timestamp - endTime) < 0) {
+      if ((LONG)(timestamp - endTime) < 0) {
         continue;
       }
     }
 
     if (node->categoryRecoveryTime) {
       DWORD endTime = node->categoryRecoveryStart + node->categoryRecoveryTime;
-      if ((long)(timestamp - endTime) < 0) {
+      if ((LONG)(timestamp - endTime) < 0) {
         continue;
       }
     }
@@ -2413,7 +2413,7 @@ static void SpellGo(const DWORDLONG &casterGUID, const DWORDLONG &casterUnit, in
   }
 
   static DWORD s_cleanupTime;
-  if ((long)(currTime - s_cleanupTime) >= 0) {
+  if ((LONG)(currTime - s_cleanupTime) >= 0) {
     s_cleanupTime = currTime + 120000;
     for (i = 0; i < 2; ++i) {
       s_spellHistory[i].GarbageCollect(currTime);

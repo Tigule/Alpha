@@ -53,14 +53,14 @@ namespace NTempest {
       eGreaterThan = 1
     };
 
-    static long __cdecl MemSortP(const T *, const T *);
-    static long __cdecl Int32SortP(const long *, const long *);
-    static long __cdecl UInt32SortP(const DWORD *, const DWORD *);
+    static LONG __cdecl MemSortP(const T *, const T *);
+    static LONG __cdecl Int32SortP(const LONG *, const LONG *);
+    static LONG __cdecl UInt32SortP(const DWORD *, const DWORD *);
 
-    typedef long(__cdecl *TSort)(const T *, const T *);
+    typedef LONG(__cdecl *TSort)(const T *, const T *);
     using CMemBlockT<T>::IsValid;
 
-    CDynTable(const CDynParms &dp = CDynParms(), DWORD prologue = 0, LPCSTR filen = 0, long linen = 0)
+    CDynTable(const CDynParms &dp = CDynParms(), DWORD prologue = 0, LPCSTR filen = 0, LONG linen = 0)
         : CMemBlockT<T>(dp.Prealloc(), prologue, filen, linen) {
       expand = dp.ExpandF();
       iallocated = dp.Prealloc();
@@ -181,12 +181,12 @@ namespace NTempest {
       return true;
     }
 
-    long CompareEntries(const T *a, const T *b, const TSort compare) const {
+    LONG CompareEntries(const T *a, const T *b, const TSort compare) const {
       ASSERT(a && b && compare);
       return compare(a, b);
     }
 
-    long CompareEntries(DWORD a, DWORD b, const TSort compare) const {
+    LONG CompareEntries(DWORD a, DWORD b, const TSort compare) const {
       ASSERT(a < iused && b < iused && compare);
       return compare(&(*this)[a], &(*this)[b]);
     }

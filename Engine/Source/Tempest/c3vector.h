@@ -272,7 +272,7 @@ namespace NTempest {
   }
 
   inline C3iVector::C3iVector(const C3Vector &vector)
-      : x((long)vector.x), y((long)vector.y), z((long)vector.z) {
+      : x((LONG)vector.x), y((LONG)vector.y), z((LONG)vector.z) {
   }
 
 }  // namespace NTempest

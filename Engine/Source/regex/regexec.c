@@ -156,7 +156,7 @@ int				/* 0 success, REG_NOMATCH failure */
 regexec(preg, string, nmatch, pmatch, eflags)
 const regex_t *preg;
 const char *string;
-size_t nmatch;
+unsigned int nmatch;
 regmatch_t pmatch[];
 int eflags;
 {

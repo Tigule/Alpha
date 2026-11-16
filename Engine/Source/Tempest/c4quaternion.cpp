@@ -53,7 +53,7 @@ namespace NTempest {
       z = (r.b0 - r.a1) * root;
     } else {
       const float (*r_)[3] = (const float ( *)[3])&r;
-      long i = 0;
+      LONG i = 0;
       ASSERT(r_[0][0] == r.a0 && r_[1][1] == r.b1 && r_[2][2] == r.c2);
       if (r.b1 > r.a0) {
         i = 1;
@@ -62,8 +62,8 @@ namespace NTempest {
         i = 2;
       }
 
-      long   j = next[i];
-      long   k = next[j];
+      LONG   j = next[i];
+      LONG   k = next[j];
       float  root = CMath::sqrt_(r_[i][i] - r_[j][j] - r_[k][k] + 1.0f);
       float *q_[3] = {&x, &y, &z};
       *q_[i] = 0.5f * root;

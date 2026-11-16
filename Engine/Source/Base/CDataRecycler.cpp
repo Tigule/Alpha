@@ -4,7 +4,7 @@
 #include "CDataRecycler.h"
 #include <stdio.h>
 
-CDataRecycler::CDataRecycler(UINT nodesPerBlock, long maxNodes) : m_nodeBlockList(0), m_nodeFullList(0), m_nodeEmptyList(0) {
+CDataRecycler::CDataRecycler(UINT nodesPerBlock, LONG maxNodes) : m_nodeBlockList(0), m_nodeFullList(0), m_nodeEmptyList(0) {
   m_nodesRecyclable = max(maxNodes, 1);
   m_nodesPerBlock = max(nodesPerBlock, 1);
   m_nodesPerBlock = min(m_nodesPerBlock, m_nodesRecyclable);

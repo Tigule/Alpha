@@ -702,7 +702,7 @@ class TSTimerPriority : public CSBasePriority {
 
   BOOL Compare(CSBasePriority *a) const {
     TSTimerPriority<T> *timerPriority = (TSTimerPriority<T> *)a;
-    return (long)(m_val - timerPriority->m_val) <= 0;
+    return (LONG)(m_val - timerPriority->m_val) <= 0;
   }
 
   T Get() const {

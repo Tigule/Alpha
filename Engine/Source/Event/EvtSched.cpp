@@ -17,7 +17,7 @@ BOOL   s_watchdogActive;
 
 static UINT      s_hThread;
 static int       s_netServer;
-static long      s_threadListContention = -1;
+static LONG      s_threadListContention = -1;
 static SCritSect s_threadListCritsect;
 static LISTDECL(EvtThread, s_threadList);
 static SCritSect                 *s_threadSlotCritsects;
@@ -26,7 +26,7 @@ static UINT                       s_threadSlotCount;
 static TSGrowableArray<SThread *> s_schedulerThreads;
 static SEvent                     s_startEvent(1, 0);
 static SEvent                     s_shutdownEvent(1, 0);
-static long                       s_interactiveCount;
+static LONG                       s_interactiveCount;
 static int                        s_originalThreadPriority;
 static UINT                       s_mainThread;
 

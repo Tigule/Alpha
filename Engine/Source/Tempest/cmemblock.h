@@ -23,15 +23,15 @@ namespace NTempest {
     char  *mem;
     DWORD  size;
     LPCSTR filen_;
-    long   linen_;
+    LONG   linen_;
     static void Set32b_(char *c, BYTE value, DWORD size);
     static void Set32b_(DWORD *d, DWORD c, DWORD size);
     static void SetM_(char *c, BYTE value, DWORD size);
     static void SetM_(DWORD *d, DWORD c, DWORD size);
-    void Constructor_(DWORD bsize, DWORD prologue, LPCSTR filen, long linen);
+    void Constructor_(DWORD bsize, DWORD prologue, LPCSTR filen, LONG linen);
     void Destructor_();
    public:
-    CMemBlock(DWORD bsize, DWORD prologue, LPCSTR filen, long linen);
+    CMemBlock(DWORD bsize, DWORD prologue, LPCSTR filen, LONG linen);
     CMemBlock(const CMemBlock &m);
     virtual ~CMemBlock();
     CMemBlock &operator=(const CMemBlock &m);
@@ -74,8 +74,8 @@ namespace NTempest {
     static void Copy(char *dst, char *const src, DWORD bytes) {
       memmove(dst, src, bytes);
     }
-    long  Compare(const CMemBlock &to) const;
-    static long Compare(char *const a, char *const b, DWORD bytes) {
+    LONG  Compare(const CMemBlock &to) const;
+    static LONG Compare(char *const a, char *const b, DWORD bytes) {
       return memcmp(a, b, bytes);
     }
     char *Get_() const {
@@ -98,7 +98,7 @@ namespace NTempest {
       SetM_(mem_, 0, size_);
     }
     DWORD Copy_(const CMemBlock &from);
-    long  Compare_(const CMemBlock &to) const;
+    LONG  Compare_(const CMemBlock &to) const;
     bool  Swap(CMemBlock &with);
     bool Resize(DWORD newsize, bool preserve);
     void Detach(char *&mem, DWORD &size);
@@ -106,18 +106,18 @@ namespace NTempest {
     void Detach_(char *&mem, DWORD &size, char *&mem_, DWORD &size_);
     void Attach_(char *mem, DWORD size, char *mem_, DWORD size_);
     LPCSTR FileN_() const;
-    long   LineN_() const;
+    LONG   LineN_() const;
     void   SetFileN_(LPCSTR filen);
-    void   SetLineN_(long linen);
-    static char *Allocate(DWORD size, LPCSTR filen, long linen);
-    static void  Dispose(char *mem, LPCSTR filen, long linen);
+    void   SetLineN_(LONG linen);
+    static char *Allocate(DWORD size, LPCSTR filen, LONG linen);
+    static void  Dispose(char *mem, LPCSTR filen, LONG linen);
   };
 
 
   template <class T>
   class CMemBlockT : public CMemBlock {
    public:
-    CMemBlockT(DWORD count = 0, DWORD prologue = 0, LPCSTR filen = 0, long linen = 0)
+    CMemBlockT(DWORD count = 0, DWORD prologue = 0, LPCSTR filen = 0, LONG linen = 0)
         : CMemBlock(count * sizeof(T), prologue, filen ? filen : typeid(T).INTERNALRAWNAME(), filen ? linen : SERR_LINECODE_OBJECT) {
     }
 

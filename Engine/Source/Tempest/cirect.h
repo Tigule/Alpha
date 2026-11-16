@@ -9,34 +9,34 @@ namespace NTempest {
   class CiRect {
    public:
     union {
-      long t;
-      long miny;
+      LONG t;
+      LONG miny;
     };
     union {
-      long l;
-      long minx;
+      LONG l;
+      LONG minx;
     };
     union {
-      long b;
-      long maxy;
+      LONG b;
+      LONG maxy;
     };
     union {
-      long r;
-      long maxx;
+      LONG r;
+      LONG maxx;
     };
 
     enum {
       eComponents = 4
     };
 
-    CiRect(long value = 0) {
+    CiRect(LONG value = 0) {
       t = value;
       l = value;
       b = value;
       r = value;
     }
 
-    CiRect(long top, long left, long bottom, long right) {
+    CiRect(LONG top, LONG left, LONG bottom, LONG right) {
       t = top;
       l = left;
       b = bottom;
@@ -50,17 +50,17 @@ namespace NTempest {
     ~CiRect() {
     }
 
-    void    Get(long &top, long &left, long &bottom, long &right) const;
-    void    Set(long top, long left, long bottom, long right);
+    void    Get(LONG &top, LONG &left, LONG &bottom, LONG &right) const;
+    void    Set(LONG top, LONG left, LONG bottom, LONG right);
             operator tagRECT() const;
     CiRect &operator+=(const CiRect &value);
     CiRect &operator-=(const CiRect &value);
     CiRect &operator*=(const CiRect &value);
     CiRect &operator/=(const CiRect &value);
     CiRect  operator-() const;
-    void    Stretch(long horizontal, long vertical);
+    void    Stretch(LONG horizontal, LONG vertical);
     void    Stretch(const C2iVector &value);
-    void    Offset(long horizontal, long vertical);
+    void    Offset(LONG horizontal, LONG vertical);
     void    Offset(const C2iVector &value);
     bool NotEmpty() const {
       return t < b && l < r;
@@ -77,16 +77,16 @@ namespace NTempest {
     bool    InOpenR(const C2iVector &value) const;
     bool    InOpenR(const CiRect &value) const;
 
-    long Width() const {
+    LONG Width() const {
       return r - l;
     }
 
-    long Height() const {
+    LONG Height() const {
       return b - t;
     }
 
-    void          SetWidth(long value);
-    void          SetHeight(long value);
+    void          SetWidth(LONG value);
+    void          SetHeight(LONG value);
     C2iVector     TopLeft() const;
     C2iVector     TopRight() const;
     C2iVector     BottomLeft() const;

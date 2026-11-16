@@ -10,18 +10,18 @@ namespace NTempest {
 
   class C4iVector {
    public:
-    long x;
-    long y;
-    long z;
-    long w;
+    LONG x;
+    LONG y;
+    LONG z;
+    LONG w;
 
     enum {
       eComponents = 4
     };
 
-    C4iVector(long value = 0) : x(value), y(value), z(value), w(value) {
+    C4iVector(LONG value = 0) : x(value), y(value), z(value), w(value) {
     }
-    C4iVector(long x, long y, long z, long w) : x(x), y(y), z(z), w(w) {
+    C4iVector(LONG x, LONG y, LONG z, LONG w) : x(x), y(y), z(z), w(w) {
     }
     C4iVector(const C2iVector &a) : x(a.x), y(a.y), z(0), w(0) {
     }
@@ -32,13 +32,13 @@ namespace NTempest {
     ~C4iVector() {
     }
 
-    void Get(long &tx, long &ty, long &tz, long &tw) const {
+    void Get(LONG &tx, LONG &ty, LONG &tz, LONG &tw) const {
       tx = x;
       ty = y;
       tz = z;
       tw = w;
     }
-    void Set(long tx, long ty, long tz, long tw) {
+    void Set(LONG tx, LONG ty, LONG tz, LONG tw) {
       x = tx;
       y = ty;
       z = tz;
@@ -58,7 +58,7 @@ namespace NTempest {
       return *this;
     }
 
-    C4iVector &operator+=(long a) {
+    C4iVector &operator+=(LONG a) {
       x += a;
       y += a;
       z += a;
@@ -73,7 +73,7 @@ namespace NTempest {
       return *this;
     }
 
-    C4iVector &operator-=(long a) {
+    C4iVector &operator-=(LONG a) {
       x -= a;
       y -= a;
       z -= a;
@@ -88,7 +88,7 @@ namespace NTempest {
       return *this;
     }
 
-    C4iVector &operator*=(long a) {
+    C4iVector &operator*=(LONG a) {
       x *= a;
       y *= a;
       z *= a;
@@ -103,7 +103,7 @@ namespace NTempest {
       return *this;
     }
 
-    C4iVector &operator/=(long a) {
+    C4iVector &operator/=(LONG a) {
       x /= a;
       y /= a;
       z /= a;
@@ -118,7 +118,7 @@ namespace NTempest {
       return *this;
     }
 
-    C4iVector &operator>>=(long a) {
+    C4iVector &operator>>=(LONG a) {
       x >>= a;
       y >>= a;
       z >>= a;
@@ -133,7 +133,7 @@ namespace NTempest {
       return *this;
     }
 
-    C4iVector &operator<<=(long a) {
+    C4iVector &operator<<=(LONG a) {
       x <<= a;
       y <<= a;
       z <<= a;
@@ -143,26 +143,26 @@ namespace NTempest {
     C4iVector operator-() const {
       return C4iVector(-x, -y, -z, -w);
     }
-    long SquaredMag() const {
+    LONG SquaredMag() const {
       return x * x + y * y + z * z + w * w;
     }
-    long Mag() const {
-      return (long)CMath::sqrt_((float)SquaredMag());
+    LONG Mag() const {
+      return (LONG)CMath::sqrt_((float)SquaredMag());
     }
-    long SumC() const {
+    LONG SumC() const {
       return x + y + z + w;
     }
     bool IsUnit() const {
       return SquaredMag() == 1;
     }
     void Normalize() {
-      long magnitude = Mag();
+      LONG magnitude = Mag();
       x /= magnitude;
       y /= magnitude;
       z /= magnitude;
       w /= magnitude;
     }
-    void Scale(const long magnitude) {
+    void Scale(const LONG magnitude) {
       Normalize();
       *this *= magnitude;
     }
@@ -195,7 +195,7 @@ namespace NTempest {
         w = a.w;
     }
 
-    static long Dot(const C4iVector &a, const C4iVector &b) {
+    static LONG Dot(const C4iVector &a, const C4iVector &b) {
       return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     }
   };

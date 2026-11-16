@@ -358,7 +358,7 @@ void NetClient::WCMessageReady(WowConnection *conn, DWORD timeStamp, CDataStore 
   LPVOID data;
 
   msg->GetDataInSitu(data, bytes);
-  SInterlockedExchangeAdd((long *)&m_bytesReceived, msg->Size());
+  SInterlockedExchangeAdd((LONG *)&m_bytesReceived, msg->Size());
 
   msg->Seek(0);
 
@@ -569,7 +569,7 @@ void NetClient::GetNetStats(float &bandwidthIn, float &bandwidthOut, DWORD &late
 }
 
 void NetClient::HandleIdle() {
-  if ((long)(OsGetAsyncTimeMsPrecise() - m_pingSent - 30000) >= 0) {
+  if ((LONG)(OsGetAsyncTimeMsPrecise() - m_pingSent - 30000) >= 0) {
     Ping();
   }
 }

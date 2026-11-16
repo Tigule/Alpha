@@ -69,11 +69,11 @@ WowConnection::~WowConnection() {
 }
 
 int WowConnection::AddRef() {
-  return SInterlockedIncrement((long *)&m_refCount);
+  return SInterlockedIncrement((LONG *)&m_refCount);
 }
 
 int WowConnection::Release() {
-  int ref = SInterlockedDecrement((long *)&m_refCount);
+  int ref = SInterlockedDecrement((LONG *)&m_refCount);
 
   if (ref <= 0) {
     if (s_network) {

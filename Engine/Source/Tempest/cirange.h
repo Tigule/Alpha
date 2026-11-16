@@ -4,30 +4,30 @@ namespace NTempest {
 
   class CiRange {
    public:
-    long l;
-    long h;
+    LONG l;
+    LONG h;
 
     enum {
       eComponents = 2
     };
 
-    CiRange(long value = 0);
-    CiRange(long low, long high);
+    CiRange(LONG value = 0);
+    CiRange(LONG low, LONG high);
     ~CiRange() {
     }
 
-    void Get(long &low, long &high) const {
+    void Get(LONG &low, LONG &high) const {
       low = l;
       high = h;
     }
 
-    void Set(long low, long high) {
+    void Set(LONG low, LONG high) {
       l = low;
       h = high;
     }
 
-    long     Low() const;
-    long     High() const;
+    LONG     Low() const;
+    LONG     High() const;
     CiRange &operator+=(const CiRange &value);
     CiRange &operator-=(const CiRange &value);
     CiRange &operator*=(const CiRange &value);
@@ -39,17 +39,17 @@ namespace NTempest {
     BYTE     NotInvalid() const;
     BYTE     Encloses(const CiRange &value) const;
     BYTE     Contains(const CiRange &value) const;
-    BYTE     InClosedRange(long value) const;
-    BYTE     InOpenRange(long value) const;
-    long     Magnitude() const;
-    long     Center() const;
+    BYTE     InClosedRange(LONG value) const;
+    BYTE     InOpenRange(LONG value) const;
+    LONG     Magnitude() const;
+    LONG     Center() const;
     void     Center(const CiRange &value);
-    void     Stretch(long value);
-    void     Offset(long value);
+    void     Stretch(LONG value);
+    void     Offset(LONG value);
     void     AlignLow(const CiRange &value);
     void     AlignHigh(const CiRange &value);
-    long     ClampClosed(long value) const;
-    long     ClampOpen(long value) const;
+    LONG     ClampClosed(LONG value) const;
+    LONG     ClampOpen(LONG value) const;
 
     static CiRange Intersection(const CiRange &a, const CiRange &b);
     static CiRange Union(const CiRange &a, const CiRange &b);
@@ -57,24 +57,24 @@ namespace NTempest {
     CiRange Intersect(const CiRange &value);
     CiRange Unite(const CiRange &value);
 
-    static BYTE    InRange(long value, long low, long high);
+    static BYTE    InRange(LONG value, LONG low, LONG high);
   };
 
-  inline CiRange::CiRange(long value) : l(value), h(value) {
+  inline CiRange::CiRange(LONG value) : l(value), h(value) {
   }
 
-  inline CiRange::CiRange(long low, long high) : l(low), h(high) {
+  inline CiRange::CiRange(LONG low, LONG high) : l(low), h(high) {
   }
 
-  inline long CiRange::Low() const {
+  inline LONG CiRange::Low() const {
     return l;
   }
 
-  inline long CiRange::High() const {
+  inline LONG CiRange::High() const {
     return h;
   }
 
-  inline long CiRange::Magnitude() const {
+  inline LONG CiRange::Magnitude() const {
     return h - l;
   }
 

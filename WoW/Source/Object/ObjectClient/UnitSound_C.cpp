@@ -121,7 +121,7 @@ BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   DWORD currentTime = OsGetAsyncTimeMs();
   BOOL  canPlay = 0;
-  if ((long)(currentTime - s_unitSoundTimers[soundType]) > 0) {
+  if ((LONG)(currentTime - s_unitSoundTimers[soundType]) > 0) {
     canPlay = 1;
   }
   s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];

@@ -662,7 +662,7 @@ void CGItem_C::UpdateExpirationTime(int timeLeft) {
 int CGItem_C::GetExpirationTimeLeft() {
   if (m_expirationTime) {
     DWORD now = OsGetAsyncTimeMs();
-    if ((long)(now - m_expirationTime) < 0) {
+    if ((LONG)(now - m_expirationTime) < 0) {
       return m_expirationTime - now;
     }
   }
@@ -682,7 +682,7 @@ int CGItem_C::GetEnchantmentTimeLeft(int slot) {
   FATALASSERT((slot >= 0) && (slot < NUM_ITEM_ENCHANTMENTS));
   if (m_enchantmentExpiration[slot]) {
     DWORD now = OsGetAsyncTimeMs();
-    if ((long)(now - m_enchantmentExpiration[slot]) < 0) {
+    if ((LONG)(now - m_enchantmentExpiration[slot]) < 0) {
       return m_enchantmentExpiration[slot] - now;
     }
   }

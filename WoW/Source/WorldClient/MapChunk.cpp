@@ -522,7 +522,7 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
       asyncObject->canReorder = 0;
       s_asyncLoadList.LinkNode(asyncObject, LIST_TAIL, 0);
     }
-#ifdef _WIN64
+#if BUILD_64BIT
     ((CMapArea *)parentLinkList.Head()->ref)->chunkAsync[infoIndex] = asyncObject;
     chunkInfo->asyncId = 1;
 #else

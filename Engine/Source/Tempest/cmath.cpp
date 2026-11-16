@@ -85,10 +85,10 @@ namespace NTempest {
       estimate = a / 26743 + 444;
     }
 
-    long difference;
+    LONG difference;
     do {
-      difference = (long)(estimate - a / estimate) / 2;
-      estimate = (long)(a / estimate + estimate) / 2;
+      difference = (LONG)(estimate - a / estimate) / 2;
+      estimate = (LONG)(a / estimate + estimate) / 2;
     } while (difference);
     return estimate;
   }
@@ -127,7 +127,7 @@ namespace NTempest {
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
-    return ((long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
+    return ((LONG)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln2;
 #else
     UINT exponent;
     memcpy(&exponent, (BYTE *)&x + 4, sizeof(exponent));
@@ -147,7 +147,7 @@ namespace NTempest {
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
-    return (long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d));
+    return (LONG)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d));
 #else
     UINT exponent;
     memcpy(&exponent, (BYTE *)&x + 4, sizeof(exponent));
@@ -167,7 +167,7 @@ namespace NTempest {
     DWORD  exponent = words[1];
     words[1] = exponent & 0xFFFFF | 0x3FF00000;
     exponent = (exponent >> 20 & 0x7FF) - 1023;
-    return ((long)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
+    return ((LONG)exponent + ((_a * x + _b) * (x * x) + (x * _c + _d))) * _ln10;
 #else
     UINT exponent;
     memcpy(&exponent, (BYTE *)&x + 4, sizeof(exponent));
@@ -192,7 +192,7 @@ namespace NTempest {
     }
     return v * (((0.2883070248990067 - v * 0.22949900023246153) * v2 + (0.48089833404997356 - v * 0.36067132973951144)) * v2 +
                 (1.442695040888937 - v * 0.7213475204127876)) +
-           ((long)((high >> 20 & 0x7FF) - 1023) + *(const double *)((const BYTE *)logadd_ + index));
+           ((LONG)((high >> 20 & 0x7FF) - 1023) + *(const double *)((const BYTE *)logadd_ + index));
 #else
     double q = y;
     UINT   high;
@@ -213,7 +213,7 @@ namespace NTempest {
 
   double CMath::exp2_(double x) {
 #if !BUILD_PORTABLE
-    long   exponent = (long)(x + 1023.0) - 1;
+    LONG   exponent = (LONG)(x + 1023.0) - 1;
     double base;
     ((DWORD *)&base)[0] = 0;
     double q = x + 1023.0 - (DWORD)exponent;

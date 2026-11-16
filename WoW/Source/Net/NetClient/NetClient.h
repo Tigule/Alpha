@@ -58,12 +58,12 @@ class NetClient : public WowConnectionResponse {
   virtual BOOL HandleCantConnect();
 
   void AddRef() {
-    long newval = SInterlockedIncrement((long *)&m_refCount);
+    LONG newval = SInterlockedIncrement((LONG *)&m_refCount);
     ASSERT(newval > 0);
   }
 
   void DelRef() {
-    long newval = SInterlockedDecrement((long *)&m_refCount);
+    LONG newval = SInterlockedDecrement((LONG *)&m_refCount);
     ASSERT(newval >= 0);
     if (!newval && m_deleteMe) {
       DEL(this);

@@ -1295,7 +1295,7 @@ BOOL CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   DWORD       processTime = evt.time;
-  if (player && (player->m_move.GetMoveFlags() & MOVEFLAG_TIME_VALID) && (long)(processTime - player->m_move.GetMoveStartTime()) < 0) {
+  if (player && (player->m_move.GetMoveFlags() & MOVEFLAG_TIME_VALID) && (LONG)(processTime - player->m_move.GetMoveStartTime()) < 0) {
     processTime = player->m_move.GetMoveStartTime();
   }
 

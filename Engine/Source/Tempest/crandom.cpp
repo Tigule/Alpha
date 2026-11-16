@@ -47,7 +47,7 @@ static inline NTempest::C3Vector unit3V_(float z, float angle) {
   return NTempest::C3Vector(NTempest::CMath::cos_(angle) * radius, NTempest::CMath::sin_(angle) * radius, z);
 }
 
-static inline DWORD lattice_(long x) {
+static inline DWORD lattice_(LONG x) {
   x ^= ((ulong(x) >> 11) | (ulong(x) << 21)) ^ ((ulong(x) >> 21) | (ulong(x) << 11));
 
   DWORD n1 = *(const DWORD *)((const BYTE *)NTempest::gnoise32_ + ((ulong(x) >> 4) & 0xFC));
@@ -237,10 +237,10 @@ namespace NTempest {
   void CRandom::array_(DWORD *buf, DWORD count, CRndSeed &seed) {
     DWORD acc = seed.rndacc;
     DWORD vls = seed.rndvls;
-    long  r1 = vls >> 24;
-    long  r2 = (vls >> 16) & 0xFF;
-    long  r3 = (vls >> 8) & 0xFF;
-    long  r4 = vls & 0xFF;
+    LONG  r1 = vls >> 24;
+    LONG  r2 = (vls >> 16) & 0xFF;
+    LONG  r3 = (vls >> 8) & 0xFF;
+    LONG  r4 = vls & 0xFF;
     for (DWORD ind = 0; ind < count; ++ind) {
       r1 -= 4;
       r2 -= 12;
@@ -273,7 +273,7 @@ namespace NTempest {
     seed.rndacc = acc;
   }
 
-  void CRandom::array_(long *buf, DWORD count, CRndSeed &seed) {
+  void CRandom::array_(LONG *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf != 0);
     array_((DWORD *)buf, count, seed);
   }
@@ -483,7 +483,7 @@ namespace NTempest {
     }
   }
 
-  void CRandom::shuffle_(long *buf, DWORD count, CRndSeed &seed) {
+  void CRandom::shuffle_(LONG *buf, DWORD count, CRndSeed &seed) {
     ASSERT(buf != 0);
     shuffle_((DWORD *)buf, count, seed);
   }
@@ -542,35 +542,35 @@ namespace NTempest {
     crypt_(buf, size, Seed(password));
   }
 
-  DWORD CRandom::lattice_(long x) {
+  DWORD CRandom::lattice_(LONG x) {
     return ::lattice_(x);
   }
 
-  DWORD CRandom::lattice_(long x, long y) {
+  DWORD CRandom::lattice_(LONG x, LONG y) {
     DWORD value = ::lattice_(y);
-    return ::lattice_(x ^ (long)((value << 4) | (value >> 28)));
+    return ::lattice_(x ^ (LONG)((value << 4) | (value >> 28)));
   }
 
-  DWORD CRandom::lattice_(long x, long y, long z) {
+  DWORD CRandom::lattice_(LONG x, LONG y, LONG z) {
     DWORD value = ::lattice_(z);
-    value = ::lattice_(y ^ (long)((value << 4) | (value >> 28)));
-    return ::lattice_(x ^ (long)((value << 4) | (value >> 28)));
+    value = ::lattice_(y ^ (LONG)((value << 4) | (value >> 28)));
+    return ::lattice_(x ^ (LONG)((value << 4) | (value >> 28)));
   }
 
-  DWORD CRandom::lattice_(long x, long y, long z, long w) {
+  DWORD CRandom::lattice_(LONG x, LONG y, LONG z, LONG w) {
     DWORD value = ::lattice_(w);
-    value = ::lattice_(z ^ (long)((value << 4) | (value >> 28)));
-    value = ::lattice_(y ^ (long)((value << 4) | (value >> 28)));
-    return ::lattice_(x ^ (long)((value << 4) | (value >> 28)));
+    value = ::lattice_(z ^ (LONG)((value << 4) | (value >> 28)));
+    value = ::lattice_(y ^ (LONG)((value << 4) | (value >> 28)));
+    return ::lattice_(x ^ (LONG)((value << 4) | (value >> 28)));
   }
 
-  void CRandom::lattice2_(long x, DWORD *vtx) {
+  void CRandom::lattice2_(LONG x, DWORD *vtx) {
     ASSERT(vtx != 0);
     vtx[0] = ::lattice_(x);
     vtx[1] = ::lattice_(x + 1);
   }
 
-  void CRandom::lattice4_(long x, long y, DWORD *vtx) {
+  void CRandom::lattice4_(LONG x, LONG y, DWORD *vtx) {
     ASSERT(vtx != 0);
     DWORD va = ::lattice_(y);
     va = (va << 4) | (va >> 28);
@@ -582,7 +582,7 @@ namespace NTempest {
     vtx[3] = ::lattice_((x + 1) ^ vb);
   }
 
-  void CRandom::lattice8_(long x, long y, long z, DWORD *vtx) {
+  void CRandom::lattice8_(LONG x, LONG y, LONG z, DWORD *vtx) {
     ASSERT(vtx != 0);
     DWORD v0 = ::lattice_(z);
     v0 = (v0 << 4) | (v0 >> 28);
@@ -606,14 +606,14 @@ namespace NTempest {
     vtx[7] = ::lattice_((x + 1) ^ vd);
   }
 
-  void CRandom::lattice3_(long x, DWORD *vtx) {
+  void CRandom::lattice3_(LONG x, DWORD *vtx) {
     ASSERT(vtx != 0);
     vtx[0] = ::lattice_(x - 1);
     vtx[1] = ::lattice_(x);
     vtx[2] = ::lattice_(x + 1);
   }
 
-  void CRandom::lattice9_(long x, long y, DWORD *vtx) {
+  void CRandom::lattice9_(LONG x, LONG y, DWORD *vtx) {
     ASSERT(vtx != 0);
     DWORD va = ::lattice_(y - 1);
     va = (va << 4) | (va >> 28);
@@ -632,9 +632,9 @@ namespace NTempest {
     vtx[8] = ::lattice_((x + 1) ^ vc);
   }
 
-  void CRandom::lattice27_(long x, long y, long zc, DWORD *vtx) {
+  void CRandom::lattice27_(LONG x, LONG y, LONG zc, DWORD *vtx) {
     ASSERT(vtx != 0);
-    for (long z = zc - 1; z <= zc + 1; ++z) {
+    for (LONG z = zc - 1; z <= zc + 1; ++z) {
       DWORD v0 = ::lattice_(z);
       v0 = (v0 << 4) | (v0 >> 28);
       DWORD va = ::lattice_((y - 1) ^ v0);
@@ -657,7 +657,7 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x) {
-    long integer = x;
+    LONG integer = x;
     if (x < 0.0)
       --integer;
     float fraction = x - integer;
@@ -682,8 +682,8 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x, double y) {
-    long xi = x;
-    long yi = y;
+    LONG xi = x;
+    LONG yi = y;
     if (x < 0.0)
       --xi;
     if (y < 0.0)
@@ -727,9 +727,9 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x, double y, double z) {
-    long xi = x;
-    long yi = y;
-    long zi = z;
+    LONG xi = x;
+    LONG yi = y;
+    LONG zi = z;
     if (x < 0.0)
       --xi;
     if (y < 0.0)
@@ -781,9 +781,9 @@ namespace NTempest {
   }
 
   float CRandom::noise_(double x, double y, double z, C3Vector &derivative) {
-    long xi = x;
-    long yi = y;
-    long zi = z;
+    LONG xi = x;
+    LONG yi = y;
+    LONG zi = z;
     if (x < 0.0)
       --xi;
     if (y < 0.0)
@@ -813,7 +813,7 @@ namespace NTempest {
     for (DWORD pair = 0; pair < 4; ++pair) {
       DWORD first = vertices[pair * 2];
       DWORD second = vertices[pair * 2 + 1];
-      long  a = first >> 28, b = second >> 28;
+      LONG  a = first >> 28, b = second >> 28;
       xValues[pair][0] = fr4u[b - a] * hxv + fr4s[(first >> 24) & 0xF] * hx0 +
                          fr4s[(second >> 24) & 0xF] * hx1 + fr4u[a];
       a = (first >> 20) & 0xF;
@@ -836,7 +836,7 @@ namespace NTempest {
     for (DWORD zPair = 0; zPair < 4; ++zPair) {
       DWORD first = vertices[zPair];
       DWORD second = vertices[zPair + 4];
-      long  a = first >> 28, b = second >> 28;
+      LONG  a = first >> 28, b = second >> 28;
       zValues[zPair][0] = fr4u[b - a] * hzv +
                           fr4s[(first >> 12) & 0xF] * hz0 +
                           fr4s[(second >> 12) & 0xF] * hz1 + fr4u[a];

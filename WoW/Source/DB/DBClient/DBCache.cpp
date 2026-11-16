@@ -314,7 +314,7 @@ void DBCache<RECORD, KEY, HASHKEY>::Save() {
       UINT pos = r.Size();
       r.Put(0);
       entry->m_record.Pack(&r);
-      r.Set(pos, r.Size() - sizeof(KEY) - sizeof(DWORD));
+      r.Set(pos, (UINT)(r.Size() - sizeof(KEY) - sizeof(DWORD)));
       r.Finalize();
       r.GetDataInSitu(ptr, r.Size());
       OsWriteFile(file, ptr, r.Size(), &bytesWritten);

@@ -1041,7 +1041,7 @@ namespace STypeCache {
   int    s_numEntries;
   int    s_reprobeCount;
   char  *s_lastSearchValue;
-  long   s_interlock;
+  LONG   s_interlock;
   int    s_probe3Count;
   int    s_probe2Count;
   char  *s_lastSearchKey;

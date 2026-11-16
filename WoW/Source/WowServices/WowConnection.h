@@ -211,7 +211,7 @@ class WowConnection {
   int                    m_sendDepthBytes;
   UINT                   m_serviceFlags;
   SCritSect              m_lock;
-  long                   m_serviceCount;
+  LONG                   m_serviceCount;
   LPVOID                 m_event;
   WOWC_TYPE              m_type;
   BYTE                   m_wantWriteNotification;

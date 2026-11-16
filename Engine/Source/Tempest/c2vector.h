@@ -187,7 +187,7 @@ namespace NTempest {
     return C2Vector(l * r.x, l * r.y);
   }
 
-  inline C2iVector::C2iVector(const C2Vector &vector) : x((long)vector.x), y((long)vector.y) {
+  inline C2iVector::C2iVector(const C2Vector &vector) : x((LONG)vector.x), y((LONG)vector.y) {
   }
 
 }  // namespace NTempest

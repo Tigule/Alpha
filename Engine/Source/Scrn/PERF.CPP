@@ -139,7 +139,7 @@ static SEvent          *s_ProfStartupEvent;
 static SEvent          *s_ProfShutdownEvent;
 static HNETCONN         s_ProfConn;
 static SThread         *s_ProfThreadPtr;
-static long             s_ProfStartup;
+static LONG             s_ProfStartup;
 static char             s_hostNameList[64];
 
 void WINAPI HookRenderBegin(LPVOID) {
@@ -399,10 +399,10 @@ int WINAPI ChatEventProc(HNETCONN conn, const NETCONNADDR *conAddr, NETNOTE note
         s_ProfShutdownEvent->Set();
       }
       s_ProfLock.Enter(1);
-#ifdef _WIN64
+#if BUILD_64BIT
       HNETCONN old = (HNETCONN)SInterlockedExchangePointer((LPVOID *)&s_ProfConn, 0);
 #else
-      HNETCONN old = (HNETCONN)SInterlockedExchange((long *)&s_ProfConn, 0);
+      HNETCONN old = (HNETCONN)SInterlockedExchange((LONG *)&s_ProfConn, 0);
 #endif
       s_ProfLock.Leave(1);
       if (old) {
@@ -528,10 +528,10 @@ UINT WINAPI IPerfRemoteLoggingThread(LPVOID) {
       s_ProfRequestEnqueuedEvent->Reset();
     }
     s_ProfLock.Enter(1);
-#ifdef _WIN64
+#if BUILD_64BIT
     HNETCONN old = (HNETCONN)SInterlockedExchangePointer((LPVOID *)&s_ProfConn, 0);
 #else
-    HNETCONN old = (HNETCONN)SInterlockedExchange((long *)&s_ProfConn, 0);
+    HNETCONN old = (HNETCONN)SInterlockedExchange((LONG *)&s_ProfConn, 0);
 #endif
     s_ProfLock.Leave(1);
     if (old) {

@@ -135,17 +135,17 @@ namespace NTempest {
     Set32b_(d, c, size);
   }
 
-  inline char *CMemBlock::Allocate(DWORD size, LPCSTR filen, long linen) {
+  inline char *CMemBlock::Allocate(DWORD size, LPCSTR filen, LONG linen) {
     return size ? (char *)SMemAlloc(size, filen, linen, SMEM_FLAG_ZEROMEMORY) : (char *)-1;
   }
 
-  inline void CMemBlock::Dispose(char *mem, LPCSTR filen, long linen) {
+  inline void CMemBlock::Dispose(char *mem, LPCSTR filen, LONG linen) {
     if (mem != (char *)-1) {
       SMemFree(mem, filen, linen, 0);
     }
   }
 
-  void CMemBlock::Constructor_(DWORD bsize, DWORD prologue, LPCSTR filen, long linen) {
+  void CMemBlock::Constructor_(DWORD bsize, DWORD prologue, LPCSTR filen, LONG linen) {
     SetFileN_(filen);
     SetLineN_(linen);
     Destructor_();
@@ -171,7 +171,7 @@ namespace NTempest {
     }
   }
 
-  CMemBlock::CMemBlock(DWORD bsize, DWORD prologue, LPCSTR filen, long linen) : mem_(0) {
+  CMemBlock::CMemBlock(DWORD bsize, DWORD prologue, LPCSTR filen, LONG linen) : mem_(0) {
     Constructor_(bsize, prologue, filen, linen);
   }
 
@@ -209,7 +209,7 @@ namespace NTempest {
     return copySize;
   }
 
-  long CMemBlock::Compare(const CMemBlock &to) const {
+  LONG CMemBlock::Compare(const CMemBlock &to) const {
     ASSERT(IsValid());
     ASSERT(to.IsValid());
     DWORD compareSize = size < to.size ? size : to.size;
@@ -224,7 +224,7 @@ namespace NTempest {
     return copySize;
   }
 
-  long CMemBlock::Compare_(const CMemBlock &to) const {
+  LONG CMemBlock::Compare_(const CMemBlock &to) const {
     ASSERT(IsValid());
     ASSERT(to.IsValid());
     DWORD compareSize = size_ < to.size_ ? size_ : to.size_;
@@ -318,7 +318,7 @@ namespace NTempest {
     return filen_;
   }
 
-  long CMemBlock::LineN_() const {
+  LONG CMemBlock::LineN_() const {
     return linen_;
   }
 
@@ -326,7 +326,7 @@ namespace NTempest {
     filen_ = filen;
   }
 
-  void CMemBlock::SetLineN_(long linen) {
+  void CMemBlock::SetLineN_(LONG linen) {
     linen_ = linen;
   }
 

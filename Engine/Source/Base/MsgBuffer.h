@@ -41,7 +41,7 @@ class CMsgBuffer {
   void AddWord(WORD val);
   void AddInt(int val);
   void AddUint(UINT val);
-  void AddLong(long val);
+  void AddLong(LONG val);
   void AddUlong(DWORD val);
   void AddDword(DWORD val);
   void AddLongLong(LONGLONG val);
@@ -61,9 +61,11 @@ class CMsgBuffer {
   void AddArray(const WORD *buffer, UINT count) {
     AddWordArray(buffer, count);
   }
+#if !defined(__LP64__)
   void AddArray(const DWORD *buffer, UINT count) {
     AddDwordArray(buffer, count);
   }
+#endif
   void AddArray(const float *buffer, UINT count) {
     AddFloatArray(buffer, count);
   }
@@ -83,7 +85,7 @@ class CMsgBuffer {
   WORD      GetWord();
   int       GetInt();
   UINT      GetUint();
-  long      GetLong();
+  LONG      GetLong();
   DWORD     GetUlong();
   DWORD     GetDword();
   LONGLONG  GetLongLong();
@@ -103,9 +105,11 @@ class CMsgBuffer {
   void GetArray(WORD *buffer, UINT count) {
     GetWordArray(buffer, count);
   }
+#if !defined(__LP64__)
   void GetArray(DWORD *buffer, UINT count) {
     GetDwordArray(buffer, count);
   }
+#endif
   void GetArray(float *buffer, UINT count) {
     GetFloatArray(buffer, count);
   }

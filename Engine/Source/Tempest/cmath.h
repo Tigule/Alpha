@@ -6,11 +6,11 @@
 
 typedef char             int8;
 typedef short            int16;
-typedef long             int32;
+typedef LONG             int32;
 typedef __int64          int64;
 typedef unsigned char    uint8;
 typedef unsigned short   uint16;
-typedef unsigned long    uint32;
+typedef DWORD            uint32;
 typedef float            real;
 typedef double           lreal;
 typedef char            *pointer;
@@ -321,24 +321,24 @@ namespace NTempest {
       return (DWORD)(r + 0.5f);
     }
 
-    static long fint_(float x) {
-      return x > .0f ? (long)fuint_(x) : -(long)fuint_(-x);
+    static LONG fint_(float x) {
+      return x > .0f ? (LONG)fuint_(x) : -(LONG)fuint_(-x);
     }
 
-    static long fint_n(float x) {
-      return x > .0f ? (long)fuint_n(x) : -(long)fuint_n(-x);
+    static LONG fint_n(float x) {
+      return x > .0f ? (LONG)fuint_n(x) : -(LONG)fuint_n(-x);
     }
 
-    static long fint_pi(float x) {
-      return (long)(x + 0.5f);
+    static LONG fint_pi(float x) {
+      return (LONG)(x + 0.5f);
     }
 
-    static long fint_mi(float x) {
-      return (long)(x - 0.5f);
+    static LONG fint_mi(float x) {
+      return (LONG)(x - 0.5f);
     }
 
-    static long fint_si(float x) {
-      return (long)(x + (x < 0.0f ? -0.5f : 0.5f));
+    static LONG fint_si(float x) {
+      return (LONG)(x + (x < 0.0f ? -0.5f : 0.5f));
     }
 
 #if !BUILD_PORTABLE
@@ -347,7 +347,7 @@ namespace NTempest {
     }
 
     static int32 realasint32_(real x) {
-      return *(long *)&x;
+      return *(LONG *)&x;
     }
 
     static lreal int64aslreal_(int64 x) {
@@ -706,51 +706,51 @@ namespace NTempest {
 
     static double fres_(double *x, DWORD magic);
 
-    static long   mulhw_(long x, long y);
+    static LONG   mulhw_(LONG x, LONG y);
 
     static DWORD  mulhwu_(DWORD x, DWORD y);
 
     static DWORD  div3_(DWORD x);
 
-    static long   div3_(long x);
+    static LONG   div3_(LONG x);
 
     static DWORD  div5_(DWORD x);
 
-    static long   div5_(long x);
+    static LONG   div5_(LONG x);
 
     static DWORD  div9_(DWORD x);
 
-    static long   div9_(long x);
+    static LONG   div9_(LONG x);
 
-    static long   min_(long a, long b, long c);
+    static LONG   min_(LONG a, LONG b, LONG c);
 
-    static long   min_(long a, long b, long c, long d, long e);
+    static LONG   min_(LONG a, LONG b, LONG c, LONG d, LONG e);
 
-    static long   min_(long a, long b, long c, long d, long e, long f, long g, long h, long i);
+    static LONG   min_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i);
 
-    static long   med_(long a, long b, long c);
+    static LONG   med_(LONG a, LONG b, LONG c);
 
-    static long   med_(long a, long b, long c, long d, long e);
+    static LONG   med_(LONG a, LONG b, LONG c, LONG d, LONG e);
 
-    static long   med_(long a, long b, long c, long d, long e, long f, long g, long h, long i);
+    static LONG   med_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i);
 
-    static long   max_(long a, long b, long c);
+    static LONG   max_(LONG a, LONG b, LONG c);
 
-    static long   max_(long a, long b, long c, long d, long e);
+    static LONG   max_(LONG a, LONG b, LONG c, LONG d, LONG e);
 
-    static long   max_(long a, long b, long c, long d, long e, long f, long g, long h, long i);
+    static LONG   max_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i);
 
-    static long   span_(long a, long b, long c);
+    static LONG   span_(LONG a, LONG b, LONG c);
 
-    static long   span_(long a, long b, long c, long d, long e);
+    static LONG   span_(LONG a, LONG b, LONG c, LONG d, LONG e);
 
-    static long   span_(long a, long b, long c, long d, long e, long f, long g, long h, long i);
+    static LONG   span_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i);
 
-    static long   mean_(long a, long b, long c);
+    static LONG   mean_(LONG a, LONG b, LONG c);
 
-    static long   mean_(long a, long b, long c, long d, long e);
+    static LONG   mean_(LONG a, LONG b, LONG c, LONG d, LONG e);
 
-    static long   mean_(long a, long b, long c, long d, long e, long f, long g, long h, long i);
+    static LONG   mean_(LONG a, LONG b, LONG c, LONG d, LONG e, LONG f, LONG g, LONG h, LONG i);
 
     static DWORD sqrt_(DWORD x);
 
@@ -831,9 +831,9 @@ namespace NTempest {
       return n;
     }
 
-    static void  split_(double x, double &fraction, long &integer);
+    static void  split_(double x, double &fraction, LONG &integer);
 
-    static void  split_(float x, float &fraction, long &integer);
+    static void  split_(float x, float &fraction, LONG &integer);
 
     static void  splitr_(double x, double &fraction, double &integer);
 
@@ -847,15 +847,15 @@ namespace NTempest {
       return _copysign(x, y);
     }
 
-    static long iclamp_(long x, DWORD high) {
+    static LONG iclamp_(LONG x, DWORD high) {
       return x < 0 ? 0 : (DWORD)x > high ? high : x;
     }
 
-    static long iclamp_(long x, long low, long high) {
+    static LONG iclamp_(LONG x, LONG low, LONG high) {
       return x < low ? low : x > high ? high : x;
     }
 
-    static void iclamp_x(long &x, DWORD high) {
+    static void iclamp_x(LONG &x, DWORD high) {
       x = iclamp_(x, high);
     }
 
@@ -864,11 +864,11 @@ namespace NTempest {
         x = high;
     }
 
-    static void iclamp_x(long &x, long low, long high) {
+    static void iclamp_x(LONG &x, LONG low, LONG high) {
       x = iclamp_(x, low, high);
     }
 
-    static void iclamp_x(DWORD &x, long low, long high) {
+    static void iclamp_x(DWORD &x, LONG low, LONG high) {
       x = iclamp_(x, low, high);
     }
 
