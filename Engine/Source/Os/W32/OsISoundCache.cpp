@@ -66,7 +66,7 @@ static SoundFileDataCacheBlock *AllocCacheBlock(LONGLONG hashKey) {
   return cacheBlock;
 }
 
-UINT __stdcall SoundFileCache::Open(LPCSTR filename) {
+UINT WINAPI SoundFileCache::Open(LPCSTR filename) {
   UINT   hash;
   SFile *file;
 
@@ -150,7 +150,7 @@ UINT __stdcall SoundFileCache::Open(LPCSTR filename) {
   return handle;
 }
 
-int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
+int WINAPI SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
   LONGLONG         hashKey;
   UINT             blockStartOffset;
   int              bytesReadFromCache;
@@ -233,7 +233,7 @@ int __stdcall SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
   return bytesReadFromCache;
 }
 
-int __stdcall SoundFileCache::Seek(UINT handle, int pos, signed char mode) {
+int WINAPI SoundFileCache::Seek(UINT handle, int pos, signed char mode) {
   s_soundFileCacheLock.Enter();
 
   UINT baseHandle = handle >> 8;
@@ -265,7 +265,7 @@ int __stdcall SoundFileCache::Seek(UINT handle, int pos, signed char mode) {
   return object->instances[instanceNumber].currentOffset;
 }
 
-int __stdcall SoundFileCache::Tell(UINT handle) {
+int WINAPI SoundFileCache::Tell(UINT handle) {
   s_soundFileCacheLock.Enter();
 
   UINT baseHandle = handle >> 8;
@@ -283,7 +283,7 @@ int __stdcall SoundFileCache::Tell(UINT handle) {
   return currentOffset;
 }
 
-void __stdcall SoundFileCache::Close(UINT handle) {
+void WINAPI SoundFileCache::Close(UINT handle) {
   s_soundFileCacheLock.Enter();
   ++s_closeRequests;
 

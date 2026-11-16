@@ -53,7 +53,7 @@ class CGObject_C : public CGObject {
   void  AddWorldObject();
   void  UpdateWorldObject();
   void  RemoveWorldObject();
-  DWORD GetWorldObject() const {
+  DWORD_PTR GetWorldObject() const {
     return m_worldObject;
   }
   static void UpdateAllWorldObjects();
@@ -206,7 +206,7 @@ class CGObject_C : public CGObject {
   float  m_objectHeight;
 
  protected:
-  DWORD m_worldObject;
+  DWORD_PTR m_worldObject;
 
  private:
   UINT m_flags;

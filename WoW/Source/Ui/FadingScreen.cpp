@@ -34,7 +34,7 @@ enum {
 
 static BYTE      s_fadingScreenEnabled;
 static BYTE      s_drawingFadingScreen;
-static HLAYER__ *s_fadingScreenLayer;
+static HLAYER    s_fadingScreenLayer;
 static int       s_fadingMode;
 static float     s_fadingTime;
 static DWORD     s_fadingStart;

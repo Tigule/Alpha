@@ -28,8 +28,8 @@
 #undef LoadImage
 #endif
 
-static bool      s_loadingScreenEnabled;
-static HLAYER__ *s_loadingScreenLayer;
+static bool   s_loadingScreenEnabled;
+static HLAYER s_loadingScreenLayer;
 
 enum TEXTURETYPE {
   TEXTURE_BACKGROUND = 0,

@@ -10,7 +10,7 @@
 #include <stpl.h>
 
 struct CGxBuf;
-struct HTEXTURE__;
+typedef struct HTEXTURE__ *HTEXTURE;
 struct MDLDATA;
 
 class CDetailDoodadGeom {
@@ -19,7 +19,7 @@ class CDetailDoodadGeom {
     PROP_TWOSIDED = 1
   };
 
-  HTEXTURE__                          *texture;
+  HTEXTURE                             texture;
   TSGrowableArray<NTempest::C3Vector>  vertexList;
   TSGrowableArray<NTempest::C3Vector>  normalList;
   TSGrowableArray<NTempest::C2Vector>  tVertexList;
@@ -46,7 +46,7 @@ class CDetailDoodadData {
  public:
   LPCSTR             fileName;
   int                loaded;
-  HTEXTURE__        *texture;
+  HTEXTURE           texture;
   CDetailDoodadGeom *geom;
 };
 

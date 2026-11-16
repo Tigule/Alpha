@@ -67,7 +67,7 @@ void CCamera::SetupWorldProjection(const NTempest::CRect &projectionRect, UINT f
   GxXformSetView(mView);
 }
 
-void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
+void CameraCalcPosFromTarg(HCAMERA camera, NTempest::C3Vector *position) {
   CCamera *cameraPtr = (CCamera *)camera;
   VALIDATEBEGIN;
   VALIDATE(cameraPtr);
@@ -82,7 +82,7 @@ void CameraCalcPosFromTarg(HCAMERA__ *camera, NTempest::C3Vector *position) {
             + cameraPtr->m_target.Get();
 }
 
-void CameraCalcTargFromPos(HCAMERA__ *camera, NTempest::C3Vector *target) {
+void CameraCalcTargFromPos(HCAMERA camera, NTempest::C3Vector *target) {
   CCamera *cameraPtr = (CCamera *)camera;
   VALIDATEBEGIN;
   VALIDATE(cameraPtr);
@@ -183,7 +183,7 @@ void CameraSetupWorldProjection(HCAMERA camera, const NTempest::CRect &projectio
   cameraPtr->SetupWorldProjection(projectionRect, flags);
 }
 
-void CameraUpdate(HCAMERA__ *camera, float elapsedSec) {
+void CameraUpdate(HCAMERA camera, float elapsedSec) {
   CCamera *cameraPtr = (CCamera *)camera;
   VALIDATE2VOID(cameraPtr);
   cameraPtr->Update(elapsedSec);

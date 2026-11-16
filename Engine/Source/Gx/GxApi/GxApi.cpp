@@ -125,7 +125,7 @@ CGxDevice *GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &for
   return 0;
 }
 
-CGxDevice *GxDevCreate(EGxApi api, UINT hwnd, const CGxFormat &format) {
+CGxDevice *GxDevCreate(EGxApi api, UINT_PTR hwnd, const CGxFormat &format) {
   CGxDevice *device;
 
   ASSERT(api < GxApis_Last);
@@ -161,7 +161,7 @@ CGxDevice *GxDevCreate(EGxApi api, UINT hwnd, const CGxFormat &format) {
   return 0;
 }
 
-void GxDevWM(EGxWM wm, long param1, long param2) {
+void GxDevWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) {
   g_theGxDevicePtr->DeviceWM(wm, param1, param2);
 }
 
@@ -217,7 +217,7 @@ int GxDevTextureQuality() {
   return g_theGxDevicePtr->DeviceTextureQuality();
 }
 
-DWORD GxDevWindow() {
+DWORD_PTR GxDevWindow() {
   return g_theGxDevicePtr->DeviceWindow();
 }
 

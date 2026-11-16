@@ -7,7 +7,7 @@
 #include <stpl.h>
 
 struct CGxBatch;
-struct HTEXTURE__;
+typedef struct HTEXTURE__ *HTEXTURE;
 class CGxDevice;
 class CGxDeviceD3d;
 class CGxDeviceOpenGl;
@@ -182,7 +182,7 @@ class CGxStateRegister {
 
 class CGxDevice {
  private:
-  friend HTEXTURE__ *TextureAllocImage(EGxTexFormat format, UINT width, UINT height);
+  friend HTEXTURE TextureAllocImage(EGxTexFormat format, UINT width, UINT height);
   friend class CGxDeviceD3d;
   friend class CGxDeviceOpenGl;
 
@@ -329,7 +329,7 @@ class CGxDevice {
   static void       LogClose();
 
   virtual BOOL DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
-  virtual BOOL DeviceCreate(UINT hwnd, const CGxFormat &format);
+  virtual BOOL DeviceCreate(UINT_PTR hwnd, const CGxFormat &format);
   virtual void DeviceDestroy();
   virtual BOOL DeviceSetFormat(const CGxFormat &format);
   virtual void DeviceSetBaseMipLevel(UINT baseMipLevel);
@@ -342,14 +342,14 @@ class CGxDevice {
   void             DeviceGamma(CGxGammaRamp &ramp);
   void             DeviceSystemGamma(CGxGammaRamp &ramp);
   int              DeviceTextureQuality();
-  virtual DWORD    DeviceWindow() = 0;
+  virtual DWORD_PTR DeviceWindow() = 0;
   EGxApi           DeviceApi();
   virtual void     DeviceTakeScreenShot();
   virtual void     DeviceReadScreenShot(UINT &w, UINT &h, const NTempest::CImVector *&pixels);
   void             DeviceClearScreenShot();
   virtual void     DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) = 0;
   virtual void     DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<float> &depths) = 0;
-  virtual void     DeviceWM(EGxWM wm, long param1, long param2) = 0;
+  virtual void     DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) = 0;
   virtual void     DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *texture, UINT plane);
   virtual void     DeviceOverride(EGxOverride override, DWORD value);
   static BOOL      AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);

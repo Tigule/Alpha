@@ -31,13 +31,13 @@ void CMap::Unload() {
 
   CMapBaseObjLink *link;
   CMapBaseObjLink *next;
-  for (link = mapObjDefLinkList.Head(); (int)link > 0 ? (next = mapObjDefLinkList.RawNext(link), 1) : 0; link = next) {
+  for (link = mapObjDefLinkList.Head(); (INT_PTR)link > 0 ? (next = mapObjDefLinkList.RawNext(link), 1) : 0; link = next) {
     CMapObjDef *mapObjDef = (CMapObjDef *)link->owner;
     FreeBaseObjLink(link);
     PurgeMapObjDef(mapObjDef);
   }
 
-  for (link = doodadDefLinkList.Head(); (int)link > 0 ? (next = doodadDefLinkList.RawNext(link), 1) : 0; link = next) {
+  for (link = doodadDefLinkList.Head(); (INT_PTR)link > 0 ? (next = doodadDefLinkList.RawNext(link), 1) : 0; link = next) {
     CMapDoodadDef *doodadDef = (CMapDoodadDef *)link->owner;
     FreeBaseObjLink(link);
     PurgeDoodadDef(doodadDef);

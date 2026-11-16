@@ -1447,7 +1447,7 @@ MipBits *TextureGetMips(HTEXTURE texture, int force) {
   return textureptr->mipBits;
 }
 
-int TextureIsOpaque(HTEXTURE__ *texture) {
+int TextureIsOpaque(HTEXTURE texture) {
   CTexture *textureptr = (CTexture *)texture;
 
   VALIDATE2(textureptr);
@@ -1500,13 +1500,13 @@ void TextureGenerateMips(UINT width, UINT height, UINT levelsProvided, UINT leve
 MipBits *TextureAllocMippedImg(EGxTexFormat format, UINT width, UINT height) {
   UINT  mipCount;
   UINT  levelDataSize;
-  UINT *ptr;
-  UINT  offset;
-  UINT  level;
+  UINT_PTR *ptr;
+  UINT      offset;
+  UINT      level;
 
   mipCount = TextureCalcMipCount(width, height);
   levelDataSize = CalcLevelOffset(mipCount, width, height, format);
-  ptr = (UINT *)ALLOC(levelDataSize + 4 * mipCount);
+  ptr = (UINT_PTR *)ALLOC(levelDataSize + sizeof(C4Pixel *) * mipCount);
   offset = 0;
 
   for (level = 0; level < mipCount; ++level) {
@@ -1604,7 +1604,7 @@ UINT TexturePickAlternateFilename(LPCSTR path, TEXFILETYPE fileType, char *newpa
   return fileType;
 }
 
-DWORD TextureGetUniqueID(HTEXTURE__ *texture) {
+DWORD TextureGetUniqueID(HTEXTURE texture) {
   return (DWORD)texture;
 }
 

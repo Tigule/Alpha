@@ -29,13 +29,13 @@ struct CLightList : public TSHashObject<CLightList, HASHKEY_DWORD> {
 
 extern void (*GxuLightInitialize)();
 extern void (*GxuLightShutdown)();
-extern DWORD (*GxuLightCreate)();
-extern void (*GxuLightDestroy)(DWORD lightId);
-extern CGxLight *(*GxuLightLock)(DWORD lightId);
-extern void (*GxuLightUnlock)(DWORD lightId);
+extern DWORD_PTR (*GxuLightCreate)();
+extern void (*GxuLightDestroy)(DWORD_PTR lightId);
+extern CGxLight *(*GxuLightLock)(DWORD_PTR lightId);
+extern void (*GxuLightUnlock)(DWORD_PTR lightId);
 extern void (*GxuLightSelect)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
-extern int (*GxuLightEnable)(DWORD lightId);
-extern void (*GxuLightEnableSet)(DWORD lightId, int enable);
+extern int (*GxuLightEnable)(DWORD_PTR lightId);
+extern void (*GxuLightEnableSet)(DWORD_PTR lightId, int enable);
 extern void (*GxuLightSetMaxLights)(UINT maxLightsToUse);
 extern float (*GxuLightBucketSize)();
 extern void (*GxuLightBucketSizeSet)(float bucketSize);
@@ -44,13 +44,13 @@ extern void (*GxuLightResetCache)();
 void GxuLightFuncsSet(
     void (*initializeFunc)(),
     void (*shutDownFunc)(),
-    DWORD (*createFunc)(),
-    void (*destroyFunc)(DWORD lightId),
-    CGxLight *(*lockFunc)(DWORD lightId),
-    void (*unlockFunc)(DWORD lightId),
+    DWORD_PTR (*createFunc)(),
+    void (*destroyFunc)(DWORD_PTR lightId),
+    CGxLight *(*lockFunc)(DWORD_PTR lightId),
+    void (*unlockFunc)(DWORD_PTR lightId),
     void (*selectFunc)(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse),
-    int (*enableFunc)(DWORD lightId),
-    void (*enableSetFunc)(DWORD lightId, int enable),
+    int (*enableFunc)(DWORD_PTR lightId),
+    void (*enableSetFunc)(DWORD_PTR lightId, int enable),
     void (*setMaxLightsFunc)(UINT maxLightsToUse),
     float (*bucketSizeFunc)(),
     void (*bucketSizeSetFunc)(float bucketSize),

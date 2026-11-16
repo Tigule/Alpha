@@ -401,6 +401,13 @@ void CMapObjGroup::InitPtrs() {
 
 void CMapObjGroup::Clear() {
   FreeLightmaps();
+#ifdef _WIN64
+  if (lightmapTexList) {
+    SMemFree(lightmapTexList, __FILE__, __LINE__, 0);
+  }
+  lightmapTexList = 0;
+  lightmapTexCount = 0;
+#endif
 
   if (asyncObject) {
     AsyncFileReadDestroyObject(asyncObject);

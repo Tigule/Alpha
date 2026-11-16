@@ -1012,7 +1012,7 @@ static void ZlibFree(LPVOID opaque, LPVOID ptr) {
   }
 }
 
-extern "C" int __stdcall zlib_compress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen, int level) {
+extern "C" int WINAPI zlib_compress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen, int level) {
   ZlibCompressAllocBuffer buffer;
   z_stream                stream;
   int                     result;
@@ -1064,7 +1064,7 @@ static void ZlibCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sou
   *hint = SCOMP_HINT_NONE;
 }
 
-extern "C" int __stdcall zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen) {
+extern "C" int WINAPI zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen) {
   ZlibUncompressAllocBuffer buffer;
   z_stream                  stream;
   int                       result;

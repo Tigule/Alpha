@@ -737,6 +737,8 @@ static void sShowOutOfMemory(LOGMACHINESTATEPROC logLineProc, LPVOID logLineProc
   SMemGenerateReport(SMEM_REPORT_BY_CALLER, CmdMemOutput, (HOUTPUTCONTEXT)&dump);
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
 }
+
+#if defined(_M_IX86) || defined(_X86_)
 static void sLogDbgHelpStackTrace(
     UINT                logOptions,
     LOGMACHINESTATEPROC logLineProc,
@@ -886,6 +888,8 @@ static void sLogX86ContextRegisters(LOGMACHINESTATEPROC logLineProc, LPVOID logL
   );
   logLineProc(logLineProcParam, "");
 }
+#endif
+
 int CheckMachineStateSymbolHelper() {
   int loaded;
 
@@ -988,10 +992,10 @@ void LogMachineState(UINT logOptions, LOGMACHINESTATEPROC logLineProc, LPVOID lo
 
   sLogSeparatorLine(logLineProc, logLineProcParam, '-', 1);
 
+#if defined(_M_IX86) || defined(_X86_)
   if ((logOptions & 0x00010000) && context) {
     sLogX86ContextRegisters(logLineProc, logLineProcParam, context);
   }
-#if defined(_M_IX86) || defined(_X86_)
   if (logOptions & 0x00080000) {
     sLogX86ManualStackTrace(logOptions, logLineProc, logLineProcParam, registerEip, registerEbp, stackFramesToSkip);
   }

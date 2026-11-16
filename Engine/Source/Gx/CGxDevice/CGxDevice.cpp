@@ -343,7 +343,7 @@ BOOL CGxDevice::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   return DeviceSetFormat(format);
 }
 
-BOOL CGxDevice::DeviceCreate(UINT hwnd, const CGxFormat &format) {
+BOOL CGxDevice::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
   CreateDynamicBufs();
   m_format = format;
   return 1;
@@ -953,9 +953,9 @@ void CGxDevice::RsSet(EGxRenderState which, const NTempest::C3Vector &value) {
 void CGxDevice::RsSet(EGxRenderState which, LPVOID value) {
   CGxStateBom tmp_;
 
-  if (mAppRenderStates[which].mValue.mData[0] != (int)value) {
+  if (*(LPVOID *)&mAppRenderStates[which].mValue.mData[0] != value) {
     tmp_ = 0;
-    tmp_.mData[0] = (int)value;
+    *(LPVOID *)&tmp_.mData[0] = value;
     IRsSet(which, tmp_);
   }
 
@@ -983,7 +983,7 @@ void CGxDevice::RsGet(EGxRenderState which, NTempest::C3Vector &value) {
 }
 
 void CGxDevice::RsGet(EGxRenderState which, LPVOID &value) {
-  value = (LPVOID)mAppRenderStates[which].mValue.mData[0];
+  value = *(LPVOID *)&mAppRenderStates[which].mValue.mData[0];
 }
 
 void CGxDevice::RsPush() {
@@ -1167,7 +1167,7 @@ void CGxDevice::IRsSync(int force) {
 
   mDirtyStates.SetCount(0);
 
-  CGxShader *sh = (CGxShader *)mAppRenderStates[GxRs_PixelShader].mValue.mData[0];
+  CGxShader *sh = *(CGxShader **)&mAppRenderStates[GxRs_PixelShader].mValue.mData[0];
   if (sh && (force || sh->paramsDirty)) {
     ISetShaderParameters(sh, 0);
   }

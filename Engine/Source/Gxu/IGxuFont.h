@@ -12,7 +12,7 @@
 struct CGxFont;
 struct CGxString;
 struct CGxTex;
-struct HFACE__;
+typedef struct HFACE__ *HFACE;
 struct FT_FaceRec_;
 
 struct GLYPHDATA {
@@ -402,7 +402,7 @@ NODEDECL(CGxFont) {
   TSHashTable<CHARCODEDESC, HASHKEY_NONE>    m_activeCharacters;
   TSHashTable<KERNNODE, KERNINGHASHKEY>      m_kernInfo;
   LISTDECLEX(CHARCODEDESC, fontGlyphLink, m_activeCharacterCache);
-  HFACE__     *m_faceHandle;
+  HFACE        m_faceHandle;
   UINT         m_pixelSize;
   UINT         m_rasterPixelSize;
   char         m_fontName[MAX_PATH];
@@ -480,10 +480,10 @@ struct FT_LibraryRec_;
 
 FT_LibraryRec_ *GetFreeTypeLibrary();
 float           SignOf(float value);
-HFACE__        *FontFaceGetHandle(LPCSTR name, FT_LibraryRec_ *library);
-FT_FaceRec_    *FontFaceGetFace(HFACE__ *handle);
-void            FontFaceCloseHandle(HFACE__ *handle);
-LPCSTR          FontFaceGetFontName(HFACE__ *handle);
+HFACE           FontFaceGetHandle(LPCSTR name, FT_LibraryRec_ *library);
+FT_FaceRec_    *FontFaceGetFace(HFACE handle);
+void            FontFaceCloseHandle(HFACE handle);
+LPCSTR          FontFaceGetFontName(HFACE handle);
 UINT            GetScreenPixelHeight();
 UINT            GetScreenPixelWidth();
 float           ScreenToPixelHeight(int billboarded, float height);

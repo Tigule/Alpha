@@ -27,7 +27,7 @@
 
 static const float OO_COORD_TO_CHUNK = 1.0f / ((150.0f / 36.0f) * 8);
 
-HTEXTURE__ *CMapLight::s_hPointAttenTex;
+HTEXTURE CMapLight::s_hPointAttenTex;
 LISTDECLEX(CMapBaseObjLink, refLink, CMapLight::dirLightLinkList);
 UINT  CMapLight::maxLights = 4;
 float CMapLight::bucketSize = 33.33f;
@@ -47,25 +47,25 @@ void CMap::GxuLightInitialize() {
 void CMap::GxuLightShutdown() {
 }
 
-DWORD CMap::GxuLightCreate() {
-  return (DWORD)CreateLight(true);
+DWORD_PTR CMap::GxuLightCreate() {
+  return (DWORD_PTR)CreateLight(true);
 }
 
-void CMap::GxuLightDestroy(DWORD lightId) {
+void CMap::GxuLightDestroy(DWORD_PTR lightId) {
   CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   DestroyLight(light);
 }
 
-CGxLight *CMap::GxuLightLock(DWORD lightId) {
+CGxLight *CMap::GxuLightLock(DWORD_PTR lightId) {
   CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   return &light->gxLight;
 }
 
-void CMap::GxuLightUnlock(DWORD lightId) {
+void CMap::GxuLightUnlock(DWORD_PTR lightId) {
   CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
@@ -98,14 +98,14 @@ void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector 
   }
 }
 
-BOOL CMap::GxuLightEnable(DWORD lightId) {
+BOOL CMap::GxuLightEnable(DWORD_PTR lightId) {
   CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);
   return (BYTE)light->flags >> 7;
 }
 
-void CMap::GxuLightEnableSet(DWORD lightId, int enable) {
+void CMap::GxuLightEnableSet(DWORD_PTR lightId, int enable) {
   CMapLight *light = (CMapLight *)lightId;
 
   ASSERT(light);

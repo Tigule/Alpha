@@ -8,7 +8,7 @@ class CInitCritSect {
  private:
   LONG       m_spinLock;
   CCritSect *m_critsect;
-  BYTE       m_critsectData[0x18];
+  BYTE       m_critsectData[4 * sizeof(LPVOID) + 2 * sizeof(LONG)];
 
  public:
   BOOL Enter();

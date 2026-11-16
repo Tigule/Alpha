@@ -8,7 +8,7 @@
 #include <Gxu/GxuFont.h>
 #include <Services/TextBlock.h>
 
-static HTEXTFONT__ *s_stockObjects[SCRNSTOCKOBJECTS];
+static HTEXTFONT    s_stockObjects[SCRNSTOCKOBJECTS];
 static const float  s_stockObjectHeights[SCRNSTOCKOBJECTS] = {0.01953125f, 0.01953125f};
 
 void        OsBuildFontFilePath(LPCSTR fileName, char *buffer, UINT size);
@@ -47,7 +47,7 @@ void IStockInitialize() {
   ScrnSetStockFont(STOCK_PERFFONT, fontFile);
 }
 
-HTEXTFONT__ *ScrnGetStockFont(SCRNSTOCK id) {
+HTEXTFONT ScrnGetStockFont(SCRNSTOCK id) {
   VALIDATE2(id < SCRNSTOCKOBJECTS);
 
   return s_stockObjects[id];

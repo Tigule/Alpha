@@ -33,9 +33,9 @@ class SoundFileCache {
   static void Initialize(int cacheSizeMB);
   static void Shutdown();
 
-  static UINT __stdcall Open(LPCSTR filename);
-  static int __stdcall  Read(LPVOID buffer, int size, UINT handle);
-  static int __stdcall  Seek(UINT handle, int pos, signed char mode);
-  static int __stdcall  Tell(UINT handle);
-  static void __stdcall Close(UINT handle);
+  static UINT WINAPI Open(LPCSTR filename);
+  static int WINAPI  Read(LPVOID buffer, int size, UINT handle);
+  static int WINAPI  Seek(UINT handle, int pos, signed char mode);
+  static int WINAPI  Tell(UINT handle);
+  static void WINAPI Close(UINT handle);
 };

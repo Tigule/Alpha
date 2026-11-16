@@ -946,7 +946,7 @@ static UINT CmdMemParseNum(LPCSTR &str) {
   return result;
 }
 
-static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT__ *hOutput, LPCSTR str) {
+static void APIENTRY CmdMemOutput(HOUTPUTCONTEXT hOutput, LPCSTR str) {
   LPCSTR strNum = SStrChrR(str, ' ');
   if (!strNum) {
     return;

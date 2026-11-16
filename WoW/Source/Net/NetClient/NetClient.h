@@ -121,8 +121,8 @@ class NetClient : public WowConnectionResponse {
   void PopObjMgr();
   void CancelRedirect();
   void ProcessMessage(DWORD timeStamp, CDataStore *msg);
-  static int __stdcall ClientRedirectEventHandler(
-      HNETCONN__        *conn,
+  static int WINAPI ClientRedirectEventHandler(
+      HNETCONN           conn,
       const NETCONNADDR *connAddr,
       NETNOTE            note,
       LPVOID             user,

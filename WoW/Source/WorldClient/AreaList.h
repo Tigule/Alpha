@@ -9,6 +9,6 @@ void AreaListShutdown();
 
 BOOL AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer, UINT size, int fullName);
 
-void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD worldObject);
+void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD_PTR worldObject);
 
-int AreaListZoneHasBreathParticles(DWORD worldObject, UINT continentID, const NTempest::C3Vector &position);
+int AreaListZoneHasBreathParticles(DWORD_PTR worldObject, UINT continentID, const NTempest::C3Vector &position);

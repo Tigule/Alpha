@@ -220,17 +220,17 @@ class CGxDeviceOpenGl : public CGxDevice {
   CGxDeviceOpenGl();
   virtual ~CGxDeviceOpenGl();
   virtual BOOL  DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
-  virtual BOOL  DeviceCreate(UINT clienthwnd, const CGxFormat &format);
+  virtual BOOL  DeviceCreate(UINT_PTR clienthwnd, const CGxFormat &format);
   virtual void  DeviceDestroy();
   virtual BOOL  DeviceSetFormat(const CGxFormat &format);
   virtual void  DeviceSetBaseMipLevel(UINT baseMipLevel);
   virtual void  DeviceSetGamma(float gamma);
   virtual void  DeviceSetGamma(const CGxGammaRamp &ramp);
   virtual void  DeviceSetTextureQuality(int force32);
-  virtual DWORD DeviceWindow();
+  virtual DWORD_PTR DeviceWindow();
   virtual void  DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels);
   virtual void  DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<float> &depths);
-  virtual void  DeviceWM(EGxWM wm, long param1, long param2);
+  virtual void  DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2);
   virtual void  DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT plane);
   virtual void  DeviceOverride(EGxOverride override, DWORD value);
   void          DeviceCreatePbuffer();
@@ -292,5 +292,5 @@ class CGxDeviceOpenGl : public CGxDevice {
   virtual void PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename);
   virtual void PixelShaderDestroy(CGxPixelShader *&ps);
 
-  static long CALLBACK WindowProcGl(HWND window, UINT message, UINT wparam, long lparam);
+  static LRESULT CALLBACK WindowProcGl(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
 };

@@ -73,7 +73,7 @@ NODEDECL(BlizzardObject) {
   static BOOL   ShardSeqFinished(LPVOID param) { return 0; }
 
   HMODEL              shardModel;
-  DWORD               hWorldObject;
+  DWORD_PTR           hWorldObject;
   NTempest::C3Vector  groundPos;
   float               radius;
   float               numEmitted;

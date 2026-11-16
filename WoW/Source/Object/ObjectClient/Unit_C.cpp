@@ -156,7 +156,7 @@ void UnitFootprintNewSplat(
 void               UnitFootprintPlayParticle(CGUnit_C *unit, const NTempest::C3Vector &position, UINT terrainID, float scale);
 ANIMENUMERATION    Object_C_GetAnimIndex(LPCSTR animName);
 void               UnitEffectClear(CGObject_C *object);
-void               WeaponTrailDisableDrawing(int trail);
+void               WeaponTrailDisableDrawing(INT_PTR trail);
 void               BotClientLoseTarget(const CGUnit_C *unit);
 void               ScriptEventsRegisterUnit(CGUnit_C *unit);
 void               ScriptEventsUnregisterUnit(CGUnit_C *unit);
@@ -356,9 +356,9 @@ static const SAVEDSHEATHATTACHPOINTS s_sheathePoints[2][9] = {
 };
 
 static const int s_savedSheathToAttachPoints[8] = {-1, 26, 27, 30, 31, 32, 33, 28};
-void             WeaponTrailClose(int trail);
-int              WeaponTrailCreate(HMODEL model);
-void             WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration);
+void             WeaponTrailClose(INT_PTR trail);
+INT_PTR          WeaponTrailCreate(HMODEL model);
+void             WeaponTrailSetDrawing(INT_PTR trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration);
 int              Spell_C_GetCastTime(int id, BOOL isPet);
 int              UnitEffectGetSpecialVisual(UNITEFFECTSPECIALS effectNumber);
 void             UnitEffectOneShot(
@@ -389,7 +389,7 @@ void              UnitEffectAddMissile(const MISSILESTRUCT &desc, int durationOf
 GEOCOMPONENTLINKS UnitEffectGetLinkPointFromAttachment(UNITEFFECTATTACHPPOINT attach);
 HMODEL            UnitEffectCreateAuraModel(UINT effectID);
 bool              UnitEffectIsAuraWorldObject(UINT effectID, bool &isWorldObj);
-DWORD             UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing);
+DWORD_PTR         UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing);
 static BOOL              OnFirstAuraSequenceFinished(LPVOID param);
 bool              AnimSheathesWeapon(UINT anim);
 int               GetObjAnimFlags(int unitAnimFlags);
@@ -2735,7 +2735,7 @@ void CGUnit_C::MaybeAttachAura(UNITEFFECTATTACHPPOINT attach, UINT effect, UINT 
   }
 
   if (isWorldObj) {
-    DWORD object = UnitEffectCreateWorldModelAura(effect, GetPosition(), GetFacing());
+    DWORD_PTR object = UnitEffectCreateWorldModelAura(effect, GetPosition(), GetFacing());
     if (!object) {
       return;
     }
@@ -9884,7 +9884,7 @@ void AuraVisual::SetModel(HMODEL model) {
   flags &= ~2;
 }
 
-void AuraVisual::SetWorldObject(DWORD object) {
+void AuraVisual::SetWorldObject(DWORD_PTR object) {
   Clear();
   obj = object;
   if (obj) {

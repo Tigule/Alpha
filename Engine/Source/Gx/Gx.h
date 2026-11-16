@@ -580,7 +580,7 @@ class CGxShader {
  private:
   UINT refCount;
  protected:
-  UINT apiSpecific;
+  UINT_PTR apiSpecific;
   int  valid;
   int  paramsDirty;
 
@@ -773,7 +773,7 @@ class CGxLight {
 class CGxDevice;
 class CGxTex;
 
-typedef long (*GXWINDOWPROC)(LPVOID, UINT, UINT, long);
+typedef LRESULT (*GXWINDOWPROC)(LPVOID, UINT, WPARAM, LPARAM);
 
 BOOL       GxAdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi, DWORD &driverVersionLow);
 BOOL       GxAdapterInfer(WORD &deviceID);
@@ -787,7 +787,7 @@ void       GxDevSetGamma(float gamma);
 void       GxDevSetGamma(const CGxGammaRamp &ramp);
 void       GxDevGammaRamp(CGxGammaRamp &ramp);
 void       GxDevSystemGammaRamp(CGxGammaRamp &ramp);
-DWORD      GxDevWindow();
+DWORD_PTR  GxDevWindow();
 EGxApi     GxDevApi();
 void       GxDevOverride(EGxOverride override, DWORD value);
 void       GxDevTakeScreenShot();
@@ -981,8 +981,8 @@ void         GxLogClose();
 void __cdecl GxLog(LPCSTR format, ...);
 
 const TSGrowableArray<CGxFormat> *GxEnumFormats(EGxApi api);
-CGxDevice                        *GxDevCreate(EGxApi api, UINT hwnd, const CGxFormat &format);
-void                              GxDevWM(EGxWM wm, long param1, long param2);
+CGxDevice                        *GxDevCreate(EGxApi api, UINT_PTR hwnd, const CGxFormat &format);
+void                              GxDevWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2);
 void                              GxDevSetTextureQuality(int force32Bit);
 const CGxFormat                  &GxDevFormat();
 UINT                              GxDevBaseMipLevel();

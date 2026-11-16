@@ -39,7 +39,7 @@
 #define VK_OEM_7      0xDE
 #endif
 
-typedef long (*OSWINDOWPROC)(LPVOID window, UINT message, UINT wparam, long lparam);
+typedef LRESULT (*OSWINDOWPROC)(LPVOID window, UINT message, WPARAM wparam, LPARAM lparam);
 
 struct OSEVENT {
   OSINPUT id;
@@ -594,7 +594,7 @@ void OsSetWindowProc(OSWINDOWPROC windowproc) {
   s_windowProc = windowproc;
 }
 
-long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam) {
+LRESULT OsWindowProc(LPVOID _window, UINT message, WPARAM wparam, LPARAM lparam) {
   HWND        hWnd = (HWND)_window;
   POINT       pt;
   KEY         key;

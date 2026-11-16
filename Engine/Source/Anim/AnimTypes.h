@@ -37,7 +37,7 @@ struct CAnimationData {
   NTempest::C34Matrix               *textureMtx;
   UINT                               numTexBones;
   TSFixedArray<NTempest::C3Vector>  *positions;
-  TSFixedArray<DWORD>               *lights;
+  TSFixedArray<DWORD_PTR>           *lights;
   TSFixedArray<CParticleEmitter2 *> *emitters2;
   TSFixedArray<CRibbonEmitter *>    *ribbons;
   NTempest::C34Matrix               *attached;

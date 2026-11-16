@@ -18,7 +18,7 @@
 void CMap::Purge() {
   CMapBaseObjLink *link = areaLinkList.Head();
   while (1) {
-    if ((int)link <= 0) {
+    if ((INT_PTR)link <= 0) {
       break;
     }
 

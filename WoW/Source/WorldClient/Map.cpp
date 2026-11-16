@@ -49,6 +49,9 @@ int             CMap::bActive;
 int             CMap::bPreload = 1;
 int             CMap::bDungeon;
 SMAreaInfo      CMap::areaInfo[4096];
+#ifdef _WIN64
+CAsyncObject   *CMap::areaAsync[4096];
+#endif
 CMapArea       *CMap::areaTable[4096];
 DWORD           CMap::areaLowOffsets[4096];
 CMapAreaLow    *CMap::areaLowTable[4096];

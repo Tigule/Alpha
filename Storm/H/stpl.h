@@ -921,13 +921,13 @@ class TSLink {
   }
 
   TSLink<T> *NextLink(int linkoffset) const {
-    if ((int)m_next <= 0)
-      return (TSLink<T> *)(~(int)m_next);
+    if ((INT_PTR)m_next <= 0)
+      return (TSLink<T> *)(~(INT_PTR)m_next);
 
     if (linkoffset < 0)
-      linkoffset = (int)this - (int)m_prevlink->m_next;
+      linkoffset = (INT_PTR)this - (INT_PTR)m_prevlink->m_next;
 
-    return (TSLink<T> *)((int)m_next + linkoffset);
+    return (TSLink<T> *)((INT_PTR)m_next + linkoffset);
   }
 
  public:
@@ -952,11 +952,11 @@ class TSLink {
   }
 
   T *Next() {
-    return (int)m_next > 0 ? m_next : 0;
+    return (INT_PTR)m_next > 0 ? m_next : 0;
   }
 
   const T *Next() const {
-    return (int)m_next > 0 ? m_next : 0;
+    return (INT_PTR)m_next > 0 ? m_next : 0;
   }
 
   T *Prev() {
@@ -1064,7 +1064,7 @@ class TSList {
 
   void InitializeTerminator() {
     m_terminator.m_prevlink = &m_terminator;
-    m_terminator.m_next = (T *)(~(DWORD)&m_terminator);
+    m_terminator.m_next = (T *)(~(DWORD_PTR)&m_terminator);
   }
 
   TSLink<T> *Link(const T *ptr) const {
@@ -1240,7 +1240,7 @@ class TSList {
   const T *Prev(const T *instance) const {
     TSLink<T> *link = Link(instance);
     const T   *previous = link->m_prevlink->m_prevlink->m_next;
-    return (long)previous > 0 ? previous : 0;
+    return (LONG_PTR)previous > 0 ? previous : 0;
   }
 
   T *RawNext(const T *ptr) {
@@ -1299,14 +1299,14 @@ class TSExplicitList : public TSList<T, TSGetExplicitLink<T> > {
 #define LISTDECLEX(structname, linkname, varname) TSExplicitList<structname, (int)&(((structname *)0)->linkname)> varname
 
 #define ITERATEFORWARDTEMPLATE(structname, listname, start, ptrname, op)                                                                        \
-  for (structname *ptrname = start, *iterate_delete = NULL; (int)ptrname > 0;                                                                   \
+  for (structname *ptrname = start, *iterate_delete = NULL; (INT_PTR)ptrname > 0;                                                                   \
        iterate_delete                                                                                                                           \
-           ? (ptrname = (listname)op DeleteNode(ptrname), ptrname = ((int)iterate_delete > 0) ? ptrname : NULL, iterate_delete = NULL, ptrname) \
+           ? (ptrname = (listname)op DeleteNode(ptrname), ptrname = ((INT_PTR)iterate_delete > 0) ? ptrname : NULL, iterate_delete = NULL, ptrname) \
            : ptrname = (listname)op RawNext(ptrname))
 
 #define ITERATEREVERSETEMPLATE(structname, listname, start, ptrname, op)                                                                        \
   for (structname *ptrname = start, *iterate_delete = NULL, *iterate_delete_temp = NULL; ptrname;                                               \
-       iterate_delete ? (iterate_delete_temp = ((int)iterate_delete > 0) ? (listname)op Prev(ptrname) : NULL, (listname)op DeleteNode(ptrname), \
+       iterate_delete ? (iterate_delete_temp = ((INT_PTR)iterate_delete > 0) ? (listname)op Prev(ptrname) : NULL, (listname)op DeleteNode(ptrname), \
                         iterate_delete = NULL, ptrname = iterate_delete_temp)                                                                   \
                       : ptrname = (listname)op Prev(ptrname))
 
@@ -1329,16 +1329,16 @@ class TSExplicitList : public TSList<T, TSGetExplicitLink<T> > {
 // todo: unconfirmed name
 #define SAFEITERATELIST(structname, listname, ptrname)                                                                         \
   for (structname *ptrname = (listname).Head(), *ptrname##next_node;                                                           \
-       (int)ptrname > 0 ? ((ptrname##next_node = (listname).RawNext(ptrname)), 1) : 0; ptrname = ptrname##next_node)
+       (INT_PTR)ptrname > 0 ? ((ptrname##next_node = (listname).RawNext(ptrname)), 1) : 0; ptrname = ptrname##next_node)
 
 // todo: unconfirmed name
 #define SAFEITERATELISTPTR(structname, listname, ptrname)                                                                      \
   for (structname *ptrname = (listname)->Head(), *ptrname##next_node;                                                          \
-       (int)ptrname > 0 ? ((ptrname##next_node = (listname)->RawNext(ptrname)), 1) : 0; ptrname = ptrname##next_node)
+       (INT_PTR)ptrname > 0 ? ((ptrname##next_node = (listname)->RawNext(ptrname)), 1) : 0; ptrname = ptrname##next_node)
 
 // todo: unconfirmed name
 #define CONSTITERATELIST(structname, listname, ptrname) \
-  for (const structname *ptrname = (listname).Head(); (int)ptrname > 0; ptrname = (listname).RawNext(ptrname))
+  for (const structname *ptrname = (listname).Head(); (INT_PTR)ptrname > 0; ptrname = (listname).RawNext(ptrname))
 
 #define ITERATE_DELETE \
   {                    \

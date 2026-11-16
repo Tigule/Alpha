@@ -271,17 +271,17 @@ class CGxDeviceD3d : public CGxDevice {
   static void IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d);
 
   virtual BOOL  DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format);
-  virtual BOOL  DeviceCreate(UINT hwnd, const CGxFormat &format);
+  virtual BOOL  DeviceCreate(UINT_PTR hwnd, const CGxFormat &format);
   virtual void  DeviceDestroy();
   virtual BOOL  DeviceSetFormat(const CGxFormat &format);
   virtual void  DeviceSetBaseMipLevel(UINT baseMipLevel);
   virtual void  DeviceSetGamma(float gamma);
   virtual void  DeviceSetGamma(const CGxGammaRamp &ramp);
   virtual void  DeviceSetTextureQuality(int force32);
-  virtual DWORD DeviceWindow();
+  virtual DWORD_PTR DeviceWindow();
   virtual void  DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels);
   virtual void  DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<float> &depths);
-  virtual void  DeviceWM(EGxWM wm, long param1, long param2);
+  virtual void  DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2);
   virtual void  DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT plane);
   virtual void  DeviceOverride(EGxOverride override, DWORD value);
   virtual void  CapsWindowSize(NTempest::CRect &dst);

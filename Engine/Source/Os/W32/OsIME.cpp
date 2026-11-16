@@ -13,9 +13,9 @@
 #include <imm.h>
 #include <stdio.h>
 
-struct HIMC__;
-static HIMC__ *s_IMC;
-static int     s_IMEActive;
+typedef struct HIMC__ *HIMC;
+static HIMC s_IMC;
+static int  s_IMEActive;
 
 OS_IME_LANGUAGEMODE OsIMEGetLanguageMode() {
   HWND wnd = (HWND)OsGuiGetWindow(0);

@@ -248,7 +248,7 @@ class CGGameObject_C_Type_MapObj : public CGGameObject_C_TypeBase {
   virtual bool CanUse() const { return 0; }
 
  protected:
-  UINT m_objectId;
+  UINT_PTR m_objectId;
 };
 
 class CGGameObject_C_Type_MapObjTransport : public CGGameObject_C_Type_MapObj {
@@ -378,7 +378,7 @@ class CGGameObject_C : public CGObject_C, public CGGameObject {
   virtual void Disable(int shutdown);
   virtual void Reenable();
   virtual void PostReenable();
-  UINT         CreateWorldObject(DWORDLONG guid);
+  UINT_PTR     CreateWorldObject(DWORDLONG guid);
   void         SetMirrorHandlers();
   void         UnsetMirrorHandlers();
 

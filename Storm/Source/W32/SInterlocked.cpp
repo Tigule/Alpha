@@ -5,7 +5,7 @@
 #include <time.h>
 
 LPVOID SInterlockedExchangePointer(LPVOID *destPtr, LPVOID exchange) {
-  return (LPVOID)InterlockedExchange((LPLONG)destPtr, (LONG)exchange);
+  return InterlockedExchangePointer(destPtr, exchange);
 }
 
 LPVOID SInterlockedCompareExchangePointer(LPVOID *destPtr, LPVOID exchange, LPVOID comperand) {

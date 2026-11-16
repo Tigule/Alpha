@@ -33,13 +33,13 @@ void WowConnectionNet::Remove(WowConnection *conn) {
   m_connectionsLock.Leave();
 }
 
-static UINT __stdcall WorkerProc(LPVOID param) {
+static UINT WINAPI WorkerProc(LPVOID param) {
   WowConnectionNet::Worker *worker = (WowConnectionNet::Worker *)param;
   worker->owner->RunWorker(worker->id);
   return 0;
 }
 
-static UINT __stdcall MainProc(LPVOID param) {
+static UINT WINAPI MainProc(LPVOID param) {
   ((WowConnectionNet *)param)->Run();
   return 0;
 }

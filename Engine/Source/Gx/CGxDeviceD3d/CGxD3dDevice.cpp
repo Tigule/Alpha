@@ -8,11 +8,11 @@ const _D3DFORMAT CGxDeviceD3d::s_GxFormatToD3dFormat[CGxFormat::Formats_Last] = 
                                                                                  D3DFMT_D16,    D3DFMT_D24X8,    D3DFMT_D24S8,    D3DFMT_D32};
 
 LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-  CGxDeviceD3d *device = (CGxDeviceD3d *)GetWindowLongA(hWnd, GWL_USERDATA);
+  CGxDeviceD3d *device = (CGxDeviceD3d *)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
 
   switch (uMsg) {
     case WM_CREATE:
-      SetWindowLongA(hWnd, GWL_USERDATA, (LONG)(((CREATESTRUCTA *)lParam)->lpCreateParams));
+      SetWindowLongPtrA(hWnd, GWLP_USERDATA, (LONG_PTR)(((CREATESTRUCTA *)lParam)->lpCreateParams));
       return 0;
 
     case WM_ERASEBKGND:
@@ -38,7 +38,7 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
       } else if (wParam == SIZE_MAXHIDE) {
         sizeCode = 2;
       }
-      device->DeviceWM(GxWM_Size, (long)&rect, sizeCode);
+      device->DeviceWM(GxWM_Size, (LONG_PTR)&rect, sizeCode);
       break;
     }
 
@@ -48,7 +48,7 @@ LRESULT CALLBACK CGxDeviceD3d::WindowProcD3d(HWND hWnd, UINT uMsg, WPARAM wParam
       rect.l = 0.0f;
       rect.b = HIWORD(lParam);
       rect.r = LOWORD(lParam);
-      device->DeviceWM(GxWM_DisplayChange, (long)&rect, 0);
+      device->DeviceWM(GxWM_DisplayChange, (LONG_PTR)&rect, 0);
       break;
     }
 
@@ -149,7 +149,7 @@ CGxDeviceD3d::~CGxDeviceD3d() {
 }
 
 BOOL CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
-  typedef IDirect3D9 *(__stdcall * D3dCreateProc)(UINT);
+  typedef IDirect3D9 *(WINAPI * D3dCreateProc)(UINT);
 
   D3dCreateProc d3dCreateProc;
 
@@ -449,7 +449,7 @@ finallylabel:
   return 0;
 }
 
-BOOL CGxDeviceD3d::DeviceCreate(UINT hwnd, const CGxFormat &format) {
+BOOL CGxDeviceD3d::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
   m_ownhwnd = 0;
   CGxDevice::DeviceCreate(hwnd, format);
   m_hwnd = (HWND)hwnd;
@@ -532,8 +532,8 @@ void CGxDeviceD3d::DeviceSetTextureQuality(int force32) {
   ITexForceRecreation(1);
 }
 
-DWORD CGxDeviceD3d::DeviceWindow() {
-  return (DWORD)m_hwnd;
+DWORD_PTR CGxDeviceD3d::DeviceWindow() {
+  return (DWORD_PTR)m_hwnd;
 }
 
 void CGxDeviceD3d::DeviceReadPixels(NTempest::CiRect &rect, TSGrowableArray<NTempest::CImVector> &pixels) {
@@ -609,7 +609,7 @@ void CGxDeviceD3d::DeviceReadDepths(NTempest::CiRect &rect, TSGrowableArray<floa
   memset(depths.Ptr(), 0, depths.Count() * sizeof(float));
 }
 
-void CGxDeviceD3d::DeviceWM(EGxWM wm, long param1, long param2) {
+void CGxDeviceD3d::DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) {
   const NTempest::CRect &rect = *(const NTempest::CRect *)param1;
 
   switch (wm) {

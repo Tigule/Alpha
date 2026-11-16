@@ -542,7 +542,7 @@ struct AuraVisual {
   UINT effectID;
   union {
     HMODEL theModel;
-    DWORD  obj;
+    DWORD_PTR obj;
   };
 
  public:
@@ -578,7 +578,7 @@ struct AuraVisual {
     visual.theModel = 0;
   }
   void SetModel(HMODEL model);
-  void SetWorldObject(DWORD object);
+  void SetWorldObject(DWORD_PTR object);
   void SetPermanent(bool permanent) {
     if (permanent) {
       flags |= 4;
@@ -1513,7 +1513,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
 
   ACTIVEATTACHMENTINFO *m_attachments[5];
   ACTIVEATTACHMENTINFO *m_deferredAttachments[5];
-  int                   m_weaponTrails[5];
+  INT_PTR               m_weaponTrails[5];
 
  public:
   void   ReinitializePaperdollModel();

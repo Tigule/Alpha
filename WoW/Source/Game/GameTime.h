@@ -10,7 +10,7 @@ DECLARE_DERIVED_HANDLE(HGAMETIMECALLBACK, HOBJECT);
 
 NODEDECL(GAMETIMECBSTRUCT), public CHandleObject {
   LPVOID userData;
-  void(__stdcall * callback)(const WowTime &, LPVOID);
+  void(WINAPI * callback)(const WowTime &, LPVOID);
 
   GAMETIMECBSTRUCT() : userData(0), callback(0) {
   }
@@ -43,7 +43,7 @@ class CGameTime : public WowTime {
   float             GameTimeGetMinutesPerSecond();
   bool              IsDayTime();
   bool              IsNightTime();
-  HGAMETIMECALLBACK GameTimeRegisterCallback(const WowTime &time, void(__stdcall *callback)(const WowTime &, LPVOID), LPVOID user);
+  HGAMETIMECALLBACK GameTimeRegisterCallback(const WowTime &time, void(WINAPI *callback)(const WowTime &, LPVOID), LPVOID user);
   void              GameTimeUnregisterCallback(HGAMETIMECALLBACK callbackHandle);
   float             GameTimeGetDayProgression();
   UINT              MinutesSinceBoot();

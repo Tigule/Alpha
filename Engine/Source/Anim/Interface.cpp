@@ -443,7 +443,7 @@ void AnimSetObjectOrdering(HANIM anim, LPCSTR *boneNames, UINT numBones) {
   objNameHashTable.Clear();
 }
 
-void AnimResetObjectOrdering(HANIM__ *anim) {
+void AnimResetObjectOrdering(HANIM anim) {
   CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
   CAnimData *shared = (CAnimData *)unique->hdata;
@@ -608,7 +608,7 @@ UINT AnimGetTotalKeys(HANIM anim) {
   return totalKeys;
 }
 
-UINT AnimGetAttachmentObjId(HANIM__ *anim, UINT index) {
+UINT AnimGetAttachmentObjId(HANIM anim, UINT index) {
   CAnim *unique = (CAnim *)anim;
   ASSERT(unique);
   CAnimData *shared = (CAnimData *)unique->hdata;

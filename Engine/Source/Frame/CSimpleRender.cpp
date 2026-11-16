@@ -60,7 +60,7 @@ void CSimpleRender::DrawBatch(CRenderBatch *batch) {
   UINT count = batch->m_texturelist.Count();
 
   if (count > 0) {
-    DWORD texture = -1;
+    DWORD_PTR texture = -1;
     UINT  i;
 
     GxVertexShaderSelect(GxVS_PassThru);
@@ -302,7 +302,7 @@ BOOL CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
   return 1;
 }
 
-BOOL CSimpleTexture::SetTexture(HTEXTURE__ *texHandle) {
+BOOL CSimpleTexture::SetTexture(HTEXTURE texHandle) {
   int result = 1;
 
   if (m_texture) {
@@ -1253,7 +1253,7 @@ void CRenderBatch::QueueTexture(CSimpleTexture *texture) {
 
     m_texturelist.SetCount(index + 1);
     CSimpleBatchedTexture &batched = m_texturelist[index];
-    batched.textureID = (DWORD)texturedata;
+    batched.textureID = (DWORD_PTR)texturedata;
     batched.position = texture->GetPosition();
     batched.texCoord = texture->GetTexCoord();
     batched.alphamode = texture->GetAlphaMode();

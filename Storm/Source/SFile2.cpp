@@ -679,7 +679,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
 
       case SARCHIVE_ZIP: {
         *file = NEW(SFile)(SFILE_ZIP_FILE);
-        (*file)->m_zipFile = ZipFileOpenFile(filename, (DWORD)archive->m_archive);
+        (*file)->m_zipFile = ZipFileOpenFile(filename, (DWORD_PTR)archive->m_archive);
         if (!(*file)->m_zipFile) {
           delete *file;
           *file = NULL;
@@ -690,7 +690,7 @@ DWORD APIENTRY SFile::OpenEx(SArchive *archive, LPCSTR filename, DWORD flags, SF
           char md5filename[MAX_PATH];
           SStrCopy(md5filename, filename, INT_MAX);
           SStrPack(md5filename, ".md5", INT_MAX);
-          ZipFileFCB *md5file = ZipFileOpenFile(md5filename, (DWORD)archive->m_archive);
+          ZipFileFCB *md5file = ZipFileOpenFile(md5filename, (DWORD_PTR)archive->m_archive);
           if (md5file) {
             (*file)->m_haveMD5 = ZipFileReadFile(md5file, &(*file)->m_md5, sizeof((*file)->m_md5), NULL);
             ZipFileCloseFile(md5file);
@@ -1070,7 +1070,7 @@ int APIENTRY SFile::CloseArchive(SArchive *archive) {
 
   ASSERT(archive);
   if (archive->m_type == SARCHIVE_ZIP) {
-    result = ZipFileCloseArchive((DWORD)archive->m_archive);
+    result = ZipFileCloseArchive((DWORD_PTR)archive->m_archive);
   } else {
     result = SFileCloseArchive((HSARCHIVE)archive->m_archive);
   }
@@ -1100,7 +1100,7 @@ int APIENTRY SFile::List(SArchive *archive, int (*cb)(LPCSTR filename, LPVOID pa
   ASSERT(archive);
   switch (archive->m_type) {
     case SARCHIVE_ZIP:
-      return ZipFileList((DWORD)archive->m_archive, cb, param);
+      return ZipFileList((DWORD_PTR)archive->m_archive, cb, param);
     case SARCHIVE_MPQ: {
       BYTE *list;
       DWORD size;

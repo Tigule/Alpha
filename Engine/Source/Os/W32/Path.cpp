@@ -75,7 +75,7 @@ BOOL OsGetModuleName(DWORD moduleId, char *buffer, DWORD chars) {
   return 0;
 }
 
-BOOL OsSetModuleHandle(DWORD moduleId, HINSTANCE__ *moduleHandle) {
+BOOL OsSetModuleHandle(DWORD moduleId, HINSTANCE moduleHandle) {
   VALIDATE2(moduleId);
   VALIDATE2(moduleHandle);
 

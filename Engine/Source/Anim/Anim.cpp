@@ -236,7 +236,7 @@ static void SetLightValues(const AnimInfo &animInfo, CAnimLightObj *currobj, con
   FATALASSERT(currobj);
   FATALASSERT(currobj->type == OBJ_TYPE_LIGHT);
   FATALASSERT(currobj->splitIndex < animInfo.data.lights->Count());
-  DWORD gxuLightId = (*animInfo.data.lights)[currobj->splitIndex];
+  DWORD_PTR gxuLightId = (*animInfo.data.lights)[currobj->splitIndex];
   if (gxuLightId) {
     CAnimLightObjStatus *lightStatus = (CAnimLightObjStatus *)animInfo.unique->status[currobj->animObjId];
     CGxLight            *light = GxuLightLock(gxuLightId);
@@ -620,7 +620,7 @@ static void AnimateTextureMap(const AnimInfo &animInfo, CAnimTransform *texAnim,
   TranslateTexture(animInfo, texAnim, status, transform);
 }
 
-static void AnimateCamera(const InterpInfo &animInfo, CAnimCameraObj *object, CAnimCameraObjStatus *status, HCAMERA__ *camera) {
+static void AnimateCamera(const InterpInfo &animInfo, CAnimCameraObj *object, CAnimCameraObjStatus *status, HCAMERA camera) {
   ASSERT(object);
   ASSERT(status);
   object->visibility.InterpolateRetained(animInfo, status->base, &status->visibility, 1.0f, &status->visible);

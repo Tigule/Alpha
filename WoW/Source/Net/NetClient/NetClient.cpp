@@ -445,8 +445,7 @@ BOOL NetClient::HandleCantConnect() {
   return 1;
 }
 
-static int __stdcall
-GetRealmsEventHandler(HNETCONN__ *conn, const NETCONNADDR *connAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
+static int WINAPI GetRealmsEventHandler(HNETCONN conn, const NETCONNADDR *connAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
   if (bytesProcessed) {
     *bytesProcessed = bytes;
   }

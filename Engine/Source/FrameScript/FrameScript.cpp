@@ -136,7 +136,7 @@ void FrameScript_Object::EmptyScriptMethodTable(TSHashTable<FrameScriptObject_Va
   lua_State                  *state = FrameScript_GetContext();
   FrameScriptObject_Variable *entry = methodTable.Head();
 
-  while ((long)entry > 0) {
+  while ((LONG_PTR)entry > 0) {
     luaL_unref(state, LUA_REGISTRYINDEX, entry->reference);
     entry = methodTable.DeleteNode(entry);
   }

@@ -8,8 +8,8 @@
 
 BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag);
 
-static DWORD CreateGxLight(const MDLLIGHTSECTION &data);
-static DWORD CreateGxLight(BYTE *lightData);
+static DWORD_PTR CreateGxLight(const MDLLIGHTSECTION &data);
+static DWORD_PTR CreateGxLight(BYTE *lightData);
 
 BOOL MdlReadLoadLights(const MDLDATA &data, CModelComplex *modelptr) {
   FATALASSERT(modelptr);
@@ -22,8 +22,8 @@ BOOL MdlReadLoadLights(const MDLDATA &data, CModelComplex *modelptr) {
   return 1;
 }
 
-static DWORD CreateGxLight(const MDLLIGHTSECTION &data) {
-  DWORD lightId = GxuLightCreate();
+static DWORD_PTR CreateGxLight(const MDLLIGHTSECTION &data) {
+  DWORD_PTR lightId = GxuLightCreate();
   if (!lightId) {
     return 0;
   }
@@ -77,8 +77,8 @@ void MdxReadLights(BYTE *data, UINT fileBytes, CModelComplex *modelptr) {
   ASSERT(sectionBytes == 0);
 }
 
-static DWORD CreateGxLight(BYTE *lightData) {
-  DWORD lightId = GxuLightCreate();
+static DWORD_PTR CreateGxLight(BYTE *lightData) {
+  DWORD_PTR lightId = GxuLightCreate();
   if (!lightId) {
     return 0;
   }

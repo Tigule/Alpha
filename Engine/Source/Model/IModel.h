@@ -427,7 +427,7 @@ class CModelComplex : public CModelBase {
   TSGrowableArray<CCustomGeoset>    m_custGeosets;
   TSGrowableArray<HMATERIAL>        m_materials;
   TSGrowableArray<CModelTexture>    m_textures;
-  TSFixedArray<DWORD>               m_lights;
+  TSFixedArray<DWORD_PTR>           m_lights;
   TSFixedArray<LIST(LINKUNIQUE)>    m_attached;
   TSFixedArray_<BYTE, 'MDLF', __LINE__>  m_attachmentFlags;
   TSFixedArray<CParticleEmitter2 *> m_emitters2;

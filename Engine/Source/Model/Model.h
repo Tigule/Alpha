@@ -102,7 +102,7 @@ enum EModelModQ {
 
 NODEDECL(CModelModItem) {
   EModelModQ action;
-  BYTE       paramData[16];
+  BYTE       paramData[2 * sizeof(UINT) + 2 * sizeof(LPVOID)];
 };
 
 

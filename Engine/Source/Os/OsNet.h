@@ -16,9 +16,7 @@ struct NETCONNADDR {
   NETADDR selfAddr;
 };
 
-struct HNETCONN__ {
-  int unused;
-};
+DECLARE_STRICT_HANDLE(HNETCONN);
 
 enum NETNOTE {
   NETNOTE_CONNECT = 0,
@@ -44,46 +42,46 @@ enum NETADDRDIFF {
   NETADDR_DIFF_PROTOCOL = 4
 };
 
-typedef int(__stdcall *NETEVENTPROC)(HNETCONN__ *, const NETCONNADDR *, NETNOTE, LPVOID, LPCVOID, DWORD, DWORD *);
-typedef void(__stdcall *NETHOSTADDRPROC)(const NETADDR *, DWORD, LPVOID);
+typedef int(WINAPI *NETEVENTPROC)(HNETCONN, const NETCONNADDR *, NETNOTE, LPVOID, LPCVOID, DWORD, DWORD *);
+typedef void(WINAPI *NETHOSTADDRPROC)(const NETADDR *, DWORD, LPVOID);
 
-BOOL        OsNetInitialize(DWORD hints, DWORD parts);
-void        OsNetDestroy(DWORD parts);
-void        OsNetPump(DWORD timeout);
-HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn);
-void        OsNetConnFreeHandle(HNETCONN__ *conn);
-void        OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr);
-void        OsNetConnClose(HNETCONN__ *conn);
-int         OsNetConnIsClosed(HNETCONN__ *conn);
-void        OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc);
-void        OsNetConnSetUser(HNETCONN__ *conn, LPVOID user);
-void        OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, LPVOID user);
-void        OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes);
-void        OsLoopConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes);
-int         OsTcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
-void        OsTcpListenEnable(WORD port, int enable);
-DWORD       OsNetGetHostAddr(LPCSTR hostName);
-BOOL        OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
-void        OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes);
-void        OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes);
-OS_SEND     OsTcpConnSendSync(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
-void        OsTcpConnSetNagle(HNETCONN__ *conn, int enable);
-int         OsTcpConnSetWindow(HNETCONN__ *conn, DWORD size);
-void        OsTcpConnSetRecvTimeout(HNETCONN__ *conn, DWORD timeoutMs);
-DWORD       OsTcpAddrLoop();
-void        OsUdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC eventProc, LPVOID user);
-void        OsUdpConnSendTo(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray);
-void        OsFileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int readOnly);
-BOOL        OsFileConnRead(HNETCONN__ *conn, DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId);
-BOOL        OsFileConnWrite(HNETCONN__ *conn, DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId);
-void        OsFileConnClose(HNETCONN__ *conn);
-void        OsNetAddrMake(DWORD nodeNumber, WORD port, NETADDR *netAddr);
-void        OsNetAddrMakeBroadcast(WORD port, NETADDR *netAddr);
-void        OsNetAddrMakeFromStr(LPCSTR addrStr, WORD port, NETADDR *netAddr);
-BOOL        OsNetAddrLoopback(const NETADDR *netAddr1, const NETADDR *netAddr2);
-BOOL        OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2, NETADDRDIFF *difflevel);
-DWORD       OsNetAddrGetAddress(const NETADDR *netAddr, WORD *port);
-LPCSTR      OsNetAddrToStr(const NETADDR *netAddr, char *string, DWORD length);
-DWORD       OsNetAddrToHostOrder(DWORD nodeNumber);
+BOOL     OsNetInitialize(DWORD hints, DWORD parts);
+void     OsNetDestroy(DWORD parts);
+void     OsNetPump(DWORD timeout);
+HNETCONN OsNetConnCopyHandle(HNETCONN conn);
+void     OsNetConnFreeHandle(HNETCONN conn);
+void     OsNetConnAddr(HNETCONN conn, NETCONNADDR *connAddr);
+void     OsNetConnClose(HNETCONN conn);
+int      OsNetConnIsClosed(HNETCONN conn);
+void     OsNetConnSetEventProc(HNETCONN conn, NETEVENTPROC eventProc);
+void     OsNetConnSetUser(HNETCONN conn, LPVOID user);
+void     OsNetConnSetEventProcAndUser(HNETCONN conn, NETEVENTPROC eventProc, LPVOID user);
+void     OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes);
+void     OsLoopConnSend(HNETCONN conn, LPCVOID data, DWORD bytes);
+int      OsTcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
+void     OsTcpListenEnable(WORD port, int enable);
+DWORD    OsNetGetHostAddr(LPCSTR hostName);
+BOOL     OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
+void     OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes);
+void     OsTcpConnSend(HNETCONN conn, LPCVOID data, DWORD bytes);
+OS_SEND  OsTcpConnSendSync(HNETCONN conn, LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
+void     OsTcpConnSetNagle(HNETCONN conn, int enable);
+int      OsTcpConnSetWindow(HNETCONN conn, DWORD size);
+void     OsTcpConnSetRecvTimeout(HNETCONN conn, DWORD timeoutMs);
+DWORD    OsTcpAddrLoop();
+void     OsUdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC eventProc, LPVOID user);
+void     OsUdpConnSendTo(HNETCONN conn, LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray);
+void     OsFileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int readOnly);
+BOOL     OsFileConnRead(HNETCONN conn, DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId);
+BOOL     OsFileConnWrite(HNETCONN conn, DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId);
+void     OsFileConnClose(HNETCONN conn);
+void     OsNetAddrMake(DWORD nodeNumber, WORD port, NETADDR *netAddr);
+void     OsNetAddrMakeBroadcast(WORD port, NETADDR *netAddr);
+void     OsNetAddrMakeFromStr(LPCSTR addrStr, WORD port, NETADDR *netAddr);
+BOOL     OsNetAddrLoopback(const NETADDR *netAddr1, const NETADDR *netAddr2);
+BOOL     OsNetAddrCompare(const NETADDR *netAddr1, const NETADDR *netAddr2, NETADDRDIFF *difflevel);
+DWORD    OsNetAddrGetAddress(const NETADDR *netAddr, WORD *port);
+LPCSTR   OsNetAddrToStr(const NETADDR *netAddr, char *string, DWORD length);
+DWORD    OsNetAddrToHostOrder(DWORD nodeNumber);
 
 #endif

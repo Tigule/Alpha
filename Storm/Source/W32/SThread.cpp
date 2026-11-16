@@ -158,7 +158,7 @@ SCreateThread(DWORD dwStackSize, STHREADPROC lpStartAddress, LPVOID lpParameter,
   }
   S_Thread::s_threadCrit.Leave();
 
-  launch = (SThreadLaunchInfo *)SMemAlloc(0x10, __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY);
+  launch = (SThreadLaunchInfo *)SMemAlloc(sizeof(SThreadLaunchInfo), __FILE__, __LINE__, SMEM_FLAG_ZEROMEMORY);
   launch->proc = lpStartAddress;
   launch->param = lpParameter;
 

@@ -41,7 +41,7 @@ class CGxStateBom {
   }
 
   LPVOID GetAsPointer() {
-    return (LPVOID)mData[0];
+    return *(LPVOID *)&mData[0];
   }
 
   const CGxStateBom &operator=(int value) {

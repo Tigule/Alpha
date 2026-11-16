@@ -10,14 +10,14 @@
 
 #include <stpl.h>
 
-struct HTEXCOMPONENT__;
+typedef struct HTEXCOMPONENT__ *HTEXCOMPONENT;
 class CGObject_C;
 class CGUnit_C;
 class CGGameObject_C;
 BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param);
 
 NODEDECL(CModelRecord) {
-  HMODEL__ *model;
+  HMODEL    model;
   float     distance;
   float     scale;
   DWORDLONG guid;
@@ -141,7 +141,7 @@ class CGWorldFrame : public CSimpleFrame {
 
   void               SetCameraTarget(CGObject_C *target);
   void               UpdateObject(CGObject_C *object, DWORD status);
-  void               AddModelToScene(CGObject_C *object, HMODEL__ *model);
+  void               AddModelToScene(CGObject_C *object, HMODEL model);
   void               SetPlayerFadeCameraValue(BYTE value);
   void               SetSpriteClickButtons(UINT buttons);
   void               SetTerrainClickButtons(UINT buttons);
@@ -154,7 +154,7 @@ class CGWorldFrame : public CSimpleFrame {
   static CGCamera   *GetActiveCamera();
   static void        GetCameraPosition(NTempest::C3Vector *position);
   static void        GetCameraFacing(NTempest::C3Vector *position);
-  static void        RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT__ *texture, BYTE startAlpha);
+  static void        RegisterObjectFadeoutModel(CGObject_C *object, HTEXCOMPONENT texture, BYTE startAlpha);
   void               SetNamePlateUpdate();
   void               RefreshPlayerAlpha();
   NTempest::C2Vector GetScreenCoordinates(const NTempest::C3Vector &point);

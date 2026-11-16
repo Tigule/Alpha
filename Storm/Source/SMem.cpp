@@ -20,6 +20,8 @@ enum {
 #define SIGNATURE1    0x6F6D
 #define SIGNATURE2    0x12B1
 #define TABLESIZE     256
+#define LARGEHEADER   ((sizeof(DWORD) + sizeof(BLOCKPTR) + sizeof(BLOCK) + MEMORY_ALLOCATION_ALIGNMENT - 1) & ~(MEMORY_ALLOCATION_ALIGNMENT - 1))
+#define LARGEBLOCK    (LARGEHEADER - sizeof(BLOCK))
 
 #define REGKEY           "Internal"
 #define REGVAL_DEBUG     "Debug Memory"
@@ -100,6 +102,9 @@ static BOOL             s_fillmode;
 static BOOL             s_guardmode;
 static BOOL             s_reallocshufflemode;
 static HEAPPTR          s_heaphead[TABLESIZE];
+#ifdef _WIN64
+static HEAPPTR          s_heapaddrtable[(DWORD)(WORD)-1 + 1];
+#endif
 static BOOL             s_initialized;
 static HEAPPTR          s_lastemptyheap;
 static DWORD            s_pagesize;
@@ -137,7 +142,11 @@ static BLOCKPTR GetBlockPtrByPtr(LPVOID ptr) {
 }
 
 static HSHEAP GetHandleByBlockPtr(BLOCKPTR blockptr) {
+#ifdef _WIN64
+  HEAPPTR heapptr = s_heapaddrtable[blockptr->heapaddr];
+#else
   HEAPPTR heapptr = (HEAPPTR)((DWORD)(blockptr->heapaddr) << 16);
+#endif
   return heapptr->handle;
 }
 
@@ -186,7 +195,11 @@ static DWORD GetSlotByHandle(HSHEAP handle) {
 }
 
 static HEAPPTR LockHeapByBlockPtr(BLOCKPTR blockptr, HLOCKEDHEAP *lockedhandle) {
+#ifdef _WIN64
+  HEAPPTR heapptr = s_heapaddrtable[blockptr->heapaddr];
+#else
   HEAPPTR heapptr = (HEAPPTR)((DWORD)blockptr->heapaddr << 16);
+#endif
 
   EnterCriticalSection(&s_critsect[heapptr->slot]);
   *(DWORD *)lockedhandle = heapptr->slot;
@@ -319,7 +332,16 @@ static HEAPPTR AllocateHeap(LPCSTR filename, int linenumber, HSHEAP handle, DWOR
   } else {
     heapptr->filename[0] = 0;
   }
+#ifdef _WIN64
+  block.heapaddr = 1;
+  while (InterlockedCompareExchangePointer((LPVOID *)&s_heapaddrtable[block.heapaddr], heapptr, NULL)) {
+    if (!++block.heapaddr) {
+      FatalError(ERROR_NOT_ENOUGH_MEMORY, filename, linenumber);
+    }
+  }
+#else
   block.heapaddr = (DWORD)heapptr >> 16;
+#endif
   block.signature1 = SIGNATURE1;
   heapptr->addrsig = *(DWORD *)&block.heapaddr;
 
@@ -449,7 +471,7 @@ static LPVOID AllocateHeapBlock(HEAPPTR heapptr, DWORD bytes, BYTE baseflags) {
       ComputePageSize();
     }
 
-    externalSize = bytes + 0x10;
+    externalSize = bytes + LARGEHEADER;
     allocOffset = 0;
     if (s_debugmode || s_guardmode) {
       DWORD pageMask = s_pagesize - 1;
@@ -476,13 +498,13 @@ static LPVOID AllocateHeapBlock(HEAPPTR heapptr, DWORD bytes, BYTE baseflags) {
     externalBase = allocBase + allocOffset;
 
     *(DWORD *)(externalBase + 0) = bytes;
-    *(BLOCKPTR *)(externalBase + 4) = blockptr;
-    *(WORD *)(externalBase + 8) = (bytes + 0xFFFF) >> 16;
-    *(externalBase + 0xA) = 0;
-    *(externalBase + 0xB) = BF_LARGEALLOC | BF_OUTSIDEHEAP;
-    *(DWORD *)(externalBase + 0xC) = heapptr->addrsig;
+    *(BLOCKPTR *)(externalBase + LARGEBLOCK - sizeof(BLOCKPTR)) = blockptr;
+    *(WORD *)(externalBase + LARGEBLOCK + FIELD_OFFSET(BLOCK, bytes)) = (bytes + 0xFFFF) >> 16;
+    *(externalBase + LARGEBLOCK + FIELD_OFFSET(BLOCK, padding)) = 0;
+    *(externalBase + LARGEBLOCK + FIELD_OFFSET(BLOCK, flags)) = BF_LARGEALLOC | BF_OUTSIDEHEAP;
+    *(DWORD *)(externalBase + LARGEBLOCK + FIELD_OFFSET(BLOCK, heapaddr)) = heapptr->addrsig;
 
-    externalPtr = externalBase + 0x10;
+    externalPtr = externalBase + LARGEHEADER;
     *(LPVOID *)((LPBYTE)blockptr + sizeof(BLOCK)) = externalPtr;
     heapptr->externalbytes += bytes;
 
@@ -682,6 +704,9 @@ static void FreeHeap(HEAPPTR *nextptr) {
   HEAPPTR heapptr = *nextptr;
 
   *nextptr = heapptr->next;
+#ifdef _WIN64
+  s_heapaddrtable[(WORD)heapptr->addrsig] = NULL;
+#endif
   VirtualFree(heapptr, 0, MEM_RELEASE);
 }
 
@@ -694,10 +719,14 @@ static void FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block) {
   if (block->flags & BF_LARGEALLOC) {
     externalptr = *(LPVOID *)((LPBYTE)block + sizeof(BLOCK));
     if (externalptr) {
-      LPBYTE externalbase = (LPBYTE)externalptr - 0x10;
+      LPBYTE externalbase = (LPBYTE)externalptr - LARGEHEADER;
       bytes = *(DWORD *)externalbase;
       heapptr->externalbytes -= bytes;
+#ifdef _WIN64
+      externalbase = (LPBYTE)((DWORD_PTR)externalbase & ~(DWORD_PTR)(s_pagesize - 1));
+#else
       externalbase = (LPBYTE)((DWORD)externalbase & ~(s_pagesize - 1));
+#endif
       VirtualFree(externalbase, 0, MEM_RELEASE);
     } else {
       bytes = 0;
@@ -744,8 +773,8 @@ static void FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block) {
 
 static void GetBlockSize(BLOCKPTR blockptr, LPVOID ptr, LPDWORD bytes, LPDWORD overhead) {
   if (blockptr->flags & BF_LARGEALLOC) {
-    *bytes = *(DWORD *)((LPBYTE)ptr - 0x10);
-    *overhead = blockptr->padding + 0x1C;
+    *bytes = *(DWORD *)((LPBYTE)ptr - LARGEHEADER);
+    *overhead = blockptr->padding + sizeof(BLOCK) + sizeof(LPVOID) + LARGEHEADER;
     return;
   }
 

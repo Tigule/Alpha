@@ -72,7 +72,7 @@ static void CollisionDataAddFacets(
 }
 
 static BOOL CollisionDataVectorIntersect(
-    HCOLLISIONDATA__          *hDC,
+    HCOLLISIONDATA             hDC,
     const NTempest::C34Matrix &basis,
     const NTempest::C3Vector  &p0,
     const NTempest::C3Vector  &p1,
@@ -235,7 +235,7 @@ void ModelAddCollisionFacets(
 }
 
 int ModelCollisionVectorIntersect(
-    HMODEL__                  *model,
+    HMODEL                     model,
     const NTempest::C34Matrix &basis,
     const NTempest::C3Vector  &p0,
     const NTempest::C3Vector  &p1,

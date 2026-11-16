@@ -173,11 +173,11 @@ namespace OsNet {
     virtual void Selected(TCPNET *net, SELECTSET selectSet) = 0;
 
    public:
-    UINT m_sock;
+    SOCKET m_sock;
 
     NETSELSOCK() : m_sock(INVALID_SOCKET) {
     }
-    NETSELSOCK(UINT sock) : m_sock(sock) {
+    NETSELSOCK(SOCKET sock) : m_sock(sock) {
     }
 
     virtual BOOL IsClosed() const {
@@ -232,7 +232,7 @@ namespace OsNet {
     virtual void CloseAndUnlock() = 0;
 
    public:
-    NETCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
+    NETCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~NETCONN() {
     }
 
@@ -263,7 +263,7 @@ namespace OsNet {
 
   class NETCONNFULL : public NETCONN {
    public:
-    NETCONNFULL(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
+    NETCONNFULL(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
         : NETCONN(net, sock, eventProc, user, pconnAddr) {
     }
 
@@ -280,7 +280,7 @@ namespace OsNet {
 
   class NETCONNLESS : public NETCONN {
    public:
-    NETCONNLESS(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
+    NETCONNLESS(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
         : NETCONN(net, sock, eventProc, user, pconnAddr) {
     }
 
@@ -303,7 +303,7 @@ namespace OsNet {
     virtual void CloseAndUnlock();
 
    public:
-    TCPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
+    TCPCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~TCPCONN();
     virtual void    Send(LPCVOID data, DWORD bytes);
     virtual OS_SEND SendSync(LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout);
@@ -325,7 +325,7 @@ namespace OsNet {
     virtual void Selected(TCPNET *pnet, SELECTSET selectSet);
 
    public:
-    IOTCPCONN(TCPNET *net, LPVOID port, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
+    IOTCPCONN(TCPNET *net, LPVOID port, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
   };
 
   class SLTCPCONN : public TCPCONN {
@@ -338,7 +338,7 @@ namespace OsNet {
     virtual void Selected(TCPNET *pnet, SELECTSET selectSet);
 
    public:
-    SLTCPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
+    SLTCPCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
   };
 
   class FILECONN : public NETCONN {
@@ -390,7 +390,7 @@ namespace OsNet {
 
     virtual void          StartWriteAndLeaveLock(OUTPUT *poutput);
     virtual void          StartRead(INPUT *pinput);
-    static UINT __stdcall Thread(LPVOID lpfileConn);
+    static UINT WINAPI    Thread(LPVOID lpfileConn);
 
    protected:
     virtual void CloseAndUnlock();
@@ -516,7 +516,7 @@ namespace OsNet {
     virtual void CloseAndUnlock();
 
    public:
-    UDPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
+    UDPCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     virtual ~UDPCONN();
     virtual void SendTo(LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray);
   };
@@ -691,13 +691,13 @@ namespace OsNet {
     CCritSect  m_lock;
     BYTE       m_addr[64];
     TCPLISTEN *m_listen;
-    UINT       m_sock;
+    SOCKET       m_sock;
 
     TCPACCEPT(TCPLISTEN * listen);
     ~TCPACCEPT();
 
     void Init();
-    UINT Complete(NETCONNADDR * connAddr, int makeSock);
+    SOCKET Complete(NETCONNADDR * connAddr, int makeSock);
   };
 
   struct TCPLISTEN : public NETSELSOCK {
@@ -712,7 +712,7 @@ namespace OsNet {
     int          m_enabled;
     LISTDECL(TCPACCEPT, m_acceptList);
 
-    TCPLISTEN(UINT sock, WORD port, NETEVENTPROC eventProc, LPVOID user, DWORD acceptCount);
+    TCPLISTEN(SOCKET sock, WORD port, NETEVENTPROC eventProc, LPVOID user, DWORD acceptCount);
     ~TCPLISTEN();
 
     BOOL         Enable(int enable);
@@ -825,8 +825,8 @@ namespace OsNet {
     void PumpThreadsDestroy();
     void WakePumpThread();
     void LoopMakeConn(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID user, LPCVOID data, DWORD bytes);
-    void TcpMakeConn(UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
-    void UdpMakeConn(UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
+    void TcpMakeConn(SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes);
+    void UdpMakeConn(SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     void FileMakeConn(LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr);
     void LoopConnectInit(LOOPCONNECT *pconnect);
     void TcpConnectInit(TCPCONNECT *pconnect);
@@ -834,16 +834,16 @@ namespace OsNet {
     void IoPump(DWORD timeout);
 
     static void   IncludeDependantParts(DWORD *parts);
-    static void   MakeConnAddr(UINT sock, DWORD port, NETCONNADDR *connAddr);
-    static UINT   CreateListenSocket(WORD port);
+    static void   MakeConnAddr(SOCKET sock, DWORD port, NETCONNADDR *connAddr);
+    static SOCKET CreateListenSocket(WORD port);
     static LPVOID IoCompletionPresent(DWORD *pumpThreadCount);
 
-    static UINT __stdcall BaseThread(LPVOID lpnet);
-    static UINT __stdcall GetHostAddrsThread(LPVOID lpparam);
-    static UINT __stdcall IoPumpThread(LPVOID lpnet);
-    static UINT __stdcall SlPumpThread(LPVOID lpnet);
-    static UINT __stdcall ListenThread(LPVOID lpnet);
-    static UINT __stdcall UdpPumpThread(LPVOID lpnet);
+    static UINT WINAPI BaseThread(LPVOID lpnet);
+    static UINT WINAPI GetHostAddrsThread(LPVOID lpparam);
+    static UINT WINAPI IoPumpThread(LPVOID lpnet);
+    static UINT WINAPI SlPumpThread(LPVOID lpnet);
+    static UINT WINAPI ListenThread(LPVOID lpnet);
+    static UINT WINAPI UdpPumpThread(LPVOID lpnet);
 
     TCPNET(const TCPNET &);
     TCPNET &operator=(const TCPNET &);
@@ -861,7 +861,7 @@ namespace OsNet {
     ~TCPNET();
 
     void Pump(DWORD timeout);
-    int  PostIo(DWORD bytes, DWORD key, OVERLAPPED *overlap) {
+    int  PostIo(DWORD bytes, ULONG_PTR key, OVERLAPPED *overlap) {
       return PostQueuedCompletionStatus(m_port, bytes, key, overlap);
     }
     BOOL             TcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user);
@@ -873,7 +873,7 @@ namespace OsNet {
     TCPHOSTADDRINFO *LockedFindHostAddrInfo(DWORD infoId);
     BOOL             GetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user);
     void             CompleteAcceptEx(TCPACCEPT *paccept, int makeConn);
-    void             CompleteAccept(TCPLISTEN *plisten, UINT sock, const NETCONNADDR *pconnAddr);
+    void             CompleteAccept(TCPLISTEN *plisten, SOCKET sock, const NETCONNADDR *pconnAddr);
     void             LoopCompleteConnect(LOOPCONNECT *pconnect);
     void             TcpCompleteConnect(TCPCONNECT *pconnect);
     void             FileCompleteConnect(FILECONNECT *pconnect);
@@ -1045,12 +1045,12 @@ namespace OsNet {
     m_lock.Leave();
   }
 
-  UINT TCPACCEPT::Complete(NETCONNADDR *connAddr, int makeSock) {
+  SOCKET TCPACCEPT::Complete(NETCONNADDR *connAddr, int makeSock) {
     int      selfSize;
     int      peerSize;
     NETADDR *pselfAddr;
     NETADDR *ppeerAddr;
-    UINT     sock;
+    SOCKET     sock;
 
     m_lock.Enter();
 
@@ -1080,7 +1080,7 @@ namespace OsNet {
     return sock;
   }
 
-  TCPLISTEN::TCPLISTEN(UINT sock, WORD port, NETEVENTPROC eventProc, LPVOID user, DWORD acceptCount)
+  TCPLISTEN::TCPLISTEN(SOCKET sock, WORD port, NETEVENTPROC eventProc, LPVOID user, DWORD acceptCount)
       : NETSELSOCK(sock), m_portAddr(port), m_eventProc(eventProc), m_user(user), m_enabled(1) {
     while (acceptCount > 0) {
       TCPACCEPT *accept = new (ALLOC(sizeof(TCPACCEPT))) TCPACCEPT(this);
@@ -1130,7 +1130,7 @@ namespace OsNet {
   void TCPLISTEN::Selected(TCPNET *pnet, SELECTSET selectSet) {
     NETCONNADDR connAddr;
     int         addrSize;
-    UINT        sock;
+    SOCKET        sock;
 
     if (selectSet != SELECTSET_R) {
       TCPNET::LogWrite("%s 1", OSNETERR_INTERNAL);
@@ -1241,7 +1241,7 @@ namespace OsNet {
     pnet->FileCompleteConnect(this);
   }
 
-  void TCPNET::MakeConnAddr(UINT sock, DWORD port, NETCONNADDR *connAddr) {
+  void TCPNET::MakeConnAddr(SOCKET sock, DWORD port, NETCONNADDR *connAddr) {
     int          peerSize;
     int          selfSize;
     sockaddr_in *addr;
@@ -1259,10 +1259,10 @@ namespace OsNet {
     memset(addr->sin_zero, 0, sizeof(addr->sin_zero));
   }
 
-  UINT TCPNET::CreateListenSocket(WORD port) {
+  SOCKET TCPNET::CreateListenSocket(WORD port) {
     int         mode;
     sockaddr_in addr;
-    UINT        sock = socket(AF_INET, SOCK_STREAM, 0);
+    SOCKET        sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if (sock == INVALID_SOCKET) {
       LogWrite("%s 2", OSNETERR_SOCKETFAILED);
@@ -1475,7 +1475,7 @@ namespace OsNet {
     }
 
     BOOL completed =
-        GetQueuedCompletionStatus(m_port, &bytes, (DWORD *)&pconn, (OVERLAPPED **)&poverlap, timeout);
+        GetQueuedCompletionStatus(m_port, &bytes, (ULONG_PTR *)&pconn, (OVERLAPPED **)&poverlap, timeout);
 
     while (!s_pumpShutdown) {
       if (timeout != INFINITE && !completed && !poverlap) {
@@ -1528,7 +1528,7 @@ namespace OsNet {
       }
 
       completed =
-          GetQueuedCompletionStatus(m_port, &bytes, (DWORD *)&pconn, (OVERLAPPED **)&poverlap, timeout - elapsed);
+          GetQueuedCompletionStatus(m_port, &bytes, (ULONG_PTR *)&pconn, (OVERLAPPED **)&poverlap, timeout - elapsed);
     }
   }
 
@@ -1543,7 +1543,7 @@ namespace OsNet {
     }
   }
 
-  UINT __stdcall TCPNET::IoPumpThread(LPVOID lpnet) {
+  UINT WINAPI TCPNET::IoPumpThread(LPVOID lpnet) {
     TCPNET *net = (TCPNET *)lpnet;
 
     net->IoPump(INFINITE);
@@ -1552,7 +1552,7 @@ namespace OsNet {
     return 0;
   }
 
-  UINT __stdcall TCPNET::SlPumpThread(LPVOID lpnet) {
+  UINT WINAPI TCPNET::SlPumpThread(LPVOID lpnet) {
     TCPNET                 *net = (TCPNET *)lpnet;
     TCPLISTENLIST::Iterator listenIt(net->m_listenList);
     NETCONNLIST::Iterator   connIt(net->m_connList[CONNLIST_TCP_CONNECTED]);
@@ -1623,7 +1623,7 @@ namespace OsNet {
     return 0;
   }
 
-  UINT __stdcall TCPNET::ListenThread(LPVOID lpnet) {
+  UINT WINAPI TCPNET::ListenThread(LPVOID lpnet) {
     TCPNET                 *net = (TCPNET *)lpnet;
     TCPLISTENLIST::Iterator listenIt(net->m_listenList);
     NETSELECTSETS           selectSets(net);
@@ -1954,7 +1954,7 @@ namespace OsNet {
     s_tcpShutdown = 0;
   }
 
-  void TCPNET::TcpMakeConn(UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes) {
+  void TCPNET::TcpMakeConn(SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes) {
     if (m_port) {
       new (ALLOC(sizeof(IOTCPCONN))) IOTCPCONN(this, m_port, sock, eventProc, user, pconnAddr, data, bytes);
     } else {
@@ -1962,7 +1962,7 @@ namespace OsNet {
     }
   }
 
-  void TCPNET::UdpMakeConn(UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr) {
+  void TCPNET::UdpMakeConn(SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr) {
     new (ALLOC(sizeof(UDPCONN))) UDPCONN(this, sock, eventProc, user, pconnAddr);
   }
 
@@ -2002,14 +2002,14 @@ namespace OsNet {
 
   void TCPNET::CompleteAcceptEx(TCPACCEPT *paccept, int makeConn) {
     NETCONNADDR connAddr;
-    UINT        sock = paccept->Complete(&connAddr, makeConn);
+    SOCKET        sock = paccept->Complete(&connAddr, makeConn);
 
     if (sock != INVALID_SOCKET) {
       TcpMakeConn(sock, paccept->m_listen->m_eventProc, paccept->m_listen->m_user, &connAddr, 0, 0);
     }
   }
 
-  void TCPNET::CompleteAccept(TCPLISTEN *plisten, UINT sock, const NETCONNADDR *pconnAddr) {
+  void TCPNET::CompleteAccept(TCPLISTEN *plisten, SOCKET sock, const NETCONNADDR *pconnAddr) {
     TcpMakeConn(sock, plisten->m_eventProc, plisten->m_user, pconnAddr, 0, 0);
   }
 
@@ -2057,7 +2057,7 @@ namespace OsNet {
     }
     listenIt.CycleDone();
 
-    UINT sock = CreateListenSocket(port);
+    SOCKET sock = CreateListenSocket(port);
     if (sock == INVALID_SOCKET) {
       return 0;
     }
@@ -2169,7 +2169,7 @@ namespace OsNet {
     BaseWakeThread();
   }
 
-  UINT __stdcall TCPNET::BaseThread(LPVOID lpnet) {
+  UINT WINAPI TCPNET::BaseThread(LPVOID lpnet) {
     TCPNET                  *net = (TCPNET *)lpnet;
     NETCONNECTLIST::Iterator connectIt(net->m_connectList[CONNECTLIST_TCP_CONNECTING]);
     NETSELECTSETS            selectSets(net);
@@ -2234,7 +2234,7 @@ namespace OsNet {
 
           TCPHOSTADDRINFO *next;
 
-          for (info = hostAddrInfoFailList.Head(); (int)info > 0 ? (next = hostAddrInfoFailList.RawNext(info), 1) : 0; info = next) {
+          for (info = hostAddrInfoFailList.Head(); (INT_PTR)info > 0 ? (next = hostAddrInfoFailList.RawNext(info), 1) : 0; info = next) {
             info->Fail();
             if (s_preTerminateHostAddr) {
               DEL(info);
@@ -2313,7 +2313,7 @@ namespace OsNet {
 
         NETCONNECT *next;
 
-        for (connect = connectCompleteList.Head(); (int)connect > 0 ? (next = connectCompleteList.RawNext(connect), 1) : 0; connect = next) {
+        for (connect = connectCompleteList.Head(); (INT_PTR)connect > 0 ? (next = connectCompleteList.RawNext(connect), 1) : 0; connect = next) {
           if (connect->IsClosed()) {
             connect->Fail();
           } else {
@@ -2352,7 +2352,7 @@ namespace OsNet {
     return 0;
   }
 
-  UINT __stdcall TCPNET::GetHostAddrsThread(LPVOID lpparam) {
+  UINT WINAPI TCPNET::GetHostAddrsThread(LPVOID lpparam) {
     TCPHOSTADDRTHREAD *param = (TCPHOSTADDRTHREAD *)lpparam;
     TCPNET            *pnet = param->m_net;
     DWORD              infoId = param->m_infoId;
@@ -2504,7 +2504,7 @@ namespace OsNet {
     TcpConnectInit(connect);
   }
 
-  UINT __stdcall TCPNET::UdpPumpThread(LPVOID lpnet) {
+  UINT WINAPI TCPNET::UdpPumpThread(LPVOID lpnet) {
     TCPNET               *net = (TCPNET *)lpnet;
     NETCONNLIST::Iterator connIt(net->m_connList[CONNLIST_UDP_CONNECTED]);
     NETSELECTSETS         selectSets(net);
@@ -2562,7 +2562,7 @@ namespace OsNet {
   void TCPNET::UdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC eventProc, LPVOID user) {
     int  enabled;
     int  mode;
-    UINT sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    SOCKET sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if (sock == INVALID_SOCKET) {
       LogWrite("%s 4", OSNETERR_SOCKETFAILED);
@@ -2730,7 +2730,7 @@ namespace OsNet {
     }
   }
 
-  NETCONN::NETCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
+  NETCONN::NETCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
       : NETSELSOCK(sock),
         m_list(CONNLIST_NONE),
         m_listSlot(0),
@@ -2820,7 +2820,7 @@ namespace OsNet {
 
     GetEventProcAndUser(eventProc, user);
     if (eventProc) {
-      return eventProc((HNETCONN__ *)this, &m_connAddr, NETNOTE_CONNECT, user, 0, 0, &bytesProcessed);
+      return eventProc((HNETCONN)this, &m_connAddr, NETNOTE_CONNECT, user, 0, 0, &bytesProcessed);
     }
     return 0;
   }
@@ -2832,7 +2832,7 @@ namespace OsNet {
 
     GetEventProcAndUser(eventProc, user);
     if (eventProc) {
-      return eventProc((HNETCONN__ *)this, &m_connAddr, NETNOTE_DISCONNECT, user, 0, 0, &bytesProcessed);
+      return eventProc((HNETCONN)this, &m_connAddr, NETNOTE_DISCONNECT, user, 0, 0, &bytesProcessed);
     }
     return 0;
   }
@@ -2846,7 +2846,7 @@ namespace OsNet {
       if (!connAddr) {
         connAddr = &m_connAddr;
       }
-      return eventProc((HNETCONN__ *)this, connAddr, NETNOTE_DATA, user, data, bytes, bytesProcessed);
+      return eventProc((HNETCONN)this, connAddr, NETNOTE_DATA, user, data, bytes, bytesProcessed);
     }
     return 0;
   }
@@ -2864,7 +2864,7 @@ namespace OsNet {
     GetEventProcAndUser(eventProc, user);
 
     if (eventProc) {
-      return eventProc((HNETCONN__ *)this, &connAddr, note, user, data, bytes, &bytesProcessed);
+      return eventProc((HNETCONN)this, &connAddr, note, user, data, bytes, &bytesProcessed);
     }
     return 0;
   }
@@ -3092,7 +3092,7 @@ namespace OsNet {
     return !loopConn;
   }
 
-  UDPCONN::UDPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
+  UDPCONN::UDPCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
       : NETCONNLESS(net, sock, eventProc, user, pconnAddr) {
     if (!NoteConnect()) {
       Disconnect(1);
@@ -3149,7 +3149,7 @@ namespace OsNet {
     }
   }
 
-  TCPCONN::TCPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
+  TCPCONN::TCPCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
       : NETCONNFULL(net, sock, eventProc, user, pconnAddr) {
     int mode;
     int flag;
@@ -3418,7 +3418,7 @@ namespace OsNet {
   IOTCPCONN::IOTCPCONN(
       TCPNET            *net,
       LPVOID             port,
-      UINT               sock,
+      SOCKET               sock,
       NETEVENTPROC       eventProc,
       LPVOID             user,
       const NETCONNADDR *pconnAddr,
@@ -3426,7 +3426,7 @@ namespace OsNet {
       DWORD              bytes
   )
       : TCPCONN(net, sock, eventProc, user, pconnAddr), m_ioCount(1) {
-    if (!CreateIoCompletionPort((HANDLE)m_sock, port, (DWORD)this, 0)) {
+    if (!CreateIoCompletionPort((HANDLE)m_sock, port, (ULONG_PTR)this, 0)) {
       TCPNET::LogWrite("%s 2", OSNETERR_PORTFAILED);
       Disconnect(0);
       return;
@@ -3522,7 +3522,7 @@ namespace OsNet {
     TCPNET::LogWrite("%s 12", OSNETERR_INTERNAL);
   }
 
-  SLTCPCONN::SLTCPCONN(TCPNET *net, UINT sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes)
+  SLTCPCONN::SLTCPCONN(TCPNET *net, SOCKET sock, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr, LPCVOID data, DWORD bytes)
       : TCPCONN(net, sock, eventProc, user, pconnAddr) {
     if (data && bytes) {
       Send(data, bytes);
@@ -3756,7 +3756,7 @@ namespace OsNet {
 
   IOFILECONN::IOFILECONN(TCPNET *net, LPVOID port, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
       : FILECONN(net, file, eventProc, user, pconnAddr) {
-    if (!CreateIoCompletionPort(m_file, port, (DWORD)this, 0)) {
+    if (!CreateIoCompletionPort(m_file, port, (ULONG_PTR)this, 0)) {
       TCPNET::LogWrite("%s 3", OSNETERR_PORTFAILED);
       NoteCantConnect();
       CloseHandle(m_file);
@@ -3779,7 +3779,7 @@ namespace OsNet {
     if (!WriteFile(m_file, poutput->m_data, poutput->m_bytes, 0, &poutput->m_overlap.m_overlapped) &&
         GetLastError() != ERROR_IO_PENDING)
     {
-      m_net->PostIo(0, (DWORD)this, &poutput->m_overlap.m_overlapped);
+      m_net->PostIo(0, (ULONG_PTR)this, &poutput->m_overlap.m_overlapped);
     }
   }
 
@@ -3787,7 +3787,7 @@ namespace OsNet {
     if (!ReadFile(m_file, pinput->m_buffer, pinput->m_bytes, 0, &pinput->m_overlap.m_overlapped) &&
         GetLastError() != ERROR_IO_PENDING)
     {
-      m_net->PostIo(0, (DWORD)this, &pinput->m_overlap.m_overlapped);
+      m_net->PostIo(0, (ULONG_PTR)this, &pinput->m_overlap.m_overlapped);
     }
   }
 
@@ -3796,13 +3796,13 @@ namespace OsNet {
       CloseHandle(m_file);
       m_file = INVALID_HANDLE_VALUE;
       m_lock.Leave();
-      m_net->PostIo(0, (DWORD)this, 0);
+      m_net->PostIo(0, (ULONG_PTR)this, 0);
     } else {
       m_lock.Leave();
     }
   }
 
-  UINT __stdcall SLFILECONN::Thread(LPVOID lpfileConn) {
+  UINT WINAPI SLFILECONN::Thread(LPVOID lpfileConn) {
     SLFILECONN *fileConn = (SLFILECONN *)lpfileConn;
 
     for (;;) {
@@ -3930,51 +3930,51 @@ void OsNetPump(DWORD timeout) {
   }
 }
 
-HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
+HNETCONN OsNetConnCopyHandle(HNETCONN conn) {
   VALIDATE2(conn);
 
   ((OsNet::NETCONN *)conn)->IncRef();
   return conn;
 }
 
-void OsNetConnFreeHandle(HNETCONN__ *conn) {
+void OsNetConnFreeHandle(HNETCONN conn) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->DecRef();
 }
 
-void OsNetConnAddr(HNETCONN__ *conn, NETCONNADDR *connAddr) {
+void OsNetConnAddr(HNETCONN conn, NETCONNADDR *connAddr) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->ConnAddr(connAddr);
 }
 
-void OsNetConnClose(HNETCONN__ *conn) {
+void OsNetConnClose(HNETCONN conn) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->Close();
 }
 
-int OsNetConnIsClosed(HNETCONN__ *conn) {
+int OsNetConnIsClosed(HNETCONN conn) {
   if (!conn) {
     return 1;
   }
   return ((OsNet::NETCONN *)conn)->IsClosed();
 }
 
-void OsNetConnSetEventProc(HNETCONN__ *conn, NETEVENTPROC eventProc) {
+void OsNetConnSetEventProc(HNETCONN conn, NETEVENTPROC eventProc) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->SetEventProc(eventProc);
 }
 
-void OsNetConnSetUser(HNETCONN__ *conn, LPVOID user) {
+void OsNetConnSetUser(HNETCONN conn, LPVOID user) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->SetUser(user);
 }
 
-void OsNetConnSetEventProcAndUser(HNETCONN__ *conn, NETEVENTPROC eventProc, LPVOID user) {
+void OsNetConnSetEventProcAndUser(HNETCONN conn, NETEVENTPROC eventProc, LPVOID user) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONN *)conn)->SetEventProcAndUser(eventProc, user);
@@ -3987,7 +3987,7 @@ void OsLoopConnect(NETEVENTPROC eventProcSrc, NETEVENTPROC eventProcDst, LPVOID 
   }
 }
 
-void OsLoopConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
+void OsLoopConnSend(HNETCONN conn, LPCVOID data, DWORD bytes) {
   VALIDATE2VOID(conn);
 
   ((OsNet::LOOPCONN *)conn)->Send(data, bytes);
@@ -4015,31 +4015,31 @@ void OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID us
   }
 }
 
-void OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
+void OsTcpConnSend(HNETCONN conn, LPCVOID data, DWORD bytes) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNFULL *)conn)->Send(data, bytes);
 }
 
-OS_SEND OsTcpConnSendSync(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) {
+OS_SEND OsTcpConnSendSync(HNETCONN conn, LPCVOID data, DWORD bytes, DWORD *bytesSent, DWORD timeout) {
   VALIDATE2RETURN(conn, OS_SEND_ERROR);
 
   return ((OsNet::NETCONNFULL *)conn)->SendSync(data, bytes, bytesSent, timeout);
 }
 
-void OsTcpConnSetNagle(HNETCONN__ *conn, int enable) {
+void OsTcpConnSetNagle(HNETCONN conn, int enable) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNFULL *)conn)->SetNagle(enable);
 }
 
-int OsTcpConnSetWindow(HNETCONN__ *conn, DWORD size) {
+int OsTcpConnSetWindow(HNETCONN conn, DWORD size) {
   VALIDATE2(conn);
 
   return ((OsNet::NETCONNFULL *)conn)->SetWindow(size);
 }
 
-void OsTcpConnSetRecvTimeout(HNETCONN__ *conn, DWORD timeoutMs) {
+void OsTcpConnSetRecvTimeout(HNETCONN conn, DWORD timeoutMs) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNFULL *)conn)->SetRecvTimeout(timeoutMs);
@@ -4056,7 +4056,7 @@ void OsUdpConnect(const NETADDR *addr, WORD portMin, WORD portMax, NETEVENTPROC 
   }
 }
 
-void OsUdpConnSendTo(HNETCONN__ *conn, LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray) {
+void OsUdpConnSendTo(HNETCONN conn, LPCVOID data, DWORD bytes, DWORD addrCount, const NETADDR *addrArray) {
   VALIDATE2VOID(conn);
 
   ((OsNet::NETCONNLESS *)conn)->SendTo(data, bytes, addrCount, addrArray);
@@ -4183,19 +4183,19 @@ void OsFileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int 
   }
 }
 
-BOOL OsFileConnRead(HNETCONN__ *conn, DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId) {
+BOOL OsFileConnRead(HNETCONN conn, DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId) {
   VALIDATE2(conn);
 
   return ((OsNet::FILECONN *)conn)->Read(pos, buffer, bytes, operationId);
 }
 
-BOOL OsFileConnWrite(HNETCONN__ *conn, DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId) {
+BOOL OsFileConnWrite(HNETCONN conn, DWORDLONG pos, LPCVOID data, DWORD bytes, LPVOID operationId) {
   VALIDATE2(conn);
 
   return ((OsNet::FILECONN *)conn)->Write(pos, data, bytes, operationId);
 }
 
-void OsFileConnClose(HNETCONN__ *conn) {
+void OsFileConnClose(HNETCONN conn) {
   VALIDATE2VOID(conn);
 
   ((OsNet::FILECONN *)conn)->Close();

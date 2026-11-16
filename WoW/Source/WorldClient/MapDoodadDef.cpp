@@ -115,7 +115,7 @@ void CMapStaticEntity::AdjustLightmap(
 void CMapStaticEntity::FindLights() {
   CMapCacheLight *cacheLight = cacheLightList.Head();
   while (1) {
-    if ((int)cacheLight <= 0) {
+    if ((INT_PTR)cacheLight <= 0) {
       break;
     }
 

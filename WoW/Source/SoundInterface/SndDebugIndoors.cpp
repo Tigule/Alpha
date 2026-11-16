@@ -77,7 +77,7 @@ BOOL CreateChunkINDOORS(LPCSTR command, LPCSTR arguments) {
     return 1;
   }
 
-  DWORD worldObject = object->GetWorldObject();
+  DWORD_PTR worldObject = object->GetWorldObject();
   if (!worldObject) {
     ConsoleWrite("Error, can't locate current player's worldobject!", DEFAULT_COLOR);
     return 1;

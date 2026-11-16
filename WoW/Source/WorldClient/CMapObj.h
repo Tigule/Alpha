@@ -33,7 +33,7 @@ namespace NTempest {
 }
 struct CGxBuf;
 struct CGxBufCommand;
-struct HTEXTURE__;
+typedef struct HTEXTURE__ *HTEXTURE;
 struct SMOBatch {
   enum {
     F_RENDERED = 0xF0

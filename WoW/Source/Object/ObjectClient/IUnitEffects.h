@@ -46,7 +46,7 @@ class ONESHOTSTANDALONEEFFECTNODE : public NODEBASE {
   TSFixedArray<DWORDLONG> objects;
   float                   facing;
   float                   scale;
-  DWORD                   worldObject;
+  DWORD_PTR               worldObject;
   int                     expireTime;
 };
 

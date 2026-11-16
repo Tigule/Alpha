@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 
-struct HLAYER__;
-struct HTEXTFONT__;
+typedef struct HLAYER__    *HLAYER;
+typedef struct HTEXTFONT__ *HTEXTFONT;
 
 enum HIGHLIGHTSTATE {
   HS_NONE = 0,
@@ -56,8 +56,8 @@ NODEDECL(CONSOLELINE) {
   }
 };
 
-CGxFont     *TextBlockGetFontPtr(HTEXTFONT__ *fontHandle);
-HTEXTFONT__ *TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeight);
+CGxFont  *TextBlockGetFontPtr(HTEXTFONT fontHandle);
+HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeight);
 
 static int        s_rates[11] = {60, 70, 72, 75, 85, 90, 100, 120, 160, 180, 200};
 static const char s_apis[2][16] = {"OpenGL", "Direct3D"};
@@ -81,8 +81,8 @@ static int        s_caret;
 static LISTDECL(CONSOLELINE, s_linelist);
 static CONSOLELINE        *s_currlineptr;
 static int                 s_NumLines;
-static HLAYER__           *s_layerBackground;
-static HLAYER__           *s_layerText;
+static HLAYER              s_layerBackground;
+static HLAYER              s_layerText;
 static int                 s_completionMode;
 static LPCSTR              s_completedCmd;
 static LPCSTR              s_previousCmd = 0;
@@ -91,7 +91,7 @@ static int                 s_historyIndex = -1;
 static NTempest::CImVector s_colorArray[NUM_COLORTYPES] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFF808080, 0xFFFF0000, 0xFFFFFF00,
                                                            0xFFFFFFFF, 0xFFFFFFFF, 0x80FFFFFF, 0xC0000000};
 static float               s_fontHeight = 0.02f;
-static HTEXTFONT__        *s_textFont;
+static HTEXTFONT           s_textFont;
 static char                s_fontName[0x104];
 static CONSOLERESIZESTATE  s_consoleResizeState;
 static HIGHLIGHTSTATE      s_highlightState;
@@ -161,8 +161,8 @@ void OsGuiSetWindowTitle(LPVOID inWindow, LPCSTR inText);
 
 typedef void (*SCREENPAINTFUNC)(LPVOID, const RECTF *, const RECTF *, float);
 
-void ScrnLayerCreate(const RECTF *rect, float zorder, DWORD flags, LPVOID param, SCREENPAINTFUNC paintfunc, HLAYER__ **layer);
-void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect);
+void ScrnLayerCreate(const RECTF *rect, float zorder, DWORD flags, LPVOID param, SCREENPAINTFUNC paintfunc, HLAYER *layer);
+void ScrnLayerSetRect(HLAYER layer, const RECTF *rect);
 void ScrnPerfEnable(int enable);
 
 static void         PaintBackground(LPVOID, const RECTF *, const RECTF *, float);
@@ -182,7 +182,7 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID);
 static BOOL OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID);
 static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID);
 
-long OsWindowProc(LPVOID _window, UINT message, UINT wparam, long lparam);
+LRESULT OsWindowProc(LPVOID _window, UINT message, WPARAM wparam, LPARAM lparam);
 void OsGuiSetGxWindow(LPVOID window);
 
 static bool CVGxResolutionCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg);
@@ -1063,7 +1063,7 @@ static BOOL ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
 
 static BOOL ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments) {
   char         buffer[0x104] = "Fonts\\";
-  HTEXTFONT__ *font;
+  HTEXTFONT    font;
 
   SStrPack(buffer, arguments, sizeof(buffer));
   SStrPack(buffer, ".ttf", sizeof(buffer));

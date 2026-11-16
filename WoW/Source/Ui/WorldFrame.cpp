@@ -65,7 +65,7 @@
 
 struct FADEOUTHASHOBJ : public TSHashObject<FADEOUTHASHOBJ, CHashKeyGUID> {
   HMODEL              model;
-  HTEXCOMPONENT__    *texture;
+  HTEXCOMPONENT       texture;
   NTempest::C34Matrix matrix;
   float               renderScale;
   UINT                startTime;
@@ -95,7 +95,7 @@ bool             Spell_C_CanTargetDead();
 bool             Spell_C_CanTargetItems();
 bool             Spell_C_CanTargetTerrain();
 bool             Spell_C_WaitingForStringInput();
-UINT             Spell_C_WorldObjectCursor();
+UINT_PTR         Spell_C_WorldObjectCursor();
 float            Spell_C_WorldObjectFacing();
 bool             Spell_C_WorldObjectHousing();
 float            Spell_C_GetSpellRadius();
@@ -325,7 +325,7 @@ CModelRecord *CGWorldFrame::HigherPriorityModel(CModelRecord *a, CModelRecord *b
 
 void CGWorldFrame::ReduceToClosestModel() {
   CModelRecord *closest = m_models.Head();
-  for (CModelRecord *record = m_models.RawNext(closest), *next; (int)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
+  for (CModelRecord *record = m_models.RawNext(closest), *next; (INT_PTR)record > 0 ? ((next = m_models.RawNext(record)), 1) : 0; record = next) {
     closest = HigherPriorityModel(closest, record);
   }
 }
@@ -770,7 +770,7 @@ void CGWorldFrame::OnLayerTrackTerrain(const HitTestResult &hitTestResult) {
       CursorModelSetSequence(CAST_ERROR_CURSOR);
     }
 
-    UINT cursor = Spell_C_WorldObjectCursor();
+    UINT_PTR cursor = Spell_C_WorldObjectCursor();
     if (cursor) {
       CWorld::ObjectUpdate(cursor, s_spellShadowPos, Spell_C_WorldObjectFacing(), Spell_C_WorldObjectHousing());
     }
@@ -1168,7 +1168,7 @@ static void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempe
 }
 
 static void DrawCursorShadow() {
-  UINT cursor = Spell_C_WorldObjectCursor();
+  UINT_PTR cursor = Spell_C_WorldObjectCursor();
   if (cursor) {
     NTempest::C3Vector position = s_spellShadowPos - CGWorldFrame::GetActiveCamera()->Position();
     NTempest::CAaBox   extents;

@@ -1160,7 +1160,7 @@ UNIT_REACTION CGGameObject_C::ObjectReaction(const CGUnit_C *unit) const {
   return UNIT_REACTION_NEUTRAL;
 }
 
-UINT CGGameObject_C::CreateWorldObject(DWORDLONG guid) {
+UINT_PTR CGGameObject_C::CreateWorldObject(DWORDLONG guid) {
   NTempest::C3Vector position = m_gameObj->m_position;
   return CWorld::ObjectCreate(GetModelFileNameInternal(), position, GetFacing(), 0, 0, guid);
 }

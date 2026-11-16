@@ -12,15 +12,16 @@
 
 #include <new>
 
-typedef signed char(__stdcall *FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, LPVOID, int, int);
-typedef LPVOID(__stdcall *FSOUND_ALLOCCALLBACK)(UINT);
-typedef LPVOID(__stdcall *FSOUND_REALLOCCALLBACK)(LPVOID, UINT);
-typedef void(__stdcall *FSOUND_FREECALLBACK)(LPVOID);
-typedef UINT(__stdcall *FSOUND_OPENCALLBACK)(LPCSTR);
-typedef void(__stdcall *FSOUND_CLOSECALLBACK)(UINT);
-typedef int(__stdcall *FSOUND_READCALLBACK)(LPVOID, int, UINT);
-typedef int(__stdcall *FSOUND_SEEKCALLBACK)(UINT, int, signed char);
-typedef int(__stdcall *FSOUND_TELLCALLBACK)(UINT);
+// todo: either WINAPI or F_API?
+typedef signed char(WINAPI *FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, LPVOID, int, INT_PTR);
+typedef LPVOID(WINAPI *FSOUND_ALLOCCALLBACK)(UINT);
+typedef LPVOID(WINAPI *FSOUND_REALLOCCALLBACK)(LPVOID, UINT);
+typedef void(WINAPI *FSOUND_FREECALLBACK)(LPVOID);
+typedef UINT(WINAPI *FSOUND_OPENCALLBACK)(LPCSTR);
+typedef void(WINAPI *FSOUND_CLOSECALLBACK)(UINT);
+typedef int(WINAPI *FSOUND_READCALLBACK)(LPVOID, int, UINT);
+typedef int(WINAPI *FSOUND_SEEKCALLBACK)(UINT, int, signed char);
+typedef int(WINAPI *FSOUND_TELLCALLBACK)(UINT);
 
 enum FSOUND_OUTPUTTYPES {
   FSOUND_OUTPUT_NOSOUND,
@@ -56,11 +57,11 @@ typedef bool (*SOUND_GET_PARAM_INT)(LPCSTR, int &);
 typedef bool (*SOUND_GET_PARAM_FLOAT)(LPCSTR, float &);
 typedef bool (*SOUND_GET_PARAM_STRING)(LPCSTR, LPCSTR &);
 
-extern "C" void __stdcall        FSOUND_3D_SetDistanceFactor(float factor);
-extern "C" void __stdcall        FSOUND_3D_SetDopplerFactor(float factor);
-extern "C" void __stdcall        FSOUND_3D_SetRolloffFactor(float factor);
-extern "C" float __stdcall       FSOUND_GetCPUUsage();
-extern "C" signed char __stdcall FSOUND_3D_Listener_SetAttributes(
+extern "C" void WINAPI        FSOUND_3D_SetDistanceFactor(float factor);
+extern "C" void WINAPI        FSOUND_3D_SetDopplerFactor(float factor);
+extern "C" void WINAPI        FSOUND_3D_SetRolloffFactor(float factor);
+extern "C" float WINAPI       FSOUND_GetCPUUsage();
+extern "C" signed char WINAPI FSOUND_3D_Listener_SetAttributes(
     const float *position,
     const float *velocity,
     float        forwardX,
@@ -70,8 +71,8 @@ extern "C" signed char __stdcall FSOUND_3D_Listener_SetAttributes(
     float        topY,
     float        topZ
 );
-extern "C" signed char __stdcall FSOUND_3D_SetAttributes(int channel, const float *position, const float *velocity);
-extern "C" void __stdcall        FSOUND_3D_Listener_GetAttributes(
+extern "C" signed char WINAPI FSOUND_3D_SetAttributes(int channel, const float *position, const float *velocity);
+extern "C" void WINAPI        FSOUND_3D_Listener_GetAttributes(
     float *position,
     float *velocity,
     float *forwardX,
@@ -81,57 +82,57 @@ extern "C" void __stdcall        FSOUND_3D_Listener_GetAttributes(
     float *topY,
     float *topZ
 );
-extern "C" signed char __stdcall FSOUND_IsPlaying(int channel);
-extern "C" void __stdcall        FSOUND_Close();
-extern "C" void __stdcall        FSOUND_File_SetCallbacks(
+extern "C" signed char WINAPI FSOUND_IsPlaying(int channel);
+extern "C" void WINAPI        FSOUND_Close();
+extern "C" void WINAPI        FSOUND_File_SetCallbacks(
     FSOUND_OPENCALLBACK  openCallback,
     FSOUND_CLOSECALLBACK closeCallback,
     FSOUND_READCALLBACK  readCallback,
     FSOUND_SEEKCALLBACK  seekCallback,
     FSOUND_TELLCALLBACK  tellCallback
 );
-extern "C" int __stdcall         FSOUND_GetDriver();
-extern "C" signed char __stdcall FSOUND_GetDriverCaps(int driver, UINT *caps);
-extern "C" LPCSTR __stdcall      FSOUND_GetDriverName(int driver);
-extern "C" int __stdcall         FSOUND_GetError();
-extern "C" int __stdcall         FSOUND_GetMaxChannels();
-extern "C" int __stdcall         FSOUND_GetMixer();
-extern "C" int __stdcall         FSOUND_GetNumDrivers();
-extern "C" int __stdcall         FSOUND_GetNumHardwareChannels();
-extern "C" int __stdcall         FSOUND_GetOutput();
-extern "C" int __stdcall         FSOUND_GetOutputRate();
-extern "C" signed char __stdcall FSOUND_Init(int mixRate, int maxSoftwareChannels, UINT flags);
-extern "C" signed char __stdcall FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDistance, float maxDistance);
-extern "C" signed char __stdcall FSOUND_SetMute(int channel, signed char mute);
-extern "C" signed char __stdcall FSOUND_SetPaused(int channel, signed char paused);
-extern "C" signed char __stdcall FSOUND_SetFrequency(int channel, int frequency);
-extern "C" signed char __stdcall FSOUND_SetBufferSize(int milliseconds);
-extern "C" signed char __stdcall FSOUND_SetDriver(int driver);
-extern "C" signed char __stdcall FSOUND_SetHWND(DWORD window);
-extern "C" signed char __stdcall FSOUND_SetMaxHardwareChannels(int maximum);
-extern "C" signed char __stdcall FSOUND_SetMemorySystem(
+extern "C" int WINAPI         FSOUND_GetDriver();
+extern "C" signed char WINAPI FSOUND_GetDriverCaps(int driver, UINT *caps);
+extern "C" LPCSTR WINAPI      FSOUND_GetDriverName(int driver);
+extern "C" int WINAPI         FSOUND_GetError();
+extern "C" int WINAPI         FSOUND_GetMaxChannels();
+extern "C" int WINAPI         FSOUND_GetMixer();
+extern "C" int WINAPI         FSOUND_GetNumDrivers();
+extern "C" int WINAPI         FSOUND_GetNumHardwareChannels();
+extern "C" int WINAPI         FSOUND_GetOutput();
+extern "C" int WINAPI         FSOUND_GetOutputRate();
+extern "C" signed char WINAPI FSOUND_Init(int mixRate, int maxSoftwareChannels, UINT flags);
+extern "C" signed char WINAPI FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDistance, float maxDistance);
+extern "C" signed char WINAPI FSOUND_SetMute(int channel, signed char mute);
+extern "C" signed char WINAPI FSOUND_SetPaused(int channel, signed char paused);
+extern "C" signed char WINAPI FSOUND_SetFrequency(int channel, int frequency);
+extern "C" signed char WINAPI FSOUND_SetBufferSize(int milliseconds);
+extern "C" signed char WINAPI FSOUND_SetDriver(int driver);
+extern "C" signed char WINAPI FSOUND_SetHWND(DWORD window);
+extern "C" signed char WINAPI FSOUND_SetMaxHardwareChannels(int maximum);
+extern "C" signed char WINAPI FSOUND_SetMemorySystem(
     LPVOID                 pool,
     int                    poolLength,
     FSOUND_ALLOCCALLBACK   allocCallback,
     FSOUND_REALLOCCALLBACK reallocCallback,
     FSOUND_FREECALLBACK    freeCallback
 );
-extern "C" signed char __stdcall    FSOUND_SetMinHardwareChannels(int minimum);
-extern "C" signed char __stdcall    FSOUND_SetMixer(int mixer);
-extern "C" signed char __stdcall    FSOUND_SetOutput(int output);
-extern "C" signed char __stdcall    FSOUND_SetSFXMasterVolume(int volume);
-extern "C" signed char __stdcall    FSOUND_SetVolume(int channel, int volume);
-extern "C" signed char __stdcall    FSOUND_StopSound(int channel);
-extern "C" signed char __stdcall    FSOUND_Stream_Close(FSOUND_STREAM *stream);
-extern "C" FSOUND_STREAM *__stdcall FSOUND_Stream_Open(LPCSTR filename, UINT mode, int offset, int length);
-extern "C" FSOUND_SAMPLE *__stdcall FSOUND_Stream_GetSample(FSOUND_STREAM *stream);
-extern "C" int __stdcall            FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, LPVOID dsp, signed char startPaused);
-extern "C" signed char __stdcall    FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, int userdata);
-extern "C" signed char __stdcall    FSOUND_Stream_SetLoopCount(FSOUND_STREAM *stream, int loopCount);
-extern "C" int __stdcall            FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream);
-extern "C" signed char __stdcall    FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int milliseconds);
-extern "C" signed char __stdcall    FSOUND_Stream_Stop(FSOUND_STREAM *stream);
-extern "C" void __stdcall           FSOUND_Update();
+extern "C" signed char WINAPI    FSOUND_SetMinHardwareChannels(int minimum);
+extern "C" signed char WINAPI    FSOUND_SetMixer(int mixer);
+extern "C" signed char WINAPI    FSOUND_SetOutput(int output);
+extern "C" signed char WINAPI    FSOUND_SetSFXMasterVolume(int volume);
+extern "C" signed char WINAPI    FSOUND_SetVolume(int channel, int volume);
+extern "C" signed char WINAPI    FSOUND_StopSound(int channel);
+extern "C" signed char WINAPI    FSOUND_Stream_Close(FSOUND_STREAM *stream);
+extern "C" FSOUND_STREAM *WINAPI FSOUND_Stream_Open(LPCSTR filename, UINT mode, int offset, int length);
+extern "C" FSOUND_SAMPLE *WINAPI FSOUND_Stream_GetSample(FSOUND_STREAM *stream);
+extern "C" int WINAPI            FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, LPVOID dsp, signed char startPaused);
+extern "C" signed char WINAPI    FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, INT_PTR userdata);
+extern "C" signed char WINAPI    FSOUND_Stream_SetLoopCount(FSOUND_STREAM *stream, int loopCount);
+extern "C" int WINAPI            FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream);
+extern "C" signed char WINAPI    FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int milliseconds);
+extern "C" signed char WINAPI    FSOUND_Stream_Stop(FSOUND_STREAM *stream);
+extern "C" void WINAPI           FSOUND_Update();
 
 static int    logFlags;
 static int    s_maxCategorySounds[SOUNDCATEGORIES_NUMCATEGORIES] = {0x7FFFFFFF, 1, 2};
@@ -191,28 +192,28 @@ struct InitParams {
 
 bool (*Sound::m_positionUpdateCallback)(LONGLONG, NTempest::C3Vector &);
 
-static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, int param);
-static LPVOID __stdcall      FSoundAllocCallback(UINT size);
-static LPVOID __stdcall      FSoundReallocCallback(LPVOID ptr, UINT size);
-static void __stdcall        FSoundFreeCallback(LPVOID ptr);
+static signed char WINAPI    FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, INT_PTR param);
+static LPVOID WINAPI         FSoundAllocCallback(UINT size);
+static LPVOID WINAPI         FSoundReallocCallback(LPVOID ptr, UINT size);
+static void WINAPI           FSoundFreeCallback(LPVOID ptr);
 static BOOL                  SoundIdle(LPCVOID, LPVOID);
 static int                   CheckInitError(char success, LPCSTR function, int parameter);
 static void
 InitializeParams(InitParams &params, SOUND_GET_PARAM_INT GetParamInt, SOUND_GET_PARAM_FLOAT GetParamFloat, SOUND_GET_PARAM_STRING GetParamString);
 
-static LPVOID __stdcall FSoundAllocCallback(UINT size) {
+static LPVOID WINAPI FSoundAllocCallback(UINT size) {
   return SMemAlloc(size, "FMod", 0, 0);
 }
 
-static LPVOID __stdcall FSoundReallocCallback(LPVOID ptr, UINT size) {
+static LPVOID WINAPI FSoundReallocCallback(LPVOID ptr, UINT size) {
   return SMemReAlloc(ptr, size, "FMod", 0, 0);
 }
 
-static void __stdcall FSoundFreeCallback(LPVOID ptr) {
+static void WINAPI FSoundFreeCallback(LPVOID ptr) {
   SMemFree(ptr, "FMod", 0, 0);
 }
 
-static signed char __stdcall FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, int param) {
+static signed char WINAPI FSoundStreamEndCallback(FSOUND_STREAM *stream, LPVOID buff, int len, INT_PTR param) {
   ASSERT(param);
 
   s_soundSystemLock.Enter();
@@ -655,7 +656,7 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
     return 0;
   }
 
-  FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (int)sound);
+  FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (INT_PTR)sound);
   sound->m_category = category;
 
   if (!startPaused) {
@@ -716,7 +717,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
 
   if (loopCount) {
     FSOUND_Stream_SetLoopCount((FSOUND_STREAM *)sound->m_stream, loopCount);
-    FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (int)sound);
+    FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (INT_PTR)sound);
   }
 
   sound->m_category = category;
@@ -881,7 +882,7 @@ void Sound::Resume() {
     return;
   }
 
-  FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)m_stream, FSoundStreamEndCallback, (int)this);
+  FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)m_stream, FSoundStreamEndCallback, (INT_PTR)this);
   m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)m_stream, 0, 1);
   if (m_channel == -1) {
     Stop();

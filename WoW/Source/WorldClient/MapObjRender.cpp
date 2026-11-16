@@ -58,9 +58,6 @@ void CMapObj::SetGroupRenderCallback(void (*func)(const UINT, LPCVOID, const int
 }
 
 void CMapObj::PrepareUpdate() {
-  CMapObj *mapObj;
-  CMapObj *mapObjnext_node;
-
   extViewList.SetCount(0);
   s_extFunc = &CMapObj::RenderGroupLightTex;
   if (CWorld::enables & CWorld::Enable_MapObjTex) {
@@ -85,9 +82,7 @@ void CMapObj::PrepareUpdate() {
     s_intFunc = &CMapObj::RenderGroupBsp;
   }
 
-  for (mapObj = mapObjHash.Head(); (int)mapObj > 0 ? (mapObjnext_node = mapObjHash.Next(mapObj), 1) : 0;
-       mapObj = mapObjnext_node)
-  {
+  SAFEITERATELIST(CMapObj, mapObjHash, mapObj) {
     mapObj->UpdateMaterials();
 
     ITERATELIST(CMapObjGroup, mapObj->groupList, group) {
@@ -264,7 +259,7 @@ void CMapObj::RenderGroup(
 
   const CWFrustum *frustum = frustumList.RawNext(0);
   UINT             i = 0;
-  while ((long)frustum > 0) {
+  while ((LONG_PTR)frustum > 0) {
     CWorldScene::FrustumSet(*frustum);
     CWorldScene::FrustumXform(invMat);
     if (!(group->flags & 0x48)) {

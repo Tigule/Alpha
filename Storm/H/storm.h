@@ -105,9 +105,25 @@ typedef LPCSTR         LPCTSTR;
 typedef DWORD          LCID;
 typedef WORD           LANGID;
 typedef DWORD          COLORREF;
+#ifdef _WIN64
+typedef __int64          INT_PTR;
+typedef unsigned __int64 UINT_PTR;
+typedef __int64          LONG_PTR;
+typedef unsigned __int64 ULONG_PTR;
+typedef ULONG_PTR        DWORD_PTR;
+typedef LONG_PTR         LRESULT;
+typedef LONG_PTR         LPARAM;
+typedef UINT_PTR         WPARAM;
+#else
+#define INT_PTR   int
+#define UINT_PTR  UINT
+#define LONG_PTR  LONG
+#define ULONG_PTR DWORD
+#define DWORD_PTR DWORD
 typedef LONG           LRESULT;
 typedef LONG           LPARAM;
 typedef UINT           WPARAM;
+#endif
 
 typedef struct HINSTANCE__ *HINSTANCE;
 
@@ -207,7 +223,7 @@ void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
 
 class SCritSect {
  private:
-  BYTE m_opaqueData[0x18];
+  BYTE m_opaqueData[4 * sizeof(LPVOID) + 2 * sizeof(LONG)];
   SCritSect &operator=(const SCritSect &);
   SCritSect(const SCritSect &);
 
@@ -221,7 +237,7 @@ class SCritSect {
 
 class CDebugSCritSect : private SCritSect {
  private:
-  BYTE m_debugData[0x0C];
+  BYTE m_debugData[3 * sizeof(LPVOID)];
 
   CDebugSCritSect &operator=(const CDebugSCritSect &);
   CDebugSCritSect(const CDebugSCritSect &);
@@ -251,7 +267,7 @@ class CSRWLock {
 
 class CDebugSRWLock : private CSRWLock {
  private:
-  BYTE m_debugData[0x0C];
+  BYTE m_debugData[3 * sizeof(LPVOID)];
 
   CDebugSRWLock &operator=(const CDebugSRWLock &);
   CDebugSRWLock(const CDebugSRWLock &);

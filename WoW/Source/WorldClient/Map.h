@@ -35,8 +35,8 @@ class SFile;
 class WMOAreaTableRec;
 struct CGxBuf;
 struct CGxBufCommand;
-struct HMODEL__;
-struct HTEXTURE__;
+typedef struct HMODEL__   *HMODEL;
+typedef struct HTEXTURE__ *HTEXTURE;
 
 struct SLVert {
   union {
@@ -767,6 +767,9 @@ class CMapArea : public CMapBaseObj {
   TSGrowableArray<SMMapObjDef> mapObjDefList;
   SMChunkInfo                  chunkInfo[256];
   CMapChunk                   *chunkTable[256];
+#ifdef _WIN64
+  CAsyncObject                *chunkAsync[256];
+#endif
 
   static int ccWaterShowTri;
   static int ccWaterLOD;
@@ -920,6 +923,9 @@ class CMap {
   static BOOL         bPreload;
   static BOOL         bDungeon;
   static SMAreaInfo   areaInfo[4096];
+#ifdef _WIN64
+  static CAsyncObject *areaAsync[4096];
+#endif
   static CMapArea    *areaTable[4096];
   static DWORD        areaLowOffsets[4096];
   static CMapAreaLow *areaLowTable[4096];
@@ -1061,13 +1067,13 @@ class CMap {
   static void SetLightFuncs();
   static void GxuLightInitialize();
   static void GxuLightShutdown();
-  static DWORD     GxuLightCreate();
-  static void      GxuLightDestroy(DWORD lightId);
-  static CGxLight *GxuLightLock(DWORD lightId);
-  static void      GxuLightUnlock(DWORD lightId);
+  static DWORD_PTR GxuLightCreate();
+  static void      GxuLightDestroy(DWORD_PTR lightId);
+  static CGxLight *GxuLightLock(DWORD_PTR lightId);
+  static void      GxuLightUnlock(DWORD_PTR lightId);
   static void      GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
-  static BOOL      GxuLightEnable(DWORD lightId);
-  static void      GxuLightEnableSet(DWORD lightId, int enable);
+  static BOOL      GxuLightEnable(DWORD_PTR lightId);
+  static void      GxuLightEnableSet(DWORD_PTR lightId, int enable);
   static void      GxuLightSetMaxLights(UINT maxLightsToUse);
   static float     GxuLightBucketSize();
   static void      GxuLightBucketSizeSet(float bucketSize);

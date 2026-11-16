@@ -372,7 +372,7 @@ static DWORDLONG                                       s_modalItemID;
 static DWORDLONG                                       s_savedModalItemID;
 static BYTE                                            s_playerCast;
 static char                                            s_spellTargetString[128];
-static UINT                                            s_spellWorldModel;
+static UINT_PTR                                        s_spellWorldModel;
 static float                                           s_spellWorldModelFacing;
 static bool                                            s_spellWorldModelHousing;
 
@@ -1935,7 +1935,7 @@ BOOL Spell_C_TargetTradeItem(int tradeIndex) {
   return 1;
 }
 
-UINT Spell_C_WorldObjectCursor() {
+UINT_PTR Spell_C_WorldObjectCursor() {
   return s_spellWorldModel;
 }
 

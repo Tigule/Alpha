@@ -154,7 +154,7 @@ void ScrnLayerCreate(
     DWORD        flags,
     LPVOID       param,
     void (*paintfunc)(LPVOID, const RECTF *, const RECTF *, float),
-    HLAYER__ **layer
+    HLAYER *layer
 ) {
   CILayer *newLayer;
   CILayer *existingLayer;
@@ -180,15 +180,15 @@ void ScrnLayerCreate(
   *layer = CREATEHANDLE(HLAYER, newLayer);
 }
 
-void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect) {
+void ScrnLayerSetRect(HLAYER layer, const RECTF *rect) {
   ((CILayer *)layer)->rect = *rect;
 }
 
-UINT ScrnLayerGetFlags(HLAYER__ *layer) {
+UINT ScrnLayerGetFlags(HLAYER layer) {
   return ((CILayer *)layer)->flags;
 }
 
-void ScrnLayerSetFlags(HLAYER__ *layer, UINT flags) {
+void ScrnLayerSetFlags(HLAYER layer, UINT flags) {
   ((CILayer *)layer)->flags = flags;
 }
 

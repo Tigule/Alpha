@@ -174,7 +174,7 @@ CLightningManager::~CLightningManager() {
   UINT count = mLiveBolts.Count();
 
   while (count) {
-    CLightning *lightning = (CLightning *)((ulong)mLiveBolts[--count] & ~NOTUSEDFLAG);
+    CLightning *lightning = (CLightning *)((DWORD_PTR)mLiveBolts[--count] & ~NOTUSEDFLAG);
     DELIFUSED(lightning);
   }
 }
@@ -203,7 +203,7 @@ BoltID CLightningManager::Add(
     mLiveBolts[boltId] = NEW(CLightning);
   } else {
     boltId = *mDeadBolts.Top();
-    mLiveBolts[boltId] = (CLightning *)((ulong)mLiveBolts[boltId] & ~NOTUSEDFLAG);
+    mLiveBolts[boltId] = (CLightning *)((DWORD_PTR)mLiveBolts[boltId] & ~NOTUSEDFLAG);
     mDeadBolts.SetCount(mDeadBolts.Count() - 1);
   }
 
@@ -226,7 +226,7 @@ void CLightningManager::Update(float elapsed) {
 
   while (count) {
     --count;
-    if (!((ulong)mLiveBolts[count] & NOTUSEDFLAG)) {
+    if (!((DWORD_PTR)mLiveBolts[count] & NOTUSEDFLAG)) {
       mLiveBolts[count]->Update(elapsed);
     }
   }
@@ -282,7 +282,7 @@ void CLightningManager::Render(const NTempest::C3Vector &cameraPos) {
 
   while (count) {
     --count;
-    if (!((ulong)mLiveBolts[count] & NOTUSEDFLAG)) {
+    if (!((DWORD_PTR)mLiveBolts[count] & NOTUSEDFLAG)) {
       mLiveBolts[count]->Render(count, cameraPos);
     }
   }
@@ -292,6 +292,6 @@ void CLightningManager::Remove(BoltID boltId) {
   ASSERT(BADBOLT != boltId && boltId < mLiveBolts.Count());
   ASSERT(0 == (NOTUSEDFLAG & (ulong)mLiveBolts[boltId]));
 
-  mLiveBolts[boltId] = (CLightning *)((ulong)mLiveBolts[boltId] | NOTUSEDFLAG);
+  mLiveBolts[boltId] = (CLightning *)((DWORD_PTR)mLiveBolts[boltId] | NOTUSEDFLAG);
   *mDeadBolts.New() = boltId;
 }

@@ -29,15 +29,15 @@ NODEDECL(CGxuLight) {
 };
 
 static void      IGxuLightShutdown();
-static DWORD     IGxuLightCreate();
-static void      IGxuLightDestroy(DWORD lightId);
-static CGxLight *IGxuLightLock(DWORD lightId);
-static void      IGxuLightUnlock(DWORD lightId);
+static DWORD_PTR IGxuLightCreate();
+static void      IGxuLightDestroy(DWORD_PTR lightId);
+static CGxLight *IGxuLightLock(DWORD_PTR lightId);
+static void      IGxuLightUnlock(DWORD_PTR lightId);
 static void      IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse);
 
 static void  IGxuLightInitialize();
-static void  IGxuLightEnableSet(DWORD lightId, int enable);
-static int   IGxuLightEnable(DWORD lightId);
+static void  IGxuLightEnableSet(DWORD_PTR lightId, int enable);
+static int   IGxuLightEnable(DWORD_PTR lightId);
 static void  IGxuLightSetMaxLights(UINT maxLightsToUse);
 static float IGxuLightBucketSize();
 static void  IGxuLightBucketSizeSet(float bucketSize);
@@ -93,13 +93,13 @@ inline void CGxuLight::ClearListLinks() {
 
 void (*GxuLightInitialize)() = IGxuLightInitialize;
 void (*GxuLightShutdown)() = IGxuLightShutdown;
-DWORD (*GxuLightCreate)() = IGxuLightCreate;
-void (*GxuLightDestroy)(DWORD) = IGxuLightDestroy;
-CGxLight *(*GxuLightLock)(DWORD) = IGxuLightLock;
-void (*GxuLightUnlock)(DWORD) = IGxuLightUnlock;
+DWORD_PTR (*GxuLightCreate)() = IGxuLightCreate;
+void (*GxuLightDestroy)(DWORD_PTR) = IGxuLightDestroy;
+CGxLight *(*GxuLightLock)(DWORD_PTR) = IGxuLightLock;
+void (*GxuLightUnlock)(DWORD_PTR) = IGxuLightUnlock;
 void (*GxuLightSelect)(NTempest::C3Vector, const NTempest::C3Vector &, UINT) = IGxuLightSelect;
-int (*GxuLightEnable)(DWORD) = IGxuLightEnable;
-void (*GxuLightEnableSet)(DWORD, int) = IGxuLightEnableSet;
+int (*GxuLightEnable)(DWORD_PTR) = IGxuLightEnable;
+void (*GxuLightEnableSet)(DWORD_PTR, int) = IGxuLightEnableSet;
 void (*GxuLightSetMaxLights)(UINT) = IGxuLightSetMaxLights;
 float (*GxuLightBucketSize)() = IGxuLightBucketSize;
 void (*GxuLightBucketSizeSet)(float) = IGxuLightBucketSizeSet;
@@ -108,13 +108,13 @@ void (*GxuLightResetCache)() = IGxuLightResetCache;
 void GxuLightFuncsSet(
     void (*initializeFunc)(),
     void (*shutDownFunc)(),
-    DWORD (*createFunc)(),
-    void (*destroyFunc)(DWORD),
-    CGxLight *(*lockFunc)(DWORD),
-    void (*unlockFunc)(DWORD),
+    DWORD_PTR (*createFunc)(),
+    void (*destroyFunc)(DWORD_PTR),
+    CGxLight *(*lockFunc)(DWORD_PTR),
+    void (*unlockFunc)(DWORD_PTR),
     void (*selectFunc)(NTempest::C3Vector, const NTempest::C3Vector &, UINT),
-    int (*enableFunc)(DWORD),
-    void (*enableSetFunc)(DWORD, int),
+    int (*enableFunc)(DWORD_PTR),
+    void (*enableSetFunc)(DWORD_PTR, int),
     void (*setMaxLightsFunc)(UINT),
     float (*bucketSizeFunc)(),
     void (*bucketSizeSetFunc)(float),
@@ -171,7 +171,7 @@ static void IGxuLightShutdown() {
   CGxuLight::s_linksFreeList.Clear();
 }
 
-static DWORD IGxuLightCreate() {
+static DWORD_PTR IGxuLightCreate() {
   CGxuLight *light = CGxuLight::s_lightsFreeList.Head();
 
   if (!light) {
@@ -183,10 +183,10 @@ static DWORD IGxuLightCreate() {
     new (&light->m_light) CGxLight;
   }
 
-  return (DWORD)light;
+  return (DWORD_PTR)light;
 }
 
-static void IGxuLightDestroy(DWORD lightId) {
+static void IGxuLightDestroy(DWORD_PTR lightId) {
   CGxuLight *light = (CGxuLight *)lightId;
 
   ASSERT(light);
@@ -196,7 +196,7 @@ static void IGxuLightDestroy(DWORD lightId) {
   CGxuLight::s_lightsFreeList.LinkNode(light, LIST_TAIL, 0);
 }
 
-static CGxLight *IGxuLightLock(DWORD lightId) {
+static CGxLight *IGxuLightLock(DWORD_PTR lightId) {
   CGxuLight *light = (CGxuLight *)lightId;
 
   ASSERT(light);
@@ -204,7 +204,7 @@ static CGxLight *IGxuLightLock(DWORD lightId) {
   return &light->m_light;
 }
 
-static void IGxuLightUnlock(DWORD lightId) {
+static void IGxuLightUnlock(DWORD_PTR lightId) {
   CGxuLight *light = (CGxuLight *)lightId;
 
   ASSERT(light);
@@ -316,8 +316,8 @@ static void IGxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vecto
   ActivityEnd(ACTIVITY_LIGHTING);
 }
 
-static void IGxuLightEnableSet(DWORD lightId, int enable) {
-  DWORD     light = lightId;
+static void IGxuLightEnableSet(DWORD_PTR lightId, int enable) {
+  DWORD_PTR light = lightId;
   CGxLight *gxLight;
 
   ASSERT(light);
@@ -326,8 +326,8 @@ static void IGxuLightEnableSet(DWORD lightId, int enable) {
   GxuLightUnlock(light);
 }
 
-static int IGxuLightEnable(DWORD lightId) {
-  DWORD light = lightId;
+static int IGxuLightEnable(DWORD_PTR lightId) {
+  DWORD_PTR light = lightId;
   int   enable;
 
   ASSERT(light);

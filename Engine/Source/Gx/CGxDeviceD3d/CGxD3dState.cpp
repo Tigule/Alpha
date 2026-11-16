@@ -553,10 +553,10 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
     case GxRs_Culling:
       m_d3dDevice->SetRenderState(D3DRS_CULLMODE, s_cullmode[(m_appState.m_masterEnables & 0x10) && value != 0]);
       break;
-    case GxRs_Texture0: ISetTexture(0, (CGxTex *)value); break;
-    case GxRs_Texture1: ISetTexture(1, (CGxTex *)value); break;
-    case GxRs_Texture2: ISetTexture(2, (CGxTex *)value); break;
-    case GxRs_Texture3: ISetTexture(3, (CGxTex *)value); break;
+    case GxRs_Texture0: ISetTexture(0, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_Texture1: ISetTexture(1, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_Texture2: ISetTexture(2, (CGxTex *)state.mValue.GetAsPointer()); break;
+    case GxRs_Texture3: ISetTexture(3, (CGxTex *)state.mValue.GetAsPointer()); break;
     case GxRs_TexBlend0: ISetTexBlend(0, (EGxTexBlend)value); break;
     case GxRs_TexBlend1: ISetTexBlend(1, (EGxTexBlend)value); break;
     case GxRs_TexBlend2: ISetTexBlend(2, (EGxTexBlend)value); break;
@@ -575,10 +575,10 @@ void CGxDeviceD3d::IRsSendToHw(EGxRenderState which) {
     case GxRs_TextureShader3:
       return;
     case GxRs_PixelShader:
-      IBindPixelShader((CGxPixelShader *)value);
+      IBindPixelShader((CGxPixelShader *)state.mValue.GetAsPointer());
       break;
     case GxRs_VertexShader:
-      IBindVertexShader((CGxVertexShader *)value);
+      IBindVertexShader((CGxVertexShader *)state.mValue.GetAsPointer());
       break;
     default:
       ASSERT(0);

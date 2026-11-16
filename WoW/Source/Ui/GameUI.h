@@ -25,7 +25,7 @@ struct CObjectTrackEvent;
 struct ATTACKROUNDINFO;
 struct MIRRORTIMERDAMAGE;
 struct SPELLLOG;
-struct HMODEL__;
+typedef struct HMODEL__ *HMODEL;
 struct lua_State;
 
 static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *);
@@ -265,7 +265,7 @@ class CGGameUI {
   static BOOL OnSpriteRightClick(DWORDLONG object, float x, float y);
   static void UpdatePlayerAlpha(float alpha);
 
-  static void UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object);
+  static void UpdateObjectHighlightColor(HMODEL model, CGObject_C *object);
   static void ResetStaticVars();
 
   static BOOL Idle(LPCVOID data, LPVOID param);

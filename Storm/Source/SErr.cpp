@@ -230,7 +230,7 @@ static BOOL CanBreakToDebugger() {
   present = FALSE;
   kernel = LoadLibraryA("KERNEL32.DLL");
   if (kernel) {
-    proc = GetProcAddress(kernel, "IsDebuggerPresent");
+    proc = (T_IsDebuggerPresent)GetProcAddress(kernel, "IsDebuggerPresent");
     if (proc) {
       present = proc();
     }

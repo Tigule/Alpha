@@ -207,8 +207,9 @@ class CSimpleTop : public CLayoutFrame {
 
  private:
   static CSimpleTop *s_instance;
-  HLAYER__     *m_screenLayer;
-  HLAYER__     *m_cursorLayer;
+
+  HLAYER        m_screenLayer;
+  HLAYER        m_cursorLayer;
   HMODEL        m_cursor;
   int           m_cursorVisible;
   CSimpleFrame *m_mouseFocus;

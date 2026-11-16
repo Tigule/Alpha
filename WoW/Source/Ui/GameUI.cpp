@@ -3782,7 +3782,7 @@ void CGGameUI::AddErrorMessage(LPCSTR string, int error) {
   }
 }
 
-void CGGameUI::UpdateObjectHighlightColor(HMODEL__ *model, CGObject_C *object) {
+void CGGameUI::UpdateObjectHighlightColor(HMODEL model, CGObject_C *object) {
   if (model && object) {
     object->ShowHighlightType(HT_MOUSEOVER);
   }

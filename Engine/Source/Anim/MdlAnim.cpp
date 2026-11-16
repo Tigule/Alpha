@@ -81,25 +81,25 @@ struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
 
 static TSHashTable<ANIMHASH, HASHKEY_STRI> s_animCache;
 
-static int AnimGetReferenceCount(HANIM__ *anim) {
+static int AnimGetReferenceCount(HANIM anim) {
   CAnim *container = (CAnim *)anim;
   VALIDATE2(container);
   return container->GetRefCount();
 }
 
-static HANIM__ *GetAnim(LPCSTR modelFName) {
+static HANIM GetAnim(LPCSTR modelFName) {
   FATALASSERT(modelFName);
   ANIMHASH *entry = s_animCache.Ptr(modelFName);
   if (!entry) {
     return 0;
   }
   if (AnimGetReferenceCount(entry->anim) <= 1) {
-    return (HANIM__ *)HandleDuplicate(entry->anim);
+    return (HANIM)HandleDuplicate(entry->anim);
   }
   return AnimDuplicate(entry->anim, 0);
 }
 
-static void HashNewAnim(LPCSTR modelFName, HANIM__ *anim) {
+static void HashNewAnim(LPCSTR modelFName, HANIM anim) {
   FATALASSERT(modelFName);
   ANIMHASH *animHash = s_animCache.New(modelFName, 0, 0);
   animHash->anim = (HANIM)HandleDuplicate(anim);

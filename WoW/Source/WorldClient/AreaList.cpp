@@ -199,7 +199,7 @@ static void SendZoneUpdate(AREAHASHOBJECT *hash) {
   }
 }
 
-static bool HandleIndoorZoneChange(DWORD worldObject, LPCSTR &zoneName, LPCSTR &subZoneName, bool &clearMusic) {
+static bool HandleIndoorZoneChange(DWORD_PTR worldObject, LPCSTR &zoneName, LPCSTR &subZoneName, bool &clearMusic) {
   const WMOAreaTableRec *globalRec;
   const WMOAreaTableRec *rec;
   LPCSTR                 szName = 0;
@@ -268,7 +268,7 @@ static bool HandleOutdoorZoneChange(UINT zoneID, UINT subZoneID, UINT continent,
   return true;
 }
 
-void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD worldObject) {
+void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent, DWORD_PTR worldObject) {
   FATALASSERT(worldObject);
 
   int    indoors = CWorld::QueryObjectInside(worldObject) != 0;
@@ -323,7 +323,7 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent
   s_indoors = indoors;
 }
 
-int AreaListZoneHasBreathParticles(DWORD worldObject, UINT continentID, const NTempest::C3Vector &position) {
+int AreaListZoneHasBreathParticles(DWORD_PTR worldObject, UINT continentID, const NTempest::C3Vector &position) {
   const WMOAreaTableRec *globalRec;
 
   if (CWorld::QueryObjectInside(worldObject)) {

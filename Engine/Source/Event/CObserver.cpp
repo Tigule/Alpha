@@ -56,9 +56,7 @@ void CObserver::ClearRegistry() {
   }
 
   int       deleteRegistry = 1;
-  for (EventReg *pReg = m_pEventRegistry->Head(), *pRegnext_node;
-       (int)pReg > 0 ? ((pRegnext_node = m_pEventRegistry->Next(pReg)), 1) : 0;
-       pReg = pRegnext_node) {
+  SAFEITERATELISTPTR(EventReg, m_pEventRegistry, pReg) {
     pReg->UnregisterCallback(0);
     pReg->UnregisterEvent(0);
     if (pReg->IsEmpty()) {

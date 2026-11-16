@@ -298,7 +298,7 @@ static BOOL ConsoleCommand_AppendExec(LPCSTR cmd, LPCSTR arguments) {
 
 static BOOL ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
   char       filePath[MAX_PATH];
-  HOSFILE__ *file;
+  HOSFILE    file;
   DWORD      count;
 
   (void)cmd;
@@ -312,7 +312,7 @@ static BOOL ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
   SStrCopy(filePath, s_fileName, sizeof(filePath));
   if (CreateWTFFilePath(filePath, sizeof(filePath))) {
     file = OsCreateFile(filePath, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-    if (file == (HOSFILE__ *)-1) {
+    if (file == (HOSFILE)-1) {
       ConsoleWrite("Error trying to create the file.", ERROR_COLOR);
     } else {
       if (g_ExecCreateMode == EM_APPEND) {

@@ -35,18 +35,6 @@ class EvtIdTable {
   UINT     NumAllocated() const;
 };
 
-class EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
- public:
-  EvtTimerQueue() : TSPriorityQueue<EvtTimer>(4) {
-  }
-};
-
-class EvtContextQueue : public TSPriorityQueue<EvtContext> {
- public:
-  EvtContextQueue() : TSPriorityQueue<EvtContext>(0x30) {
-  }
-};
-
 struct EvtHandler {
   LINKDECLEX(EvtHandler, link);
   EVENTHANDLER func;
@@ -77,6 +65,12 @@ struct EvtTimer {
   LPVOID                 guidParam2;
 };
 
+class EvtTimerQueue : public TSPriorityQueue<EvtTimer> {
+ public:
+  EvtTimerQueue() : TSPriorityQueue<EvtTimer>((int)&((EvtTimer *)0)->targetTime) {
+  }
+};
+
 struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   enum SCHEDSTATE {
     SCHEDSTATE_ACTIVE = 0,
@@ -86,6 +80,7 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
   };
 
  private:
+  friend class EvtContextQueue;
   friend void          DestroySchedulerThread(UINT hThread);
   friend HEVENTCONTEXT AttachContextToThread(EvtContext *context);
   friend void          DetachContextFromThread(UINT hThread, EvtContext *context);
@@ -332,6 +327,12 @@ struct EvtContext : public TSingletonInstanceId<EvtContext, 8> {
 
   int StartWatchdog() {
     return m_startWatchdog;
+  }
+};
+
+class EvtContextQueue : public TSPriorityQueue<EvtContext> {
+ public:
+  EvtContextQueue() : TSPriorityQueue<EvtContext>((int)&((EvtContext *)0)->m_schedNextWakeTime) {
   }
 };
 

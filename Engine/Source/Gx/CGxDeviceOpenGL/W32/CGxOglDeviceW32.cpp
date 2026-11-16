@@ -182,11 +182,11 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
   m_context = 0;
 }
 
-long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND hWnd, UINT uMsg, UINT wParam, long lParam) {
-  CGxDeviceOpenGl *dev = (CGxDeviceOpenGl *)GetWindowLongA(hWnd, GWL_USERDATA);
+LRESULT CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+  CGxDeviceOpenGl *dev = (CGxDeviceOpenGl *)GetWindowLongPtrA(hWnd, GWLP_USERDATA);
   switch (uMsg) {
     case WM_CREATE:
-      SetWindowLongA(hWnd, GWL_USERDATA, (LONG)(((CREATESTRUCTA *)lParam)->lpCreateParams));
+      SetWindowLongPtrA(hWnd, GWLP_USERDATA, (LONG_PTR)(((CREATESTRUCTA *)lParam)->lpCreateParams));
       return 0;
     case WM_DESTROY:
       dev->DeviceWM(GxWM_Destroy, 0, 0);
@@ -201,7 +201,7 @@ long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND hWnd, UINT uMsg, UINT wParam, l
     }
     case WM_SIZE: {
       NTempest::CRect rect(0.0f, 0.0f, HIWORD(lParam), LOWORD(lParam));
-      dev->DeviceWM(GxWM_Size, (long)&rect, 0);
+      dev->DeviceWM(GxWM_Size, (LONG_PTR)&rect, 0);
       break;
     }
     case WM_SETFOCUS:
@@ -224,7 +224,7 @@ long CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND hWnd, UINT uMsg, UINT wParam, l
   return DefWindowProcA(hWnd, uMsg, wParam, lParam);
 }
 
-void CGxDeviceOpenGl::DeviceWM(EGxWM wm, long param1, long param2) {
+void CGxDeviceOpenGl::DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) {
   switch (wm) {
     case GxWM_Destroy:
       IDevRemoveGlContext();
@@ -279,7 +279,7 @@ finallylabel:
   return 0;
 }
 
-BOOL CGxDeviceOpenGl::DeviceCreate(UINT clienthwnd, const CGxFormat &format) {
+BOOL CGxDeviceOpenGl::DeviceCreate(UINT_PTR clienthwnd, const CGxFormat &format) {
   s_inCreateOrDestroy = 1;
   m_ownhwnd = 0;
   HDC hDC = GetDC(0);
@@ -415,8 +415,8 @@ void CGxDeviceOpenGl::DeviceSetTextureQuality(int force32) {
   ITexForceRecreation();
 }
 
-DWORD CGxDeviceOpenGl::DeviceWindow() {
-  return (DWORD)m_hwnd;
+DWORD_PTR CGxDeviceOpenGl::DeviceWindow() {
+  return (DWORD_PTR)m_hwnd;
 }
 
 static BOOL IsGlDisplayModeGood(const DEVMODEA &dm) {

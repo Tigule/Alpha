@@ -11,7 +11,7 @@ typedef DWORD ulong;
 typedef UINT  BoltID;
 
 const BoltID BADBOLT = (BoltID)-1;
-const ulong  NOTUSEDFLAG = 0x80000000;
+const DWORD_PTR NOTUSEDFLAG = ~(~(DWORD_PTR)0 >> 1);
 
 struct LightningCoordUpdateData {
   void (*callback)(LPVOID context, UINT time, NTempest::C3Vector *source, NTempest::C3Vector *destination);

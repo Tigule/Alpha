@@ -320,7 +320,7 @@ static void SetupQuad(const UINT groupNum, QUADDATA &quadData, const CWorld::Min
   }
 }
 
-static void SetupMapObj(DWORD hWorldObject, NTempest::C44Matrix &minimapMtx) {
+static void SetupMapObj(DWORD_PTR hWorldObject, NTempest::C44Matrix &minimapMtx) {
   static float angle = 90.0f;
   LPCSTR       wmoName;
   LPCSTR const kWorld = "World\\";
@@ -443,7 +443,7 @@ void MinimapShutdown() {
 BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempest::C2Vector *centerPoint, float *radius, QUADDATA *quads);
 
 BOOL MinimapUpdate(
-    DWORD                     hWorldObject,
+    DWORD_PTR                 hWorldObject,
     UINT                      continent,
     const NTempest::C3Vector &pos,
     NTempest::C2Vector       &centerPoint,

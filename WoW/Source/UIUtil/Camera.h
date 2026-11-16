@@ -8,8 +8,8 @@
 #include <stpl.h>
 
 struct CameraShake;
-struct HCAMERA__;
-struct HMODEL__;
+typedef struct HCAMERA__ *HCAMERA;
+typedef struct HMODEL__  *HMODEL;
 class CGObject_C;
 class CGInputControl;
 class CGUnit_C;
@@ -44,8 +44,8 @@ class CGCamera : public CSimpleCamera {
   friend class CGInputControl;
   friend class CGUnit_C;
 
-  HMODEL__           *m_model;
-  HCAMERA__          *m_modelCamera;
+  HMODEL              m_model;
+  HCAMERA             m_modelCamera;
   NTempest::C34Matrix m_modelMatrix;
   DWORDLONG           m_target;
   float               m_targetOffsetZ;

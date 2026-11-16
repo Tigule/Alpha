@@ -154,9 +154,16 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
   for (argumentIndex = 0; argumentIndex < argumentCount; ++argumentIndex) {
     switch (argumentSizeList[argumentIndex]) {
       case e_intSized:
+#ifndef _WIN64
       case e_pointerSized:
+#endif
         orderedArgumentList[argumentIndex].asInt = va_arg(argumentList, int);
         break;
+#ifdef _WIN64
+      case e_pointerSized:
+        orderedArgumentList[argumentIndex].asPointer = va_arg(argumentList, LPVOID);
+        break;
+#endif
       case e_longLongSized:
         orderedArgumentList[argumentIndex].asLongLong = va_arg(argumentList, LONGLONG);
         break;
@@ -191,9 +198,16 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
       int written = 0;
       switch (argumentSizeList[argumentIndex]) {
         case e_intSized:
+#ifndef _WIN64
         case e_pointerSized:
+#endif
           written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[argumentIndex].asInt);
           break;
+#ifdef _WIN64
+        case e_pointerSized:
+          written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[argumentIndex].asPointer);
+          break;
+#endif
         case e_longLongSized:
           written = _snprintf(out, end - out + 1, individualFormatSpecifier, orderedArgumentList[argumentIndex].asLongLong);
           break;

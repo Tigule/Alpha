@@ -2119,7 +2119,7 @@ template <class T> static void PointSegmentDistSq(const T &p, const T &a, const 
 }
 
 int ModelIntersectLineSegment(
-    HMODEL__                 *model,
+    HMODEL                    model,
     float                     scale,
     const NTempest::C3Vector &a,
     const NTempest::C3Vector &b,
@@ -2677,7 +2677,7 @@ static void IModelHandleGeosetAdd(
   }
 }
 
-static void AddHitTestGeometryGeoset(HMODEL__ *modelHandle, HTEXTURE__ *tex) {
+static void AddHitTestGeometryGeoset(HMODEL modelHandle, HTEXTURE tex) {
   CModel *model = (CModel *)modelHandle;
   VALIDATEBEGIN;
   VALIDATE(model);
@@ -2874,7 +2874,7 @@ BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a
 }
 
 ModelIntersectResult ModelIntersectLineSegmentEx(
-    HMODEL__                 *model,
+    HMODEL                    model,
     float                     scale,
     const NTempest::C3Vector &a,
     const NTempest::C3Vector &b,
@@ -2996,7 +2996,7 @@ void ModelHideBounds(HMODEL model) {
   }
 }
 
-void ModelShowHitTestGeometry(HMODEL__ *model) {
+void ModelShowHitTestGeometry(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (IModelDerefHandle((CModel *)model, &unique, &shared) && !(unique->m_flags & 8) && shared->hitTest.Count()) {
@@ -3007,7 +3007,7 @@ void ModelShowHitTestGeometry(HMODEL__ *model) {
   }
 }
 
-void ModelHideHitTestGeometry(HMODEL__ *model) {
+void ModelHideHitTestGeometry(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (IModelDerefHandle((CModel *)model, &unique, &shared) && (unique->m_flags & 0x28) == 0x28) {

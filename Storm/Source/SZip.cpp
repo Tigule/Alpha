@@ -427,7 +427,7 @@ void zfree(LPVOID opaque, LPVOID ptr) {
   SMemFree(ptr, __FILE__, __LINE__, 0);
 }
 
-DWORD ZipFileOpenArchive(LPCSTR archivename) {
+DWORD_PTR ZipFileOpenArchive(LPCSTR archivename) {
   ZipFileArchive        *archive;
   CentralDirectoryHeader cdirHeader;
 
@@ -440,7 +440,7 @@ DWORD ZipFileOpenArchive(LPCSTR archivename) {
     goto Error1;
   if (!archive->ProcessCentralDirectory(cdirHeader))
     goto Error1;
-  return (DWORD)archive;
+  return (DWORD_PTR)archive;
 
 Error1:
   s_archives.DeleteNode(archive);
@@ -448,7 +448,7 @@ Error0:
   return 0;
 }
 
-BOOL ZipFileCloseArchive(DWORD handle) {
+BOOL ZipFileCloseArchive(DWORD_PTR handle) {
   ZipFileArchive *archive = (ZipFileArchive *)handle;
   FATALASSERT(archive->openFileCount == 0);
   s_archives.DeleteNode(archive);
@@ -459,7 +459,7 @@ int ZipFileFileExists(LPCSTR filename) {
   return GetDirEntry(filename, NULL);
 }
 
-ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD archive) {
+ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD_PTR archive) {
   ZipFileArchive  *archiveptr;
   ZipFileDirEntry *dirEntry;
   ZipFileFCB      *fcb;
@@ -721,7 +721,7 @@ void ZipFileUnloadFile(LPVOID buffer) {
   SMemFree(buffer, __FILE__, __LINE__, 0);
 }
 
-BOOL ZipFileList(DWORD archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
+BOOL ZipFileList(DWORD_PTR archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
   ZipFileArchive *archiveptr = (ZipFileArchive *)archive;
 
   ITERATELIST(ZipFileDirEntry, s_directory, entry) {

@@ -3,8 +3,8 @@
 #include <storm.h>
 
 struct CGxFont;
-struct HLAYER__;
-struct HTEXTFONT__;
+typedef struct HLAYER__    *HLAYER;
+typedef struct HTEXTFONT__ *HTEXTFONT;
 
 enum SCRNSTOCK {
   STOCK_SYSFONT = 0,
@@ -28,16 +28,16 @@ void ScrnLayerCreate(
     DWORD        flags,
     LPVOID       param,
     void (*paintfunc)(LPVOID, const RECTF *, const RECTF *, float),
-    HLAYER__ **layer
+    HLAYER *layer
 );
-void ScrnLayerSetRect(HLAYER__ *layer, const RECTF *rect);
-UINT ScrnLayerGetFlags(HLAYER__ *layer);
-void ScrnLayerSetFlags(HLAYER__ *layer, UINT flags);
+void ScrnLayerSetRect(HLAYER layer, const RECTF *rect);
+UINT ScrnLayerGetFlags(HLAYER layer);
+void ScrnLayerSetFlags(HLAYER layer, UINT flags);
 void ScrnLayerDisable(int disable);
 int  ScrnLayerIsDisabled();
 void ScrnScreenshot(void (*callback)(int));
 
-HTEXTFONT__ *ScrnGetStockFont(SCRNSTOCK id);
+HTEXTFONT    ScrnGetStockFont(SCRNSTOCK id);
 void         ScrnSetStockFont(SCRNSTOCK stockID, LPCSTR fontTexturePath);
 float        ScrnGetStockFontHeight(SCRNSTOCK stockID);
 

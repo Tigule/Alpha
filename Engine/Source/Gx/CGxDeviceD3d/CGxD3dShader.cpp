@@ -26,7 +26,7 @@ void CGxDeviceD3d::IPixelShaderCreate(CGxPixelShader *ps) {
   if (D3DXAssembleShader((LPCSTR)ps->code.Ptr(), ps->code.Count(), 0, 0, 0, &buffer, 0) == 0) {
     IDirect3DPixelShader9 *shader;
     if (m_d3dDevice->CreatePixelShader((const DWORD *)buffer->GetBufferPointer(), &shader) == 0) {
-      ps->apiSpecific = (UINT)shader;
+      ps->apiSpecific = (UINT_PTR)shader;
       ps->valid = 1;
     }
   }

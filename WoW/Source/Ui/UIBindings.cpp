@@ -450,7 +450,7 @@ UINT CGUIBindings::GetNumCommandKeys(LPCSTR command) const {
 }
 
 void CGUIBindings::AdjustCommandKeyIndices(LPCSTR command, int index) const {
-  for (KEYBINDING *binding = m_bindings.Head(); (int)binding > 0; binding = m_bindings.RawNext(binding)) {
+  for (KEYBINDING *binding = m_bindings.Head(); (INT_PTR)binding > 0; binding = m_bindings.RawNext(binding)) {
     if (binding->command && !SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index > index) {
       --binding->index;
     }

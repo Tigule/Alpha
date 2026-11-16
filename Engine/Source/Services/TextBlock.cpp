@@ -110,7 +110,7 @@ CGxString *TextBlockGetStringPtr(HTEXTBLOCK text) {
   return ((TEXTBLOCK *)text)->string;
 }
 
-float TextBlockGetOneToOneHeight(HTEXTFONT__ *fontHandle) {
+float TextBlockGetOneToOneHeight(HTEXTFONT fontHandle) {
   ASSERT(fontHandle);
   FONTHASHOBJ *fontPtr = (FONTHASHOBJ *)fontHandle;
   ASSERT(fontPtr->font);
@@ -226,7 +226,7 @@ void TextBlockAnimate(HTEXTBLOCK htb, const NTempest::C3Vector &pos) {
   GxuFontSetStringPosition(((TEXTBLOCK *)htb)->string, position);
 }
 
-void TextBlockRender(HTEXTBLOCK__ *htb) {
+void TextBlockRender(HTEXTBLOCK htb) {
   VALIDATE2VOID(htb);
   GxuFontRender(((TEXTBLOCK *)htb)->string);
 }
@@ -237,7 +237,7 @@ void TextBlockUpdateColor(HTEXTBLOCK htb, const NTempest::CImVector &textColor) 
   GxuFontSetStringColor(((TEXTBLOCK *)htb)->string, textColor);
 }
 
-float TextBlockGetHeight(HTEXTBLOCK__ *htb) {
+float TextBlockGetHeight(HTEXTBLOCK htb) {
   VALIDATE2(htb);
   float height = GxuFontGetStringHeight(((TEXTBLOCK *)htb)->string);
   NDCToDDC(0.0f, height, 0, &height);
@@ -296,15 +296,15 @@ void TextBlockGetTextExtent(HTEXTFONT font, LPCSTR text, UINT numChars, float fo
 }
 
 void TextBlockGetWrapPoint(
-    HTEXTFONT__ *font,
-    LPCSTR       text,
-    float        fontHeight,
-    float        blockWidth,
-    UINT        *numBytes,
-    float       *pExtent,
-    LPCSTR      *pNextText,
-    float        spacing,
-    UINT         flags
+    HTEXTFONT font,
+    LPCSTR    text,
+    float     fontHeight,
+    float     blockWidth,
+    UINT     *numBytes,
+    float    *pExtent,
+    LPCSTR   *pNextText,
+    float     spacing,
+    UINT      flags
 ) {
   FONTHASHOBJ *fontPtr;
 
@@ -376,14 +376,14 @@ float TextBlockGetWrappedTextHeight(HTEXTFONT font, LPCSTR text, float fontHeigh
 }
 
 UINT TextBlockGetMaxCharsWithinWidth(
-    HTEXTFONT__ *font,
-    LPCSTR       text,
-    float        height,
-    float        maxWidth,
-    UINT         lineBytes,
-    float       *extent,
-    float        charSpacing,
-    UINT         flags
+    HTEXTFONT font,
+    LPCSTR    text,
+    float     height,
+    float     maxWidth,
+    UINT      lineBytes,
+    float    *extent,
+    float     charSpacing,
+    UINT      flags
 ) {
   FONTHASHOBJ *fontPtr;
   UINT         gxFlags;

@@ -5,7 +5,9 @@
 #include "Gx/Gx.h"
 #include "Services/AsyncFileRead.h"
 
+#ifndef _WIN64
 typedef DWORD DWORD_PTR;
+#endif
 
 #ifndef TIGULE_NO_AMBIENCE
 // embeds guids into object file
@@ -34,18 +36,18 @@ class CMyLoader : public IDirectMusicLoader {
   CMyLoader();
   ~CMyLoader();
   long                    Init();
-  virtual long __stdcall  QueryInterface(const GUID &iid, LPVOID *ppv);
-  virtual DWORD __stdcall AddRef();
-  virtual DWORD __stdcall Release();
-  virtual long __stdcall  GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv);
-  virtual long __stdcall  SetSearchDirectory(const GUID &, wchar_t *, int);
-  virtual long __stdcall  SetObject(DMUS_OBJECTDESC *);
-  virtual long __stdcall  ScanDirectory(const GUID &, wchar_t *, wchar_t *);
-  virtual long __stdcall  CacheObject(IDirectMusicObject *);
-  virtual long __stdcall  ReleaseObject(IDirectMusicObject *);
-  virtual long __stdcall  ClearCache(const GUID &);
-  virtual long __stdcall  EnableCache(const GUID &, int);
-  virtual long __stdcall  EnumObject(const GUID &, DWORD, DMUS_OBJECTDESC *);
+  virtual long WINAPI     QueryInterface(const GUID &iid, LPVOID *ppv);
+  virtual DWORD WINAPI    AddRef();
+  virtual DWORD WINAPI    Release();
+  virtual long WINAPI     GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv);
+  virtual long WINAPI     SetSearchDirectory(const GUID &, wchar_t *, int);
+  virtual long WINAPI     SetObject(DMUS_OBJECTDESC *);
+  virtual long WINAPI     ScanDirectory(const GUID &, wchar_t *, wchar_t *);
+  virtual long WINAPI     CacheObject(IDirectMusicObject *);
+  virtual long WINAPI     ReleaseObject(IDirectMusicObject *);
+  virtual long WINAPI     ClearCache(const GUID &);
+  virtual long WINAPI     EnableCache(const GUID &, int);
+  virtual long WINAPI     EnumObject(const GUID &, DWORD, DMUS_OBJECTDESC *);
 
  private:
   long    m_cRef;
@@ -61,21 +63,21 @@ class CMyIStream : public IStream, public IDirectMusicGetLoader {
   }
   long                    Attach(LPCSTR tzFile, IDirectMusicLoader *pLoader);
   void                    Detach();
-  virtual long __stdcall  QueryInterface(const GUID &iid, LPVOID *ppv);
-  virtual DWORD __stdcall AddRef();
-  virtual DWORD __stdcall Release();
-  virtual long __stdcall  GetLoader(IDirectMusicLoader **ppLoader);
-  virtual long __stdcall  Read(LPVOID pv, DWORD cb, DWORD *pcb);
-  virtual long __stdcall  Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out);
-  virtual long __stdcall  Clone(IStream **ppstm);
-  virtual long __stdcall  Write(LPCVOID, DWORD, DWORD *);
-  virtual long __stdcall  SetSize(ULARGE_INTEGER);
-  virtual long __stdcall  CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *);
-  virtual long __stdcall  Commit(DWORD);
-  virtual long __stdcall  Revert();
-  virtual long __stdcall  LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
-  virtual long __stdcall  UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
-  virtual long __stdcall  Stat(STATSTG *, DWORD);
+  virtual long WINAPI     QueryInterface(const GUID &iid, LPVOID *ppv);
+  virtual DWORD WINAPI    AddRef();
+  virtual DWORD WINAPI    Release();
+  virtual long WINAPI     GetLoader(IDirectMusicLoader **ppLoader);
+  virtual long WINAPI     Read(LPVOID pv, DWORD cb, DWORD *pcb);
+  virtual long WINAPI     Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out);
+  virtual long WINAPI     Clone(IStream **ppstm);
+  virtual long WINAPI     Write(LPCVOID, DWORD, DWORD *);
+  virtual long WINAPI     SetSize(ULARGE_INTEGER);
+  virtual long WINAPI     CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *);
+  virtual long WINAPI     Commit(DWORD);
+  virtual long WINAPI     Revert();
+  virtual long WINAPI     LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+  virtual long WINAPI     UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD);
+  virtual long WINAPI     Stat(STATSTG *, DWORD);
 
  private:
   long                m_cRef;
@@ -99,70 +101,70 @@ static ASYNCLOADER               s_DLS;
 
 static void PostLoadCallback(LPVOID userArg);
 
-long __stdcall CMyIStream::Write(LPCVOID, DWORD, DWORD *) {
+long WINAPI CMyIStream::Write(LPCVOID, DWORD, DWORD *) {
   return E_NOTIMPL;
 }
 
 CMyLoader::~CMyLoader() {
 }
 
-long __stdcall CMyIStream::SetSize(ULARGE_INTEGER) {
+long WINAPI CMyIStream::SetSize(ULARGE_INTEGER) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *) {
+long WINAPI CMyIStream::CopyTo(IStream *, ULARGE_INTEGER, ULARGE_INTEGER *, ULARGE_INTEGER *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::Commit(DWORD) {
+long WINAPI CMyIStream::Commit(DWORD) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::Revert() {
+long WINAPI CMyIStream::Revert() {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) {
+long WINAPI CMyIStream::LockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) {
+long WINAPI CMyIStream::UnlockRegion(ULARGE_INTEGER, ULARGE_INTEGER, DWORD) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyIStream::Stat(STATSTG *, DWORD) {
+long WINAPI CMyIStream::Stat(STATSTG *, DWORD) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::SetSearchDirectory(const GUID &, wchar_t *, int) {
+long WINAPI CMyLoader::SetSearchDirectory(const GUID &, wchar_t *, int) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::SetObject(DMUS_OBJECTDESC *) {
+long WINAPI CMyLoader::SetObject(DMUS_OBJECTDESC *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::ScanDirectory(const GUID &, wchar_t *, wchar_t *) {
+long WINAPI CMyLoader::ScanDirectory(const GUID &, wchar_t *, wchar_t *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::CacheObject(IDirectMusicObject *) {
+long WINAPI CMyLoader::CacheObject(IDirectMusicObject *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::ReleaseObject(IDirectMusicObject *) {
+long WINAPI CMyLoader::ReleaseObject(IDirectMusicObject *) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::ClearCache(const GUID &) {
+long WINAPI CMyLoader::ClearCache(const GUID &) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::EnableCache(const GUID &, int) {
+long WINAPI CMyLoader::EnableCache(const GUID &, int) {
   return E_NOTIMPL;
 }
 
-long __stdcall CMyLoader::EnumObject(const GUID &, DWORD, DMUS_OBJECTDESC *) {
+long WINAPI CMyLoader::EnumObject(const GUID &, DWORD, DMUS_OBJECTDESC *) {
   return E_NOTIMPL;
 }
 
@@ -331,7 +333,7 @@ long CMyLoader::Init() {
   return S_OK;
 }
 
-long __stdcall CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv) {
+long WINAPI CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv) {
   IDirectMusicObject *pObject = 0;
   const GUID         *pGUID = &myDesc->guidClass;
 
@@ -396,7 +398,7 @@ long CMyIStream::Attach(LPCSTR tzFile, IDirectMusicLoader *pLoader) {
   return S_OK;
 }
 
-DWORD __stdcall CMyIStream::Release() {
+DWORD WINAPI CMyIStream::Release() {
   if (!InterlockedDecrement(&m_cRef)) {
     delete this;
     return 0;
@@ -404,11 +406,11 @@ DWORD __stdcall CMyIStream::Release() {
   return m_cRef;
 }
 
-DWORD __stdcall CMyIStream::AddRef() {
+DWORD WINAPI CMyIStream::AddRef() {
   return InterlockedIncrement(&m_cRef);
 }
 
-long __stdcall CMyIStream::QueryInterface(const GUID &iid, LPVOID *ppv) {
+long WINAPI CMyIStream::QueryInterface(const GUID &iid, LPVOID *ppv) {
   *ppv = 0;
   if (!memcmp(&iid, &IID_IUnknown, sizeof(iid)) || !memcmp(&iid, &IID_ISequentialStream, sizeof(iid)) || !memcmp(&iid, &IID_IStream, sizeof(iid))) {
     *ppv = this;
@@ -429,7 +431,7 @@ void CMyIStream::Detach() {
   m_pLoader = 0;
 }
 
-long __stdcall CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
+long WINAPI CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
   if (!m_loader->asyncLoader->buffer || m_loader->buffer.Count() < (DWORDLONG)(m_cursor + cb)) {
     return E_FAIL;
   }
@@ -446,7 +448,7 @@ long __stdcall CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
   return S_OK;
 }
 
-long __stdcall CMyIStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out) {
+long WINAPI CMyIStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_INTEGER *out) {
   DWORDLONG origin = 0;
   if (dwOrigin != STREAM_SEEK_SET) {
     if (dwOrigin == STREAM_SEEK_CUR) {
@@ -468,7 +470,7 @@ long __stdcall CMyIStream::Seek(LARGE_INTEGER dlibMove, DWORD dwOrigin, ULARGE_I
   return S_OK;
 }
 
-long __stdcall CMyIStream::Clone(IStream **ppstm) {
+long WINAPI CMyIStream::Clone(IStream **ppstm) {
   CMyIStream *stream = new CMyIStream;
   if (!stream) {
     return E_OUTOFMEMORY;
@@ -478,7 +480,7 @@ long __stdcall CMyIStream::Clone(IStream **ppstm) {
   return S_OK;
 }
 
-DWORD __stdcall CMyLoader::Release() {
+DWORD WINAPI CMyLoader::Release() {
   long ref = InterlockedDecrement(&m_cRef);
   if (ref <= 0) {
     delete this;
@@ -486,11 +488,11 @@ DWORD __stdcall CMyLoader::Release() {
   return ref;
 }
 
-DWORD __stdcall CMyLoader::AddRef() {
+DWORD WINAPI CMyLoader::AddRef() {
   return InterlockedIncrement(&m_cRef);
 }
 
-long __stdcall CMyLoader::QueryInterface(const GUID &iid, LPVOID *ppv) {
+long WINAPI CMyLoader::QueryInterface(const GUID &iid, LPVOID *ppv) {
   *ppv = 0;
   if (memcmp(&iid, &IID_IUnknown, sizeof(iid)) && memcmp(&iid, &IID_IDirectMusicLoader, sizeof(iid))) {
     return E_NOINTERFACE;
@@ -501,7 +503,7 @@ long __stdcall CMyLoader::QueryInterface(const GUID &iid, LPVOID *ppv) {
   return S_OK;
 }
 
-long __stdcall CMyIStream::GetLoader(IDirectMusicLoader **ppLoader) {
+long WINAPI CMyIStream::GetLoader(IDirectMusicLoader **ppLoader) {
   m_pLoader->AddRef();
   *ppLoader = m_pLoader;
   return S_OK;

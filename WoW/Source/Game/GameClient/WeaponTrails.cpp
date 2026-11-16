@@ -348,7 +348,7 @@ void WeaponTrailsShutdown() {
   s_freeVertexIndices.Clear();
 }
 
-int WeaponTrailCreate(HMODEL model) {
+INT_PTR WeaponTrailCreate(HMODEL model) {
   VALIDATE2(model);
 
   WTOBJECT *trail = s_unusedObjects.Get(0);
@@ -372,10 +372,10 @@ int WeaponTrailCreate(HMODEL model) {
     trail->m_topCoord = NTempest::C3Vector(e.t.x, (e.b.y + e.t.y) * 0.5f, (e.b.z + e.t.z) * 0.5f);
   }
 
-  return (int)trail;
+  return (INT_PTR)trail;
 }
 
-void WeaponTrailClose(int trail) {
+void WeaponTrailClose(INT_PTR trail) {
   VALIDATE2VOID(trail);
 
   WTOBJECT *object = (WTOBJECT *)trail;
@@ -385,22 +385,22 @@ void WeaponTrailClose(int trail) {
   s_unusedObjects.Put(object);
 }
 
-void WeaponTrailSetColor(int trail, NTempest::CImVector color) {
+void WeaponTrailSetColor(INT_PTR trail, NTempest::CImVector color) {
   VALIDATE2VOID(trail);
   ((WTOBJECT *)trail)->SetColor(color);
 }
 
-void WeaponTrailSetFadeOutRate(int trail, int fadeOutRate) {
+void WeaponTrailSetFadeOutRate(INT_PTR trail, int fadeOutRate) {
   VALIDATE2VOID(trail);
   ((WTOBJECT *)trail)->SetFadeOutRate(fadeOutRate);
 }
 
-void WeaponTrailDisableDrawing(int trail) {
+void WeaponTrailDisableDrawing(INT_PTR trail) {
   VALIDATE2VOID(trail);
   ((WTOBJECT *)trail)->DisableDrawing();
 }
 
-void WeaponTrailSetDrawing(int trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration) {
+void WeaponTrailSetDrawing(INT_PTR trail, const NTempest::CImVector &color, int fadeOutRate, UINT duration) {
   if (duration && trail) {
     ((WTOBJECT *)trail)->SetDrawTrail(color, fadeOutRate, duration);
   }

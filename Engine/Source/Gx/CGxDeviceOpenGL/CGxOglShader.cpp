@@ -133,7 +133,7 @@ void CGxDeviceOpenGl::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
   CGxDevice::PixelShaderCreate(ps, filename);
 
   if (ps->code.Count() && glARBFragmentProgram) {
-    glGenProgramsARB(1, &ps->apiSpecific);
+    glGenProgramsARB(1, (GLuint *)&ps->apiSpecific);
     glBindProgramARB(GL_FRAGMENT_PROGRAM_ARB, ps->apiSpecific);
     glProgramStringARB(GL_FRAGMENT_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, ps->code.Count(), ps->code.Ptr());
   }
@@ -141,7 +141,7 @@ void CGxDeviceOpenGl::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
 
 void CGxDeviceOpenGl::PixelShaderDestroy(CGxPixelShader *&ps) {
   if (ps->refCount == 1 && ps->apiSpecific) {
-    glDeleteProgramsARB(1, &ps->apiSpecific);
+    glDeleteProgramsARB(1, (GLuint *)&ps->apiSpecific);
     ps->apiSpecific = 0;
   }
 
@@ -164,7 +164,7 @@ void CGxDeviceOpenGl::IShaderForceRecreation() {
   {
     ITERATELIST(CGxPixelShader, m_pixelShaderList, ps) {
       if (ps->apiSpecific) {
-        glDeleteProgramsARB(1, &ps->apiSpecific);
+        glDeleteProgramsARB(1, (GLuint *)&ps->apiSpecific);
         ps->apiSpecific = 0;
       }
     }

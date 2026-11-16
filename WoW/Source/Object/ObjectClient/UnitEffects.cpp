@@ -989,7 +989,7 @@ bool UnitEffectIsAuraWorldObject(UINT effectID, bool &isWorldObj) {
   return 1;
 }
 
-DWORD UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing) {
+DWORD_PTR UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing) {
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effect);
   if (!effect) {
     return 0;
@@ -1003,7 +1003,7 @@ DWORD UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &loca
   NTempest::C44Matrix tempMat;
   tempMat.Translate(location);
   tempMat.Rotate(facing, NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1);
-  DWORD object = CWorld::AddDoodad(effectRec->m_fileName, model, tempMat, 6);
+  DWORD_PTR object = CWorld::AddDoodad(effectRec->m_fileName, model, tempMat, 6);
   HandleClose(model);
   return object;
 }

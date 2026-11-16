@@ -164,8 +164,8 @@ void CModelComplex::CopyCameras(const CModelComplex &source) {
 
 void CModelComplex::CopyLights(const CModelComplex &source) {
   m_lights.SetCount(source.m_lights.Count());
-  const DWORD *src = source.m_lights.Ptr();
-  DWORD       *newLightId = m_lights.Ptr();
+  const DWORD_PTR *src = source.m_lights.Ptr();
+  DWORD_PTR       *newLightId = m_lights.Ptr();
   for (UINT i = m_lights.Count(); i; --i, ++newLightId, ++src) {
     *newLightId = GxuLightCreate();
     if (*newLightId) {

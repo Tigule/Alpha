@@ -332,7 +332,7 @@ int CWorld::QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb
   return 0;
 }
 
-int CWorld::QueryObjectInside(DWORD hWorldObject) {
+int CWorld::QueryObjectInside(DWORD_PTR hWorldObject) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -340,7 +340,7 @@ int CWorld::QueryObjectInside(DWORD hWorldObject) {
   return entity->flagInside;
 }
 
-int CWorld::QueryObjectVisible(DWORD hWorldObject) {
+int CWorld::QueryObjectVisible(DWORD_PTR hWorldObject) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -348,7 +348,7 @@ int CWorld::QueryObjectVisible(DWORD hWorldObject) {
   return entity->flagVisible;
 }
 
-int CWorld::QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName) {
+int CWorld::QueryMapObjZoneName(DWORD_PTR hWorldObject, LPCSTR &zoneName) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -356,7 +356,7 @@ int CWorld::QueryMapObjZoneName(DWORD hWorldObject, LPCSTR &zoneName) {
   return entity->QueryMapObjZoneName(zoneName);
 }
 
-int CWorld::QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT &subzoneId) {
+int CWorld::QueryMapObjSubzoneName(DWORD_PTR hWorldObject, LPCSTR &subzoneName, UINT &subzoneId) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -364,7 +364,7 @@ int CWorld::QueryMapObjSubzoneName(DWORD hWorldObject, LPCSTR &subzoneName, UINT
   return entity->QueryMapObjSubzoneName(subzoneName, subzoneId);
 }
 
-int CWorld::QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName) {
+int CWorld::QueryMapObjFileName(DWORD_PTR hWorldObject, LPCSTR &fileName) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -372,14 +372,14 @@ int CWorld::QueryMapObjFileName(DWORD hWorldObject, LPCSTR &fileName) {
   return entity->QueryMapObjFileName(fileName);
 }
 
-bool CWorld::QueryMapObjMinimap(DWORD hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
+bool CWorld::QueryMapObjMinimap(DWORD_PTR hWorldObject, const NTempest::CAaBox &aaBox, TSStackArray<MinimapQuad> &quads) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   return entity->QueryMapObjMinimap(aaBox, quads);
 }
 
-bool CWorld::QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID) {
+bool CWorld::QueryMapObjIDs(DWORD_PTR hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -390,7 +390,7 @@ bool CWorld::QueryMapObjIDs(DWORD hWorldObject, UINT &wmoID, UINT &instanceID, U
   return false;
 }
 
-bool CWorld::QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
+bool CWorld::QueryMapObjMatrix(DWORD_PTR hWorldObject, NTempest::C44Matrix *mtx, NTempest::C44Matrix *invMtx) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -401,7 +401,7 @@ bool CWorld::QueryMapObjMatrix(DWORD hWorldObject, NTempest::C44Matrix *mtx, NTe
   return false;
 }
 
-bool CWorld::QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
+bool CWorld::QueryMapObjAreaTable(DWORD_PTR hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -413,7 +413,7 @@ bool CWorld::QueryMapObjAreaTable(DWORD hWorldObject, const WMOAreaTableRec *&su
   return false;
 }
 
-int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct) {
+int CWorld::QueryMapObjFog(DWORD_PTR hWorldObject, SMOFog::Fogs &oFogs, float &oPct) {
   if (!hWorldObject) {
     return CMapEntity::QueryCameraFog(oFogs, oPct);
   }
@@ -426,7 +426,7 @@ int CWorld::QueryMapObjFog(DWORD hWorldObject, SMOFog::Fogs &oFogs, float &oPct)
   return 0;
 }
 
-BOOL CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
+BOOL CWorld::QueryObjectLiquid(DWORD_PTR hWorldObject, UINT &liquid, float &surface, NTempest::C3Vector &flowDir, int &deep) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
 
   FATALASSERT(entity);
@@ -442,7 +442,7 @@ BOOL CWorld::QueryObjectLiquid(DWORD hWorldObject, UINT &liquid, float &surface,
   return 0;
 }
 
-int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
+int CWorld::QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType) {
   CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -481,7 +481,7 @@ int CWorld::QueryGroundType(DWORD hWorldObject, UINT &groundType) {
   return 0;
 }
 
-bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
+bool CWorld::QueryMountAllowed(DWORD_PTR hWorldObject, bool &allowed) {
   CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -499,7 +499,7 @@ bool CWorld::QueryMountAllowed(DWORD hWorldObject, bool &allowed) {
   return false;
 }
 
-UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64) {
+UINT_PTR CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64) {
   CMapBaseObj     *baseObj;
   CMapBaseObjLink *link;
 
@@ -529,10 +529,10 @@ UINT CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOO
   }
 
   ++baseObj->refCount;
-  return (UINT)baseObj;
+  return (UINT_PTR)baseObj;
 }
 
-void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bSnap) {
+void CWorld::ObjectUpdate(UINT_PTR id, NTempest::C3Vector &pos, float angle, BOOL bSnap) {
   CMapBaseObj *baseObj = (CMapBaseObj *)id;
   FATALASSERT(baseObj);
   if (bSnap) {
@@ -545,7 +545,7 @@ void CWorld::ObjectUpdate(UINT id, NTempest::C3Vector &pos, float angle, BOOL bS
   }
 }
 
-bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
+bool CWorld::ObjectTestConvexVolume(UINT_PTR id, const NTempest::C3Vector &pos) {
   CMapBaseObj *baseObj = (CMapBaseObj *)id;
   FATALASSERT(baseObj);
   if (baseObj->GetType() & CMapBaseObj::Type_MapObjDef) {
@@ -556,7 +556,7 @@ bool CWorld::ObjectTestConvexVolume(UINT id, const NTempest::C3Vector &pos) {
   return false;
 }
 
-void CWorld::ObjectGetExtents(UINT id, NTempest::CAaBox &extents) {
+void CWorld::ObjectGetExtents(UINT_PTR id, NTempest::CAaBox &extents) {
   CMapBaseObj *baseObj = (CMapBaseObj *)id;
 
   FATALASSERT(baseObj);
@@ -569,7 +569,7 @@ void CWorld::ObjectGetExtents(UINT id, NTempest::CAaBox &extents) {
   }
 }
 
-void CWorld::ObjectEnableCollision(UINT id, BOOL bEnable) {
+void CWorld::ObjectEnableCollision(UINT_PTR id, BOOL bEnable) {
   CMapBaseObj *baseObj = (CMapBaseObj *)id;
   ASSERT(baseObj);
   if (bEnable) {
@@ -579,13 +579,13 @@ void CWorld::ObjectEnableCollision(UINT id, BOOL bEnable) {
   }
 }
 
-void CWorld::ObjectDelete(UINT id) {
+void CWorld::ObjectDelete(UINT_PTR id) {
   CMapBaseObj *baseObj = (CMapBaseObj *)id;
 
   FATALASSERT(baseObj);
   CMapBaseObjLink *link = baseObj->parentLinkList.Head();
   while (1) {
-    if ((int)link <= 0) {
+    if ((INT_PTR)link <= 0) {
       break;
     }
 
@@ -611,13 +611,13 @@ void CWorld::SetObjectCollisionHandler(int (*handler)(DWORDLONG, DWORD, WorldObj
   CMap::entityCollisionHandler = handler;
 }
 
-DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT objFlags) {
+DWORD_PTR CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL hModel, UINT objFlags) {
   CMapEntity *entity = CMap::AllocEntity();
   FATALASSERT(entity);
 
   entity->model = 0;
   if (hModel) {
-    entity->model = (HMODEL__ *)HandleDuplicate(hModel);
+    entity->model = (HMODEL)HandleDuplicate(hModel);
   }
   entity->param64 = param64;
   entity->param32 = param32;
@@ -632,16 +632,16 @@ DWORD CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL__ *hModel, UINT
   entity->ambient = CMap::sunLight->gxLight.m_ambColor;
   entity->ambientTarget = CMap::sunLight->gxLight.m_ambColor;
 
-  return (DWORD)entity;
+  return (DWORD_PTR)entity;
 }
 
-DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Matrix &mat, UINT objFlags) {
+DWORD_PTR CWorld::AddDoodad(LPCSTR fileName, HMODEL hModel, const NTempest::C44Matrix &mat, UINT objFlags) {
   CMapDoodadDef *doodad = CMap::AllocDoodadDef();
   FATALASSERT(doodad);
 
   doodad->model = 0;
   if (hModel) {
-    doodad->model = (HMODEL__ *)HandleDuplicate(hModel);
+    doodad->model = (HMODEL)HandleDuplicate(hModel);
   }
   doodad->flagCollidable = (objFlags & 1) ? 1 : 0;
   doodad->flagCastShadow = (objFlags & 2) ? 0 : 1;
@@ -655,17 +655,17 @@ DWORD CWorld::AddDoodad(LPCSTR fileName, HMODEL__ *hModel, const NTempest::C44Ma
 
   CMap::InitializeDoodadBounds(doodad);
   CMap::LinkEntity(doodad);
-  return (DWORD)doodad;
+  return (DWORD_PTR)doodad;
 }
 
-HMODEL__ *CWorld::GetModel(DWORD doodad) {
+HMODEL CWorld::GetModel(DWORD_PTR doodad) {
   CMapDoodadDef *entity = (CMapDoodadDef *)doodad;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_DoodadDef);
   return entity->model;
 }
 
-void CWorld::SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param) {
+void CWorld::SetObjectRenderCallback(DWORD_PTR hWorldObject, void (*cb)(LPVOID, const NTempest::C44Matrix &), LPVOID param) {
   CMapDoodadDef *doodad = (CMapDoodadDef *)hWorldObject;
   FATALASSERT(doodad);
   FATALASSERT(doodad->GetType() & CMapBaseObj::Type_DoodadDef);
@@ -673,7 +673,7 @@ void CWorld::SetObjectRenderCallback(DWORD hWorldObject, void (*cb)(LPVOID, cons
   doodad->renderCBParam = param;
 }
 
-void CWorld::UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox) {
+void CWorld::UpdateObject(DWORD_PTR hWorldObject, const NTempest::C44Matrix &mat, const NTempest::CAaBox &aaBox) {
   CMapBaseObj *baseObj = (CMapBaseObj *)hWorldObject;
 
   ActivityBegin(ACTIVITY_WORLD);
@@ -703,21 +703,21 @@ void CWorld::UpdateObject(DWORD hWorldObject, const NTempest::C44Matrix &mat, co
   ActivityEnd(ACTIVITY_WORLD);
 }
 
-void CWorld::TickObject(DWORD hWorldObject) {
+void CWorld::TickObject(DWORD_PTR hWorldObject) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   entity->Tick();
 }
 
-void CWorld::SetHidden(DWORD hWorldObject, int hidden) {
+void CWorld::SetHidden(DWORD_PTR hWorldObject, int hidden) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
   entity->flagHidden = hidden;
 }
 
-void CWorld::RemoveObject(DWORD hWorldObject) {
+void CWorld::RemoveObject(DWORD_PTR hWorldObject) {
   CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
 
@@ -745,7 +745,7 @@ void CWorld::RemoveObject(DWORD hWorldObject) {
   }
 }
 
-void CWorld::SetCameraTarget(DWORD hWorldObject) {
+void CWorld::SetCameraTarget(DWORD_PTR hWorldObject) {
   CMapEntity *entity = (CMapEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -840,7 +840,7 @@ int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, flo
   return CMap::QueryLiquidStatus(point, liquid, surface, waterDir, deep);
 }
 
-int CWorld::QueryLiquidSounds(DWORD hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
+int CWorld::QueryLiquidSounds(DWORD_PTR hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
   FATALASSERT(lbool);
   FATALASSERT(ldelta);
   FATALASSERT(radius > 0.0f && radius < 16);

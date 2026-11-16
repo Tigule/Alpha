@@ -44,9 +44,7 @@ void CMapObj::Destroy() {
 }
 
 void CMapObj::ClearCache(int force) {
-  for (CMapObj *mapObj = mapObjHash.Head(), *mapObjnext_node; (int)mapObj > 0 ? (mapObjnext_node = mapObjHash.Next(mapObj), 1) : 0;
-       mapObj = mapObjnext_node)
-  {
+  SAFEITERATELIST(CMapObj, mapObjHash, mapObj) {
     if (!mapObj->refCount) {
       mapObjHash.Unlink(mapObj);
       CMap::FreeMapObj(mapObj);
@@ -148,6 +146,13 @@ void CMapObj::Clear() {
       }
     }
   }
+#ifdef _WIN64
+  if (materialList) {
+    SMemFree(materialList, __FILE__, __LINE__, 0);
+  }
+  materialList = 0;
+  materialCount = 0;
+#endif
 
   for (i = 0; i < groupPtrList.Count(); ++i) {
     CMap::FreeMapObjGroup(groupPtrList[i]);

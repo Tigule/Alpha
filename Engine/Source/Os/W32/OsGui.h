@@ -982,8 +982,8 @@ void OsGuiSetMenuCommandCallback(void (*inCallback)(const OsGuiCallbackParams &)
 void OsGuiSetIdleCallback(void (*inCallback)(const OsGuiCallbackParams &), LPVOID inUser);
 void OsGuiEnableTooltips(int inVal);
 void OsGuiEnableMenuHotkeys(int inVal);
-struct HICON__;
-HICON__            *sWinCursor(int inCursor);
+typedef struct HICON__ *HICON;
+HICON                   sWinCursor(int inCursor);
 void                OsGuiSetCursor(int inCursor);
 void                OsGuiShowCursor(int inVal);
 void                OsGuiGetCursorPosition(int *outX, int *outY);

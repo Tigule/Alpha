@@ -78,7 +78,7 @@ enum {
 };
 
 static int       s_activityMode;
-static HLAYER__ *s_layer;
+static HLAYER    s_layer;
 static void (*sTextFunc)(char *, int, LPVOID);
 static LPVOID          sTextFuncParam;
 static float           s_avgPerfTime[PERF_MAX];
@@ -137,16 +137,16 @@ static LONGLONG         s_ProfRingFrame;
 static NETADDR          s_ProfAddr;
 static SEvent          *s_ProfStartupEvent;
 static SEvent          *s_ProfShutdownEvent;
-static HNETCONN__      *s_ProfConn;
+static HNETCONN         s_ProfConn;
 static SThread         *s_ProfThreadPtr;
 static long             s_ProfStartup;
 static char             s_hostNameList[64];
 
-void __stdcall HookRenderBegin(LPVOID) {
+void WINAPI HookRenderBegin(LPVOID) {
   ActivityBegin(ACTIVITY_RENDER);
 }
 
-void __stdcall HookRenderEnd(LPVOID) {
+void WINAPI HookRenderEnd(LPVOID) {
   ActivityEnd(ACTIVITY_RENDER);
 }
 
@@ -373,7 +373,7 @@ void IPerfResetTimePeaks() {
   memset(s_avgPerfTime, 0, sizeof(s_avgPerfTime));
 }
 
-void __stdcall IPerfHostAddrProc(const NETADDR *addrs, DWORD addrCount, LPVOID user) {
+void WINAPI IPerfHostAddrProc(const NETADDR *addrs, DWORD addrCount, LPVOID user) {
   if (!addrCount) {
     s_ProfShutdownEvent->Set();
     return;
@@ -382,8 +382,7 @@ void __stdcall IPerfHostAddrProc(const NETADDR *addrs, DWORD addrCount, LPVOID u
   s_ProfStartupEvent->Set();
 }
 
-int __stdcall
-ChatEventProc(HNETCONN__ *conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
+int WINAPI ChatEventProc(HNETCONN conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
   BOOL result = 0;
 
   switch (note) {
@@ -400,7 +399,11 @@ ChatEventProc(HNETCONN__ *conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID
         s_ProfShutdownEvent->Set();
       }
       s_ProfLock.Enter(1);
-      HNETCONN__ *old = (HNETCONN__ *)SInterlockedExchange((long *)&s_ProfConn, 0);
+#ifdef _WIN64
+      HNETCONN old = (HNETCONN)SInterlockedExchangePointer((LPVOID *)&s_ProfConn, 0);
+#else
+      HNETCONN old = (HNETCONN)SInterlockedExchange((long *)&s_ProfConn, 0);
+#endif
       s_ProfLock.Leave(1);
       if (old) {
         OsNetConnFreeHandle(old);
@@ -513,7 +516,7 @@ void IPerfRemoteSendQueued() {
   }
 }
 
-UINT __stdcall IPerfRemoteLoggingThread(LPVOID) {
+UINT WINAPI IPerfRemoteLoggingThread(LPVOID) {
   if (IPerfRemoteLoggingIni()) {
     SSyncObject *waitObjectPtrs[2] = {s_ProfShutdownEvent, s_ProfRequestEnqueuedEvent};
     DWORD        waitResult;
@@ -525,7 +528,11 @@ UINT __stdcall IPerfRemoteLoggingThread(LPVOID) {
       s_ProfRequestEnqueuedEvent->Reset();
     }
     s_ProfLock.Enter(1);
-    HNETCONN__ *old = (HNETCONN__ *)SInterlockedExchange((long *)&s_ProfConn, 0);
+#ifdef _WIN64
+    HNETCONN old = (HNETCONN)SInterlockedExchangePointer((LPVOID *)&s_ProfConn, 0);
+#else
+    HNETCONN old = (HNETCONN)SInterlockedExchange((long *)&s_ProfConn, 0);
+#endif
     s_ProfLock.Leave(1);
     if (old) {
       OsNetConnFreeHandle(old);

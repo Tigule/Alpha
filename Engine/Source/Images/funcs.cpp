@@ -74,7 +74,7 @@ UINT CalcLevelCount(UINT width, UINT height) {
 MipBits *MippedImgAllocA(UINT fourCC, UINT width, UINT height, LPCSTR fileName, int lineNumber) {
   UINT     levelCount = CalcLevelCount(width, height);
   UINT     levelDataSize = CalcLevelOffset(levelCount, width, height, fourCC);
-  MipBits *ptr = (MipBits *)SMemAlloc(levelDataSize + 4 * levelCount, fileName, lineNumber, 0);
+  MipBits *ptr = (MipBits *)SMemAlloc(levelDataSize + sizeof(C4Pixel *) * levelCount, fileName, lineNumber, 0);
   UINT     offset = 0;
   UINT     level;
   for (level = 0; level < levelCount; ++level) {
@@ -87,7 +87,7 @@ MipBits *MippedImgAllocA(UINT fourCC, UINT width, UINT height, LPCSTR fileName, 
 
 UINT MippedImgCalcSize(UINT fourCC, UINT width, UINT height) {
   UINT levelCount = CalcLevelCount(width, height);
-  return CalcLevelOffset(levelCount, width, height, fourCC) + 4 * levelCount;
+  return CalcLevelOffset(levelCount, width, height, fourCC) + sizeof(C4Pixel *) * levelCount;
 }
 
 void MippedImgSet(UINT fourCC, UINT width, UINT height, MipBits *bits) {

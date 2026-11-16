@@ -250,8 +250,18 @@ void CMapObj::CreateDataPointers() {
   pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOMT');
+#ifdef _WIN64
+  UINT materialBytes = offsetof(SMOMaterial, groundType) + sizeof(materialList->groundType);
+  UINT materialStride = materialBytes + sizeof(materialList->inMemPad);
+  materialCount = pIffChunk->size / materialStride;
+  materialList = (SMOMaterial *)SMemAlloc(materialCount * sizeof(*materialList), __FILE__, __LINE__, 0);
+  for (UINT m = 0; m < materialCount; ++m) {
+    memcpy(&materialList[m], pData + materialStride * m, materialBytes);
+  }
+#else
   materialList = (SMOMaterial *)pData;
   materialCount = pIffChunk->size / sizeof(*materialList);
+#endif
   pData += pIffChunk->size;
 
   pIffChunk = ReadChunkHeader(pData, 'MOGN');
@@ -583,7 +593,17 @@ void CMapObjGroup::CreateLightmapPointers(BYTE *&pData) {
   pIffChunk = (SIffChunk *)pData;
   FATALASSERT(pIffChunk->token=='MOLD');
   pData += sizeof(SIffChunk);
+#ifdef _WIN64
+  UINT lightmapStride = sizeof(lightmapTexList->texels) + sizeof(lightmapTexList->inMemPad);
+  lightmapTexCount = pIffChunk->size / lightmapStride;
+  lightmapTexList = (SMOLightmapTex *)SMemAlloc(lightmapTexCount * sizeof(*lightmapTexList), __FILE__, __LINE__, 0);
+  for (UINT t = 0; t < lightmapTexCount; ++t) {
+    memcpy(lightmapTexList[t].texels, pData + lightmapStride * t, sizeof(lightmapTexList->texels));
+    lightmapTexList[t].hTexture = 0;
+  }
+#else
   lightmapTexList = (SMOLightmapTex *)pData;
   lightmapTexCount = pIffChunk->size / sizeof(*lightmapTexList);
+#endif
   pData += pIffChunk->size;
 }

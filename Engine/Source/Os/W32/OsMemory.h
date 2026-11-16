@@ -28,5 +28,5 @@ class COsSharedMemory {
  protected:
   LPVOID m_data;
   UINT   m_size;
-  BYTE   m_opaqueData[4];
+  BYTE   m_opaqueData[sizeof(HANDLE)];
 };

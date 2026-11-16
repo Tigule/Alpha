@@ -76,7 +76,7 @@ static int    s_initialized;
     SSTR_CHECK_END_LOOP;                            \
   } while (1)
 
-#define SSTR_BEGIN_COPY DWORD sstrNegOffset = (DWORD)(currdest - enddest)
+#define SSTR_BEGIN_COPY DWORD_PTR sstrNegOffset = (DWORD_PTR)(currdest - enddest)
 
 #define SSTR_COPY_LEADING_BYTES                        \
   while (((DWORD)source & 3) && sstrNegOffset) {       \

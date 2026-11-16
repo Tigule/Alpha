@@ -105,7 +105,7 @@ class ClntObjMgr {
   LPVOID                                  m_clientPtr;
 };
 
-extern "C" int __stdcall zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen);
+extern "C" int WINAPI zlib_uncompress(BYTE *dest, DWORD *destLen, const BYTE *source, DWORD sourceLen);
 
 enum {
   UPDATE_PARTIAL = 0,
@@ -1208,19 +1208,19 @@ static BOOL CCommand_ObjUsage(LPCSTR command, LPCSTR arguments) {
   UINT          numFree = 0;
   C_OBJECTHASH *object;
 
-  for (object = s_curMgr->m_visibleObjects.Head(); (int)object > 0; object = s_curMgr->m_visibleObjects.RawNext(object)) {
+  for (object = s_curMgr->m_visibleObjects.Head(); (INT_PTR)object > 0; object = s_curMgr->m_visibleObjects.RawNext(object)) {
     ++numVisible;
   }
 
-  for (object = s_curMgr->m_objects.Head(); (int)object > 0; object = s_curMgr->m_objects.RawNext(object)) {
+  for (object = s_curMgr->m_objects.Head(); (INT_PTR)object > 0; object = s_curMgr->m_objects.RawNext(object)) {
     ++numActive;
   }
 
-  for (object = s_curMgr->m_lazyCleanupObjects.Head(); (int)object > 0; object = s_curMgr->m_lazyCleanupObjects.RawNext(object)) {
+  for (object = s_curMgr->m_lazyCleanupObjects.Head(); (INT_PTR)object > 0; object = s_curMgr->m_lazyCleanupObjects.RawNext(object)) {
     ++numWaiting;
   }
 
-  for (object = s_curMgr->m_freeObjects.Head(); (int)object > 0; object = s_curMgr->m_freeObjects.RawNext(object)) {
+  for (object = s_curMgr->m_freeObjects.Head(); (INT_PTR)object > 0; object = s_curMgr->m_freeObjects.RawNext(object)) {
     ++numFree;
   }
 

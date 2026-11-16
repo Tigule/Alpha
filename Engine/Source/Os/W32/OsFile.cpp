@@ -90,7 +90,7 @@ BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *
   return WriteFile(fileHandle, buffer, bytesToWrite, bytesWritten, 0);
 }
 
-int OsFlushFile(HOSFILE__ *fileHandle) {
+int OsFlushFile(HOSFILE fileHandle) {
   return FlushFileBuffers(fileHandle);
 }
 
@@ -107,20 +107,20 @@ DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD mo
   return distance.QuadPart;
 }
 
-DWORDLONG OsGetFileSize(HOSFILE__ *fileHandle) {
+DWORDLONG OsGetFileSize(HOSFILE fileHandle) {
   LARGE_INTEGER size;
   size.LowPart = GetFileSize(fileHandle, (DWORD *)&size.HighPart);
   return size.QuadPart;
 }
 
-int OsGetFileTime(HOSFILE__ *fileHandle, OSFILETIME *createFileTime, OSFILETIME *accessFileTime, OSFILETIME *writeFileTime) {
+int OsGetFileTime(HOSFILE fileHandle, OSFILETIME *createFileTime, OSFILETIME *accessFileTime, OSFILETIME *writeFileTime) {
   return GetFileTime(
       fileHandle, (FILETIME *)createFileTime, (FILETIME *)accessFileTime,
       (FILETIME *)writeFileTime
   );
 }
 
-int OsSetFileTime(HOSFILE__ *fileHandle, const OSFILETIME *createFileTime, const OSFILETIME *accessFileTime, const OSFILETIME *writeFileTime) {
+int OsSetFileTime(HOSFILE fileHandle, const OSFILETIME *createFileTime, const OSFILETIME *accessFileTime, const OSFILETIME *writeFileTime) {
   return SetFileTime(
       fileHandle, (const FILETIME *)createFileTime, (const FILETIME *)accessFileTime,
       (const FILETIME *)writeFileTime
@@ -148,7 +148,7 @@ int OsGetFileTime(LPCSTR fileName, OSFILETIME *createFileTime, OSFILETIME *acces
   return result;
 }
 
-int OsSetEndOfFile(HOSFILE__ *fileHandle) {
+int OsSetEndOfFile(HOSFILE fileHandle) {
   return SetEndOfFile(fileHandle);
 }
 

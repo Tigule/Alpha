@@ -76,11 +76,17 @@ target_include_directories(Wow PRIVATE
     .
 )
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(WOW_ARCH 64)
+else()
+    set(WOW_ARCH "")
+endif()
+
 set_target_properties(Wow PROPERTIES
-    OUTPUT_NAME Wow
-    OUTPUT_NAME_RELEASE_ASSERTIONS_ENABLED Wowae
-    OUTPUT_NAME_RELEASE Wow
-    OUTPUT_NAME_DEBUG Wowd
+    OUTPUT_NAME Wow${WOW_ARCH}
+    OUTPUT_NAME_RELEASE_ASSERTIONS_ENABLED Wow${WOW_ARCH}ae
+    OUTPUT_NAME_RELEASE Wow${WOW_ARCH}
+    OUTPUT_NAME_DEBUG Wow${WOW_ARCH}d
 )
 
 if(MSVC_VERSION EQUAL 1200)
@@ -100,12 +106,19 @@ elseif(MSVC)
 endif()
 
 if(WIN32)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(DXSDK_ARCH x64)
+        set(FMOD_IMPORT_LIBRARY "${CMAKE_SOURCE_DIR}/Engine/Source/FMOD/api/lib/fmod64vc.lib")
+    else()
+        set(DXSDK_ARCH x86)
+        set(FMOD_IMPORT_LIBRARY "${CMAKE_SOURCE_DIR}/Engine/Source/FMOD/api/lib/fmodvc.lib")
+    endif()
     unset(D3DX9_IMPORT_LIBRARY CACHE)
     find_library(
         D3DX9_IMPORT_LIBRARY
         d3dx9
         PATHS
-            "$ENV{DXSDK_DIR}/Lib/x86"
+            "$ENV{DXSDK_DIR}/Lib/${DXSDK_ARCH}"
             "$ENV{DXSDK_DIR}/Lib"
         NO_DEFAULT_PATH)
     target_link_libraries(Wow PRIVATE
@@ -122,7 +135,7 @@ if(WIN32)
         gdi32
         imm32
         ole32
-        "${CMAKE_SOURCE_DIR}/Engine/Source/FMOD/api/lib/fmodvc.lib"
+        "${FMOD_IMPORT_LIBRARY}"
         uuid
     )
 endif()

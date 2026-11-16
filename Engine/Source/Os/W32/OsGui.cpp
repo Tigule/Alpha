@@ -104,18 +104,18 @@ void OsGuiSetIdleCallback(void (*inFunc)(const OsGuiCallbackParams &), LPVOID in
   sCallbacks[1].userParam = inParam;
 }
 
-typedef long (*OSWINDOWPROC)(LPVOID, UINT, UINT, long);
+typedef LRESULT (*OSWINDOWPROC)(LPVOID, UINT, WPARAM, LPARAM);
 void              OsSetWindowProc(OSWINDOWPROC windowproc);
-long              OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam);
+LRESULT           OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void              OsGuiSetCursor(int inCursor);
 void              OsGuiGetCursorPosition(int *outX, int *outY);
 void              OsGuiSetWindowRect(LPVOID inWindow, const NTempest::CiRect &inRect);
 void              OsGuiSetWindowIcon(LPVOID inWindow, LPCSTR inName);
-HICON__          *sWinCursor(int inCursor);
-static HBITMAP__ *sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData, HDC__ *inDC);
-static HBITMAP__ *sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, HDC__ *inDC);
+HICON             sWinCursor(int inCursor);
+static HBITMAP    sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData, HDC inDC);
+static HBITMAP    sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, HDC inDC);
 
-static HWND__ *sCreateTooltips(HWND__ *inOwner) {
+static HWND sCreateTooltips(HWND inOwner) {
   HWND tips = CreateWindowExA(
       0, TOOLTIPS_CLASSA, 0, WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, inOwner, 0,
       sAppInstance, 0
@@ -126,7 +126,7 @@ static HWND__ *sCreateTooltips(HWND__ *inOwner) {
   return tips;
 }
 
-static HWND__ *sGetGlobalTips() {
+static HWND sGetGlobalTips() {
   if (!sGlobalTips) {
     sGlobalTips = sCreateTooltips(0);
   }
@@ -143,11 +143,11 @@ static LPVOID sGetOsGuiPointer(HWND hwnd) {
   return GetPropA(hwnd, OsGuiPointerProp);
 }
 
-static void sSetOsGuiPointer(HWND__ *hwnd, LPVOID data) {
+static void sSetOsGuiPointer(HWND hwnd, LPVOID data) {
   SetPropA(hwnd, OsGuiPointerProp, data);
 }
 
-static void sRemoveOsGuiPointer(HWND__ *hwnd) {
+static void sRemoveOsGuiPointer(HWND hwnd) {
   RemovePropA(hwnd, OsGuiPointerProp);
 }
 
@@ -164,7 +164,7 @@ static void sDoCallback(int inCB, int type, int subtype) {
   }
 }
 
-static void CALLBACK sIdleTimerProc(HWND__ *, UINT, UINT, DWORD) {
+static void CALLBACK sIdleTimerProc(HWND, UINT, UINT_PTR, DWORD) {
   sDoCallback(1, 0, 0);
 }
 
@@ -532,7 +532,7 @@ static int sNCodeToItemCode(int nCode, int ctrlType) {
   return -1;
 }
 
-static int sHandleDrawItem(long lParam) {
+static int sHandleDrawItem(LPARAM lParam) {
   DRAWITEMSTRUCT *draw = (DRAWITEMSTRUCT *)lParam;
   COsControl     *control = (COsControl *)sGetOsGuiPointer(draw->hwndItem);
   if (!control) {
@@ -555,7 +555,7 @@ static int sHandleDrawItem(long lParam) {
   return control->OnDraw(draw->hDC, state, drawRect);
 }
 
-static LPVOID sHandleCtlColor(UINT wParam, long lParam) {
+static LPVOID sHandleCtlColor(WPARAM wParam, LPARAM lParam) {
   COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
   if (!control) {
     return 0;
@@ -563,7 +563,7 @@ static LPVOID sHandleCtlColor(UINT wParam, long lParam) {
   return control->OnSetColors((LPVOID)wParam);
 }
 
-static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
+static INT_PTR CALLBACK sDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam) {
   COsDialog *dialog = (COsDialog *)sGetOsGuiPointer(hdlg);
   switch (msg) {
     case WM_ACTIVATE:
@@ -662,7 +662,7 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
     case WM_CTLCOLORLISTBOX:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-      return (int)sHandleCtlColor(wParam, lParam);
+      return (INT_PTR)sHandleCtlColor(wParam, lParam);
     case WM_LBUTTONDOWN:
       if (dialog) {
         return dialog->OnMouseDown();
@@ -702,9 +702,9 @@ static int CALLBACK sDlgProc(HWND__ *hdlg, UINT msg, UINT wParam, long lParam) {
   return 0;
 }
 
-static int CALLBACK sDisableWindow(HWND__ *hwnd, long param) {
+static int CALLBACK sDisableWindow(HWND hwnd, LPARAM param) {
   TSGrowableArray<LPVOID> *windows = (TSGrowableArray<LPVOID> *)param;
-  if ((HINSTANCE)GetWindowLongA(hwnd, GWL_HINSTANCE) != sAppInstance)
+  if ((HINSTANCE)GetWindowLongPtrA(hwnd, GWLP_HINSTANCE) != sAppInstance)
     return 1;
   if (IsWindowEnabled(hwnd)) {
     EnableWindow(hwnd, FALSE);
@@ -713,8 +713,8 @@ static int CALLBACK sDisableWindow(HWND__ *hwnd, long param) {
   return 1;
 }
 
-static int CALLBACK sEditBoxProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam);
-static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam);
+static INT_PTR CALLBACK sEditBoxProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+static INT_PTR CALLBACK sDividerProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 COsControl::COsControl(COsDialog *inDialog, int inType, short inID, UINT inFlags) {
   mDialog = inDialog;
@@ -1332,7 +1332,7 @@ void COsDialog::ApplyModality(int inVal) {
     if (mFlags & 0x4) {
       HWND parent = (HWND)GetParentWindow();
       if (parent) {
-        sDisableWindow(parent, (long)&mDisabledWindows);
+        sDisableWindow(parent, (LPARAM)&mDisabledWindows);
       }
     }
   } else {
@@ -1772,7 +1772,7 @@ void COsEditBox::Initialize() {
   mFiltersEnabled = 0;
   mFilters = 0;
   mSelSize = 0;
-  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sEditBoxProc);
+  SetWindowLongPtrA((HWND)mHandle, GWLP_WNDPROC, (LONG_PTR)sEditBoxProc);
 }
 
 void COsEditBox::UpdateSelection() {
@@ -2173,7 +2173,7 @@ int COsListView::OnNotify(int inCode, LPVOID inParam) {
       switch (drawInfo->nmcd.dwDrawStage) {
         case CDDS_PREPAINT:
           if (mDialog) {
-            SetWindowLongA((HWND)mDialog->GetHandle(), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+            SetWindowLongPtrA((HWND)mDialog->GetHandle(), DWLP_MSGRESULT, CDRF_NOTIFYITEMDRAW);
           }
           return CDRF_NOTIFYITEMDRAW;
         case CDDS_ITEMPREPAINT: {
@@ -2516,7 +2516,7 @@ BOOL COsControl::SendEvent(int inEvent, int inCode) {
   return 0;
 }
 
-static HBITMAP__ *sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData, HDC__ *inDC) {
+static HBITMAP sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData, HDC inDC) {
   BITMAPINFO bmInfo;
   bmInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
   bmInfo.bmiHeader.biWidth = inWidth;
@@ -2532,7 +2532,7 @@ static HBITMAP__ *sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData,
   return CreateDIBitmap(inDC, &bmInfo.bmiHeader, CBM_INIT, inData, &bmInfo, DIB_RGB_COLORS);
 }
 
-static HBITMAP__ *sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, HDC__ *inDC) {
+static HBITMAP sMaskFromImageData(int inWidth, int inHeight, LPVOID inData, HDC inDC) {
   int   rowBytes = (inWidth - 1) / 8 + 1;
   BYTE *bits = (BYTE *)_alloca(rowBytes * inHeight * 2);
   memset(bits, 0, rowBytes * inHeight * 2);
@@ -2768,7 +2768,7 @@ void COsStaticImage::ClearImage() {
   SetSize(sizeX, sizeY);
 }
 
-static int CALLBACK sEditBoxProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
+static INT_PTR CALLBACK sEditBoxProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   COsEditBox *editBox = (COsEditBox *)sGetOsGuiPointer(hwnd);
   if (editBox) {
     switch (msg) {
@@ -2783,7 +2783,7 @@ static int CALLBACK sEditBoxProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPara
         break;
     }
   }
-  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongPtrA(hwnd, GCLP_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 static BOOL sIsCharacterAllowed(char inChar, UINT inFilters) {
@@ -2903,7 +2903,7 @@ BOOL COsDialog::OnEvent(int inItemID, int inNotifyCode, int inCode) {
   return 1;
 }
 
-static int CALLBACK sTreeViewProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
+static INT_PTR CALLBACK sTreeViewProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   COsTreeView *tree = (COsTreeView *)sGetOsGuiPointer(hwnd);
   if (tree) {
     BOOL handled = 0;
@@ -2919,7 +2919,7 @@ static int CALLBACK sTreeViewProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPar
       return 0;
     }
   }
-  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongPtrA(hwnd, GCLP_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 COsTreeView::COsTreeView(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 10, inID, inFlags) {
@@ -2949,7 +2949,7 @@ void COsTreeView::InitializeTreeView() {
   mTextLimit = -1;
   mFiltersEnabled = 0;
   mFilters = 0;
-  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sTreeViewProc);
+  SetWindowLongPtrA((HWND)mHandle, GWLP_WNDPROC, (LONG_PTR)sTreeViewProc);
 
   mImages = ImageList_Create(16, 16, 0x21, 1, 1);
   SendMessageA((HWND)mHandle, TVM_SETIMAGELIST, TVSIL_NORMAL, (LPARAM)mImages);
@@ -3361,7 +3361,7 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
       switch (drawInfo->nmcd.dwDrawStage) {
         case CDDS_PREPAINT:
           if (mDialog) {
-            SetWindowLongA((HWND)mDialog->GetHandle(), DWL_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+            SetWindowLongPtrA((HWND)mDialog->GetHandle(), DWLP_MSGRESULT, CDRF_NOTIFYITEMDRAW);
           }
           return CDRF_NOTIFYITEMDRAW;
         case CDDS_ITEMPREPAINT: {
@@ -3420,7 +3420,7 @@ void COsTreeView::DestroyDragImage() {
 NTempest::CiRect COsTreeView::GetItemRect(LPVOID inItem) {
   NTempest::CiRect itemRect(0);
   RECT             wRect;
-  wRect.left = (LONG)inItem;
+  *(LPVOID *)&wRect = inItem;
   SendMessageA((HWND)mHandle, TVM_GETITEMRECT, 1, (LPARAM)&wRect);
   sWinRectToCiRect(&wRect, &itemRect);
   return itemRect;
@@ -3428,7 +3428,7 @@ NTempest::CiRect COsTreeView::GetItemRect(LPVOID inItem) {
 
 void COsTreeView::RefreshItem(LPVOID inItem) {
   RECT wRect;
-  wRect.left = (LONG)inItem;
+  *(LPVOID *)&wRect = inItem;
   SendMessageA((HWND)mHandle, TVM_GETITEMRECT, 1, (LPARAM)&wRect);
   InvalidateRect((HWND)mHandle, &wRect, 0);
 }
@@ -3642,12 +3642,12 @@ LPVOID COsTreeView::GetEditControl() {
   return (LPVOID)SendMessageA((HWND)mHandle, TVM_GETEDITCONTROL, 0, 0);
 }
 
-static int CALLBACK sSpinButtonProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
+static INT_PTR CALLBACK sSpinButtonProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   COsSpinButton *spin = (COsSpinButton *)sGetOsGuiPointer(hwnd);
   if (spin && msg == WM_LBUTTONUP) {
     spin->OnSpinMouseUp();
   }
-  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongPtrA(hwnd, GCLP_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 COsSpinButton::COsSpinButton(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 13, inID, inFlags) {
@@ -3659,7 +3659,7 @@ COsSpinButton::COsSpinButton(LPVOID inWindow, short inID, UINT inFlags) : COsCon
 }
 
 void COsSpinButton::Initialize() {
-  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sSpinButtonProc);
+  SetWindowLongPtrA((HWND)mHandle, GWLP_WNDPROC, (LONG_PTR)sSpinButtonProc);
 }
 
 void COsSpinButton::OnSpinMouseUp() {
@@ -3849,7 +3849,7 @@ void COsDivider::Initialize() {
   mTracking = 0;
   mMaxPos = 100000;
   mMinPos = -100000;
-  SetWindowLongA((HWND)mHandle, GWL_WNDPROC, (LONG)sDividerProc);
+  SetWindowLongPtrA((HWND)mHandle, GWLP_WNDPROC, (LONG_PTR)sDividerProc);
 }
 
 void COsDivider::UpdateCursor() {
@@ -3937,7 +3937,7 @@ void COsDivider::SetPositionRange(int inMin, int inMax) {
   mMaxPos = inMax;
 }
 
-static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lParam) {
+static INT_PTR CALLBACK sDividerProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   COsDivider *divider = (COsDivider *)sGetOsGuiPointer(hwnd);
   if (divider) {
     switch (msg) {
@@ -3955,7 +3955,7 @@ static int CALLBACK sDividerProc(HWND__ *hwnd, UINT msg, UINT wParam, long lPara
         break;
     }
   }
-  return CallWindowProcA((WNDPROC)GetClassLongA(hwnd, GCL_WNDPROC), hwnd, msg, wParam, lParam);
+  return CallWindowProcA((WNDPROC)GetClassLongPtrA(hwnd, GCLP_WNDPROC), hwnd, msg, wParam, lParam);
 }
 
 COsWindow::COsWindow(LPVOID inWindow) {
@@ -3982,7 +3982,7 @@ void COsWindow::GetMinSize(int *outW, int *outH) {
 void COsWindow::SetCursor(int inCursor) {
   HCURSOR cursor = sWinCursor(inCursor);
   if (cursor) {
-    SetClassLongA((HWND)mHandle, GCL_HCURSOR, (LONG)cursor);
+    SetClassLongPtrA((HWND)mHandle, GCLP_HCURSOR, (LONG_PTR)cursor);
   }
 }
 
@@ -3997,7 +3997,7 @@ void COsWindow::SetInputFocus() {
 void COsWindow::OnResize() {
 }
 
-HICON__ *sWinCursor(int inCursor) {
+HICON sWinCursor(int inCursor) {
   VALIDATE2(inCursor >= 0 && inCursor < OSGUI_NUM_CURSORS);
   LPCSTR cursorName;
   switch (inCursor) {
@@ -4048,11 +4048,11 @@ void OsGuiSetWindowTitle(LPVOID inWindow, LPCSTR inText) {
 }
 
 void OsGuiSetWindowIcon(LPVOID inWindow, LPCSTR inName) {
-  HICON oldIcon = (HICON)SetClassLongA((HWND)inWindow, GCL_HICON, (LONG)LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 32, 32, 0));
+  HICON oldIcon = (HICON)SetClassLongPtrA((HWND)inWindow, GCLP_HICON, (LONG_PTR)LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 32, 32, 0));
   if (oldIcon) {
     DestroyIcon(oldIcon);
   }
-  oldIcon = (HICON)SetClassLongA((HWND)inWindow, GCL_HICONSM, (LONG)LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 16, 16, 0));
+  oldIcon = (HICON)SetClassLongPtrA((HWND)inWindow, GCLP_HICONSM, (LONG_PTR)LoadImageA(GetModuleHandleA(0), inName, IMAGE_ICON, 16, 16, 0));
   if (oldIcon) {
     DestroyIcon(oldIcon);
   }
@@ -4227,7 +4227,7 @@ void OsGuiGetHotkeyText(const OsGuiMenuHotkey &inHotkey, char *inBuf, int inBufS
   sGetHotkeyText(inHotkey.keyID, inHotkey.modKeyID, inBuf, inBufSize);
 }
 
-long OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam) {
+LRESULT OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
   HWND hwnd = (HWND)_hWnd;
   switch (uMsg) {
     case WM_COMMAND:
@@ -4280,7 +4280,7 @@ long OsGuiWindowProc(LPVOID _hWnd, UINT uMsg, UINT wParam, long lParam) {
     case WM_CTLCOLORLISTBOX:
     case WM_CTLCOLORSCROLLBAR:
     case WM_CTLCOLORSTATIC:
-      return (long)sHandleCtlColor(wParam, lParam);
+      return (LRESULT)sHandleCtlColor(wParam, lParam);
   }
 
   COsWindow *window = (COsWindow *)sGetOsGuiPointer(hwnd);

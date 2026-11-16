@@ -19,14 +19,14 @@ class CGGameUI;
 class CSimpleHTML;
 class CSimpleTexture;
 struct CGxStringBatch;
-struct HTEXTBLOCK__;
-struct HTEXTFONT__;
-struct HTEXTURE__;
+typedef struct HTEXTBLOCK__ *HTEXTBLOCK;
+typedef struct HTEXTFONT__  *HTEXTFONT;
+typedef struct HTEXTURE__   *HTEXTURE;
 struct CGxString;
 
-LPCSTR     TextBlockGetFontName(HTEXTFONT__ *font);
-UINT       TextBlockGetFontFlags(HTEXTFONT__ *font);
-CGxString *TextBlockGetStringPtr(HTEXTBLOCK__ *text);
+LPCSTR     TextBlockGetFontName(HTEXTFONT font);
+UINT       TextBlockGetFontFlags(HTEXTFONT font);
+CGxString *TextBlockGetStringPtr(HTEXTBLOCK text);
 
 class CRenderBatch;
 class CSimpleMessageScrollFrame;
@@ -395,13 +395,13 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
   char               *m_name;
   UINT                m_registryContext;
-  HTEXTFONT__        *m_font;
+  HTEXTFONT           m_font;
   float               m_fontHeight;
   int                 m_textMaxSize;
   int                 m_textCurSize;
   char               *m_text;
   float               m_spacing;
-  HTEXTBLOCK__       *m_string;
+  HTEXTBLOCK          m_string;
   float               m_cachedWidth;
   float               m_cachedHeight;
   NTempest::CImVector m_shadowColor;
@@ -436,7 +436,7 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
 
   BOOL                  SetTexture(LPCSTR file, int uvWrapping);
   BOOL                  SetTexture(const NTempest::CImVector &color);
-  BOOL                  SetTexture(HTEXTURE__ *texHandle);
+  BOOL                  SetTexture(HTEXTURE texHandle);
   void                  SetBlendMode(EGxBlend mode);
   void                  SetTexCoord(const NTempest::CRect &rect);
   void                  SetTexCoord(const NTempest::C2Vector *texCoord);
@@ -448,7 +448,7 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
   void          TexCorrectRect(NTempest::CRect &rect);
   void          SetPosition(const NTempest::CRect &rect);
 
-  HTEXTURE__   *GetHTEXTURE() {
+  HTEXTURE GetHTEXTURE() {
     return m_texture;
   }
 
@@ -482,19 +482,22 @@ class CSimpleTexture : public FrameScript_Object, public CSimpleRegion {
 
  protected:
   virtual BOOL LookupScriptMethod(lua_State *L, LPCSTR name);
+
   static TSHashTable<FrameScriptObject_Variable, HASHKEY_STR> s_scriptMethods;
+
   char              *m_name;
   UINT               m_registryContext;
-  HTEXTURE__        *m_texture;
+  HTEXTURE           m_texture;
   EGxBlend           m_alphamode;
   NTempest::C3Vector m_position[4];
   NTempest::C2Vector m_texCoord[4];
   int                m_TexCoordModifiesPosition;
-  static EGxTexFilter                                         s_textureFilterMode;
+
+  static EGxTexFilter s_textureFilterMode;
 };
 
 struct CSimpleBatchedTexture {
-  DWORD                      textureID;
+  DWORD_PTR                  textureID;
   const NTempest::C3Vector  *position;
   const NTempest::C2Vector  *texCoord;
   EGxBlend                   alphamode;

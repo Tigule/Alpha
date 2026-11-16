@@ -9,8 +9,8 @@
 enum EGxTexFormat;
 class CStatus;
 class CTexture;
-struct HCOLORMAP__;
-struct HCOLORLIST__;
+typedef struct HCOLORMAP__  *HCOLORMAP;
+typedef struct HCOLORLIST__ *HCOLORLIST;
 struct tagPALETTEENTRY;
 
 enum PIXEL_FORMAT {
@@ -189,8 +189,8 @@ class CBLPFile {
   int              GetOctreePal(tagPALETTEENTRY *palette, UINT count);
   BYTE            *Image(UINT level);
   BOOL             CreateMipLevels(UINT width, UINT height);
-  int              AddSourceImages(HCOLORLIST__ *colors);
-  int              ComputePalette(HCOLORLIST__ *colors);
+  int              AddSourceImages(HCOLORLIST colors);
+  int              ComputePalette(HCOLORLIST colors);
   int              Palettize(LPVOID output);
   int              MakeAlpha(BYTE **alpha, UINT mipLevel);
   int              MakeJPEGS(LPVOID output);
@@ -210,7 +210,7 @@ class CBLPFile {
   int             m_inMemoryNeedsFree;
   UINT            m_numLevels;
   UINT            m_quality;
-  HCOLORMAP__    *m_colorMapping;
+  HCOLORMAP       m_colorMapping;
   MipMapAlgorithm m_mipMapAlgorithm;
 
   int  DecompJPEG(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT dataSize, LPCVOID source, UINT &stride);

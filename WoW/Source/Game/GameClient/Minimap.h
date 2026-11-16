@@ -70,7 +70,7 @@ struct PARTYMEMBERINFO {
 int  MinimapInitialize(int continentID);
 void MinimapShutdown();
 BOOL MinimapUpdate(
-    DWORD                     hWorldObject,
+    DWORD_PTR                 hWorldObject,
     UINT                      continent,
     const NTempest::C3Vector &pos,
     NTempest::C2Vector       &centerPoint,

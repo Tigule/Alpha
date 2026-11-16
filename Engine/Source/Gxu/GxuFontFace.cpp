@@ -26,16 +26,16 @@ struct FACEDATA : public TSHashObject<FACEDATA, HASHKEY_STRI>, public CHandleObj
 
   LPVOID   data;
   FT_Face  face;
-  HFACE__ *selfReference;
+  HFACE    selfReference;
 };
 
 static TSHashTable<FACEDATA, HASHKEY_STRI> s_faceHash;
 
-HFACE__ *FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
+HFACE FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
   LPVOID    data;
   DWORD     size;
   FT_Face   theFace;
-  HFACE__  *handle;
+  HFACE     handle;
   FACEDATA *faceData;
   LPVOID    storage;
 
@@ -92,7 +92,7 @@ finallylabel:
   return handle;
 }
 
-FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
+FT_FaceRec_ *FontFaceGetFace(HFACE handle) {
   FACEDATA *dataPtr;
 
   VALIDATE2(handle);
@@ -102,7 +102,7 @@ FT_FaceRec_ *FontFaceGetFace(HFACE__ *handle) {
   return dataPtr->face;
 }
 
-void FontFaceCloseHandle(HFACE__ *handle) {
+void FontFaceCloseHandle(HFACE handle) {
   FACEDATA *dataPtr;
   UINT      refCount;
 
@@ -116,14 +116,14 @@ void FontFaceCloseHandle(HFACE__ *handle) {
   ASSERT(dataPtr->selfReference);
 
   if (refCount <= 1) {
-    HFACE__ *selfReference = dataPtr->selfReference;
+    HFACE selfReference = dataPtr->selfReference;
 
     dataPtr->selfReference = 0;
     HandleClose(selfReference);
   }
 }
 
-LPCSTR FontFaceGetFontName(HFACE__ *handle) {
+LPCSTR FontFaceGetFontName(HFACE handle) {
   FACEDATA *dataPtr;
 
   VALIDATE2(handle);

@@ -103,7 +103,7 @@ void OsNetDestroy(DWORD parts) {
   s_initialized = 0;
 }
 
-HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
+HNETCONN OsNetConnCopyHandle(HNETCONN conn) {
   NETCONN *netConn = (NETCONN *)conn;
 
   if (netConn) {
@@ -115,7 +115,7 @@ HNETCONN__ *OsNetConnCopyHandle(HNETCONN__ *conn) {
   return conn;
 }
 
-void OsNetConnFreeHandle(HNETCONN__ *conn) {
+void OsNetConnFreeHandle(HNETCONN conn) {
   NETCONN *netConn = (NETCONN *)conn;
 
   if (!netConn) {
@@ -247,18 +247,18 @@ void OsTcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID us
 
     if (eventProc) {
       DWORD consumed = 0;
-      eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_CANTCONNECT, user, 0, 0, &consumed);
+      eventProc((HNETCONN)conn, &conn->addr, NETNOTE_CANTCONNECT, user, 0, 0, &consumed);
     }
 
     return;
   }
 
   if (data && bytes) {
-    OsTcpConnSend((HNETCONN__ *)conn, data, bytes);
+    OsTcpConnSend((HNETCONN)conn, data, bytes);
   }
 }
 
-void OsTcpConnSend(HNETCONN__ *conn, LPCVOID data, DWORD bytes) {
+void OsTcpConnSend(HNETCONN conn, LPCVOID data, DWORD bytes) {
   NETCONN *netConn = (NETCONN *)conn;
 
   if (!netConn || netConn->socket < 0) {
@@ -338,7 +338,7 @@ void OsNetPump(DWORD timeout) {
         ConnClose(conn);
 
         if (conn->eventProc) {
-          conn->eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_CANTCONNECT, conn->user, 0, 0, &consumed);
+          conn->eventProc((HNETCONN)conn, &conn->addr, NETNOTE_CANTCONNECT, conn->user, 0, 0, &consumed);
         }
 
         conn = next;
@@ -348,7 +348,7 @@ void OsNetPump(DWORD timeout) {
       ConnFillAddr(conn);
 
       if (conn->eventProc) {
-        conn->eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_CONNECT, conn->user, 0, 0, &consumed);
+        conn->eventProc((HNETCONN)conn, &conn->addr, NETNOTE_CONNECT, conn->user, 0, 0, &consumed);
       }
     }
 
@@ -358,15 +358,13 @@ void OsNetPump(DWORD timeout) {
 
       if (received > 0) {
         if (conn->eventProc) {
-          conn->eventProc(
-              (HNETCONN__ *)conn, &conn->addr, NETNOTE_DATA, conn->user, buffer, (DWORD)received, &consumed
-          );
+          conn->eventProc((HNETCONN)conn, &conn->addr, NETNOTE_DATA, conn->user, buffer, (DWORD)received, &consumed);
         }
       } else if (!received || errno != EWOULDBLOCK) {
         ConnClose(conn);
 
         if (conn->eventProc) {
-          conn->eventProc((HNETCONN__ *)conn, &conn->addr, NETNOTE_DISCONNECT, conn->user, 0, 0, &consumed);
+          conn->eventProc((HNETCONN)conn, &conn->addr, NETNOTE_DISCONNECT, conn->user, 0, 0, &consumed);
         }
       }
     }

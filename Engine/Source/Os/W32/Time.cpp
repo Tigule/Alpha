@@ -42,7 +42,7 @@ class OsTimeManager {
   LONGLONG cpuTicksPerSecond_ti;
 
  private:
-  static UINT __stdcall TimeKeeper(LPVOID);
+  static UINT WINAPI    TimeKeeper(LPVOID);
   void                  Calibrate();
 
   void Snapshot(TimeSnapshot *time);
@@ -166,11 +166,19 @@ void OsGetTimeStamp(char *timeStamp, DWORD len) {
 }
 
 void OsGetTimeStr(char *timebuf, DWORD len, LPCSTR format, long timer) {
+#ifdef _WIN64
+  strftime(timebuf, len, format, _localtime32(&timer));
+#else
   strftime(timebuf, len, format, localtime(&timer));
+#endif
 }
 
 long OsGetTime(long *timer) {
+#ifdef _WIN64
+  return _time32(timer);
+#else
   return time(timer);
+#endif
 }
 
 void OsFileTimeGetCurrent(OSFILETIME *filetime) {
@@ -339,12 +347,16 @@ void OsTimeManager::Snapshot(TimeSnapshot *time) {
   }
 }
 
-UINT __stdcall OsTimeManager::TimeKeeper(LPVOID) {
+UINT WINAPI OsTimeManager::TimeKeeper(LPVOID) {
   s_OsTimeMgr->Calibrate();
 
   OsTimeManager *timeMgr;
   do {
+#ifdef _WIN64
+    timeMgr = (OsTimeManager *)SInterlockedExchangePointer((LPVOID *)&s_OsTimeMgr, 0);
+#else
     timeMgr = (OsTimeManager *)SInterlockedExchange((long *)&s_OsTimeMgr, 0);
+#endif
   } while (!timeMgr);
 
   delete timeMgr;
@@ -408,10 +420,18 @@ void OsTimeStartup() {
 }
 
 void OsTimeShutdown() {
+#ifdef _WIN64
+  OsTimeManager *timeMgr = (OsTimeManager *)SInterlockedExchangePointer((LPVOID *)&s_OsTimeMgr, 0);
+#else
   OsTimeManager *timeMgr = (OsTimeManager *)SInterlockedExchange((long *)&s_OsTimeMgr, 0);
+#endif
 
   if (timeMgr) {
     timeMgr->Shutdown();
+#ifdef _WIN64
+    SInterlockedExchangePointer((LPVOID *)&s_OsTimeMgr, timeMgr);
+#else
     SInterlockedExchange((long *)&s_OsTimeMgr, (long)timeMgr);
+#endif
   }
 }

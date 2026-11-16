@@ -1425,18 +1425,18 @@ void ExecuteQueuedActions(CModel *model) {
 
     switch (item->action) {
       case MODEL_ADD_LINK: {
-        HMODEL child = *(HMODEL *)(item->paramData + 4);
-        ModelAddLink(modelHandle, *(UINT *)item->paramData, child, *(float *)(item->paramData + 8));
+        HMODEL child = *(HMODEL *)(item->paramData + sizeof(UINT));
+        ModelAddLink(modelHandle, *(UINT *)item->paramData, child, *(float *)(item->paramData + sizeof(UINT) + sizeof(HOBJECT)));
         HandleClose(child);
         break;
       }
 
       case MODEL_APPLY_OBJECT_FACE_DIR:
-        ModelApplyObjectFaceDir(modelHandle, *(UINT *)item->paramData, *(NTempest::C3Vector *)(item->paramData + 4));
+        ModelApplyObjectFaceDir(modelHandle, *(UINT *)item->paramData, *(NTempest::C3Vector *)(item->paramData + sizeof(UINT)));
         break;
 
       case MODEL_APPLY_OBJECT_LOOK_AT:
-        ModelApplyObjectLookAt(modelHandle, *(UINT *)item->paramData, *(NTempest::C3Vector *)(item->paramData + 4));
+        ModelApplyObjectLookAt(modelHandle, *(UINT *)item->paramData, *(NTempest::C3Vector *)(item->paramData + sizeof(UINT)));
         break;
 
       case MODEL_CLEAR_ALL_LINKS:
@@ -1466,11 +1466,11 @@ void ExecuteQueuedActions(CModel *model) {
       }
 
       case MODEL_FORCE_CURRENT_SEQUENCE_TIME:
-        ModelForceCurrentSequenceTime(modelHandle, *(int *)item->paramData, item->paramData[4]);
+        ModelForceCurrentSequenceTime(modelHandle, *(int *)item->paramData, item->paramData[sizeof(UINT)]);
         break;
 
       case MODEL_FORCE_SEQUENCE_TIME:
-        ModelForceSequenceTime(modelHandle, *(UINT *)item->paramData, *(int *)(item->paramData + 4), item->paramData[8]);
+        ModelForceSequenceTime(modelHandle, *(UINT *)item->paramData, *(int *)(item->paramData + sizeof(UINT)), item->paramData[2 * sizeof(UINT)]);
         break;
 
       case MODEL_HIDE_BOUNDS:
@@ -1478,15 +1478,15 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_HIDE_GEOSETS:
-        ModelHideGeosets(modelHandle, *(UINT *)item->paramData, item->paramData[4]);
+        ModelHideGeosets(modelHandle, *(UINT *)item->paramData, item->paramData[sizeof(UINT)]);
         break;
 
       case MODEL_HIDE_GEOSETS_RANGE:
-        ModelHideGeosetsRange(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), item->paramData[8]);
+        ModelHideGeosetsRange(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)), item->paramData[2 * sizeof(UINT)]);
         break;
 
       case MODEL_LOCK_OBJECT_SEQUENCE:
-        ModelLockObjectSequence(modelHandle, *(UINT *)item->paramData, item->paramData[4]);
+        ModelLockObjectSequence(modelHandle, *(UINT *)item->paramData, item->paramData[sizeof(UINT)]);
         break;
 
       case MODEL_MARK_FOOTSTEP_SEQUENCE:
@@ -1494,7 +1494,7 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_MATCH_SEQUENCE:
-        ModelMatchSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8));
+        ModelMatchSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)), *(UINT *)(item->paramData + 2 * sizeof(UINT)));
         break;
 
       case MODEL_OPTIMIZE_VISIBLE_GEOSETS:
@@ -1502,7 +1502,7 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_REMOVE_LINK: {
-        HMODEL child = *(HMODEL *)(item->paramData + 4);
+        HMODEL child = *(HMODEL *)(item->paramData + sizeof(UINT));
         ModelRemoveLink(modelHandle, *(UINT *)item->paramData, child);
         HandleClose(child);
         break;
@@ -1517,78 +1517,78 @@ void ExecuteQueuedActions(CModel *model) {
         break;
 
       case MODEL_REPLACE_TEXTURE: {
-        HTEXTURE texture = *(HTEXTURE *)(item->paramData + 4);
-        ModelReplaceTexture(modelHandle, *(UINT *)item->paramData, texture, item->paramData[8]);
+        HTEXTURE texture = *(HTEXTURE *)(item->paramData + sizeof(UINT));
+        ModelReplaceTexture(modelHandle, *(UINT *)item->paramData, texture, item->paramData[sizeof(UINT) + sizeof(HOBJECT)]);
         HandleClose(texture);
         break;
       }
 
       case MODEL_SET_EMISSIVE_COLOR:
-        ModelSetEmissiveColor(modelHandle, *(NTempest::CImVector *)item->paramData, item->paramData[4]);
+        ModelSetEmissiveColor(modelHandle, *(NTempest::CImVector *)item->paramData, item->paramData[sizeof(DWORD)]);
         break;
 
       case MODEL_SET_EVENT_CALLBACK:
         ModelSetEventCallback(
-            modelHandle, *(void ( **)(LPCSTR, const NTempest::C3Vector &, LPVOID))item->paramData, *(LPVOID *)(item->paramData + 4),
-            item->paramData[8]
+            modelHandle, *(void ( **)(LPCSTR, const NTempest::C3Vector &, LPVOID))item->paramData, *(LPVOID *)(item->paramData + sizeof(LPVOID)),
+            item->paramData[2 * sizeof(LPVOID)]
         );
         break;
 
       case MODEL_SET_LIGHT_SELECT_CALLBACK:
         ModelSetLightSelectCallback(
             modelHandle, *(void ( **)(LPVOID, NTempest::C3Vector, const NTempest::C3Vector &, UINT))item->paramData,
-            *(LPVOID *)(item->paramData + 4), item->paramData[8]
+            *(LPVOID *)(item->paramData + sizeof(LPVOID)), item->paramData[2 * sizeof(LPVOID)]
         );
         break;
 
       case MODEL_SET_OBJECT_TIME_SCALE:
-        ModelSetObjectTimeScale(modelHandle, *(UINT *)item->paramData, *(float *)(item->paramData + 4), item->paramData[8]);
+        ModelSetObjectTimeScale(modelHandle, *(UINT *)item->paramData, *(float *)(item->paramData + sizeof(UINT)), item->paramData[sizeof(UINT) + sizeof(float)]);
         break;
 
       case MODEL_SET_RANDOM_SEQUENCE_FIDGET1:
-        ModelSetRandomSequenceFidget(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4));
+        ModelSetRandomSequenceFidget(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)));
         break;
 
       case MODEL_SET_RANDOM_SEQUENCE_FIDGET2:
         ModelSetRandomSequenceFidget(
-            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8)
+            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)), *(UINT *)(item->paramData + 2 * sizeof(UINT))
         );
         break;
 
       case MODEL_SET_SEQ_FINISHED_HANDLER1:
-        ModelSetSeqFinishedHandler(modelHandle, *(ANIMSEQFINISHEDHANDLER *)item->paramData, *(LPVOID *)(item->paramData + 4));
+        ModelSetSeqFinishedHandler(modelHandle, *(ANIMSEQFINISHEDHANDLER *)item->paramData, *(LPVOID *)(item->paramData + sizeof(LPVOID)));
         break;
 
       case MODEL_SET_SEQ_FINISHED_HANDLER2:
         ModelSetSeqFinishedHandler(
-            modelHandle, *(UINT *)item->paramData, *(ANIMSEQFINISHEDHANDLER *)(item->paramData + 4),
-            *(LPVOID *)(item->paramData + 8)
+            modelHandle, *(UINT *)item->paramData, *(ANIMSEQFINISHEDHANDLER *)(item->paramData + sizeof(UINT)),
+            *(LPVOID *)(item->paramData + sizeof(UINT) + sizeof(LPVOID))
         );
         break;
 
       case MODEL_SET_SEQUENCE1:
-        ModelSetSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4));
+        ModelSetSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)));
         break;
 
       case MODEL_SET_SEQUENCE2:
-        ModelSetSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8));
+        ModelSetSequence(modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)), *(UINT *)(item->paramData + 2 * sizeof(UINT)));
         break;
 
       case MODEL_SET_SEQUENCE_FIDGET1:
         ModelSetSequenceFidget(
-            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8)
+            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)), *(UINT *)(item->paramData + 2 * sizeof(UINT))
         );
         break;
 
       case MODEL_SET_SEQUENCE_FIDGET2:
         ModelSetSequenceFidget(
-            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + 4), *(UINT *)(item->paramData + 8),
-            *(UINT *)(item->paramData + 12)
+            modelHandle, *(UINT *)item->paramData, *(UINT *)(item->paramData + sizeof(UINT)), *(UINT *)(item->paramData + 2 * sizeof(UINT)),
+            *(UINT *)(item->paramData + 3 * sizeof(UINT))
         );
         break;
 
       case MODEL_SET_TIME_SCALE:
-        ModelSetTimeScale(modelHandle, *(float *)item->paramData, item->paramData[4]);
+        ModelSetTimeScale(modelHandle, *(float *)item->paramData, item->paramData[sizeof(float)]);
         break;
 
       case MODEL_SET_VERTEX_ALPHA:
@@ -1639,7 +1639,7 @@ void CModel::RemoveModelCommandsFromQueue() {
       switch (type) {
         case MPARAM_HANDLE:
           HandleClose(*(HOBJECT *)paramData);
-          paramData += 4;
+          paramData += sizeof(HOBJECT);
           break;
         case MPARAM_C3VECTOR:
           paramData += sizeof(NTempest::C3Vector);
@@ -1651,9 +1651,16 @@ void CModel::RemoveModelCommandsFromQueue() {
         case MPARAM_UINT:
         case MPARAM_FLOAT:
         case MPARAM_CARGB:
+#ifndef _WIN64
         case MPARAM_PTR:
-          paramData += 4;
+#endif
+          paramData += sizeof(UINT);
           break;
+#ifdef _WIN64
+        case MPARAM_PTR:
+          paramData += sizeof(LPVOID);
+          break;
+#endif
       }
     }
   }
