@@ -1,0 +1,171 @@
+name: Validate Bytecode
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/validate.yml'
+      - '**.c'
+      - '**.cpp'
+      - '**.h'
+      - 'CMakeLists.txt'
+      - '**/CMakeLists.txt'
+      - 'Build/**'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validation:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Download Visual C++ 6.0
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/VC6SP5.zip" -OutFile "VC6SP5.zip"
+
+      - name: Extract Visual C++ 6.0
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: VC6SP5.zip
+          extract_dir: VC6
+
+      - name: Download DirectX SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/DXSDK90.zip" -OutFile "DXSDK90.zip"
+
+      - name: Extract DirectX SDK
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: DXSDK90.zip
+          extract_dir: DXSDK
+
+      - name: Download Platform SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/PSDK2001.zip" -OutFile "PSDK2001.zip"
+
+      - name: Extract Platform SDK
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: PSDK2001.zip
+          extract_dir: PSDK
+
+      - name: Download game client resources
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/Resources.zip" -OutFile "Resources.zip"
+          Expand-Archive -Path "Resources.zip" -DestinationPath "." -Force
+
+      - name: Replace VCVARS32 absolute paths
+        uses: richardrigutins/replace-in-files@v3
+        with:
+          files: 'VC6/VC98/Bin/VCVARS32.BAT'
+          search-text: 'set VSCommonDir=C:\PROGRA~1\MICROS~2\Common'
+          replacement-text: 'set VSCommonDir=${{ github.workspace }}\VC6\Common'
+
+      - name: Replace VCVARS32 absolute paths
+        uses: richardrigutins/replace-in-files@v3
+        with:
+          files: 'VC6/VC98/Bin/VCVARS32.BAT'
+          search-text: 'set MSDevDir=C:\PROGRA~1\MICROS~2\Common\msdev98'
+          replacement-text: 'set MSDevDir=${{ github.workspace }}\VC6\Common\MSDev98'
+
+      - name: Replace VCVARS32 absolute paths
+        uses: richardrigutins/replace-in-files@v3
+        with:
+          files: 'VC6/VC98/Bin/VCVARS32.BAT'
+          search-text: 'set MSVCDir=C:\PROGRA~1\MICROS~2\VC98'
+          replacement-text: 'set MSVCDir=${{ github.workspace }}\VC6\VC98'
+
+      - name: Build solution
+        shell: cmd
+        env:
+          DXSDK_DIR: ${{ github.workspace }}\DXSDK
+          PSDK_DIR: ${{ github.workspace }}\PSDK
+        run: |
+          call "VC6\VC98\Bin\VCVARS32.BAT"
+          cd Build
+          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -DBUILD_FIXES=OFF -G "NMake Makefiles" ..
+          nmake
+
+      - name: Download validation references
+        shell: pwsh
+        run: |
+          $base = "https://tigule.org/archive/wow/3368-0.5.3/Win32"
+          New-Item -ItemType Directory -Force -Path "WoW/Client/MapFiles" | Out-Null
+          Invoke-WebRequest "$base/WoWClient.exe" -OutFile "WoW/Client/WoWClient.exe"
+          Invoke-WebRequest "$base/Wowae.pdb" -OutFile "WoW/Client/Wowae.pdb"
+          Invoke-WebRequest "$base/MapFiles/Wowae.map" -OutFile "WoW/Client/MapFiles/Wowae.map"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install validation dependencies
+        shell: pwsh
+        run: |
+          python -m venv Build/Validate/.venv
+          Build/Validate/.venv/Scripts/python.exe -m pip install -r Build/Validate/requirements.txt
+
+      - name: Validate bytecode and export explorer
+        shell: pwsh
+        run: |
+          Build/Validate/.venv/Scripts/python.exe Build/validate_bytecode.py --json Build/bytecode-validation.json --text Build/bytecode-validation.txt --web Build/bytecode-explorer
+
+      - name: Upload validation reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: validation
+          path: |
+            Build/WoW/bin/UpdateClientAE.exe
+            Build/WoW/bin/Wowae.exe
+            Build/WoW/bin/Wowae.pdb
+            Build/WoW/bin/Wowae.map
+            Build/WoW/bin/WowErrorAE.exe
+            Build/WoW/bin/WowUpdateHelperAE.exe
+            Build/bytecode-validation.json
+            Build/bytecode-validation.txt
+          if-no-files-found: error
+
+      - name: Upload GitHub Pages artifact
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: Build/bytecode-explorer
+
+  deploy-pages:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    needs: validation
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

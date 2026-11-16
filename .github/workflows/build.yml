@@ -96,7 +96,7 @@ jobs:
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
           cd Build
-          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -DBUILD_FIXES=OFF -G "NMake Makefiles" ..
+          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G "NMake Makefiles" ..
           nmake
 
       - name: Upload executables
@@ -110,46 +110,7 @@ jobs:
             Build/WoW/bin/Wowae.map
             Build/WoW/bin/WowErrorAE.exe
             Build/WoW/bin/WowUpdateHelperAE.exe
-
-      - name: Download validation references
-        shell: pwsh
-        run: |
-          $base = "https://tigule.org/archive/wow/3368-0.5.3/Win32"
-          New-Item -ItemType Directory -Force -Path "WoW/Client/MapFiles" | Out-Null
-          Invoke-WebRequest "$base/WoWClient.exe" -OutFile "WoW/Client/WoWClient.exe"
-          Invoke-WebRequest "$base/Wowae.pdb" -OutFile "WoW/Client/Wowae.pdb"
-          Invoke-WebRequest "$base/MapFiles/Wowae.map" -OutFile "WoW/Client/MapFiles/Wowae.map"
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-
-      - name: Install validation dependencies
-        shell: pwsh
-        run: |
-          python -m venv Build/Validate/.venv
-          Build/Validate/.venv/Scripts/python.exe -m pip install -r Build/Validate/requirements.txt
-
-      - name: Validate bytecode and export explorer
-        shell: pwsh
-        run: |
-          Build/Validate/.venv/Scripts/python.exe Build/validate_bytecode.py --json Build/bytecode-validation.json --text Build/bytecode-validation.txt --web Build/bytecode-explorer
-
-      - name: Upload validation reports
-        uses: actions/upload-artifact@v7
-        with:
-          name: validation
-          path: |
-            Build/bytecode-validation.json
-            Build/bytecode-validation.txt
           if-no-files-found: error
-
-      - name: Upload GitHub Pages artifact
-        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: Build/bytecode-explorer
 
   windows-modern:
     runs-on: windows-2025
@@ -204,26 +165,3 @@ jobs:
             Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowErrorAE.exe
             Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowUpdateHelperAE.exe
           if-no-files-found: error
-
-  deploy-pages:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
-    needs: windows-legacy
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: github-pages
-      cancel-in-progress: true
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
