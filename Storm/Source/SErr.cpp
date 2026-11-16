@@ -471,10 +471,17 @@ static LONG WINAPI ExceptionFilterWin32(EXCEPTION_POINTERS *exceptionpointers) {
   char message[0x100];
   char exceptionname[0x28];
   GetExceptionNameWin32(record->ExceptionCode, exceptionname, sizeof(exceptionname));
+#ifdef CONTEXT_SEGMENTS
   SStrPrintf(
       buffer, sizeof(buffer), "0x%08X (%s) at %04X:%08X", record->ExceptionCode, exceptionname, exceptionpointers->ContextRecord->SegCs,
       record->ExceptionAddress
   );
+#else
+  SStrPrintf(
+    buffer, sizeof(buffer), "0x%08X (%s) at %p", record->ExceptionCode, exceptionname,
+    record->ExceptionAddress
+  );
+#endif
   message[0] = 0;
 
   if (record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION && record->NumberParameters == 2) {
@@ -1032,7 +1039,11 @@ static void LogThreads(HANDLE *threads, LPDWORD threadids, int numthreads, LPCST
 
           CONTEXT context;
           ZeroMemory(&context, sizeof(context));
+#ifdef CONTEXT_SEGMENTS
           context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS;
+#else
+          context.ContextFlags = CONTEXT_CONTROL | CONTEXT_INTEGER;
+#endif
           if (GetThreadContext(threads[i], &context))
             LogContext(logfile, 0, &context);
         }
