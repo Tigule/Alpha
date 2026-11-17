@@ -234,13 +234,13 @@ jobs:
 
       - name: Package bundle
         run: |
-          ditto -c -k --keepParent "Build/mac-arm64/WoW/bin/World of Warcraft.app" "World of Warcraft.zip"
+          ditto -c -k --keepParent "Build/mac-arm64/WoW/bin/World of Warcraft.app" macos-arm64.zip
 
       - name: Upload bundle
         uses: actions/upload-artifact@v7
         with:
-          name: macos-arm64
-          path: World of Warcraft.zip
+          path: macos-arm64.zip
+          archive: false
           if-no-files-found: error
 
   linux-x64:
@@ -265,11 +265,11 @@ jobs:
 
       - name: Package executable
         run: |
-          tar -czf Wow64.tar.gz -C Build/linux-x64/WoW/bin Wow64
+          tar -czf linux-x64.tar.gz -C Build/linux-x64/WoW/bin Wow64
 
       - name: Upload executable
         uses: actions/upload-artifact@v7
         with:
-          name: linux-x64
-          path: Wow64.tar.gz
+          path: linux-x64.tar.gz
+          archive: false
           if-no-files-found: error
