@@ -101,6 +101,10 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" ..
           nmake
 
+      - name: Copy FMOD library
+        shell: cmd
+        run: copy Engine\Source\FMOD\api\fmod.dll Build\WoW\bin\
+
       - name: Upload executables
         uses: actions/upload-artifact@v7
         with:
@@ -110,6 +114,7 @@ jobs:
             Build/WoW/bin/Wow.exe
             Build/WoW/bin/WowError.exe
             Build/WoW/bin/WowUpdateHelper.exe
+            Build/WoW/bin/fmod.dll
           if-no-files-found: error
 
   windows-x86-vs2026:
@@ -155,6 +160,10 @@ jobs:
           cmake -G "Visual Studio 18 2026" -A Win32 -S . -B Build/vs2026
           cmake --build Build/vs2026 --config Release --parallel
 
+      - name: Copy FMOD library
+        shell: cmd
+        run: copy Engine\Source\FMOD\api\fmod.dll Build\vs2026\WoW\bin\Release\
+
       - name: Upload executables
         uses: actions/upload-artifact@v7
         with:
@@ -164,6 +173,7 @@ jobs:
             Build/vs2026/WoW/bin/Release/Wow.exe
             Build/vs2026/WoW/bin/Release/WowError.exe
             Build/vs2026/WoW/bin/Release/WowUpdateHelper.exe
+            Build/vs2026/WoW/bin/Release/fmod.dll
           if-no-files-found: error
 
   windows-x64-vs2026:
@@ -209,6 +219,10 @@ jobs:
           cmake -G "Visual Studio 18 2026" -A x64 -S . -B Build/vs2026-x64
           cmake --build Build/vs2026-x64 --config Release --parallel
 
+      - name: Copy FMOD library
+        shell: cmd
+        run: copy Engine\Source\FMOD\api\fmod64.dll Build\vs2026-x64\WoW\bin\Release\
+
       - name: Upload executables
         uses: actions/upload-artifact@v7
         with:
@@ -218,6 +232,7 @@ jobs:
             Build/vs2026-x64/WoW/bin/Release/Wow64.exe
             Build/vs2026-x64/WoW/bin/Release/WowError.exe
             Build/vs2026-x64/WoW/bin/Release/WowUpdateHelper.exe
+            Build/vs2026-x64/WoW/bin/Release/fmod64.dll
           if-no-files-found: error
 
   macos-arm64:
