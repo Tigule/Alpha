@@ -114,6 +114,14 @@ char *OsClipboardGetString() {
       }
       XFree(data);
     }
+  } else if (SDL_HasClipboardText()) {
+    char *text = SDL_GetClipboardText();
+    if (text) {
+      UINT length = SStrLen(text);
+      result = (char *)SMemAlloc(length + 1, __FILE__, __LINE__, 0);
+      memcpy(result, text, length + 1);
+      SDL_free(text);
+    }
   }
 
   if (!result) {
@@ -156,6 +164,8 @@ BOOL OsClipboardPutString(LPCSTR string) {
     if (XGetSelectionOwner(display, XA_PRIMARY) != window) {
       XSetSelectionOwner(display, XA_PRIMARY, window, CurrentTime);
     }
+  } else {
+    SDL_SetClipboardText(string);
   }
 
   return 1;

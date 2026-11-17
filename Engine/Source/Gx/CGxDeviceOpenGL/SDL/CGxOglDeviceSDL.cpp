@@ -256,7 +256,7 @@ DWORD_PTR CGxDeviceOpenGl::DeviceWindow() {
   SDL_SysWMinfo info;
 
   SDL_VERSION(&info.version);
-  if (m_hwnd && SDL_GetWindowWMInfo((SDL_Window *)m_hwnd, &info)) {
+  if (m_hwnd && SDL_GetWindowWMInfo((SDL_Window *)m_hwnd, &info) && info.subsystem == SDL_SYSWM_X11) {
     return (DWORD_PTR)info.info.x11.window;
   }
 
@@ -304,7 +304,7 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
   XWindowAttributes attributes;
 
   SDL_VERSION(&info.version);
-  if (m_hwnd && SDL_GetWindowWMInfo((SDL_Window *)m_hwnd, &info)) {
+  if (m_hwnd && SDL_GetWindowWMInfo((SDL_Window *)m_hwnd, &info) && info.subsystem == SDL_SYSWM_X11) {
     XGetWindowAttributes(info.info.x11.display, info.info.x11.window, &attributes);
     top += attributes.y;
     bottom += attributes.y;
