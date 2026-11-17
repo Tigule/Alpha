@@ -430,6 +430,11 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
       IPrimSetupTexCoord(tmu, vtxSize, buf->vertexPtr[GxVM_Texture0 + tmu]);
     }
   }
+#if BUILD_FIXES
+  else {
+    IStateSetColorSource(desc->m_ptrs[GxVM_Color] ? Cs_Array : Cs_Material);
+  }
+#endif
 }
 
 void CGxDeviceOpenGl::BufRender(const CGxBatch *batches, UINT count) {

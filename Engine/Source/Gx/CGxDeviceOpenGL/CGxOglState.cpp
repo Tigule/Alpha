@@ -618,7 +618,11 @@ void CGxDeviceOpenGl::IRsSendToHw(EGxRenderState which) {
       }
       break;
     case GxRs_MatDiffuse:
+#if !BUILD_FIXES
+      // known misbehavior: the draw already chose the colour source and this overrides it during deferred state sync
+      //   in practice this means text shadows can render white
       IStateSetColorSource(Cs_Material);
+#endif
       IStateSetColorSourceColor(Cs_Material, state.mValue.GetAsCArgb());
       break;
     case GxRs_MatEmissive:

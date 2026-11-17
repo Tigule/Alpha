@@ -394,7 +394,11 @@ void OsCallDump(LPCSTR fileName) {
 
   FILE *file = fopen(fileName, "wb");
   if (!file) {
+#if !BUILD_FIXES
     // known misbehavior: returns without leaving s_critsect
+#else
+    s_critsect.Leave();
+#endif
     return;
   }
 
