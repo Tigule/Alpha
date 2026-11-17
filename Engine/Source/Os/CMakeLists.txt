@@ -8,12 +8,8 @@ if(APPLE)
     add_library(Os STATIC
         Mac/Debugging.cpp
         Mac/Errors.cpp
-        Mac/GlobalAUGraph.cpp
         Mac/Input.cpp
         Mac/InputMac.mm
-        Mac/LoaderThread.cpp
-        Mac/MIDIPlayer.cpp
-        Mac/MP3Player.cpp
         Mac/OsCall.cpp
         Mac/OsClipboard.cpp
         Mac/OsFile.cpp
@@ -22,14 +18,13 @@ if(APPLE)
         Mac/OsJoystick.cpp
         Mac/OsMemory.cpp
         Mac/OsNet.cpp
-        Mac/OsSound.cpp
         Mac/OSSystem.cpp
         Mac/Path.cpp
-        Mac/Recycler.cpp
-        Mac/StreamingCache.cpp
         Mac/Time.cpp
         Mac/Tls.cpp
-        Mac/WAVPlayer.cpp
+        W32/OsISoundCache.cpp
+        W32/OsSound.cpp
+        ${OS_MIDI_SOURCES}
     )
 elseif(UNIX)
     add_library(Os STATIC
@@ -84,7 +79,7 @@ target_include_directories(Os PRIVATE
 )
 
 if(APPLE)
-    target_link_libraries(Os PUBLIC "-framework AudioToolbox" "-framework AudioUnit" "-framework CoreAudio" "-framework CoreFoundation")
+    target_link_libraries(Os PUBLIC fmod "-framework AudioToolbox" "-framework CoreAudio" "-framework CoreFoundation")
 elseif(UNIX)
     target_link_libraries(Os PUBLIC fmod PkgConfig::SDL2 X11)
 elseif(NOT HAVE_WIN8_SDK)

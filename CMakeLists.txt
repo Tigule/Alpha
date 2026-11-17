@@ -53,7 +53,7 @@ if(NOT "cxx_std_11" IN_LIST CMAKE_CXX_COMPILE_FEATURES)
     if(BUILD_PORTABLE_AUDIO)
         message(FATAL_ERROR "BUILD_PORTABLE_AUDIO=ON requires a C++11 compiler")
     endif()
-elseif(NOT APPLE)
+else()
     option(BUILD_PORTABLE_AUDIO "Build with a portable audio backend in place of FMOD" ON)
 endif()
 
