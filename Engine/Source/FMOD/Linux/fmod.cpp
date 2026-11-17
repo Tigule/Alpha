@@ -1,5 +1,7 @@
 #include <AL/al.h>
 #include <AL/alc.h>
+#include <AL/alext.h>
+#include <math.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -85,14 +87,25 @@ enum {
   MAX_DRIVERS = 32
 };
 
+#ifndef ALC_OUTPUT_MODE_SOFT
+#define ALC_OUTPUT_MODE_SOFT 0x19AC
+#define ALC_STEREO_BASIC_SOFT 0x19AE
+#endif
+
 struct Channel {
-  ALuint         source;
+  ALuint         sources[2];
   ALuint         buffers[NUM_BUFFERS];
   FSOUND_STREAM *stream;
+  int            numSources;
   int            ref;
   int            volume;
+  int            frequency;
   bool           paused;
   bool           muted;
+  float          position[3];
+  float          velocity[3];
+  float          minDistance;
+  float          maxDistance;
 };
 
 static void *DefaultAlloc(unsigned int size) {
@@ -186,8 +199,67 @@ static Channel *GetChannel(int handle) {
   return &s_channels[index];
 }
 
-static void ApplyGain(Channel *channel) {
-  alSourcef(channel->source, AL_GAIN, channel->muted ? 0.0f : channel->volume / 255.0f);
+static void UpdateChannel(Channel *channel) {
+  FSOUND_STREAM *stream = channel->stream;
+  float          gain = channel->muted ? 0.0f : channel->volume / 255.0f;
+  float          pitch = (float)channel->frequency / stream->rate;
+
+  if (channel->numSources == 1) {
+    alSourcef(channel->sources[0], AL_GAIN, gain);
+    alSourcef(channel->sources[0], AL_PITCH, pitch);
+    return;
+  }
+
+  float left = 0.70710678f;
+  float right = 0.70710678f;
+
+  if (!(stream->mode & FSOUND_2D)) {
+    float rel[3] = {
+        channel->position[0] - s_listenerPos[0], channel->position[1] - s_listenerPos[1], channel->position[2] - s_listenerPos[2]
+    };
+    float side[3] = {
+        s_listenerTop[1] * s_listenerForward[2] - s_listenerTop[2] * s_listenerForward[1],
+        s_listenerTop[2] * s_listenerForward[0] - s_listenerTop[0] * s_listenerForward[2],
+        s_listenerTop[0] * s_listenerForward[1] - s_listenerTop[1] * s_listenerForward[0]
+    };
+    float x = rel[0] * side[0] + rel[1] * side[1] + rel[2] * side[2];
+    float z = rel[0] * s_listenerForward[0] + rel[1] * s_listenerForward[1] + rel[2] * s_listenerForward[2];
+    float horizontal = sqrtf(x * x + z * z);
+    float distance = sqrtf(rel[0] * rel[0] + rel[1] * rel[1] + rel[2] * rel[2]);
+    float clamped = distance < channel->minDistance ? channel->minDistance : distance > channel->maxDistance ? channel->maxDistance : distance;
+    float pan = 0.0f;
+
+    if (horizontal > 0.0f) {
+      pan = x / (horizontal + fabsf(z));
+      if (horizontal < 2.5f) {
+        pan *= horizontal / 2.5f;
+      }
+    }
+
+    gain = powf(gain, 1.660964f) * 0.42f;
+    if (clamped > channel->minDistance) {
+      gain *= channel->minDistance / (channel->minDistance + s_rolloffFactor * (clamped - channel->minDistance));
+    }
+    left = sqrtf(1.0f - pan);
+    right = sqrtf(1.0f + pan);
+
+    if (distance > 0.0f && s_dopplerFactor > 0.0f) {
+      float speed = 343.3f * s_distanceFactor;
+      float limit = speed / s_dopplerFactor;
+      float listenerSpeed = -(rel[0] * s_listenerVel[0] + rel[1] * s_listenerVel[1] + rel[2] * s_listenerVel[2]) / distance;
+      float sourceSpeed = -(rel[0] * channel->velocity[0] + rel[1] * channel->velocity[1] + rel[2] * channel->velocity[2]) / distance;
+      listenerSpeed = listenerSpeed < limit ? listenerSpeed : limit;
+      sourceSpeed = sourceSpeed < limit ? sourceSpeed : limit;
+      if (speed - s_dopplerFactor * sourceSpeed > 0.0f) {
+        pitch *= (speed - s_dopplerFactor * listenerSpeed) / (speed - s_dopplerFactor * sourceSpeed);
+      }
+    }
+  }
+
+  alSourcef(channel->sources[0], AL_GAIN, gain * left);
+  alSourcef(channel->sources[1], AL_GAIN, gain * right);
+  alSourcef(channel->sources[0], AL_PITCH, pitch);
+  alSourcef(channel->sources[1], AL_PITCH, pitch);
 }
 
 static bool FillBuffer(FSOUND_STREAM *stream, ALuint buffer) {
@@ -233,17 +305,21 @@ static bool FillBuffer(FSOUND_STREAM *stream, ALuint buffer) {
 
 static void QueueBuffers(Channel *channel) {
   for (int i = 0; i < NUM_BUFFERS && FillBuffer(channel->stream, channel->buffers[i]); ++i) {
-    alSourceQueueBuffers(channel->source, 1, &channel->buffers[i]);
+    for (int j = 0; j < channel->numSources; ++j) {
+      alSourceQueueBuffers(channel->sources[j], 1, &channel->buffers[i]);
+    }
   }
 
   if (!channel->paused) {
-    alSourcePlay(channel->source);
+    alSourcePlayv(channel->numSources, channel->sources);
   }
 }
 
 static void ReleaseChannel(Channel *channel) {
-  alSourceRewind(channel->source);
-  alSourcei(channel->source, AL_BUFFER, 0);
+  alSourceRewindv(channel->numSources, channel->sources);
+  for (int i = 0; i < channel->numSources; ++i) {
+    alSourcei(channel->sources[i], AL_BUFFER, 0);
+  }
   channel->stream->channel = -1;
   channel->stream = 0;
   channel->ref = channel->ref % 0x7FFF + 1;
@@ -268,6 +344,7 @@ static void *StreamThread(void *) {
       Channel       *channel = &s_channels[i];
       FSOUND_STREAM *stream = channel->stream;
       ALint          processed = 0;
+      ALint          otherProcessed = 0;
       ALint          queued = 0;
       ALint          state = 0;
 
@@ -275,16 +352,26 @@ static void *StreamThread(void *) {
         continue;
       }
 
-      alGetSourcei(channel->source, AL_BUFFERS_PROCESSED, &processed);
+      alGetSourcei(channel->sources[0], AL_BUFFERS_PROCESSED, &processed);
+      if (channel->numSources == 2) {
+        alGetSourcei(channel->sources[1], AL_BUFFERS_PROCESSED, &otherProcessed);
+        if (otherProcessed < processed) {
+          processed = otherProcessed;
+        }
+      }
       while (processed-- > 0) {
         ALuint buffer;
-        alSourceUnqueueBuffers(channel->source, 1, &buffer);
+        for (int j = 0; j < channel->numSources; ++j) {
+          alSourceUnqueueBuffers(channel->sources[j], 1, &buffer);
+        }
         if (!stream->ended && FillBuffer(stream, buffer)) {
-          alSourceQueueBuffers(channel->source, 1, &buffer);
+          for (int j = 0; j < channel->numSources; ++j) {
+            alSourceQueueBuffers(channel->sources[j], 1, &buffer);
+          }
         }
       }
 
-      alGetSourcei(channel->source, AL_BUFFERS_QUEUED, &queued);
+      alGetSourcei(channel->sources[0], AL_BUFFERS_QUEUED, &queued);
       if (!queued) {
         ReleaseChannel(channel);
         if (stream->endCallback) {
@@ -293,9 +380,9 @@ static void *StreamThread(void *) {
         continue;
       }
 
-      alGetSourcei(channel->source, AL_SOURCE_STATE, &state);
+      alGetSourcei(channel->sources[0], AL_SOURCE_STATE, &state);
       if (state != AL_PLAYING && !channel->paused) {
-        alSourcePlay(channel->source);
+        alSourcePlayv(channel->numSources, channel->sources);
       }
     }
 
@@ -467,7 +554,11 @@ void FSOUND_3D_SetRolloffFactor(float factor) {
   s_rolloffFactor = factor;
   for (int i = 0; i < s_numChannels; ++i) {
     if (s_channels[i].stream && !(s_channels[i].stream->mode & FSOUND_2D)) {
-      alSourcef(s_channels[i].source, AL_ROLLOFF_FACTOR, s_rolloffFactor);
+      if (s_channels[i].numSources == 1) {
+        alSourcef(s_channels[i].sources[0], AL_ROLLOFF_FACTOR, s_rolloffFactor);
+      } else {
+        UpdateChannel(&s_channels[i]);
+      }
     }
   }
 
@@ -497,7 +588,7 @@ signed char FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags
   EnumerateDrivers();
   s_device = alcOpenDevice(s_driver < s_numDrivers ? s_driverNames[s_driver] : 0);
   if (s_device) {
-    ALCint attributes[] = {ALC_FREQUENCY, mixrate, 0};
+    ALCint attributes[] = {ALC_FREQUENCY, mixrate, ALC_HRTF_SOFT, ALC_FALSE, ALC_OUTPUT_MODE_SOFT, ALC_STEREO_BASIC_SOFT, 0};
     s_context = alcCreateContext(s_device, attributes);
   }
 
@@ -520,14 +611,14 @@ signed char FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags
     memset(channel, 0, sizeof(*channel));
     channel->ref = 1;
 
-    alGenSources(1, &channel->source);
+    alGenSources(2, channel->sources);
     if (alGetError() != AL_NO_ERROR) {
       break;
     }
 
     alGenBuffers(NUM_BUFFERS, channel->buffers);
     if (alGetError() != AL_NO_ERROR) {
-      alDeleteSources(1, &channel->source);
+      alDeleteSources(2, channel->sources);
       break;
     }
   }
@@ -571,7 +662,7 @@ void FSOUND_Close() {
     if (s_channels[i].stream) {
       ReleaseChannel(&s_channels[i]);
     }
-    alDeleteSources(1, &s_channels[i].source);
+    alDeleteSources(2, s_channels[i].sources);
     alDeleteBuffers(NUM_BUFFERS, s_channels[i].buffers);
   }
 
@@ -643,6 +734,8 @@ signed char FSOUND_3D_Listener_SetAttributes(
     float        topY,
     float        topZ
 ) {
+  pthread_mutex_lock(&s_lock);
+
   if (position) {
     memcpy(s_listenerPos, position, sizeof(s_listenerPos));
   }
@@ -661,6 +754,13 @@ signed char FSOUND_3D_Listener_SetAttributes(
     ApplyListener();
   }
 
+  for (int i = 0; i < s_numChannels; ++i) {
+    if (s_channels[i].stream && s_channels[i].numSources == 2 && !(s_channels[i].stream->mode & FSOUND_2D)) {
+      UpdateChannel(&s_channels[i]);
+    }
+  }
+
+  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
@@ -841,18 +941,32 @@ int FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed c
     target->volume = 255;
     target->paused = startpaused != 0;
     target->muted = false;
+    target->frequency = stream->rate;
+    target->numSources = stream->format == AL_FORMAT_MONO8 || stream->format == AL_FORMAT_MONO16 ? 2 : 1;
+    memset(target->position, 0, sizeof(target->position));
+    memset(target->velocity, 0, sizeof(target->velocity));
+    target->minDistance = stream->sample.minDistance;
+    target->maxDistance = stream->sample.maxDistance;
     handle = i | target->ref << 16;
     stream->channel = handle;
 
-    bool is3d = !(stream->mode & FSOUND_2D);
-    alSourcei(target->source, AL_SOURCE_RELATIVE, is3d ? AL_FALSE : AL_TRUE);
-    alSource3f(target->source, AL_POSITION, 0.0f, 0.0f, 0.0f);
-    alSource3f(target->source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
-    alSourcef(target->source, AL_REFERENCE_DISTANCE, stream->sample.minDistance);
-    alSourcef(target->source, AL_MAX_DISTANCE, stream->sample.maxDistance);
-    alSourcef(target->source, AL_ROLLOFF_FACTOR, is3d ? s_rolloffFactor : 0.0f);
-    alSourcef(target->source, AL_PITCH, 1.0f);
-    ApplyGain(target);
+    if (target->numSources == 2) {
+      for (int j = 0; j < 2; ++j) {
+        alSourcei(target->sources[j], AL_SOURCE_RELATIVE, AL_TRUE);
+        alSource3f(target->sources[j], AL_POSITION, j ? 1.0f : -1.0f, 0.0f, 0.0f);
+        alSource3f(target->sources[j], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+        alSourcef(target->sources[j], AL_ROLLOFF_FACTOR, 0.0f);
+      }
+    } else {
+      bool is3d = !(stream->mode & FSOUND_2D);
+      alSourcei(target->sources[0], AL_SOURCE_RELATIVE, is3d ? AL_FALSE : AL_TRUE);
+      alSource3f(target->sources[0], AL_POSITION, 0.0f, 0.0f, 0.0f);
+      alSource3f(target->sources[0], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
+      alSourcef(target->sources[0], AL_REFERENCE_DISTANCE, stream->sample.minDistance);
+      alSourcef(target->sources[0], AL_MAX_DISTANCE, stream->sample.maxDistance);
+      alSourcef(target->sources[0], AL_ROLLOFF_FACTOR, is3d ? s_rolloffFactor : 0.0f);
+    }
+    UpdateChannel(target);
     QueueBuffers(target);
     break;
   }
@@ -932,8 +1046,10 @@ signed char FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int milliseconds) {
 
   if (stream->channel != -1) {
     Channel *channel = &s_channels[stream->channel & 0xFFFF];
-    alSourceRewind(channel->source);
-    alSourcei(channel->source, AL_BUFFER, 0);
+    alSourceRewindv(channel->numSources, channel->sources);
+    for (int i = 0; i < channel->numSources; ++i) {
+      alSourcei(channel->sources[i], AL_BUFFER, 0);
+    }
     QueueBuffers(channel);
   }
 
@@ -951,24 +1067,13 @@ FSOUND_SAMPLE *FSOUND_Stream_GetSample(FSOUND_STREAM *stream) {
 }
 
 signed char FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDistance, float maxDistance) {
-  FSOUND_STREAM *stream = (FSOUND_STREAM *)sample;
-
   if (!sample || minDistance < 0.0f || maxDistance < 0.0f) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  pthread_mutex_lock(&s_lock);
-
   sample->minDistance = minDistance;
   sample->maxDistance = maxDistance;
-  if (stream->channel != -1) {
-    Channel *channel = &s_channels[stream->channel & 0xFFFF];
-    alSourcef(channel->source, AL_REFERENCE_DISTANCE, minDistance);
-    alSourcef(channel->source, AL_MAX_DISTANCE, maxDistance);
-  }
-
-  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
@@ -1008,11 +1113,11 @@ signed char FSOUND_SetPaused(int channel, signed char paused) {
   if (pause) {
     ALint state = 0;
     pause->paused = paused != 0;
-    alGetSourcei(pause->source, AL_SOURCE_STATE, &state);
+    alGetSourcei(pause->sources[0], AL_SOURCE_STATE, &state);
     if (pause->paused) {
-      alSourcePause(pause->source);
+      alSourcePausev(pause->numSources, pause->sources);
     } else if (state != AL_PLAYING) {
-      alSourcePlay(pause->source);
+      alSourcePlayv(pause->numSources, pause->sources);
     }
   }
 
@@ -1026,7 +1131,7 @@ signed char FSOUND_SetMute(int channel, signed char mute) {
   Channel *muted = GetChannel(channel);
   if (muted) {
     muted->muted = mute != 0;
-    ApplyGain(muted);
+    UpdateChannel(muted);
   }
 
   pthread_mutex_unlock(&s_lock);
@@ -1039,7 +1144,7 @@ signed char FSOUND_SetVolume(int channel, int volume) {
   Channel *target = GetChannel(channel);
   if (target) {
     target->volume = volume < 0 ? 0 : volume > 255 ? 255 : volume;
-    ApplyGain(target);
+    UpdateChannel(target);
   }
 
   pthread_mutex_unlock(&s_lock);
@@ -1051,7 +1156,8 @@ signed char FSOUND_SetFrequency(int channel, int frequency) {
 
   Channel *target = GetChannel(channel);
   if (target && frequency > 0) {
-    alSourcef(target->source, AL_PITCH, (float)frequency / target->stream->rate);
+    target->frequency = frequency;
+    UpdateChannel(target);
   }
 
   pthread_mutex_unlock(&s_lock);
@@ -1064,10 +1170,16 @@ signed char FSOUND_3D_SetAttributes(int channel, const float *position, const fl
   Channel *target = GetChannel(channel);
   if (target && !(target->stream->mode & FSOUND_2D)) {
     if (position) {
-      alSource3f(target->source, AL_POSITION, position[0], position[1], -position[2]);
+      memcpy(target->position, position, sizeof(target->position));
     }
     if (velocity) {
-      alSource3f(target->source, AL_VELOCITY, velocity[0], velocity[1], -velocity[2]);
+      memcpy(target->velocity, velocity, sizeof(target->velocity));
+    }
+    if (target->numSources == 1) {
+      alSource3f(target->sources[0], AL_POSITION, target->position[0], target->position[1], -target->position[2]);
+      alSource3f(target->sources[0], AL_VELOCITY, target->velocity[0], target->velocity[1], -target->velocity[2]);
+    } else {
+      UpdateChannel(target);
     }
   }
 
