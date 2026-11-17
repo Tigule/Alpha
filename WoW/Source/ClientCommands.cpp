@@ -497,7 +497,7 @@ static BOOL CCommand_AttackPlayer(LPCSTR command, LPCSTR arguments) {
 static BOOL CCommand_TargetAttack(LPCSTR command, LPCSTR arguments) {
   if (arguments && *arguments) {
     DWORDLONG victimGUID;
-    sscanf(arguments, "%I64d", &victimGUID);
+    sscanf(arguments, "%" FMT_I64 "d", &victimGUID);
     DWORDLONG   activePlayer = ClntObjMgrGetActivePlayer();
     CGPlayer_C *player;
     if (activePlayer && (player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__))) != 0) {
@@ -685,7 +685,7 @@ static BOOL CCommand_QuestCommand(LPCSTR command, LPCSTR arguments) {
   }
 
   DWORDLONG questGiver;
-  sscanf(buffer, "%I64X", &questGiver);
+  sscanf(buffer, "%" FMT_I64 "X", &questGiver);
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected questID.", DEFAULT_COLOR);
@@ -785,7 +785,7 @@ static BOOL CCommand_Reclaim(LPCSTR command, LPCSTR arguments) {
   }
 
   DWORDLONG corpseGUID;
-  sscanf(buffer, "%I64X", &corpseGUID);
+  sscanf(buffer, "%" FMT_I64 "X", &corpseGUID);
   CDataStore msg;
   msg.Put(CMSG_RECLAIM_CORPSE);
   msg.Put(corpseGUID);
@@ -803,7 +803,7 @@ static BOOL CCommand_BuySpell(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   DWORDLONG trainer;
-  sscanf(buffer, "%I64X", &trainer);
+  sscanf(buffer, "%" FMT_I64 "X", &trainer);
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected spellID", DEFAULT_COLOR);
@@ -828,14 +828,14 @@ static BOOL CCommand_SellItem(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   DWORDLONG merchant;
-  sscanf(buffer, "%I64X", &merchant);
+  sscanf(buffer, "%" FMT_I64 "X", &merchant);
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected item.", DEFAULT_COLOR);
     return 0;
   }
   DWORDLONG item;
-  sscanf(buffer, "%I64X", &item);
+  sscanf(buffer, "%" FMT_I64 "X", &item);
   BYTE amount = 0;
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (buffer[0]) {
@@ -860,7 +860,7 @@ static BOOL CCommand_BuyItem(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   DWORDLONG merchant;
-  sscanf(buffer, "%I64X", &merchant);
+  sscanf(buffer, "%" FMT_I64 "X", &merchant);
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
@@ -898,7 +898,7 @@ static BOOL CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   DWORDLONG merchant;
-  sscanf(buffer, "%I64X", &merchant);
+  sscanf(buffer, "%" FMT_I64 "X", &merchant);
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected muid.", DEFAULT_COLOR);
@@ -911,7 +911,7 @@ static BOOL CCommand_BuyItemInSlot(LPCSTR command, LPCSTR arguments) {
     return 0;
   }
   DWORDLONG container;
-  sscanf(buffer, "%I64X", &container);
+  sscanf(buffer, "%" FMT_I64 "X", &container);
   SStrTokenize(&arguments, buffer, sizeof(buffer), whitespace, 0);
   if (!buffer[0]) {
     ConsoleWrite("Expected quantity.", DEFAULT_COLOR);
@@ -968,14 +968,14 @@ static void DebugPrintMemDump(const CMemCmdDump &memDump) {
   UINT avgCommitted = memDump.m_sumCommitted / memDump.m_items.Count();
   UINT avgReserved = memDump.m_sumReserved / memDump.m_items.Count();
   OsOutputDebugString("*** MEMORY DUMP BEGIN ***\n");
-  OsOutputDebugString("   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  OsOutputDebugString("   ***     sums: %" FMT_I64 "dk/%" FMT_I64 "dk/%" FMT_I64 "dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   OsOutputDebugString("   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
   UINT numItems = memDump.m_items.Count();
   for (UINT i = 0; i < numItems; ++i) {
     OsOutputDebugString("%s\n", memDump.m_items[i].m_name);
   }
   OsOutputDebugString("*** MEMORY DUMP END ***\n");
-  OsOutputDebugString("   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  OsOutputDebugString("   ***     sums: %" FMT_I64 "dk/%" FMT_I64 "dk/%" FMT_I64 "dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   OsOutputDebugString("   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
 }
 
@@ -992,14 +992,14 @@ static void FilePrintMemDump(const CMemCmdDump &memDump, LPCSTR fileName) {
   }
 
   fprintf(file, "*** MEMORY DUMP BEGIN ***\n");
-  fprintf(file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  fprintf(file, "   ***     sums: %" FMT_I64 "dk/%" FMT_I64 "dk/%" FMT_I64 "dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   fprintf(file, "   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
   UINT numItems = memDump.m_items.Count();
   for (UINT i = 0; i < numItems; ++i) {
     fprintf(file, "%s\n", memDump.m_items[i].m_name);
   }
   fprintf(file, "*** MEMORY DUMP END ***\n");
-  fprintf(file, "   ***     sums: %I64dk/%I64dk/%I64dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
+  fprintf(file, "   ***     sums: %" FMT_I64 "dk/%" FMT_I64 "dk/%" FMT_I64 "dk ***\n", memDump.m_sumAllocated, memDump.m_sumCommitted, memDump.m_sumReserved);
   fprintf(file, "   *** averages: %uk/%uk/%uk ***\n", avgAllocated, avgCommitted, avgReserved);
   fclose(file);
 }

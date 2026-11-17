@@ -6,7 +6,11 @@
 
 #include <string.h>
 
+#ifdef _MSC_VER
 enum EGxTexFormat;
+#else
+#include "Gx/Gx.h"
+#endif
 class CStatus;
 class CTexture;
 typedef struct HCOLORMAP__  *HCOLORMAP;

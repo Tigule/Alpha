@@ -7,6 +7,10 @@
 
 namespace NTempest {
 
+#ifndef _MSC_VER
+  class C4Vector;
+#endif
+
   class C3Vector {
    public:
     float x;
@@ -34,6 +38,10 @@ namespace NTempest {
 
     C3Vector(const C3iVector &a) : x((float)a.x), y((float)a.y), z((float)a.z) {
     }
+
+#ifndef _MSC_VER
+    C3Vector(const C4Vector &a);
+#endif
 
     ~C3Vector() {
     }

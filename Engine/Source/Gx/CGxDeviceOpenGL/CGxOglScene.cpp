@@ -1,6 +1,9 @@
 #include "CGxDeviceOpenGl.h"
 
 #include <gl/gl.h>
+#ifndef _WIN32
+#include <OpenGL/OpenGL.h>
+#endif
 
 void CGxDeviceOpenGl::ISceneBegin(UINT mask) {
   float minX;
@@ -44,11 +47,16 @@ void CGxDeviceOpenGl::ScenePresent(UINT mask) {
   int screenShot = m_scrShotClick;
   CGxDevice::ScenePresent(mask);
 
+#ifdef _WIN32
   if (!(m_hwState.m_masterEnables & (1U << GxMasterEnable_DoubleBuffering))) {
     glFinish();
   } else {
     wglSwapLayerBuffers(m_hdc, WGL_SWAP_MAIN_PLANE);
   }
+#else
+  CGLFlushDrawable(CGLGetCurrentContext());
+  HandleModeChanges();
+#endif
 
   GetError();
   if (screenShot) {

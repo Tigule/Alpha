@@ -94,6 +94,13 @@ elseif(MSVC)
     add_link_options($<$<NOT:$<CONFIG:Debug>>:/DEBUG> $<$<NOT:$<CONFIG:Debug>>:/OPT:REF> $<$<NOT:$<CONFIG:Debug>>:/OPT:ICF>)
 endif()
 
+if(APPLE)
+    enable_language(OBJCXX)
+    set(CMAKE_OBJCXX_FLAGS_RELEASE_ASSERTIONS_ENABLED "${CMAKE_OBJCXX_FLAGS_RELEASE}")
+    include_directories(BEFORE ${CMAKE_SOURCE_DIR}/Storm/H/Other)
+    add_compile_options(-fms-extensions -fdelayed-template-parsing -fno-exceptions -fno-strict-aliasing -w -ferror-limit=0)
+endif()
+
 if(MSVC AND MSVC_VERSION GREATER 1200)
     include(CheckSymbolExists)
     check_symbol_exists(_WIN32_WINNT_WIN8 windows.h HAVE_WIN8_SDK)

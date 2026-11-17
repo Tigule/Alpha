@@ -2,6 +2,9 @@
 #include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
+#ifndef _WIN32
+#include <Os/W32/OsFile.h>
+#endif
 #include <ctype.h>
 #include <stdio.h>
 #include <time.h>
@@ -140,13 +143,19 @@ static void GenerateError(SCMDERRORCALLBACK errorcallback, DWORD errorcode, LPCS
   }
 
   buffer[0] = 0;
+#ifdef _WIN32
   LoadStringA(StormGetInstance(), resourceId, buffer, sizeof(buffer));
+#endif
   if (!buffer[0]) {
     SStrCopy(buffer, s_errorstr[errorIndex], sizeof(buffer));
   }
 
   if (strstr(buffer, "%s")) {
+#ifdef _WIN32
     wsprintfA(errorstr, buffer, itemstring);
+#else
+    SStrPrintf(errorstr, sizeof(errorstr), buffer, itemstring);
+#endif
   } else {
     SStrCopy(errorstr, buffer, sizeof(errorstr));
   }
@@ -250,7 +259,11 @@ ProcessFile(LPCSTR filename, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCE
   char  *buffer;
   BOOL   result;
 
+#ifdef _WIN32
   handle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+#else
+  handle = (HANDLE)OsCreateFile(filename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F); if (handle == (HANDLE)HOSFILE_INVALID) { handle = INVALID_HANDLE_VALUE; }
+#endif
   if (handle == INVALID_HANDLE_VALUE) {
     if (errorcallback) {
       GenerateError(errorcallback, ERROR_OPEN_FAILED, filename);
@@ -258,10 +271,19 @@ ProcessFile(LPCSTR filename, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCE
     return FALSE;
   }
 
+#ifdef _WIN32
   size = GetFileSize(handle, NULL);
+#else
+  size = (DWORD)OsGetFileSize((HOSFILE)handle);
+#endif
   buffer = (char *)SMemAlloc(size + 1, __FILE__, __LINE__, 0);
+#ifdef _WIN32
   ReadFile(handle, buffer, size, &bytesread, NULL);
   CloseHandle(handle);
+#else
+  OsReadFile((HOSFILE)handle, buffer, size, &bytesread);
+  OsCloseFile((HOSFILE)handle);
+#endif
 
   buffer[bytesread] = 0;
   curr = buffer;
@@ -512,7 +534,11 @@ extern "C" BOOL APIENTRY SCmdProcess(LPCSTR cmdline, int skipprogname, SCMDPROCE
 }
 
 extern "C" BOOL APIENTRY SCmdProcessCommandLine(SCMDPROCESSCALLBACK extracallback, SCMDERRORCALLBACK errorcallback) {
+#ifdef _WIN32
   return SCmdProcess(GetCommandLineA(), TRUE, extracallback, errorcallback);
+#else
+  return SCmdProcess(OsGetCommandLine(), TRUE, extracallback, errorcallback);
+#endif
 }
 
 extern "C" BOOL APIENTRY SCmdRegisterArgList(const ARGLIST *listptr, DWORD numargs) {

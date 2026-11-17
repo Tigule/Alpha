@@ -5,23 +5,42 @@
 
 #include <pthread.h>
 
+struct SyncObjectData {
+  int             type;
+  int             count;
+  int             max;
+  pthread_mutex_t mutex;
+  pthread_cond_t  cond;
+};
+
 class CCritSect {
  private:
   pthread_mutex_t m_critsect;
 
  public:
-  CCritSect() throw();
+  CCritSect() throw() {
+    pthread_mutex_init(&m_critsect, 0);
+  }
+
   CCritSect(const CCritSect &);
-  ~CCritSect();
+
+  ~CCritSect() {
+    pthread_mutex_destroy(&m_critsect);
+  }
+
   CCritSect &operator=(const CCritSect &);
 
-  void Enter();
+  void Enter() {
+    pthread_mutex_lock(&m_critsect);
+  }
 
   void Enter(int) {
     pthread_mutex_lock(&m_critsect);
   }
 
-  void Leave();
+  void Leave() {
+    pthread_mutex_unlock(&m_critsect);
+  }
 
   void Leave(int) {
     pthread_mutex_unlock(&m_critsect);
@@ -39,8 +58,6 @@ class CInitCritSect {
   void Leave();
 };
 
-#include <sclass.h>
-
 inline BOOL CInitCritSect::Enter() {
   int initialized = 0;
 
@@ -49,26 +66,20 @@ inline BOOL CInitCritSect::Enter() {
     } while (SInterlockedExchange(&m_spinLock, 1));
 
     if (!m_critsect) {
-      pthread_mutexattr_t attributes;
-
       m_critsect = (CCritSect *)m_critsectData;
-
-      pthread_mutexattr_init(&attributes);
-      pthread_mutexattr_settype(&attributes, PTHREAD_MUTEX_RECURSIVE);
-      pthread_mutex_init((pthread_mutex_t *)m_critsectData, &attributes);
-
+      new (m_critsect) CCritSect;
       initialized = 1;
     }
 
     m_spinLock = 0;
   }
 
-  pthread_mutex_lock((pthread_mutex_t *)m_critsect);
+  m_critsect->Enter();
   return initialized;
 }
 
 inline void CInitCritSect::Leave() {
-  pthread_mutex_unlock((pthread_mutex_t *)m_critsect);
+  m_critsect->Leave();
 }
 
 #endif

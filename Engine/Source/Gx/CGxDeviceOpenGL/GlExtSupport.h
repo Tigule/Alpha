@@ -146,3 +146,12 @@ extern HDC(APIENTRY *wglGetPbufferDCARB)(HPBUFFERARB pbuffer);
 extern int(APIENTRY *wglQueryPbufferARB)(HPBUFFERARB pbuffer, int attribute, int *value);
 extern int(APIENTRY *wglReleasePbufferDCARB)(HPBUFFERARB pbuffer, HDC dc);
 extern int(APIENTRY *wglDestroyPbufferARB)(HPBUFFERARB pbuffer);
+
+#ifndef _WIN32
+#include <dlfcn.h>
+#define wglGetProcAddress(name) dlsym(dlopen("/System/Library/Frameworks/OpenGL.framework/OpenGL", RTLD_LAZY | RTLD_NOLOAD), name)
+extern BOOL glExtVertexArrayRangeAPPLE;
+extern BOOL glExtFenceAPPLE;
+extern BOOL glExtVertexArrayObjectAPPLE;
+extern BOOL agl_HasPBufferSupport;
+#endif

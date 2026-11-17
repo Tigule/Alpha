@@ -293,4 +293,33 @@ class CGxDeviceOpenGl : public CGxDevice {
   virtual void PixelShaderDestroy(CGxPixelShader *&ps);
 
   static LRESULT CALLBACK WindowProcGl(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+#ifndef _WIN32
+  static int GxWindowEventHandler(struct OSMACEVENT *event, LPVOID userData);
+
+  enum ERenderTargetType {
+    kRenderTargetType_None = 0,
+    kRenderTargetType_SurfaceTexture = 1,
+    kRenderTargetType_PBuffer = 2
+  };
+
+  class CGxVxrManager *m_vxrManager;
+  class CGxVaoManager *m_vaoManager;
+  LPBYTE               m_vxrVertexSectionBase;
+  UINT                 m_vxrVertexSectionSize;
+  NTempest::C3Vector  *m_vxrPos;
+  NTempest::C3Vector  *m_vxrNormal;
+  NTempest::CImVector *m_vxrColor;
+  NTempest::C2Vector  *m_vxrTex[2];
+  LPBYTE               m_vxrIndexSectionBase;
+  UINT                 m_vxrIndexSectionSize;
+  WORD                *m_vxrIndices;
+  int                  m_renderTargetType;
+  int                  m_modeChangePending;
+  int                  m_contextUpdatePending;
+
+  virtual void DeviceSetupVXR();
+  void         HandleModeChanges();
+  void         IDeviceSetRenderTargetPBuffer(EGxBuffer buffer, CGxTex *gxTex, UINT plane);
+  void         IDeviceSetRenderTargetSurfaceTexture(EGxBuffer buffer, CGxTex *gxTex, UINT plane);
+#endif
 };

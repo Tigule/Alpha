@@ -7,6 +7,8 @@ on:
       - '**.c'
       - '**.cpp'
       - '**.h'
+      - '**.mm'
+      - '**.plist'
       - 'CMakeLists.txt'
       - '**/CMakeLists.txt'
       - 'Build/**'
@@ -164,4 +166,27 @@ jobs:
             Build/vs2026/WoW/bin/Release_Assertions_Enabled/Wowae.exe
             Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowErrorAE.exe
             Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowUpdateHelperAE.exe
+          if-no-files-found: error
+
+  mac-modern:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Build bundle
+        run: |
+          cmake -S . -B Build/mac-arm64 -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -DCMAKE_OSX_ARCHITECTURES=arm64
+          cmake --build Build/mac-arm64 --parallel
+
+      - name: Package bundle
+        run: |
+          ditto -c -k --keepParent "Build/mac-arm64/WoW/bin/World of Warcraft.app" "World of Warcraft.zip"
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-modern
+          path: World of Warcraft.zip
           if-no-files-found: error

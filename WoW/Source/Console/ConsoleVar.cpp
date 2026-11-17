@@ -176,7 +176,7 @@ static BOOL CVarSaveFile() {
   SStrCopy(fileName, "WTF\\", sizeof(fileName));
   SStrPack(fileName, s_filename, sizeof(fileName));
   HOSFILE file = OsCreateFile(fileName, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-  if (file != (HOSFILE)-1) {
+  if (file != HOSFILE_INVALID) {
     CONSTITERATELIST(CVar, s_registeredCVars, cvar) {
       if (cvar->IsArchived()) {
         SStrPrintf(buffer, sizeof(buffer), "SET %s \"%s\"\n", cvar->GetName(), cvar->GetString());

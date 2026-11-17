@@ -7,26 +7,21 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-void __cdecl SOutputDebugString(LPCSTR format, ...);
-
-BOOL OsBeep(DWORD dwFreq, DWORD dwDuration) {
-  return 0;
-}
+static DWORD s_outputDebugString = (DWORD)-1;
 
 void __cdecl OsOutputDebugString(LPCSTR format, ...) {
   char    buffer[256];
   va_list args;
 
-  va_start(args, format);
-  vsnprintf(buffer, sizeof(buffer), format, args);
-  va_end(args);
+  if (s_outputDebugString == (DWORD)-1) {
+    s_outputDebugString = 0;
+    SRegLoadValue("Internal", "OutputDebugString", 0, &s_outputDebugString);
+  }
 
-  SOutputDebugString("%s", buffer);
-}
-
-void OsOutputDebugStringV(LPCSTR format, char *args) {
-  char buffer[256];
-
-  vsnprintf(buffer, sizeof(buffer), format, args);
-  SOutputDebugString("%s", buffer);
+  if (s_outputDebugString) {
+    va_start(args, format);
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+    printf(buffer);
+  }
 }

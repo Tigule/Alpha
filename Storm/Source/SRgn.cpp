@@ -2,7 +2,11 @@
 #include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
+#ifdef _WIN32
 #include "W32/ISThread.h"
+#else
+#include "Mac/ISThread.h"
+#endif
 #include <stdio.h>
 #include <time.h>
 

@@ -373,7 +373,11 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   }
 
   NTempest::CRect screenRect;
+#if BUILD_PORTABLE
+  GxCapsWindowSize(screenRect);
+#else
   GxCapsScreenSize(screenRect);
+#endif
   NTempest::CRect viewRect;
   viewRect.l = 0.0f;
   viewRect.b = 0.6f;

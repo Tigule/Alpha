@@ -9,8 +9,14 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 
-static int   s_sleepInBackground;
-static DWORD s_backgroundSleepMs;
+extern "C" void *objc_getClass(const char *name);
+extern "C" void *sel_registerName(const char *str);
+extern "C" void  objc_msgSend();
+
+static int     s_sleepInBackground = 1;
+static DWORD   s_backgroundSleepMs;
+static char    s_mpChecked;
+static Boolean s_mpLoaded;
 static void (*s_launchUrlCallback)();
 
 void OsLaunchURLSetCallback(void (*callback)()) {
@@ -18,30 +24,22 @@ void OsLaunchURLSetCallback(void (*callback)()) {
 }
 
 BOOL OsLaunchURL(LPCSTR url) {
-  CFStringRef urlString;
-  CFURLRef    urlRef;
-  OSStatus    status;
+  void *string;
+  void *nsurl;
+  void *workspace;
+
+  if (!url || !*url) {
+    return 0;
+  }
 
   if (s_launchUrlCallback) {
     s_launchUrlCallback();
   }
 
-  urlString = CFStringCreateWithCString(0, url, kCFStringEncodingUTF8);
-  if (!urlString) {
-    return 0;
-  }
-
-  urlRef = CFURLCreateWithString(0, urlString, 0);
-  CFRelease(urlString);
-
-  if (!urlRef) {
-    return 0;
-  }
-
-  status = LSOpenCFURLRef(urlRef, 0);
-  CFRelease(urlRef);
-
-  return status == noErr;
+  string = ((void *(*)(void *, void *, LPCSTR))objc_msgSend)(objc_getClass("NSString"), sel_registerName("stringWithUTF8String:"), url);
+  nsurl = ((void *(*)(void *, void *, void *))objc_msgSend)(objc_getClass("NSURL"), sel_registerName("URLWithString:"), string);
+  workspace = ((void *(*)(void *, void *))objc_msgSend)(objc_getClass("NSWorkspace"), sel_registerName("sharedWorkspace"));
+  return ((bool (*)(void *, void *, void *))objc_msgSend)(workspace, sel_registerName("openURL:"), nsurl);
 }
 
 int OsSleepInBackground() {
@@ -53,28 +51,24 @@ DWORD OsGetBackgroundSleepMs() {
 }
 
 UINT OsGetProcessorCount() {
+  if (!s_mpChecked) {
+    s_mpLoaded = MPLibraryIsLoaded();
+    s_mpChecked = 1;
+  }
+
+  if (!s_mpLoaded) {
+    return 1;
+  }
+
   return MPProcessors();
 }
 
 DWORD OsGetProcessorFeatures() {
-  SInt32 features;
-
-  if (!Gestalt('ppcf', &features) && (features & 0x30) == 0x30) {
-    return 32;
-  }
-
   return 0;
 }
 
 DWORD OsGetProcessorFeaturesEx(int &vendorID) {
-  SInt32 features;
-
-  vendorID = 3;
-
-  if (!Gestalt('ppcf', &features) && (features & 0x30) == 0x30) {
-    return 32;
-  }
-
+  vendorID = 0;
   return 0;
 }
 

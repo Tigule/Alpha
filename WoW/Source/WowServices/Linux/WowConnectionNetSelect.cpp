@@ -1,7 +1,15 @@
 #define FD_SETSIZE 1024
 
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
+#else
+#include <errno.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/select.h>
+#include <unistd.h>
+#endif
 #include <Base/Base.h>
 
 #include <stdlib.h>
@@ -10,6 +18,7 @@
 
 static int     s_workerPipe[2] = {-1, -1};
 static BYTE    s_usingEngine;
+#ifdef _WIN32
 static WSADATA s_wsaData;
 
 static void WinsockInit() {
@@ -18,22 +27,29 @@ static void WinsockInit() {
 
 static void WinsockDestroy() {
 }
+#endif
 
 void WowConnectionNet::PlatformInit(bool useEngine) {
   s_usingEngine = useEngine;
   if (useEngine) {
     OsNetInitialize(0, 7);
-  } else {
+  }
+#ifdef _WIN32
+  else {
     WinsockInit();
   }
+#endif
 }
 
 void WowConnectionNet::PlatformDestroy() {
   if (s_usingEngine) {
     OsNetDestroy(7);
-  } else {
+  }
+#ifdef _WIN32
+  else {
     WinsockDestroy();
   }
+#endif
 }
 
 void WowConnectionNet::PlatformAdd(WowConnection *conn) {
@@ -53,9 +69,14 @@ void WowConnectionNet::PlatformDestruct(WowConnection *conn) {
 
 void WowConnectionNet::PlatformWorkerReady() {
   char c = 1;
+#ifdef _WIN32
   send(s_workerPipe[1], &c, 1, 0);
+#else
+  write(s_workerPipe[1], &c, 1);
+#endif
 }
 
+#ifdef _WIN32
 static void MakeSocketPipe(int pipes[2]) {
   sockaddr_in addr;
   sockaddr_in incoming;
@@ -109,9 +130,17 @@ static void MakeSocketPipe(int pipes[2]) {
   }
   closesocket(listener);
 }
+#endif
 
 void WowConnectionNet::PlatformRun() {
+#ifdef _WIN32
   MakeSocketPipe(s_workerPipe);
+#else
+  pipe(s_workerPipe);
+  if (fcntl(s_workerPipe[0], F_SETFL, O_NONBLOCK) < 0) {
+    perror("fcntl(worker pipe)");
+  }
+#endif
 
   TSGrowableArray<WowConnection *> conns;
 
@@ -143,7 +172,11 @@ void WowConnectionNet::PlatformRun() {
         case WOWC_CONNECTED:
           FD_SET(conn->m_sock, &rfds);
           FD_SET(conn->m_sock, &efds);
+#ifdef _WIN32
           if (conn->m_sendDepth > 0 || conn->m_wantWriteNotification) {
+#else
+          if (conn->m_sendList.Head() || conn->m_wantWriteNotification) {
+#endif
             FD_SET(conn->m_sock, &wfds);
           }
           if (maxSocket <= conn->m_sock) {
@@ -194,7 +227,11 @@ void WowConnectionNet::PlatformRun() {
     select(maxSocket + 1, &rfds, &wfds, &efds, &tv);
 
     if (FD_ISSET(s_workerPipe[0], &rfds)) {
+#ifdef _WIN32
       while (recv(s_workerPipe[0], &c, 1, 0) > 0) {
+#else
+      while (read(s_workerPipe[0], &c, 1) > 0) {
+#endif
       }
     }
 

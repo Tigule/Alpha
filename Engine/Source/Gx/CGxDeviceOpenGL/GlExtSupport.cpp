@@ -164,7 +164,11 @@ void BindGlExtensions() {
   }
 
   glExtBgra = FindGlExt("GL_EXT_bgra");
+#ifdef _WIN32
   glExtClampToEdge = FindGlExt("GL_EXT_texture_edge_clamp");
+#else
+  glExtClampToEdge = FindGlExt("GL_SGIS_texture_edge_clamp") || FindGlExt("GL_EXT_texture_edge_clamp");
+#endif
   glExtTextureLodBias = FindGlExt("GL_EXT_texture_lod_bias");
 
   LPCSTR compressedTexImageProcName = 0;
@@ -173,11 +177,14 @@ void BindGlExtensions() {
     compressedTexImageProcName = "glCompressedTexImage2DARB";
     compressedTexSubImageProcName = "glCompressedTexSubImage2DARB";
     glExtTextureCompression = 1;
-  } else if (FindGlExt("GL_EXT_texture_compression")) {
+  }
+#ifdef _WIN32
+  else if (FindGlExt("GL_EXT_texture_compression")) {
     compressedTexImageProcName = "glCompressedTexImage2DEXT";
     compressedTexSubImageProcName = "glCompressedTexSubImage2DEXT";
     glExtTextureCompression = 1;
   }
+#endif
   glExtTextureCompressionS3tc = FindGlExt("GL_EXT_texture_compression_s3tc");
   if (glExtTextureCompression && glExtTextureCompressionS3tc) {
     glCompressedTexImage2DARB =
@@ -189,7 +196,11 @@ void BindGlExtensions() {
     glExtTextureCompression = 0;
     glExtTextureCompressionS3tc = 0;
   }
+#ifndef _WIN32
+  glSGISTextureLod = FindGlExt("GL_SGIS_texture_lod") && glExtTextureCompression && glExtTextureCompressionS3tc;
+#endif
 
+#ifdef _WIN32
   if (FindGlExt("GL_SGIS_generate_mipmap")) {
     glSGISGenerateMipmap = 1;
   }
@@ -208,6 +219,13 @@ void BindGlExtensions() {
     glSetFenceNV = (void(APIENTRY *)(UINT, UINT))wglGetProcAddress("glSetFenceNV");
     glTestFenceNV = (BYTE(APIENTRY *)(UINT))wglGetProcAddress("glTestFenceNV");
   }
+#endif
+#ifndef _WIN32
+  glExtVertexArrayRangeAPPLE = FindGlExt("GL_APPLE_vertex_array_range") || wglGetProcAddress("glVertexArrayRangeAPPLE");
+  glExtFenceAPPLE = FindGlExt("GL_APPLE_fence");
+  glExtVertexArrayObjectAPPLE = FindGlExt("GL_APPLE_vertex_array_object");
+  agl_HasPBufferSupport = FindGlExt("GL_APPLE_pixel_buffer") && FindGlExt("GL_EXT_framebuffer_object");
+#endif
 
   if (FindGlExt("GL_EXT_draw_range_elements")) {
     int maxVerts;
@@ -217,6 +235,7 @@ void BindGlExtensions() {
     glGetIntegerv(0x80E9, &maxIdxs);
   }
 
+#ifdef _WIN32
   glSGISTextureLod = 0;
   if (FindGlExt("GL_NV_register_combiners")) {
     glNVRegisterCombiners = 1;
@@ -227,6 +246,7 @@ void BindGlExtensions() {
     glCombinerParameterfvNV = (void(APIENTRY *)(UINT, const float *))wglGetProcAddress("glCombinerParameterfvNV");
     glCombinerParameteriNV = (void(APIENTRY *)(UINT, int))wglGetProcAddress("glCombinerParameteriNV");
   }
+#endif
   if (FindGlExt("GL_NV_register_combiners2")) {
     glNVRegisterCombiners2 = 1;
     glCombinerStageParameterfvNV = (void(APIENTRY *)(UINT, UINT, const float *))wglGetProcAddress("glCombinerStageParameterfvNV");
@@ -308,7 +328,18 @@ bool FindWglExt(LPCSTR ext) {
     return false;
   }
   if (!s_wglExts) {
+#ifdef _WIN32
     s_wglExts = wglGetExtensionsStringARB(wglGetCurrentDC());
+#else
+    return false;
+#endif
   }
   return ScanString(s_wglExts, ext);
 }
+
+#ifndef _WIN32
+BOOL glExtVertexArrayRangeAPPLE;
+BOOL glExtFenceAPPLE;
+BOOL glExtVertexArrayObjectAPPLE;
+BOOL agl_HasPBufferSupport;
+#endif

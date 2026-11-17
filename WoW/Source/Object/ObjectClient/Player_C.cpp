@@ -3317,7 +3317,7 @@ CGPlayer_C::CGPlayer_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
   HMODEL charModel = GetCharacterModel(0);
   FATALASSERT(charModel);
 
-  CMovement::LogWrite("Creating player guid (0x%016I64X)\n", GetGUID());
+  CMovement::LogWrite("Creating player guid (0x%016" FMT_I64 "X)\n", GetGUID());
   InitComponents();
   ModelSetEventCallback(charModel, AnimEventCallback, this, 0);
   HandleClose(charModel);
@@ -4361,7 +4361,7 @@ void CGPlayer_C::SetActive(const CGPlayer_C *playerPtr) {
     UnitCombatLogSetActivePlayer(playerPtr);
     CGUnit_C::SetActiveMover(playerPtr ? playerPtr->m_obj->m_guid : 0);
   }
-  CMovement::LogWrite("Local player guid (0x%016I64X)\n", ClntObjMgrGetActivePlayer());
+  CMovement::LogWrite("Local player guid (0x%016" FMT_I64 "X)\n", ClntObjMgrGetActivePlayer());
 }
 
 BOOL CGPlayer_C::SetBlock(UINT i, DWORD data) {

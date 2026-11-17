@@ -6,7 +6,11 @@ class SSyncObject {
   friend DWORD WaitMultiplePtr(UINT, SSyncObject *[], int, SWAIT);
 
  protected:
+#ifdef _WIN32
   BYTE m_opaqueData[sizeof(HANDLE)];
+#else
+  DWORDLONG m_opaqueData[(3 * sizeof(int) + sizeof(pthread_mutex_t) + sizeof(pthread_cond_t) + sizeof(DWORDLONG) - 1) / sizeof(DWORDLONG)];
+#endif
 
   void Copy(const SSyncObject &rhs);
 
@@ -24,7 +28,11 @@ class SInitCritSect {
  private:
   LONG       m_spinLock;
   SCritSect *m_critsect;
+#ifdef _WIN32
   BYTE       m_critsectData[4 * sizeof(LPVOID) + 2 * sizeof(LONG)];
+#else
+  pthread_mutex_t m_critsectData[1];
+#endif
 
  public:
   BOOL Enter();

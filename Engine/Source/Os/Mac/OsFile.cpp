@@ -14,40 +14,22 @@
 DWORD OsPathGetRootChars(LPCSTR path);
 void  OsPathStripFilename(char *buffer);
 void  OsPathStripLastDir(char *buffer);
-void  OsFileConvertSlashes(char *path);
 
 extern "C" void APIENTRY SErrSetAppCommand(LPCSTR command);
+
+enum {
+  OS_CREATE_NEW = 1,
+  OS_CREATE_ALWAYS = 2,
+  OS_OPEN_EXISTING = 3,
+  OS_OPEN_ALWAYS = 4,
+  OS_TRUNCATE_EXISTING = 5
+};
 
 static int  s_pathsInitialized;
 static char s_dataPath[0x400];
 static char s_installPath[0x400];
 char        g_osCommandLine[0x400];
 char        g_osExeName[0x400];
-
-static char *BuildNativePath(LPCSTR path, LPCSTR mode, char *buffer, DWORD bufferSize) {
-  char converted[0x400];
-
-  SStrCopy(converted, path, sizeof(converted));
-  OsFileConvertSlashes(converted);
-
-  if (converted[0] == '/') {
-    SStrCopy(buffer, converted, bufferSize);
-    return buffer;
-  }
-
-  if (mode[0] == 'r') {
-    SStrPrintf(buffer, bufferSize, "%s/%s", s_dataPath, converted);
-    if (!access(buffer, R_OK)) {
-      return buffer;
-    }
-  } else if (!s_pathsInitialized) {
-    SStrPrintf(buffer, bufferSize, "%s/%s", s_dataPath, converted);
-    return buffer;
-  }
-
-  SStrPrintf(buffer, bufferSize, "%s/%s", s_installPath, converted);
-  return buffer;
-}
 
 void OsFileConvertSlashes(char *path) {
   char *curr;
@@ -73,7 +55,32 @@ void OsFileConvertSlashes(char *path) {
   }
 }
 
-int OsSetArgs(LPCSTR *argv, bool resolveRealPath, bool writeDataPath) {
+static char *build_native_path(LPCSTR path, LPCSTR mode, char *buffer, int bufferSize) {
+  char converted[0x400];
+
+  SStrCopy(converted, path, sizeof(converted));
+  OsFileConvertSlashes(converted);
+
+  if (converted[0] == '/') {
+    SStrCopy(buffer, converted, bufferSize);
+    return buffer;
+  }
+
+  if (mode[0] == 'r') {
+    SStrPrintf(buffer, bufferSize, "%s/%s", s_dataPath, converted);
+    if (!access(buffer, R_OK)) {
+      return buffer;
+    }
+  } else if (!s_pathsInitialized) {
+    SStrPrintf(buffer, bufferSize, "%s/%s", s_dataPath, converted);
+    return buffer;
+  }
+
+  SStrPrintf(buffer, bufferSize, "%s/%s", s_installPath, converted);
+  return buffer;
+}
+
+int OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath) {
   LPCSTR      command = argv[0];
   CFBundleRef bundle;
   CFURLRef    bundleUrl;
@@ -140,14 +147,7 @@ int OsSetArgs(LPCSTR *argv, bool resolveRealPath, bool writeDataPath) {
   s_installPath[0] = 0;
   if (resolveRealPath) {
     if (realpath(exePath, s_installPath)) {
-      char *lastSlash;
-
-      SStrCopy(g_osExeName, s_installPath, sizeof(g_osExeName));
-
-      lastSlash = SStrChrR(s_installPath, '/');
-      if (lastSlash) {
-        *lastSlash = 0;
-      }
+      *SStrChrR(s_installPath, '/') = 0;
     }
   } else {
     SStrCopy(s_installPath, ".", sizeof(s_installPath));
@@ -184,10 +184,6 @@ LPCSTR OsGetCommandLine() {
   return g_osCommandLine;
 }
 
-void OsGetExeName(char *buffer, DWORD chars) {
-  SStrCopy(buffer, g_osExeName, chars);
-}
-
 void OsGetExePath(char *buffer, DWORD chars) {
   SStrCopy(buffer, g_osExeName, chars);
   OsPathStripLastDir(buffer);
@@ -214,32 +210,32 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
   (void)flagsAndAttributes;
   (void)extendedFileType;
 
-  if (createDisposition == CREATE_NEW) {
-    BuildNativePath(fileName, "r", nativePath, sizeof(nativePath));
+  if (createDisposition == OS_CREATE_NEW) {
+    build_native_path(fileName, "r", nativePath, sizeof(nativePath));
     if (!stat(nativePath, &stats)) {
       return 0;
     }
-    createDisposition = CREATE_ALWAYS;
+    createDisposition = OS_CREATE_ALWAYS;
   }
 
-  if (createDisposition == OPEN_ALWAYS) {
-    BuildNativePath(fileName, "r", nativePath, sizeof(nativePath));
-    createDisposition = stat(nativePath, &stats) ? CREATE_ALWAYS : OPEN_EXISTING;
+  if (createDisposition == OS_OPEN_ALWAYS) {
+    build_native_path(fileName, "r", nativePath, sizeof(nativePath));
+    createDisposition = stat(nativePath, &stats) ? OS_CREATE_ALWAYS : OS_OPEN_EXISTING;
   }
 
-  if (createDisposition == TRUNCATE_EXISTING) {
-    BuildNativePath(fileName, "r", nativePath, sizeof(nativePath));
+  if (createDisposition == OS_TRUNCATE_EXISTING) {
+    build_native_path(fileName, "r", nativePath, sizeof(nativePath));
     if (stat(nativePath, &stats)) {
       return 0;
     }
-    createDisposition = CREATE_ALWAYS;
+    createDisposition = OS_CREATE_ALWAYS;
   }
 
-  ASSERT((createDisposition == CREATE_ALWAYS) || (createDisposition == OPEN_EXISTING));
+  ASSERT((createDisposition == OS_CREATE_ALWAYS) || (createDisposition == OS_OPEN_EXISTING));
 
-  if (createDisposition == OPEN_EXISTING) {
+  if (createDisposition == OS_OPEN_EXISTING) {
     if (desiredAccess & GENERIC_WRITE) {
-      BuildNativePath(fileName, "w", nativePath, sizeof(nativePath));
+      build_native_path(fileName, "w", nativePath, sizeof(nativePath));
       if (stat(nativePath, &stats)) {
         return 0;
       }
@@ -247,7 +243,7 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
     } else {
       mode = "rb";
     }
-  } else if (createDisposition == CREATE_ALWAYS) {
+  } else if (createDisposition == OS_CREATE_ALWAYS) {
     mode = (desiredAccess & GENERIC_READ) ? "wb+" : "wb";
   }
 
@@ -256,7 +252,7 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
     return 0;
   }
 
-  BuildNativePath(fileName, mode, nativePath, sizeof(nativePath));
+  build_native_path(fileName, mode, nativePath, sizeof(nativePath));
   file = fopen(nativePath, mode);
   if (!file) {
     return 0;
@@ -269,80 +265,6 @@ void OsCloseFile(HOSFILE fileHandle) {
   if (fileHandle) {
     fclose((FILE *)fileHandle);
   }
-}
-
-BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
-  size_t read;
-
-  FATALASSERT(buffer);
-  FATALASSERT(bytesRead);
-
-  if (!fileHandle) {
-    return 0;
-  }
-
-  read = fread(buffer, 1, bytesToRead, (FILE *)fileHandle);
-  *bytesRead = (DWORD)read;
-  return read != 0;
-}
-
-BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
-  size_t written;
-
-  FATALASSERT(buffer);
-  FATALASSERT(bytesWritten);
-
-  if (!fileHandle) {
-    return 0;
-  }
-
-  written = fwrite(buffer, 1, bytesToWrite, (FILE *)fileHandle);
-  *bytesWritten = (DWORD)written;
-  return written != 0;
-}
-
-DWORDLONG OsGetFileSize(HOSFILE fileHandle) {
-  struct stat stats;
-
-  if (!fileHandle) {
-    return 0;
-  }
-
-  stats.st_size = 0;
-  fstat(fileno((FILE *)fileHandle), &stats);
-  return stats.st_size;
-}
-
-DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD moveMethod) {
-  if (!fileHandle) {
-    return (DWORDLONG)-1;
-  }
-
-  fseek((FILE *)fileHandle, (long)distanceToMove, moveMethod);
-  return ftell((FILE *)fileHandle);
-}
-
-DWORD OsGetFileAttributes(LPCSTR fileName) {
-  DWORD       attributes;
-  struct stat stats;
-  char        nativePath[0x400];
-
-  FATALASSERT(fileName);
-
-  attributes = 0xFFFFFFFF;
-  BuildNativePath(fileName, "r", nativePath, sizeof(nativePath));
-
-  if (!stat(nativePath, &stats)) {
-    attributes = 0;
-    if ((stats.st_mode & S_IFMT) == S_IFDIR) {
-      attributes = FILE_ATTRIBUTE_DIRECTORY;
-    }
-    if ((stats.st_mode & S_IFMT) == S_IFREG) {
-      attributes |= FILE_ATTRIBUTE_NORMAL;
-    }
-  }
-
-  return attributes;
 }
 
 BOOL OsFileExists(LPCSTR path) {
@@ -367,13 +289,87 @@ BOOL OsDirectoryExists(LPCSTR dirName) {
   return attributes != 0xFFFFFFFF && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
+BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *bytesRead) {
+  size_t read;
+
+  VALIDATE2(buffer);
+  VALIDATE2(bytesRead);
+
+  if (!fileHandle) {
+    return 0;
+  }
+
+  read = fread(buffer, 1, bytesToRead, (FILE *)fileHandle);
+  *bytesRead = (DWORD)read;
+  return read != 0;
+}
+
+BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *bytesWritten) {
+  size_t written;
+
+  VALIDATE2(buffer);
+  VALIDATE2(bytesWritten);
+
+  if (!fileHandle) {
+    return 0;
+  }
+
+  written = fwrite(buffer, 1, bytesToWrite, (FILE *)fileHandle);
+  *bytesWritten = (DWORD)written;
+  return written != 0;
+}
+
+DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD moveMethod) {
+  if (!fileHandle) {
+    return (DWORDLONG)-1;
+  }
+
+  fseek((FILE *)fileHandle, (long)distanceToMove, moveMethod);
+  return ftell((FILE *)fileHandle);
+}
+
+DWORDLONG OsGetFileSize(HOSFILE fileHandle) {
+  struct stat stats;
+
+  if (!fileHandle) {
+    return 0;
+  }
+
+  stats.st_size = 0;
+  fstat(fileno((FILE *)fileHandle), &stats);
+  return stats.st_size;
+}
+
+DWORD OsGetFileAttributes(LPCSTR fileName) {
+  DWORD       attributes;
+  struct stat stats;
+  char        nativePath[0x400];
+
+  VALIDATE2(fileName);
+
+  attributes = 0xFFFFFFFF;
+  build_native_path(fileName, "r", nativePath, sizeof(nativePath));
+
+  if (!stat(nativePath, &stats)) {
+    attributes = 0;
+    if ((stats.st_mode & S_IFMT) == S_IFDIR) {
+      attributes = FILE_ATTRIBUTE_DIRECTORY;
+    }
+    if ((stats.st_mode & S_IFMT) == S_IFREG) {
+      attributes |= FILE_ATTRIBUTE_NORMAL;
+    }
+  }
+
+  return attributes;
+}
+
 BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
   struct stat stats;
   char        nativePath[0x400];
 
-  FATALASSERT(pathName);
+  VALIDATE2(pathName);
 
-  BuildNativePath(pathName, "w", nativePath, sizeof(nativePath));
+  build_native_path(pathName, "w", nativePath, sizeof(nativePath));
 
   if (!stat(nativePath, &stats) && (stats.st_mode & S_IFMT) == S_IFDIR) {
     return 1;
@@ -401,7 +397,7 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
 BOOL OsSetCurrentDirectory(LPCSTR pathName) {
   char nativePath[0x400];
 
-  FATALASSERT(pathName);
+  VALIDATE2(pathName);
 
   SStrCopy(nativePath, pathName, sizeof(nativePath));
   OsFileConvertSlashes(nativePath);
@@ -412,7 +408,7 @@ BOOL OsSetCurrentDirectory(LPCSTR pathName) {
 BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   char *curr;
 
-  FATALASSERT(pathName);
+  VALIDATE2(pathName);
 
   if (!getcwd(pathName, pathLen)) {
     return 0;
@@ -427,7 +423,7 @@ BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   return 1;
 }
 
-static BOOL ListNativePattern(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
+static BOOL OsFileListRaw(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
   glob_t       results;
   struct stat  stats;
   OS_FILE_DATA osfData;
@@ -435,7 +431,7 @@ static BOOL ListNativePattern(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, 
   int          stop = 0;
   size_t       index;
 
-  BuildNativePath(pattern, "w", nativePath, sizeof(nativePath));
+  build_native_path(pattern, "w", nativePath, sizeof(nativePath));
 
   if (glob(nativePath, 0, 0, &results)) {
     return 0;
@@ -479,14 +475,14 @@ int OsFileList(LPCSTR inDir, LPCSTR inPattern, int (*inCallback)(OS_FILE_DATA &,
   OsPathStripFilename(pattern);
   SStrPack(pattern, inPattern, 0x7FFFFFFF);
 
-  return ListNativePattern(pattern, inCallback, inCBParam, returnHidden);
+  return OsFileListRaw(pattern, inCallback, inCBParam, returnHidden);
 }
 
 BOOL OsDeleteFile(LPCSTR fileName) {
   char nativePath[0x400];
 
-  FATALASSERT(fileName);
+  VALIDATE2(fileName);
 
-  BuildNativePath(fileName, "w", nativePath, sizeof(nativePath));
+  build_native_path(fileName, "w", nativePath, sizeof(nativePath));
   return unlink(nativePath) == 0;
 }

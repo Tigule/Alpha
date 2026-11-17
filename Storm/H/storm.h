@@ -2,6 +2,7 @@
 
 #ifndef _WIN32
 #include <otherwin32.h>
+#include <dirent.h>
 #elif defined(_WINDOWS_)
 
 #ifndef max
@@ -223,7 +224,11 @@ void     SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta);
 
 class SCritSect {
  private:
+#ifdef _WIN32
   BYTE m_opaqueData[4 * sizeof(LPVOID) + 2 * sizeof(LONG)];
+#else
+  pthread_mutex_t m_opaqueData[1];
+#endif
   SCritSect &operator=(const SCritSect &);
   SCritSect(const SCritSect &);
 
@@ -253,7 +258,11 @@ class CDebugSCritSect : private SCritSect {
 
 class CSRWLock {
  private:
+#ifdef _WIN32
   BYTE m_opaqueData[0x0C];
+#else
+  pthread_rwlock_t m_opaqueData[1];
+#endif
   CSRWLock &operator=(const CSRWLock &);
   CSRWLock(const CSRWLock &);
 
@@ -338,6 +347,7 @@ BOOL  OsSystemObjectExists(LPCSTR name);
 // Directory functions
 // --------------------------------
 
+#ifdef _WIN32
 typedef struct SDIRENT {
   char d_name[MAX_PATH];
 } SDIRENT;
@@ -348,6 +358,10 @@ typedef struct SDIR {
   WIN32_FIND_DATAA findData;
   SDIRENT          dirent;
 } SDIR;
+#else
+typedef struct dirent SDIRENT;
+typedef DIR           SDIR;
+#endif
 
 DECLARE_STRICT_HANDLE(HSFILE);
 DECLARE_STRICT_HANDLE(HSARCHIVE);

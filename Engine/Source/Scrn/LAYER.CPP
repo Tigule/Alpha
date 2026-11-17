@@ -5,6 +5,9 @@
 #include <Event/EvtApi.h>
 #include <Gx/Gx.h>
 #include <Images/tga.h>
+#ifdef __APPLE__
+#include <Images/Mac/CPdfFile.h>
+#endif
 #include <Os/OsTime.h>
 #include <Os/W32/OsFile.h>
 #include <Tempest/c44matrix.h>
@@ -44,10 +47,19 @@ static BOOL CaptureScreen() {
   if (pixels) {
     OsCreateDirectory("Screenshots", 0);
     OsGetTimeStamp(timestamp, sizeof(timestamp));
+#ifdef __APPLE__
+    SStrPrintf(path, sizeof(path), "%s/ScreenShot_%s.pdf", "Screenshots", timestamp);
+    NTempest::CRect page;
+    GxCapsScreenSize(page);
+    CPdfFile pdf;
+    pdf.SetImage(pixels, w, h, 32, 0);
+    pdf.Write(path, page.r - page.l, page.b - page.t);
+#else
     SStrPrintf(path, sizeof(path), "%s\\WoWScrnShot_%s.tga", "Screenshots", timestamp);
     CTgaFile tga;
     tga.SetImage(pixels, w, h, 0x20, 8, 1, 0);
     tga.Write(path);
+#endif
   }
 
   return pixels != 0;

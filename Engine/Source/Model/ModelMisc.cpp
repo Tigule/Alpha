@@ -404,7 +404,11 @@ void ModelSetEmissiveColor(HMODEL model, const NTempest::CImVector &color, int d
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
+#ifdef _MSC_VER
     EnqueueModelCommand(modelptr, MODEL_SET_EMISSIVE_COLOR, *&color, doLinkedModels);
+#else
+    EnqueueModelCommand(modelptr, MODEL_SET_EMISSIVE_COLOR, *(const DWORD *)&color, doLinkedModels);
+#endif
     return;
   }
 

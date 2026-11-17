@@ -8,15 +8,14 @@
 typedef size_t SMEMPREFIX;
 
 extern "C" LPVOID APIENTRY SMemAlloc(DWORD bytes, LPCSTR filename, int linenumber, DWORD flags) {
-  SMEMPREFIX *block;
-  LPVOID      ptr;
+  SMEMPREFIX *ptr;
 
-  block = (SMEMPREFIX *)malloc(bytes + sizeof(SMEMPREFIX));
+  ptr = (SMEMPREFIX *)malloc(bytes + sizeof(SMEMPREFIX));
 
-  ASSERT(block || !"Out of memory");
+  ASSERT(ptr || !"Out of memory");
 
-  *block = bytes;
-  ptr = block + 1;
+  *ptr = bytes;
+  ++ptr;
 
   if (flags & SMEM_FLAG_ZEROMEMORY) {
     memset(ptr, 0, bytes);
@@ -68,7 +67,7 @@ extern "C" void APIENTRY SMemSetDebugFlags(DWORD flags, DWORD changeMask) {
 }
 
 extern "C" BOOL APIENTRY SMemIsValidPointer(LPCVOID address, DWORD size, BOOL forWriting) {
-  return address != 0;
+  return TRUE;
 }
 
 extern "C" BOOL APIENTRY SMemFindNextHeap(HSHEAP prevheap, HSHEAP *nextheap, LPSMEMHEAPDETAILS details) {

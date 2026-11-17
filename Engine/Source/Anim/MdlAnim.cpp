@@ -66,6 +66,31 @@ void AnimObjectSetRibbonColor(CAnimData *, CAnimRibbonObj *, const MDLKEYTRACK<C
 void AnimObjectSetRibbonAlpha(CAnimData *, CAnimRibbonObj *, const MDLKEYTRACK<float> &, MDLTRACKTYPE);
 void AnimObjectSetRibbonSlot(CAnimData *, CAnimRibbonObj *, const MDLSIMPLEKEYTRACK<MDLINTKEY> &);
 void AnimObjectSetEventTrack(CAnimData *, CAnimEventObj *, const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &);
+BYTE *AnimObjectSetEventTrack(BYTE *, UINT, CAnimData *, CAnimEventObj *);
+BYTE *AnimObjectSetTranslation(BYTE *, UINT, CAnimData *, CAnimObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetRotation(BYTE *, UINT, CAnimData *, CAnimObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetScaling(BYTE *, UINT, CAnimData *, CAnimObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetAttenuation(BYTE *, UINT, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetColor(BYTE *, UINT, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetIntensity(BYTE *, UINT, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetAmbColor(BYTE *, UINT, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetAmbIntensity(BYTE *, UINT, CAnimData *, CAnimLightObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetVisibilityTrack(BYTE *, UINT, CAnimData *, CAnimVisibleObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleEmissionRate2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleGravity2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleVariation2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetEmitterLongitude2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetEmitterLatitude2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleSpeed2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleLength2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleWidth2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleZsource2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetParticleLifeSpan2(BYTE *, UINT, CAnimData *, CAnimEmitter2Obj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetRibbonHeightAbove(BYTE *, UINT, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetRibbonHeightBelow(BYTE *, UINT, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetRibbonSlot(BYTE *, UINT, CAnimData *, CAnimRibbonObj *);
+BYTE *AnimObjectSetRibbonColor(BYTE *, UINT, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
+BYTE *AnimObjectSetRibbonAlpha(BYTE *, UINT, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
 
 struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
   ANIMHASH() : anim(0) {

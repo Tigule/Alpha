@@ -4,7 +4,11 @@
 
 DECLARE_STRICT_HANDLE(HOSFILE);
 
+#ifdef _WIN32
 #define HOSFILE_INVALID ((HOSFILE) - 1)
+#else
+#define HOSFILE_INVALID ((HOSFILE) 0)
+#endif
 
 enum {
   OSFILE_ASSOC_DESCRIPTION = 0,
@@ -35,3 +39,9 @@ DWORDLONG OsSetFilePointer(HOSFILE fileHandle, LONGLONG distanceToMove, DWORD mo
 DWORD     OsGetFileAttributes(LPCSTR fileName);
 BOOL      OsCreateDirectory(LPCSTR pathName, int recursive);
 BOOL      OsSetCurrentDirectory(LPCSTR pathName);
+#ifndef _WIN32
+DWORDLONG OsGetFileSize(HOSFILE fileHandle);
+LPCSTR    OsGetCommandLine();
+void      OsGetExePath(char *buffer, DWORD chars);
+void      OsFileConvertSlashes(char *path);
+#endif

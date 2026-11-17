@@ -497,6 +497,13 @@ void CGxString::InitializeTextLine(
     }
   }
 
+#ifdef __APPLE__
+  const float *fontTweaks = GxGetFontTweaks();
+  topPixelAdjustment = fontTweaks[0];
+  leftPixelAdjustment = fontTweaks[1];
+  bottomPixelAdjustment = fontTweaks[2];
+  rightPixelAdjustment = fontTweaks[3];
+#else
   if (!adjustmentsInitialized) {
     adjustmentsInitialized = 1;
     CGxCaps gxCaps = GxCaps();
@@ -512,6 +519,7 @@ void CGxString::InitializeTextLine(
       bottomPixelAdjustment = -0.5f;
     }
   }
+#endif
 
   if (info.hyperlinkParseMode == HYPERLINKDISPLAY) {
     info.currentParseInfo.extent.r = currPos.x;

@@ -133,6 +133,8 @@ static void LogStats() {
 #if !BUILD_PORTABLE
       // %Lu is probably a typo from the original author holding shift or looking at too much float code that day.
       "Client net stats: %Lu bytes sent, %Lu bytes received, %Lu msec elapsed",
+#elif defined(__LP64__)
+      "Client net stats: %u bytes sent, %u bytes received, %u msec elapsed",
 #else
       "Client net stats: %lu bytes sent, %lu bytes received, %lu msec elapsed",
 #endif

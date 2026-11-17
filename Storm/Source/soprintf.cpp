@@ -111,11 +111,19 @@ static void RemoveOrderingFromFormatSpecifier(char *specifier) {
 }
 
 static void FixUpLongLongFormatSpecifier(char *specifier) {
+#ifdef _WIN32
   specifier = strstr(specifier, "ll");
   if (specifier) {
     memmove(specifier + 3, specifier + 2, strlen(specifier) - 1);
     memcpy(specifier, "I64", 3);
   }
+#else
+  specifier = strstr(specifier, "I64");
+  if (specifier) {
+    memcpy(specifier, "ll", 2);
+    memmove(specifier + 2, specifier + 3, strlen(specifier + 3) + 1);
+  }
+#endif
 }
 
 int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList) {
@@ -219,6 +227,11 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
           break;
       }
 
+#if !defined(_WIN32) && BUILD_FIXES
+      if (written > end - out) {
+        written = end - out;
+      }
+#endif
       out += written;
       format += range.length - 1;
     }

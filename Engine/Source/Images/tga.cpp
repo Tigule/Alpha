@@ -606,7 +606,7 @@ BOOL CTgaFile::Write(LPCSTR path) {
   }
 
   fileHandle = OsCreateFile(path, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-  if (fileHandle == (HOSFILE)-1) {
+  if (fileHandle == HOSFILE_INVALID) {
     return 0;
   }
 

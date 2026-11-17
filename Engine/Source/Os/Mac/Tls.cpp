@@ -21,8 +21,7 @@ static TLSData *GetTlsData() {
   if (!data) {
     s_critsect.Enter();
 
-    data = NEW(TLSData);
-    s_tlsList.LinkNode(data, LIST_TAIL, 0);
+    data = s_tlsList.NewNode(LIST_TAIL, 0, 0);
 
     s_critsect.Leave();
 

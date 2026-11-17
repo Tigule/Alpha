@@ -297,6 +297,7 @@ DWORDLONG Script_GetGUIDFromName(LPCSTR name);
 CGUnit_C *Script_GetUnitFromName(LPCSTR name);
 LPCSTR    GetSpellAuraEffectToken(int effectID);
 BOOL      SpellParserParseText(const SpellRec *spell, char *buf, UINT size, BOOL isPet);
+int       Spell_C_GetManaCost(int id, BOOL isPet);
 int       Spell_C_GetManaCostPerSecond(int id, BOOL isPet);
 int       Spell_C_GetCastTime(int id, BOOL isPet);
 UINT      Spell_C_GetPowerDisplayMod(POWER_TYPE type);

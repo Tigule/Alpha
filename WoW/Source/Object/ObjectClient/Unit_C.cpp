@@ -3417,7 +3417,7 @@ void CGUnit_C::OnMonsterMove(DWORD eventTime, CDataStore *msg) {
     delta.z = 0.0f;
     if (delta.x * delta.x + delta.y * delta.y > maxDelta * maxDelta || NTempest::CMath::fabs_(serverLoc.z - position.z) > maxDelta) {
       CMovement::LogWrite(
-          "0x%016I64X: sync teleport from (%f,%f,%f) to (%f,%f,%f) - move flags: 0x%X", GetGUID(), position.x, position.y, position.z, serverLoc.x,
+          "0x%016" FMT_I64 "X: sync teleport from (%f,%f,%f) to (%f,%f,%f) - move flags: 0x%X", GetGUID(), position.x, position.y, position.z, serverLoc.x,
           serverLoc.y, serverLoc.z, m_move.m_moveFlags
       );
       OnTeleportNoUpdate(eventTime, serverLoc, GetFacing());
@@ -3633,7 +3633,7 @@ BOOL CGUnit_C::OnForceMoveChange(DWORD eventTime, NETMESSAGE msgID, CDataStore *
 
 void CGUnit_C::OnMoveStart(DWORD eventTime, const CMovementStatus &update, int forward) {
   if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
-    CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Immobilized\n", GetGUID());
     return;
   }
   ((CMovement &)m_move).UpdateStatus(eventTime, update);
@@ -3648,7 +3648,7 @@ void CGUnit_C::OnStrafeStartLocalNoUpdate(DWORD eventTime, int left) {
 
 void CGUnit_C::OnStrafeStart(DWORD eventTime, const CMovementStatus &update, int left) {
   if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
-    CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Immobilized\n", GetGUID());
     return;
   }
   ((CMovement &)m_move).UpdateStatus(eventTime, update);
@@ -3682,7 +3682,7 @@ void CGUnit_C::OnStrafeStop(DWORD eventTime, const CMovementStatus &update) {
 
 void CGUnit_C::OnJump(DWORD eventTime, const CMovementStatus &update) {
   if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
-    CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Immobilized\n", GetGUID());
     return;
   }
   ((CMovement &)m_move).UpdateStatus(eventTime, update);
@@ -3692,7 +3692,7 @@ void CGUnit_C::OnJump(DWORD eventTime, const CMovementStatus &update) {
 
 void CGUnit_C::OnTurnStart(DWORD eventTime, const CMovementStatus &update, int left) {
   if (m_unit->flags & 0x40000) {
-    CMovement::LogWrite("0x%016I64X: Stunned\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Stunned\n", GetGUID());
     return;
   }
   ((CMovement &)m_move).UpdateStatus(eventTime, update);
@@ -3708,7 +3708,7 @@ void CGUnit_C::OnTurnStop(DWORD eventTime, const CMovementStatus &update) {
 
 void CGUnit_C::OnPitchStart(DWORD eventTime, const CMovementStatus &update, int up) {
   if (m_unit->flags & 0x40000) {
-    CMovement::LogWrite("0x%016I64X: Stunned\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Stunned\n", GetGUID());
     return;
   }
   ((CMovement &)m_move).UpdateStatus(eventTime, update);
@@ -4127,7 +4127,7 @@ static BOOL OnUnitMoveEvent(NETMESSAGE msgId, DWORD eventTime, DWORDLONG guid, C
     return unit->OnMoveEvent(msgId, eventTime, msg);
   }
 
-  CMovement::LogWrite("0x%016I64X: Skipping move (0x%X) for unknown guid\n", guid, eventTime);
+  CMovement::LogWrite("0x%016" FMT_I64 "X: Skipping move (0x%X) for unknown guid\n", guid, eventTime);
   msg->Seek(msg->Size());
   return 0;
 }
@@ -4154,7 +4154,7 @@ static BOOL OnMonsterMoveEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, 
     return 1;
   }
 
-  CMovement::LogWrite("0x%016I64X: Skipping queued moves (0x%X) for invalid guid\n", guid, eventTime);
+  CMovement::LogWrite("0x%016" FMT_I64 "X: Skipping queued moves (0x%X) for invalid guid\n", guid, eventTime);
   msg->Seek(msg->Size());
   return 0;
 }
@@ -4325,7 +4325,7 @@ void CGUnit_C::SetLocalTarget(DWORDLONG target) {
   }
 
   if (ClntObjMgrGetActivePlayer() == GetGUID()) {
-    CMovement::FallLogWrite("\nLocal target guid set (0x%016I64X)\n\n", target);
+    CMovement::FallLogWrite("\nLocal target guid set (0x%016" FMT_I64 "X)\n\n", target);
   }
 
   m_targetUnit = target;
@@ -9638,7 +9638,7 @@ SPELLEFFECTDESC *CGUnit_C::GetActiveEffect(SpellEffectList &list) {
 void CGUnit_C::OnMoveStartLocal(DWORD eventTime, int forward) {
   OnMovementInitiated(0);
   if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
-    CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Immobilized\n", GetGUID());
   } else {
     ((CMovement &)m_move).OnMoveStartLocal(eventTime, forward);
   }
@@ -9652,7 +9652,7 @@ void CGUnit_C::OnStrafeStartLocal(DWORD eventTime, int left) {
   if (!IsMounted()) {
     OnMovementInitiated(0);
     if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
-      CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
+      CMovement::LogWrite("0x%016" FMT_I64 "X: Immobilized\n", GetGUID());
     } else {
       ((CMovement &)m_move).OnStrafeStartLocal(eventTime, left);
     }
@@ -9668,7 +9668,7 @@ void CGUnit_C::OnStrafeStopLocal(DWORD eventTime) {
 void CGUnit_C::OnTurnStartLocal(DWORD eventTime, int left) {
   OnMovementInitiated(0);
   if (m_unit->flags & 0x40000) {
-    CMovement::LogWrite("0x%016I64X: Stunned\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Stunned\n", GetGUID());
   } else {
     ((CMovement &)m_move).OnTurnStartLocal(eventTime, left);
   }
@@ -9709,7 +9709,7 @@ void CGUnit_C::OnSetPitchLocal(DWORD eventTime, float pitch) {
 void CGUnit_C::OnJumpLocal(DWORD eventTime) {
   OnMovementInitiated(0);
   if (m_move.m_moveFlags & (MOVEFLAG_IMMOBILIZED | MOVEFLAG_ROOTED)) {
-    CMovement::LogWrite("0x%016I64X: Immobilized\n", GetGUID());
+    CMovement::LogWrite("0x%016" FMT_I64 "X: Immobilized\n", GetGUID());
     return;
   }
   if (IsMounted() && !m_move.IsInMotion()) {

@@ -55,6 +55,83 @@ static char  s_datapath[MAX_PATH];
 static char  s_datapath2[MAX_PATH];
 static char  s_initialbasepath[MAX_PATH];
 
+#ifndef _WIN32
+static void convert_slashes(char *path) {
+  char *curr;
+
+  for (curr = path; *curr; ++curr) {
+    if (*curr == '\\') {
+      *curr = '/';
+    }
+  }
+
+  while ((curr = SStrStr(path, "./")) != 0) {
+    while (*curr) {
+      *curr = curr[2];
+      if (!*curr) {
+        break;
+      }
+      ++curr;
+    }
+  }
+
+  while ((curr = SStrStr(path, "//")) != 0) {
+    while (*curr) {
+      *curr = curr[1];
+      ++curr;
+    }
+  }
+}
+
+static void convert_case(char *path, char *name) {
+  struct stat    stats;
+  char          *end;
+  char          *slash;
+  DIR           *dir;
+  struct dirent *entry;
+
+  end = SStrChr(name, '/');
+  if (end) {
+    *end = 0;
+  }
+  if (stat(path, &stats)) {
+    slash = SStrChrR(path, '/');
+    if (slash) {
+      *slash = 0;
+      dir = opendir(path);
+      *slash = '/';
+    } else {
+      dir = opendir(".");
+    }
+    if (dir) {
+      while ((entry = readdir(dir)) != 0) {
+        if (!SStrCmpI(entry->d_name, name, 0x7FFFFFFF)) {
+          SStrCopy(name, entry->d_name, 0x7FFFFFFF);
+          break;
+        }
+      }
+      closedir(dir);
+    }
+  }
+  if (end) {
+    *end = '/';
+    convert_case(path, end + 1);
+  }
+}
+
+#undef _stat
+struct _stat : stat {};
+
+static int _stat(char *path, struct _stat *stats) {
+  convert_slashes(path);
+  if (!stat(path, stats)) {
+    return 0;
+  }
+  convert_case(path, path);
+  return stat(path, stats);
+}
+#endif
+
 void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   char         namebuf[MAX_PATH];
   struct _stat stats;
@@ -84,10 +161,23 @@ void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
   while ((entry = SFile::ReadDir(dir)) != NULL) {
     if (SStrCmp(entry->d_name, ".", INT_MAX) && SStrCmp(entry->d_name, "..", INT_MAX)) {
       SStrCopy(namebuf + pathlen, entry->d_name, MAX_PATH - pathlen);
+#ifdef _WIN32
       if (!_stat(namebuf, &stats)) {
+#else
+      char statname[MAX_PATH];
+      SStrCopy(statname, namebuf, MAX_PATH);
+      if (!_stat(statname, &stats)) {
+#endif
         if (stats.st_mode & 0x4000) {
           if (!*s_datapath || SStrCmp(relative, s_datapath, SStrLen(relative))) {
+#ifdef _WIN32
             SDIR *child = SFile::OpenDir(namebuf);
+#else
+            char opendirname[MAX_PATH];
+            SStrCopy(opendirname, namebuf, MAX_PATH);
+            _stat(opendirname, &stats);
+            SDIR *child = SFile::OpenDir(opendirname);
+#endif
 
             if (child) {
               AddDirectoryToHash(top, relative, child);
@@ -98,6 +188,9 @@ void AddDirectoryToHash(LPCSTR top, LPCSTR sub, SDIR *dir) {
           char *extension = SStrChrR(namebuf, '.');
 
           char *actual = SStrDupA(namebuf, __FILE__, __LINE__);
+#ifndef _WIN32
+          _stat(actual, &stats);
+#endif
 
           FILEMAP *mapped = NULL;
 
@@ -140,6 +233,10 @@ void BuildFileSystemHash() {
   SDIR  *basedir;
   SDIR  *dir;
   char   datapath[MAX_PATH];
+#ifndef _WIN32
+  char         opendirname[MAX_PATH];
+  struct _stat stats;
+#endif
 
   base = s_basepath;
   basedir = SFile::OpenDir(base);
@@ -156,7 +253,13 @@ void BuildFileSystemHash() {
   SStrCopy(datapath, base, MAX_PATH);
   SStrPack(datapath, "\\", MAX_PATH);
   SStrPack(datapath, s_datapath, MAX_PATH);
+#ifdef _WIN32
   dir = SFile::OpenDir(datapath);
+#else
+  SStrCopy(opendirname, datapath, MAX_PATH);
+  _stat(opendirname, &stats);
+  dir = SFile::OpenDir(opendirname);
+#endif
   if (dir) {
     AddDirectoryToHash(datapath, "", dir);
     SFile::CloseDir(dir);
@@ -164,7 +267,13 @@ void BuildFileSystemHash() {
 
   if (*s_datapath2) {
     SStrCopy(datapath, s_datapath2, MAX_PATH);
+#ifdef _WIN32
     dir = SFile::OpenDir(datapath);
+#else
+    SStrCopy(opendirname, datapath, MAX_PATH);
+    _stat(opendirname, &stats);
+    dir = SFile::OpenDir(opendirname);
+#endif
     if (dir) {
       AddDirectoryToHash(datapath, "", dir);
       SFile::CloseDir(dir);

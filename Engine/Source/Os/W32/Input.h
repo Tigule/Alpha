@@ -25,3 +25,7 @@ void OsInputSetMousePosition(int x, int y);
 UINT OsInputGetCodePage();
 void OsInputInitialize();
 void OsInputDestroy();
+#ifndef _WIN32
+void OsInputPostEvent(OSINPUT id, int param0, int param1, int param2, int param3);
+void SetOsGetDefaultWindowRectCB(int (*callback)(RECT *));
+#endif

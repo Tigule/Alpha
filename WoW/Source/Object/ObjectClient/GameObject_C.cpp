@@ -676,7 +676,7 @@ void CGGameObject_C_Type_MapObjTransport::AddPassenger(CMovementData *passenger)
   m_passengers.LinkNode(passenger, LIST_TAIL, 0);
   DWORD eventTime = OsGetAsyncTimeMs();
   CMovement::LogWrite(
-      "0x%016I64X: Attaching to transport (0x%016I64X) at "
+      "0x%016" FMT_I64 "X: Attaching to transport (0x%016" FMT_I64 "X) at "
       "position(%g,%g).  Synced time is (0x%08X)",
       passenger->m_guid, m_owner->GetGUID(), m_position.x, m_position.y, m_position.z, m_owner->m_serverTimeOffset + eventTime
   );

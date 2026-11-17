@@ -9,7 +9,11 @@ struct OSSYSTEMTIME;
 LONGLONG __cdecl OsGetAsyncTimeClocks();
 LONGLONG         OsGetAsyncClocksPerSecond();
 float            OsGetAsyncClocksDivisor();
+#ifdef _WIN32
 DWORD            OsGetAsyncTimeMs();
+#else
+#define OsGetAsyncTimeMs OsGetAsyncTimeMsPrecise
+#endif
 DWORD            OsGetAsyncTimeMsPrecise();
 float            OsGetAsyncTimeSec();
 void             OsGetTimeStr(char *timebuf, DWORD len);

@@ -1271,7 +1271,11 @@ int ModelApplyObjectLookAt(HMODEL model, UINT objectId, const NTempest::C3Vector
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
+#ifdef _MSC_VER
     EnqueueModelCommand(modelptr, MODEL_APPLY_OBJECT_LOOK_AT, objectId, target);
+#else
+    EnqueueModelCommand(modelptr, MODEL_APPLY_OBJECT_LOOK_AT, objectId, &target);
+#endif
     return 1;
   }
 
@@ -1315,7 +1319,11 @@ int ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vecto
 
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
+#ifdef _MSC_VER
     EnqueueModelCommand(modelptr, MODEL_APPLY_OBJECT_FACE_DIR, objectId, direction);
+#else
+    EnqueueModelCommand(modelptr, MODEL_APPLY_OBJECT_FACE_DIR, objectId, &direction);
+#endif
     return 1;
   }
 

@@ -95,6 +95,9 @@ static void QuestFailedCallback(int id, const DWORDLONG &, LPVOID, bool granted)
   }
 }
 
+#ifndef _MSC_VER
+namespace {
+#endif
 static void CreatureQueryCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
   if (!granted) {
     ConsoleWrite("Invalid creature in quest", DEFAULT_COLOR);
@@ -102,6 +105,9 @@ static void CreatureQueryCallback(int id, const DWORDLONG &, LPVOID, bool grante
   }
   FrameScript_SignalEvent(285);
 }
+#ifndef _MSC_VER
+}
+#endif
 
 static void ObjectQueryCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
   if (!granted) {

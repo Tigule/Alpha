@@ -25,6 +25,8 @@ if(WIN32)
     add_subdirectory(UpdateClient)
     add_subdirectory(WowError)
     add_subdirectory(WowUpdateHelper)
+elseif(APPLE)
+    add_subdirectory(WowError)
 endif()
 
 if(WIN32)
@@ -32,7 +34,8 @@ if(WIN32)
         Client.cpp
     )
 elseif(APPLE)
-    add_executable(Wow
+    add_executable(Wow MACOSX_BUNDLE
+        Client.cpp
         Mac/Source/AboutBox.cpp
         Mac/Source/FastTiming.cpp
         Mac/Source/GetApplicationInformation.cpp
@@ -42,6 +45,14 @@ elseif(APPLE)
         Mac/Source/MoreFilesExtras.cpp
         Mac/Source/TemporaryItems.cpp
         Mac/Source/Utils.cpp
+    )
+    set_source_files_properties(
+        Client.cpp
+        Mac/Source/AboutBox.cpp
+        Mac/Source/MacClient.cpp
+        Mac/Source/MacClientMenus.cpp
+        Mac/Source/MoreCocoa.cpp
+        PROPERTIES LANGUAGE OBJCXX
     )
 elseif(UNIX)
     add_executable(Wow
@@ -188,6 +199,33 @@ set(WOW_PROJECT_LIBRARIES
     FrameScript
     regex
 )
+
+if(APPLE)
+    target_link_libraries(Wow PRIVATE
+        "-framework AppKit"
+        "-framework ApplicationServices"
+        "-framework Carbon"
+        "-framework CoreFoundation"
+        "-framework CoreServices"
+        "-framework OpenGL"
+    )
+
+    set_target_properties(Wow PROPERTIES
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Mac/Info.plist
+        OUTPUT_NAME "World of Warcraft"
+        OUTPUT_NAME_RELEASE_ASSERTIONS_ENABLED "World of Warcraft"
+        OUTPUT_NAME_RELEASE "World of Warcraft"
+        OUTPUT_NAME_DEBUG "World of Warcraft"
+    )
+
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/PkgInfo "APPLWoW!")
+
+    add_dependencies(Wow WowError)
+    add_custom_command(TARGET Wow POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_BUNDLE_DIR:WowError> $<TARGET_BUNDLE_CONTENT_DIR:Wow>/Resources/WoWError.app
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/PkgInfo $<TARGET_BUNDLE_CONTENT_DIR:Wow>/PkgInfo
+    )
+endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_libraries(Wow PRIVATE -Wl,--start-group ${WOW_PROJECT_LIBRARIES} -Wl,--end-group)

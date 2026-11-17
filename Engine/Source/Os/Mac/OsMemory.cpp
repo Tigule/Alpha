@@ -4,21 +4,11 @@
 
 #include <storm.h>
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
-
-struct OSSHAREDMEMORY {
-  int  descriptor;
-  char name[0x100];
-};
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 COsSharedMemory::COsSharedMemory() : m_data(0), m_size(0) {
-  OSSHAREDMEMORY *shared = (OSSHAREDMEMORY *)m_opaqueData;
-
-  shared->descriptor = -1;
-  shared->name[0] = 0;
+  *(int *)m_opaqueData = -1;
 }
 
 COsSharedMemory::~COsSharedMemory() {
@@ -26,60 +16,49 @@ COsSharedMemory::~COsSharedMemory() {
 }
 
 bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
-  OSSHAREDMEMORY *shared = (OSSHAREDMEMORY *)m_opaqueData;
-  struct stat     stats;
-  int             flags;
-  int             protection = mode == SMEM_OPEN_READONLY ? PROT_READ : PROT_READ | PROT_WRITE;
+  key_t key = (key_t)SStrHashHT(name);
+  int   flags = 0600;
+  int   atFlags = 0;
+  int   shmid;
 
   switch (mode) {
     case SMEM_OPEN_NEW:
     case SMEM_OPEN_ALWAYS:
-      flags = O_RDWR | O_CREAT;
+      shmid = shmget(key, 0, 0);
+      if (shmid >= 0) {
+        shmctl(shmid, IPC_RMID, 0);
+      }
+      flags |= IPC_CREAT | IPC_EXCL;
       break;
 
     case SMEM_OPEN_EXISTING:
-      flags = O_RDWR;
       break;
 
     case SMEM_OPEN_READONLY:
-      flags = O_RDONLY;
+      atFlags = SHM_RDONLY;
       break;
 
     default:
       return true;
   }
 
-  SStrPrintf(shared->name, sizeof(shared->name), "/%s", name);
-
-  shared->descriptor = shm_open(shared->name, flags, 0666);
-  if (shared->descriptor < 0) {
-    shared->descriptor = -1;
-    return true;
-  }
-
-  if (mode == SMEM_OPEN_NEW || mode == SMEM_OPEN_ALWAYS) {
-    if (ftruncate(shared->descriptor, size)) {
-      Destroy();
-      return true;
-    }
-  } else if (!size) {
-    if (fstat(shared->descriptor, &stats)) {
-      Destroy();
-      return true;
+  shmid = shmget(key, size, flags);
+  if (shmid >= 0) {
+    m_data = shmat(shmid, 0, atFlags);
+    if (m_data == (LPVOID)-1) {
+      m_data = 0;
     }
 
-    size = (UINT)stats.st_size;
+    if (flags & IPC_CREAT) {
+      if (m_data) {
+        *(int *)m_opaqueData = shmid;
+      } else {
+        shmctl(shmid, IPC_RMID, 0);
+      }
+    }
   }
 
-  if (!size) {
-    Destroy();
-    return true;
-  }
-
-  m_data = mmap(0, size, protection, MAP_SHARED, shared->descriptor, 0);
-  if (m_data == MAP_FAILED) {
-    m_data = 0;
-    Destroy();
+  if (!m_data) {
     return true;
   }
 
@@ -87,22 +66,13 @@ bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
   return false;
 }
 
-bool COsSharedMemory::ChangeAccess(int newAccess) {
-  return mprotect(m_data, m_size, newAccess == SMEM_ACCESS_WRITE ? PROT_READ | PROT_WRITE : PROT_READ) == 0;
-}
-
 void COsSharedMemory::Destroy() {
-  OSSHAREDMEMORY *shared = (OSSHAREDMEMORY *)m_opaqueData;
-
   if (m_data) {
-    munmap(m_data, m_size);
+    if (*(int *)m_opaqueData >= 0) {
+      shmctl(*(int *)m_opaqueData, IPC_RMID, 0);
+    }
+    shmdt(m_data);
     m_data = 0;
-  }
-
-  if (shared->descriptor >= 0) {
-    close(shared->descriptor);
-    shm_unlink(shared->name);
-    shared->descriptor = -1;
   }
 
   m_size = 0;

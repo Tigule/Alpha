@@ -2,7 +2,12 @@
 #include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
+#ifdef _WIN32
 #include <W32/ISThread.h>
+#else
+#include <Mac/ISThread.h>
+#include <Os/W32/OsFile.h>
+#endif
 #include "../Pkware/pkware.h"
 #include <ctype.h>
 #include <stdarg.h>
@@ -375,9 +380,11 @@ typedef LIST(SFileRecData) SFileRecList;
 
 inline Storm::SFile::AUDIOSTREAM::~AUDIOSTREAM() {
   Storm::SFile::RemoveFileRef(file);
+#ifdef _WIN32
   if (soundbuffer && soundbufferlocal) {
     soundbuffer->Release();
   }
+#endif
 }
 
 inline REQUEST::~REQUEST() {
@@ -387,7 +394,11 @@ inline REQUEST::~REQUEST() {
 
 Storm::SFile::FILEREC::~FILEREC() {
   if (handle != INVALID_HANDLE_VALUE) {
+#ifdef _WIN32
     CloseHandle(handle);
+#else
+    OsCloseFile((HOSFILE)handle);
+#endif
   }
   if (archive) {
     archive->sectorfile = NULL;
@@ -496,7 +507,11 @@ inline Storm::SFile::StormGlobals *Storm::SFile::UseGlob::operator->() {
 Storm::SFile::ARCHIVEREC::~ARCHIVEREC() {
   if (!IsReopenedArchive()) {
     if (handle != INVALID_HANDLE_VALUE && !IsSubArchive()) {
+#ifdef _WIN32
       CloseHandle(handle);
+#else
+      OsCloseFile((HOSFILE)handle);
+#endif
     }
     if (sectorbuffer) {
       FREE(sectorbuffer);
@@ -928,15 +943,27 @@ static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, 
   numcalls = 0;
   for (;;) {
     if (position != 0xFFFFFFFF) {
+#ifdef _WIN32
       SetFilePointer(file, position, NULL, FILE_BEGIN);
+#else
+      OsSetFilePointer((HOSFILE)file, position, FILE_BEGIN);
+#endif
     }
 
+#ifdef _WIN32
     result = ReadFile(file, buffer, bytestoread, bytesread, NULL);
+#else
+    result = OsReadFile((HOSFILE)file, buffer, bytestoread, bytesread);
+#endif
     *currentposition = position + *bytesread;
     if (result) {
       break;
     }
+#ifdef _WIN32
     error = GetLastError();
+#else
+    error = 0;
+#endif
 
     {
       Storm::SFile::UseGlob glob;
@@ -1163,6 +1190,7 @@ void Storm::SFile::RemoveStreamRef(AUDIOSTREAM *stream) {
     }
   }
 }
+#ifdef _WIN32
 
 static int CancelRequest(LPVOID buffer, IDirectSoundBuffer *soundbuffer) {
   int cancelled;
@@ -1692,16 +1720,21 @@ static void MarkRequestUrgent(LPVOID buffer, int urgent) {
   }
   Storm::SFile::s_cdlock.Leave();
 }
+#endif
 
 static void BuildDefaultBasePath(char *basePath, DWORD maxPath) {
   char *slash;
 
+#ifdef _WIN32
   GetModuleFileNameA(GetModuleHandleA(NULL), basePath, maxPath);
   slash = SStrChrR(basePath, '\\');
   if (slash) {
     *slash = 0;
   }
   SStrPack(basePath, "\\", maxPath);
+#else
+  SStrCopy(basePath, ".", maxPath);
+#endif
 }
 
 static DWORD BuildDefaultOpenFlags() {
@@ -1816,8 +1849,13 @@ GetFileBlockEntry(HSARCHIVE archivehandle, LPCSTR filename, DWORD flags, SFileAr
 }
 
 static int CheckFileExists(LPCSTR filename) {
+#ifdef _WIN32
   return !(GetFileAttributesA(filename) & FILE_ATTRIBUTE_DIRECTORY);
+#else
+  return !(OsGetFileAttributes(filename) & FILE_ATTRIBUTE_DIRECTORY);
+#endif
 }
+#ifdef _WIN32
 
 static int CheckForCdRom(LPCSTR path) {
   char  fsname[MAX_PATH];
@@ -1850,6 +1888,7 @@ static int CheckForCdRom(LPCSTR path) {
   WORD check = (value >> 16) ^ value;
   return check == 0x1F00 || check == 0x0805;
 }
+#endif
 
 static void ConvertRelativePathName(LPCSTR inputpath, char *outputpath, int strippath) {
   char                  absolutepath[MAX_PATH];
@@ -1864,8 +1903,13 @@ static void ConvertRelativePathName(LPCSTR inputpath, char *outputpath, int stri
       inputpath = slash + 1;
     }
   }
+#ifdef _WIN32
   wsprintfA(absolutepath, "%s%s", glob->s_basepath, inputpath);
   _fullpath(outputpath, absolutepath, MAX_PATH);
+#else
+  SStrPrintf(outputpath, MAX_PATH, "%s%s", glob->s_basepath, inputpath);
+  OsFileConvertSlashes(outputpath);
+#endif
 }
 
 static int CheckFileExistsOnDisk(LPCSTR filename, DWORD flags, char *localfilename) {
@@ -1924,6 +1968,7 @@ static void Initialize() {
     InitializeHashSource(0x100001);
   }
 }
+#ifdef _WIN32
 
 extern "C" BOOL APIENTRY SFileAuthenticateArchive(HSARCHIVE handle, DWORD *extendedresult) {
   if (SFileAuthenticateArchiveEx(handle, extendedresult, NULL, 0, NULL, 0)) {
@@ -2256,6 +2301,7 @@ extern "C" BOOL APIENTRY SFileCancelRequestEx(LPVOID buffer) {
 
   return CancelRequest(buffer, NULL);
 }
+#endif
 
 extern "C" BOOL APIENTRY SFileCloseArchive(HSARCHIVE handle) {
   SFileArchiveRecData *archive;
@@ -2304,6 +2350,7 @@ extern "C" void APIENTRY SFileRegisterLoadNotifyProc(void(APIENTRY *f)(LPCSTR, L
   glob->s_loadNotifyProc = f;
   glob->s_loadNotifyData = opaqueData;
 }
+#ifdef _WIN32
 
 extern "C" BOOL APIENTRY SFileDdaBegin(HSFILE handle, DWORD buffersize, DWORD flags) {
   return SFileDdaBeginEx(handle, buffersize, flags, 0, 0x7FFFFFFF, 0x7FFFFFFF, NULL);
@@ -2673,6 +2720,7 @@ extern "C" BOOL APIENTRY SFileDdaSetVolume(HSFILE handle, LONG volume, LONG pan)
   Storm::SFile::s_streamlock.Leave();
   return TRUE;
 }
+#endif
 
 extern "C" BOOL APIENTRY SFileDestroy() {
   SFileRequestData     *request;
@@ -2681,8 +2729,10 @@ extern "C" BOOL APIENTRY SFileDestroy() {
   SFileArchiveRecData  *archive;
   LPVOID                buffer;
 
+#ifdef _WIN32
   SFileDdaDestroy();
   DestroyCdThread();
+#endif
 
   request = Storm::SFile::s_cdrequest;
   if (request) {
@@ -2905,11 +2955,20 @@ extern "C" DWORD APIENTRY SFileGetFileSize(HSFILE handle, DWORD *filesizehigh) {
     return 0xFFFFFFFF;
   }
   if (fileptr->handle != INVALID_HANDLE_VALUE) {
+#ifdef _WIN32
     return GetFileSize((HANDLE)fileptr->handle, filesizehigh);
+#else
+    DWORDLONG size = OsGetFileSize((HOSFILE)fileptr->handle);
+    if (filesizehigh) {
+      *filesizehigh = (DWORD)(size >> 32);
+    }
+    return (DWORD)size;
+#endif
   }
   return fileptr->block.sizefile;
 }
 
+#ifdef _WIN32
 extern "C" BOOL APIENTRY SFileGetFileTime(HSFILE handle, FILETIME *filetime) {
   VALIDATEBEGIN;
   VALIDATE(filetime);
@@ -2927,6 +2986,7 @@ extern "C" BOOL APIENTRY SFileGetFileTime(HSFILE handle, FILETIME *filetime) {
   filetime->dwHighDateTime = fileRec->block.time.dwHighDateTime;
   return TRUE;
 }
+#endif
 
 extern "C" BOOL APIENTRY SFileLoadFile(LPCSTR filename, LPVOID *buffer, DWORD *bytes, DWORD extraBytes, OVERLAPPED *overlapped) {
   return SFileLoadFileEx2(NULL, filename, buffer, bytes, extraBytes, BuildDefaultOpenFlags(), overlapped, 0);
@@ -3011,13 +3071,21 @@ extern "C" BOOL APIENTRY SFileOpenArchive(LPCSTR archivename, int priority, DWOR
     }
   }
 
+#ifdef _WIN32
   checkCdRom = CheckForCdRom(localarchivename);
+#else
+  checkCdRom = FALSE;
+#endif
   if ((flags & 1) && !checkCdRom) {
     SErrSetLastError(ERROR_INVALID_DRIVE);
     return FALSE;
   }
 
+#ifdef _WIN32
   file = CreateFileA(localarchivename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+#else
+  file = (HANDLE)OsCreateFile(localarchivename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, 0, 0x3F3F3F3F); if (file == (HANDLE)HOSFILE_INVALID) { file = INVALID_HANDLE_VALUE; }
+#endif
   if (file == INVALID_HANDLE_VALUE) {
     return FALSE;
   }
@@ -3039,7 +3107,11 @@ extern "C" BOOL APIENTRY SFileOpenArchive(LPCSTR archivename, int priority, DWOR
   }
   archive->dontCheckDisk = (flags >> 2) & 1;
   archive->startinglocation = 0;
+#ifdef _WIN32
   archive->endinglocation = GetFileSize(file, NULL);
+#else
+  archive->endinglocation = (DWORD)OsGetFileSize((HOSFILE)file);
+#endif
   archive->disableCount = 0;
 
   return Storm::SFile::s_OpenArchive(archive, flags, checkCdRom, handle);
@@ -3103,9 +3175,17 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   for (;;) {
     if (archiveptr->startinglocation >= bufferlocation + bufferbytes) {
       bufferlocation = archiveptr->startinglocation;
+#ifdef _WIN32
       SetFilePointer(archiveptr->handle, archiveptr->startinglocation, NULL, FILE_BEGIN);
+#else
+      OsSetFilePointer((HOSFILE)archiveptr->handle, archiveptr->startinglocation, FILE_BEGIN);
+#endif
       DWORD bytesread = 0;
+#ifdef _WIN32
       ReadFile(archiveptr->handle, archivebuffer, READAHEAD, &bytesread, NULL);
+#else
+      OsReadFile((HOSFILE)archiveptr->handle, archivebuffer, READAHEAD, &bytesread);
+#endif
       if (bytesread < sizeof(SFileArchiveHeaderData) || archiveptr->startinglocation + sizeof(SFileArchiveHeaderData) >= archiveptr->endinglocation) {
         delete archiveptr;
         SErrSetLastError(STORM_ERROR_NOT_ARCHIVE);
@@ -3158,9 +3238,13 @@ int Storm::SFile::s_OpenArchive(ARCHIVEREC *archiveptr, DWORD flags, int cdrom, 
   Storm::SFile::s_archivelist.LinkNode(archiveptr, LIST_LINK_BEFORE, position);
   Storm::SFile::s_archivelock.Leave();
 
+#ifdef _WIN32
   if (archiveptr->cdrom) {
     CreateCdThread();
   } else if ((flags & 1) && !cdrom) {
+#else
+  if ((flags & 1) && !cdrom) {
+#endif
     SFileCloseArchive((HSARCHIVE)archiveptr);
     SErrSetLastError(ERROR_INVALID_DRIVE);
     return FALSE;
@@ -3260,8 +3344,12 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
     goto finallylabel;
   }
   if (source == 2) {
+#ifdef _WIN32
     HANDLE osFile =
         CreateFileA(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+#else
+    HANDLE osFile = (HANDLE)OsCreateFile(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F); if (osFile == (HANDLE)HOSFILE_INVALID) { osFile = INVALID_HANDLE_VALUE; }
+#endif
     if (osFile != INVALID_HANDLE_VALUE) {
       if (flags & 4) {
         *handle = (HSFILE)osFile;
@@ -3283,11 +3371,19 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
     }
   } else {
     if (flags & 4) {
+#ifdef _WIN32
       HANDLE osFile = CreateFileA(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+#else
+      HANDLE osFile = (HANDLE)OsCreateFile(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F); if (osFile == (HANDLE)HOSFILE_INVALID) { osFile = INVALID_HANDLE_VALUE; }
+#endif
       *handle = (HSFILE)osFile;
       result = osFile != INVALID_HANDLE_VALUE;
       if (result) {
+#ifdef _WIN32
         SetFilePointer(osFile, block->offset, NULL, FILE_BEGIN);
+#else
+        OsSetFilePointer((HOSFILE)osFile, block->offset, FILE_BEGIN);
+#endif
       } else {
         SErrSetLastError(ERROR_FILE_NOT_FOUND);
       }
@@ -3351,6 +3447,7 @@ finallylabel:
   return result;
 }
 
+#ifdef _WIN32
 extern "C" void APIENTRY SFilePrioritizeRequest(LPVOID buffer, LONG overlappedpriority) {
   VALIDATEBEGIN;
   VALIDATE(buffer);
@@ -3360,6 +3457,7 @@ extern "C" void APIENTRY SFilePrioritizeRequest(LPVOID buffer, LONG overlappedpr
     SetEvent(Storm::SFile::s_cdevent);
   }
 }
+#endif
 
 extern "C" BOOL APIENTRY SFileReadFile(HSFILE handle, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, OVERLAPPED *overlapped) {
   return SFileReadFileEx2(handle, buffer, bytestoread, bytesread, overlapped, 0, NULL);
@@ -3379,6 +3477,9 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     LONG               overlappedpriority,
     _TASYNCPARAMBLOCK *asyncparam
 ) {
+#ifndef _WIN32
+  ASSERT(!overlapped);
+#endif
   if (bytesread) {
     *bytesread = 0;
   }
@@ -3388,9 +3489,11 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     return FALSE;
   }
   if (!bytestoread) {
+#ifdef _WIN32
     if (overlapped && overlapped->hEvent) {
       SetEvent(overlapped->hEvent);
     }
+#endif
     return TRUE;
   }
   VALIDATE2(buffer);
@@ -3428,9 +3531,11 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
   }
 
   if (!readbytes) {
+#ifdef _WIN32
     if (overlapped && overlapped->hEvent) {
       SetEvent(overlapped->hEvent);
     }
+#endif
     return TRUE;
   }
 
@@ -3456,9 +3561,12 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
       CrcBuffer(NULL, 0, &fileptr->crc, 4);
       fileptr->crcstate = 4;
     }
+#ifdef _WIN32
     if (overlapped && overlapped->hEvent) {
       SetEvent(overlapped->hEvent);
     }
+#endif
+#ifdef _WIN32
   } else {
     CreateCdThread();
     SFileRequestData *request = NULL;
@@ -3490,6 +3598,7 @@ extern "C" BOOL APIENTRY SFileReadFileEx2(
     CloseHandle(event);
     totalbytesread += request->bytesread;
     delete request;
+#endif
   }
 
   DWORD userbytesread = min(bytestoread, totalbytesread);
@@ -3567,7 +3676,11 @@ extern "C" DWORD APIENTRY SFileSetFilePointer(HSFILE handle, LONG distancetomove
     return 0xFFFFFFFF;
   }
   if (fileptr->handle != INVALID_HANDLE_VALUE) {
+#ifdef _WIN32
     return SetFilePointer(fileptr->handle, distancetomove, NULL, movemethod);
+#else
+    return (DWORD)OsSetFilePointer((HOSFILE)fileptr->handle, distancetomove, movemethod);
+#endif
   }
 
   switch (movemethod) {

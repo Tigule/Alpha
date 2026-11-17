@@ -2,7 +2,11 @@
 #include <dsound.h>
 #include <storm.h>
 #include <stpl.h>
+#ifdef _WIN32
 #include "W32/ISThread.h"
+#else
+#include "Mac/ISThread.h"
+#endif
 #include "../Pkware/pkware.h"
 #include "../Zlib/zlib.h"
 #include <stdio.h>
@@ -1157,10 +1161,14 @@ static LPVOID s_AllocDecompressBuffer(DWORD size, int *global) {
   LPVOID result;
 
   s_decompCrit.Enter();
+#ifdef _WIN32
   myTID = GetCurrentThreadId();
   if (!myTID) {
     SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "myTID != 0", FALSE, 1);
   }
+#else
+  myTID = SGetCurrentThreadId();
+#endif
 
   if (!s_DecompressBuffer) {
     s_DecompressBufferSize = size;

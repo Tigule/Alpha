@@ -92,7 +92,11 @@ struct DxtColorBlock : public DxtBlock {
   BYTE              row[DxtBlock::ROWS];
 };
 
+#ifdef _MSC_VER
 struct Dxt1Block : public DxtBlock {
+#else
+struct Dxt1Block {
+#endif
   DxtColorBlock color;
 };
 
@@ -105,7 +109,11 @@ struct Dxt3AlphaBlock : public DxtBlock {
   WORD row[DxtBlock::ROWS];
 };
 
+#ifdef _MSC_VER
 struct Dxt3Block : public DxtBlock {
+#else
+struct Dxt3Block {
+#endif
   Dxt3AlphaBlock alpha;
   DxtColorBlock  color;
 };

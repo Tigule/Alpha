@@ -35,7 +35,12 @@ CParticleEmitter2::CParticleEmitter2() : m_refCount(1) {
   m_replaceableId = 0;
   m_emitterType = PET_BASE_EMITTER;
   m_particleType = PT_QUAD;
+#ifndef __APPLE__
   m_randSeed.SetSeed((rand() << 16) | (rand() & 0xFFFF));
+#else
+  DWORD randLow = vc_rand() & 0xFFFF;
+  m_randSeed.SetSeed((vc_rand() << 16) | randLow);
+#endif
   m_numNew = 0.0f;
   m_textureLog = 0;
   m_ooTextureWidth = 1.0f;
@@ -99,7 +104,12 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep) : m
   m_priorityPlane = rhs.m_priorityPlane;
   m_emitterType = rhs.m_emitterType;
   m_particleType = rhs.m_particleType;
+#ifndef __APPLE__
   m_randSeed.SetSeed((rand() << 16) | (rand() & 0xFFFF));
+#else
+  DWORD randLow = vc_rand() & 0xFFFF;
+  m_randSeed.SetSeed((vc_rand() << 16) | randLow);
+#endif
   for (loop = 0; loop < MAX_CHILD_EMITTERS; ++loop) {
     if (rhs.m_childEmitter[loop]) {
       m_childEmitter[loop] = ParticleSystemManager::GetInstance()->DuplicateEmitter(rhs.m_childEmitter[loop], 0);
@@ -696,7 +706,11 @@ BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
     scale *= m_frameScale;
   }
 
+#ifdef _MSC_VER
   NTempest::C34Matrix particleMatrix = p.m_rotation;
+#else
+  NTempest::C34Matrix particleMatrix = (NTempest::C33Matrix)p.m_rotation;
+#endif
   particleMatrix.Scale(scale);
   *particleMatrix.Row3AsVec3() = p.m_position;
   if (m_useModelSpace) {

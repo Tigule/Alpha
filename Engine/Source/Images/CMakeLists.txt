@@ -5,6 +5,10 @@ add_library(Images STATIC
     tga.cpp
 )
 
+if(APPLE)
+    target_sources(Images PRIVATE Mac/CPdfFile.cpp)
+endif()
+
 target_include_directories(Images PRIVATE
     ..
     ../../../Storm/H

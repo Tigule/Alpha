@@ -565,8 +565,13 @@ class TSGrowableArray : public TSFixedArray<T> {
   }
 
   UINT Reserved() const {
+#if BUILD_PORTABLE
+    ASSERT(this->m_alloc >= this->m_count);
+    return this->m_alloc - this->m_count;
+#else
     ASSERT(m_alloc >= m_count);
     return m_alloc - m_count;
+#endif
   }
 
   void ReserveSpace(UINT count) {

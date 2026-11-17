@@ -1,5 +1,15 @@
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
+#else
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 
 #include "Base/Base.h"
 #include "WowConnection.h"
@@ -22,14 +32,22 @@ int WowConnection::CreateSocket() {
   return socket(AF_INET, SOCK_STREAM, 0);
 }
 void WowConnection::CloseSocket(sock_t sock) {
+#ifdef _WIN32
   closesocket(sock);
+#else
+  close(sock);
+#endif
 }
 
 void RegisterSocket(int sock) {
   (void)sock;
 }
 WowConnection::WowConnection(sock_t sock, sockaddr_in *addr, WowConnectionResponse *response) {
+#ifdef _WIN32
   int len;
+#else
+  socklen_t len;
+#endif
 
   Init(response, 0);
 
@@ -185,12 +203,20 @@ WC_SEND_RESULT WowConnection::Send(CDataStore *msg) {
   if (m_connState == WOWC_CONNECTED) {
     ASSERT(m_sock >= 0);
     if (m_sendList.IsEmpty()) {
+#ifdef _WIN32
       int sent = send(m_sock, (LPCSTR)sn->data, sn->size, 0);
+#else
+      int sent = write(m_sock, sn->data, sn->size);
+#endif
       if (sent != sn->size) {
         if (sent > 0) {
           sn->offset += sent;
           result = WC_SEND_QUEUED;
+#ifdef _WIN32
         } else if (WSAGetLastError() != WSAEWOULDBLOCK) {
+#else
+        } else if (errno != EWOULDBLOCK && errno != EINTR && errno != EINPROGRESS) {
+#endif
           SetState(WOWC_DISCONNECTING);
           result = WC_SEND_ERROR;
         }
@@ -232,9 +258,17 @@ WC_SEND_RESULT WowConnection::SendRaw(BYTE *data, int len) {
   if (m_connState == WOWC_CONNECTED) {
     ASSERT(m_sock >= 0);
     if (m_sendList.IsEmpty()) {
+#ifdef _WIN32
       int sent = send(m_sock, (LPCSTR)data, len, 0);
+#else
+      int sent = write(m_sock, data, len);
+#endif
       if (sent != len) {
+#ifdef _WIN32
         if (sent < 0 && WSAGetLastError() == WSAEWOULDBLOCK) {
+#else
+        if (sent < 0 && (errno == EWOULDBLOCK || errno == EINTR || errno == EINPROGRESS)) {
+#endif
           sent = 0;
         }
 
@@ -268,7 +302,11 @@ WC_SEND_RESULT WowConnection::SendRaw(BYTE *data, int len) {
 
 void WowConnection::CheckConnect() {
   int sockerr;
+#ifdef _WIN32
   int sockerrlen = sizeof(sockerr);
+#else
+  socklen_t sockerrlen = sizeof(sockerr);
+#endif
 
   if (getsockopt(m_sock, SOL_SOCKET, SO_ERROR, (char *)&sockerr, &sockerrlen) == 0) {
     if (sockerr) {
@@ -290,7 +328,11 @@ void WowConnection::CheckConnect() {
       WowConnectionResponse *response = m_response;
       m_lock.Leave();
 
+#ifdef _WIN32
       int len = sizeof(sockaddr_in);
+#else
+      socklen_t len = sizeof(sockaddr_in);
+#endif
       getpeername(m_sock, (sockaddr *)&m_peer, &len);
       len = sizeof(sockaddr_in);
       getsockname(m_sock, (sockaddr *)&m_peer.selfAddr, &len);
@@ -305,7 +347,11 @@ void WowConnection::CheckConnect() {
 
 void WowConnection::CheckAccept() {
   sockaddr_in            addr;
+#ifdef _WIN32
   int                    len;
+#else
+  socklen_t              len;
+#endif
   WowConnectionResponse *response;
   int                    i;
 
@@ -318,8 +364,12 @@ void WowConnection::CheckAccept() {
     }
 
     {
+#ifdef _WIN32
       DWORD on = 1;
       ioctlsocket(sock, FIONBIO, &on);
+#else
+      fcntl(sock, F_SETFL, fcntl(sock, F_GETFL, 0) | O_NONBLOCK);
+#endif
     }
     WowConnection *conn = new (ALLOC(sizeof(WowConnection))) WowConnection(sock, &addr, m_response);
 
@@ -365,7 +415,11 @@ void WowConnection::DoWrites() {
 
     int writeLen = min(sn->size - sn->offset, 1024);
     ASSERT(writeLen > 0);
+#ifdef _WIN32
     int w = send(m_sock, (LPCSTR)(sn->data + sn->offset), writeLen, 0);
+#else
+    int w = write(m_sock, sn->data + sn->offset, writeLen);
+#endif
     if (w != writeLen) {
       ASSERT(w < writeLen);
       if (w > 0) {
@@ -373,7 +427,11 @@ void WowConnection::DoWrites() {
         break;
       }
 
+#ifdef _WIN32
       if (w >= 0 || WSAGetLastError() == WSAEWOULDBLOCK) {
+#else
+      if (w >= 0 || errno == EWOULDBLOCK || errno == EINTR || errno == EINPROGRESS) {
+#endif
         break;
       }
 
@@ -479,14 +537,23 @@ void WowConnection::DoMessageReads() {
     ASSERT(sizeToRead >= 0);
     if (sizeToRead > 0) {
       do {
+#ifdef _WIN32
         bytesRead = recv(m_sock, (char *)(m_readBuffer + m_readBytes), sizeToRead, 0);
       } while (bytesRead < 0 && WSAGetLastError() == WSAEINTR);
+#else
+        bytesRead = read(m_sock, m_readBuffer + m_readBytes, sizeToRead);
+      } while (bytesRead < 0 && errno == EINTR);
+#endif
     } else {
       bytesRead = 0;
     }
 
     if (bytesRead <= 0 && sizeToRead > 0) {
+#ifdef _WIN32
       if (bytesRead < 0 && WSAGetLastError() == WSAEWOULDBLOCK) {
+#else
+      if (bytesRead < 0 && errno == EWOULDBLOCK) {
+#endif
         return;
       }
 
@@ -531,8 +598,13 @@ void WowConnection::DoStreamReads() {
 
   while (1) {
     do {
+#ifdef _WIN32
       bytesRead = recv(m_sock, (char *)buf, sizeof(buf), 0);
     } while (bytesRead < 0 && WSAGetLastError() == WSAEINTR);
+#else
+      bytesRead = read(m_sock, buf, sizeof(buf));
+    } while (bytesRead < 0 && errno == EINTR);
+#endif
 
     if (bytesRead <= 0) {
       break;
@@ -550,7 +622,11 @@ void WowConnection::DoStreamReads() {
     ReleaseResponseRef();
   }
 
+#ifdef _WIN32
   if (bytesRead < 0 && WSAGetLastError() == WSAEWOULDBLOCK) {
+#else
+  if (bytesRead < 0 && errno == EWOULDBLOCK) {
+#endif
     return;
   }
 
@@ -619,15 +695,23 @@ void WowConnection::StartConnect() {
   m_sock = CreateSocket();
 
   if (m_sock >= 0) {
+#ifdef _WIN32
     DWORD on = 1;
     ioctlsocket(m_sock, FIONBIO, &on);
+#else
+    fcntl(m_sock, F_SETFL, fcntl(m_sock, F_GETFL, 0) | O_NONBLOCK);
+#endif
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(m_connectPort);
     addr.sin_addr.s_addr = m_connectAddress;
 
     if (connect(m_sock, (sockaddr *)&addr, sizeof(addr)) < 0) {
+#ifdef _WIN32
       if (WSAGetLastError() != WSAEWOULDBLOCK) {
+#else
+      if (errno != EWOULDBLOCK && errno != EINTR && errno != EINPROGRESS) {
+#endif
         CloseSocket(m_sock);
         m_sock = -1;
         SetState(WOWC_ERROR);
@@ -723,10 +807,14 @@ bool WowConnection::Listen(WORD port) {
     return false;
   }
 
+#ifdef _WIN32
   {
     DWORD on = 1;
     ioctlsocket(m_sock, FIONBIO, &on);
   }
+#else
+  fcntl(m_sock, F_SETFL, fcntl(m_sock, F_GETFL, 0) | O_NONBLOCK);
+#endif
   s_network->Add(this);
   SetState(WOWC_LISTENING);
   return true;
@@ -821,7 +909,11 @@ void WowConnection::RequestWriteNotification() {
 }
 
 bool WowConnection::GetLocal(NETADDR &addr) {
+#ifdef _WIN32
   int size = sizeof(addr);
+#else
+  socklen_t size = sizeof(addr);
+#endif
 
   return getsockname(m_sock, (sockaddr *)&addr, &size) == 0;
 }

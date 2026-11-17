@@ -314,12 +314,14 @@ CGxDevice::CGxDevice() {
 }
 
 CGxDevice::~CGxDevice() {
+#ifndef __APPLE__
   UINT count = m_textures.Count();
   while (count) {
     if (m_textures[--count]->m_apiSpecificData) {
       ASSERT(0);
     }
   }
+#endif
   m_textures.SetCount(0);
 }
 
@@ -339,7 +341,9 @@ void CGxDevice::CreateDynamicBufs() {
 
 BOOL CGxDevice::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
   m_windowProc = windowProc;
+#ifndef __APPLE__
   CreateDynamicBufs();
+#endif
   return DeviceSetFormat(format);
 }
 
@@ -1524,6 +1528,9 @@ void CGxDevice::PerfCountersLatch() {
 }
 
 float CGxDevice::CpuFrequency() {
+#ifndef _WIN32
+  return (float)OsGetAsyncClocksPerSecond();
+#else
   LONGLONG start;
   UINT     millisecond;
 
@@ -1538,6 +1545,7 @@ float CGxDevice::CpuFrequency() {
   Sleep(250);
   frequency = 4 * (CpuTicks() - start);
   return frequency;
+#endif
 }
 
 #if !BUILD_PORTABLE
@@ -1551,6 +1559,8 @@ __declspec(naked) LONGLONG CGxDevice::CpuTicks() {
 LONGLONG CGxDevice::CpuTicks() {
 #if defined(_MSC_VER) && _MSC_VER >= 1400 && (defined(_M_IX86) || defined(_M_X64))
   return (LONGLONG)__rdtsc();
+#elif !defined(_WIN32)
+  return OsGetAsyncTimeClocks();
 #else
   LARGE_INTEGER ticks;
   QueryPerformanceCounter(&ticks);

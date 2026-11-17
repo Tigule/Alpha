@@ -1384,7 +1384,11 @@ void EnqueueModelCommand(CModel *model, EModelModQ command, ...) {
         break;
 
       case MPARAM_C3VECTOR:
+#ifdef _MSC_VER
         *(NTempest::C3Vector *)paramData = va_arg(arguments, NTempest::C3Vector);
+#else
+        *(NTempest::C3Vector *)paramData = *va_arg(arguments, const NTempest::C3Vector *);
+#endif
         paramData += sizeof(NTempest::C3Vector);
         break;
 

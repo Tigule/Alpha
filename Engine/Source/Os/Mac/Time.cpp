@@ -10,13 +10,13 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 
-void FastMilliseconds(DWORD *hi, DWORD *lo);
-void FastMicroseconds(DWORD *hi, DWORD *lo);
+extern "C" void FastMilliseconds(DWORD *hi, DWORD *lo);
+extern "C" void FastMicroseconds(DWORD *hi, DWORD *lo);
 
 #define OS_FILETIME_EPOCH_SECONDS 11644473600ULL
 #define OS_FILETIME_PER_SECOND    10000000ULL
 
-static SCritSect s_timeCritsect;
+static SInitCritSect s_timeCritsect;
 static DWORD     s_cachedTime;
 static DWORD     s_cachedTimeStamp;
 static int       s_timeZoneValid;
@@ -49,28 +49,12 @@ float OsGetAsyncClocksDivisor() {
   return s_cpuTicksDivisor;
 }
 
-DWORD OsGetAsyncTimeMs() {
-  DWORD hi;
-  DWORD ms;
-
-  FastMilliseconds(&hi, &ms);
-  return ms;
-}
-
 DWORD OsGetAsyncTimeMsPrecise() {
   DWORD hi;
   DWORD ms;
 
   FastMilliseconds(&hi, &ms);
   return ms;
-}
-
-float OsGetAsyncTimeSec() {
-  return (float)OsGetAsyncTimeMs() * 0.001f;
-}
-
-DWORDLONG OsGetAsyncThreadTimeMs() {
-  return OsGetAsyncTimeMs();
 }
 
 void OsSleep(DWORD ms) {
@@ -83,10 +67,10 @@ DWORD OsGetTime() {
 
   FastMilliseconds(&hi, &ms);
 
-  if (!s_cachedTime || ms - s_cachedTimeStamp >= 500) {
+  if (!s_cachedTime || (int)(ms - s_cachedTimeStamp) >= 500) {
     s_timeCritsect.Enter();
 
-    if (!s_cachedTime || ms - s_cachedTimeStamp >= 500) {
+    if (!s_cachedTime || (int)(ms - s_cachedTimeStamp) >= 500) {
       s_cachedTime = (DWORD)time(0);
       s_cachedTimeStamp = ms;
     }
@@ -97,28 +81,12 @@ DWORD OsGetTime() {
   return s_cachedTime;
 }
 
-LONG OsGetTime(LONG *timer) {
-  time_t seconds = time(0);
-
-  if (timer) {
-    *timer = (LONG)seconds;
-  }
-
-  return (LONG)seconds;
-}
-
 void OsGetTimeStr(char *timebuf, DWORD len) {
   time_t ltime;
 
   time(&ltime);
   SStrCopy(timebuf, ctime(&ltime), len);
   *SStrChrR(timebuf, '\n') = 0;
-}
-
-void OsGetTimeStr(char *timebuf, DWORD len, LPCSTR format, LONG timer) {
-  time_t ltime = timer;
-
-  strftime(timebuf, len, format, localtime(&ltime));
 }
 
 void OsGetTimeStamp(char *timeStamp, DWORD len) {
@@ -141,23 +109,6 @@ void OsFileTimeGetCurrent(OSFILETIME *filetime) {
 
   time(&seconds);
   OsTimeToFileTime((DWORD)seconds, filetime);
-}
-
-int OsFileTimeCompare(const OSFILETIME *filetime1, const OSFILETIME *filetime2) {
-  FATALASSERT(filetime1);
-  FATALASSERT(filetime2);
-
-  if (filetime1->m_value < filetime2->m_value) {
-    return -1;
-  }
-
-  return filetime1->m_value > filetime2->m_value;
-}
-
-void OsFileTimeAdd(OSFILETIME *filetime, UINT seconds) {
-  FATALASSERT(filetime);
-
-  filetime->m_value += OS_FILETIME_PER_SECOND * seconds;
 }
 
 static LONGLONG TimeZoneSeconds() {
@@ -184,8 +135,8 @@ void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
   time_t     seconds;
   struct tm *broken;
 
-  FATALASSERT(fileTime);
-  FATALASSERT(sysTime);
+  VALIDATE2VOID(fileTime);
+  VALIDATE2VOID(sysTime);
 
   seconds = (time_t)(fileTime->m_value / OS_FILETIME_PER_SECOND - OS_FILETIME_EPOCH_SECONDS);
   broken = gmtime(&seconds);
@@ -200,26 +151,6 @@ void OsFileTimeToSystemTime(const OSFILETIME *fileTime, OSSYSTEMTIME *sysTime) {
   sysTime->milliseconds = (WORD)(fileTime->m_value / 10000 % 1000);
 }
 
-void OsSystemTimeToFileTime(const OSSYSTEMTIME *sysTime, OSFILETIME *fileTime) {
-  struct tm broken;
-  time_t    seconds;
-
-  FATALASSERT(fileTime);
-  FATALASSERT(sysTime);
-
-  memset(&broken, 0, sizeof(broken));
-  broken.tm_year = sysTime->year - 1900;
-  broken.tm_mon = sysTime->month - 1;
-  broken.tm_mday = sysTime->day;
-  broken.tm_hour = sysTime->hour;
-  broken.tm_min = sysTime->minute;
-  broken.tm_sec = sysTime->second;
-
-  seconds = timegm(&broken);
-
-  fileTime->m_value = ((DWORDLONG)seconds + OS_FILETIME_EPOCH_SECONDS) * OS_FILETIME_PER_SECOND + sysTime->milliseconds * 10000;
-}
-
 void OsGetSystemTime(OSSYSTEMTIME *sysTime) {
   OSFILETIME fileTime;
 
@@ -227,64 +158,20 @@ void OsGetSystemTime(OSSYSTEMTIME *sysTime) {
   OsFileTimeToSystemTime(&fileTime, sysTime);
 }
 
-void OsGetLocalTime(OSSYSTEMTIME *sysTime) {
-  OSFILETIME fileTime;
-  OSFILETIME localFileTime;
-
-  FATALASSERT(sysTime);
-
-  OsFileTimeGetCurrent(&fileTime);
-  OsFileTimeToLocalFileTime(&fileTime, &localFileTime);
-  OsFileTimeToSystemTime(&localFileTime, sysTime);
-}
-
 void OsTimeToLocalSystemTime(DWORD time, OSSYSTEMTIME *localSysTime) {
   OSFILETIME fileTime;
   OSFILETIME localFileTime;
+
+  VALIDATE2VOID(localSysTime);
 
   OsTimeToFileTime(time, &fileTime);
   OsFileTimeToLocalFileTime(&fileTime, &localFileTime);
   OsFileTimeToSystemTime(&localFileTime, localSysTime);
 }
 
-int OsSystemTimeCompare(const OSSYSTEMTIME *sysTime1, const OSSYSTEMTIME *sysTime2) {
-  int diff;
+void OsGetLocalTime(OSSYSTEMTIME *sysTime) {
+  time_t ltime;
 
-  diff = (int)sysTime1->year - (int)sysTime2->year;
-  if (diff) {
-    return diff;
-  }
-
-  diff = (int)sysTime1->month - (int)sysTime2->month;
-  if (diff) {
-    return diff;
-  }
-
-  diff = (int)sysTime1->day - (int)sysTime2->day;
-  if (diff) {
-    return diff;
-  }
-
-  diff = (int)sysTime1->hour - (int)sysTime2->hour;
-  if (diff) {
-    return diff;
-  }
-
-  diff = (int)sysTime1->minute - (int)sysTime2->minute;
-  if (diff) {
-    return diff;
-  }
-
-  diff = (int)sysTime1->second - (int)sysTime2->second;
-  if (diff) {
-    return diff;
-  }
-
-  return (int)sysTime1->milliseconds - (int)sysTime2->milliseconds;
-}
-
-void OsTimeStartup() {
-}
-
-void OsTimeShutdown() {
+  time(&ltime);
+  OsTimeToLocalSystemTime((DWORD)ltime, sysTime);
 }

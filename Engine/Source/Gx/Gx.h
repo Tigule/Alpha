@@ -477,6 +477,12 @@ struct CGxGammaRamp {
   }
 };
 
+#if BUILD_PORTABLE
+#define GXTEXFLAGS_CLEAR() (*(DWORD *)this = 0)
+#else
+#define GXTEXFLAGS_CLEAR()
+#endif
+
 struct CGxTexFlags {
   DWORD m_filter : 3;
   DWORD m_wrapU : 1;
@@ -901,6 +907,9 @@ BOOL GxuTestRayAndRigidMeshInModelSpace(
 UINT           GxuClipCalcCode(const NTempest::C44Matrix &viewProj, const NTempest::C3Vector &pos);
 void           GxuSnapTexelsToPixels(const NTempest::C3Vector pos[], NTempest::C2Vector tex[], UINT texW, UINT texH);
 const CGxCaps &GxCaps();
+#ifdef __APPLE__
+const float   *GxGetFontTweaks();
+#endif
 BlitFormat     GxGetBlitFormat(EGxTexFormat texFormat);
 UINT           GxVertexSize(EGxVertexBufferFormat format);
 UINT           GxVertexMemberOffset(EGxVertexBufferFormat format, EGxVertexMember member);

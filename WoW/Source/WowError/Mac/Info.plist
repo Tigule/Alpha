@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
+<plist version="0.9">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>com.blizzard.wowerror</string>
+	<key>CFBundleName</key>
+	<string>WoWError</string>
+	<key>CFBundleGetInfoString</key>
+	<string>WoWError version 1.0, Copyright (C) 2003 Blizzard Entertainment.  All rights reserved.</string>
+	<key>CFBundleShortVersionString</key>
+	<string>WoWError version 1.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleExecutable</key>
+	<string>WoWError</string>
+	<key>CFBundleVersion</key>
+	<string>1.0</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+</dict>
+</plist>

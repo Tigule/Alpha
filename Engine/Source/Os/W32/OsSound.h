@@ -210,6 +210,12 @@ NODEDECL(Sound) {
   DWORD              m_freq;
   int                m_fileNameHashed;
   SOUNDCATEGORIES    m_category;
+#ifdef __APPLE__
+  float m_minDistance;
+  float m_lastDistance;
+  float m_lastAzimuth;
+  float m_lastElevation;
+#endif
 };
 
 void SndSetObstructionCallback(float (*callback)(const NTempest::C3Vector &, const NTempest::C3Vector &));

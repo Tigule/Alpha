@@ -56,10 +56,6 @@ LONG SInterlockedExchangeAdd(LONG *valuePtr, LONG delta) {
   return original;
 }
 
-LONG SInterlockedExchangeSub(LONG *valuePtr, LONG delta) {
-  return SInterlockedExchangeAdd(valuePtr, -delta);
-}
-
 LONG SInterlockedExchange(LONG *destPtr, LONG exchange) {
   LONG original;
 
@@ -68,90 +64,4 @@ LONG SInterlockedExchange(LONG *destPtr, LONG exchange) {
   *destPtr = exchange;
   pthread_mutex_unlock(&s_lock);
   return original;
-}
-
-LONG SInterlockedCompareExchange(LONG *destPtr, LONG exchange, LONG comperand) {
-  LONG original;
-
-  pthread_mutex_lock(&s_lock);
-  original = *destPtr;
-  if (original == comperand) {
-    *destPtr = exchange;
-  }
-  pthread_mutex_unlock(&s_lock);
-  return original;
-}
-
-LONGLONG SInterlockedIncrement(LONGLONG *valuePtr) {
-  return ++*valuePtr;
-}
-
-LONGLONG SInterlockedDecrement(LONGLONG *valuePtr) {
-  return --*valuePtr;
-}
-
-LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, LONG delta) {
-  LONGLONG original = *valuePtr;
-  *valuePtr += delta;
-  return original;
-}
-
-LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, LONG delta) {
-  LONGLONG original = *valuePtr;
-  *valuePtr -= delta;
-  return original;
-}
-
-LONGLONG SInterlockedExchangeAdd(LONGLONG *valuePtr, const LONGLONG &delta) {
-  LONGLONG original = *valuePtr;
-  *valuePtr += delta;
-  return original;
-}
-
-LONGLONG SInterlockedExchangeSub(LONGLONG *valuePtr, const LONGLONG &delta) {
-  LONGLONG original = *valuePtr;
-  *valuePtr -= delta;
-  return original;
-}
-
-LONGLONG SInterlockedRead(const LONGLONG *sourcePtr) {
-  return *sourcePtr;
-}
-
-LONGLONG SInterlockedExchange(LONGLONG *destPtr, const LONGLONG &exchange) {
-  LONGLONG original = *destPtr;
-  *destPtr = exchange;
-  return original;
-}
-
-LONGLONG SInterlockedCompareExchange(LONGLONG *destPtr, const LONGLONG &exchange, const LONGLONG &comperand) {
-  LONGLONG original = *destPtr;
-  if (original == comperand) {
-    *destPtr = exchange;
-  }
-  return original;
-}
-
-void SInterlockedIncrementNonAtomic(LONGLONG *valuePtr) {
-  *valuePtr += 1;
-}
-
-void SInterlockedDecrementNonAtomic(LONGLONG *valuePtr) {
-  *valuePtr -= 1;
-}
-
-void SInterlockedAddNonAtomic(LONGLONG *valuePtr, LONG delta) {
-  *valuePtr += delta;
-}
-
-void SInterlockedSubNonAtomic(LONGLONG *valuePtr, LONG delta) {
-  *valuePtr -= delta;
-}
-
-void SInterlockedAddNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
-  *valuePtr += delta;
-}
-
-void SInterlockedSubNonAtomic(LONGLONG *valuePtr, const LONGLONG &delta) {
-  *valuePtr -= delta;
 }

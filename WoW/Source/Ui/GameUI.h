@@ -35,7 +35,11 @@ static int  Script_CastPetAction(lua_State *L);
 class CMouseEvent;
 class CSizeEvent;
 class PetAction;
+#ifdef _MSC_VER
 enum SYSMSG_TYPE;
+#else
+#include "Services/SysMessage.h"
+#endif
 
 struct CinematicData {
   const CinematicSequencesRec *sequence;

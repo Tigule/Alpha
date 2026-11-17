@@ -105,7 +105,7 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
 
       UINT elapsed = timeNow - lastUpdate;
       FallLogWrite(
-          "0x%016I64X: last update(0x%08X) fall start time(0x%08X) current time(0x%08X) elapsed time(%u ms)\n", mover->GetGUID(), lastUpdate,
+          "0x%016" FMT_I64 "X: last update(0x%08X) fall start time(0x%08X) current time(0x%08X) elapsed time(%u ms)\n", mover->GetGUID(), lastUpdate,
           mover->m_fallStartTime, timeNow, elapsed
       );
 
@@ -124,7 +124,7 @@ void CMovement::MoveUnits(DWORD timeNow, DWORD lastUpdate) {
           continue;
         }
       } else {
-        LogWrite("(%I64X) (%u) ERROR!!! Somehow we are in the mover list with a speed and turn rate both of zero\n", mover->GetGUID(), timeNow);
+        LogWrite("(%" FMT_I64 "X) (%u) ERROR!!! Somehow we are in the mover list with a speed and turn rate both of zero\n", mover->GetGUID(), timeNow);
       }
 
       globals->movers.UnlinkNode(mover);
@@ -259,7 +259,7 @@ BOOL CMovement::UpdatePlayerMovement(DWORD timeNow) {
 void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
   UINT elapsedMS = timeNow - lastUpdate;
 
-  LogWrite("0x%016I64X: current time(0x%08X) last update(0x%08X) time elapsed(%u)\n", GetGUID(), timeNow, lastUpdate, elapsedMS);
+  LogWrite("0x%016" FMT_I64 "X: current time(0x%08X) last update(0x%08X) time elapsed(%u)\n", GetGUID(), timeNow, lastUpdate, elapsedMS);
   if (!(elapsedMS > 0)) {
     this ? SErrDisplayErrorFmt(
                STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
@@ -282,14 +282,14 @@ void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
     if (((CMovementGlobals *)MovementGetGlobals())->m_localMoveQueue.HasEntries()) {
       CPlayerMoveEvent *event = ((CMovementGlobals *)MovementGetGlobals())->m_localMoveQueue.Root();
       timeToUse = min(event->timeStamp - updateTime, elapsedMS - timeUsed);
-      LogWrite("0x%016I64X: first event time(0x%08X), time to consume(%u)\n", GetGUID(), event->timeStamp, timeToUse);
+      LogWrite("0x%016" FMT_I64 "X: first event time(0x%08X), time to consume(%u)\n", GetGUID(), event->timeStamp, timeToUse);
     } else {
       timeToUse = elapsedMS - timeUsed;
-      LogWrite("0x%016I64X: no events, consuming(%u)\n", GetGUID(), timeToUse);
+      LogWrite("0x%016" FMT_I64 "X: no events, consuming(%u)\n", GetGUID(), timeToUse);
     }
 
     LogWrite(
-        "0x%016I64X: update time(0x%08X) last update(0x%08X) move start(0x%08X) fall start (0x%08X) time used(%u)\n", GetGUID(), updateTime,
+        "0x%016" FMT_I64 "X: update time(0x%08X) last update(0x%08X) move start(0x%08X) fall start (0x%08X) time used(%u)\n", GetGUID(), updateTime,
         lastUpdate, m_moveStartTime, m_fallStartTime, timeUsed
     );
 
@@ -299,7 +299,7 @@ void CMovement::MoveLocalPlayer(DWORD timeNow, DWORD lastUpdate) {
     }
 
     if (!UpdatePlayerMovement(updateTime + 1)) {
-      LogWrite("0x%016I64X: No more movement and player not in motion\n", GetGUID());
+      LogWrite("0x%016" FMT_I64 "X: No more movement and player not in motion\n", GetGUID());
       ((CMovementGlobals *)MovementGetGlobals())->m_localMover = NULL;
       break;
     }
@@ -439,7 +439,7 @@ void CMovement::GetDirection(NTempest::C3Vector *direction) const {
 
 void CMovement::PlotLinearPosition(const NTempest::C3Vector &direction, float secsElapsed, NTempest::C3Vector *totalMove) {
   *totalMove = (direction * secsElapsed) * GetCurrentSpeed();
-  LogWrite("0x%016I64X: Want to move (%g,%g,%g) straight for %g secs\n", m_guid, totalMove->x, totalMove->y, totalMove->z, secsElapsed);
+  LogWrite("0x%016" FMT_I64 "X: Want to move (%g,%g,%g) straight for %g secs\n", m_guid, totalMove->x, totalMove->y, totalMove->z, secsElapsed);
 }
 
 void CMovement::PlotNormalLinearPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
@@ -525,7 +525,7 @@ void CMovement::PlotUnitRotation(float elapsedSec) {
   if (facing < 0.0f) {
     facing += 6.2831855f;
   }
-  LogWrite("0x%016I64X: Turning for %g secs, from (%g) to (%g)\n", GetGUID(), elapsedSec, m_facing, facing);
+  LogWrite("0x%016" FMT_I64 "X: Turning for %g secs, from (%g) to (%g)\n", GetGUID(), elapsedSec, m_facing, facing);
   m_facing = facing;
 }
 
@@ -543,7 +543,7 @@ void CMovement::PlotUnitPitch(float elapsedSec) {
   }
 
   float pitch = CMath::clamp_(GetCurrentPitchRate() * elapsedSec + m_anchorPitch, -1.5707964f, 1.5707964f);
-  LogWrite("0x%016I64X: Pitching for %g secs, from (%g) to (%g)\n", GetGUID(), elapsedSec, m_pitch, pitch);
+  LogWrite("0x%016" FMT_I64 "X: Pitching for %g secs, from (%g) to (%g)\n", GetGUID(), elapsedSec, m_pitch, pitch);
   m_pitch = pitch;
 }
 
@@ -624,7 +624,7 @@ void CMovement::PlotVertCircularPosition(const NTempest::C2Vector &direction2d, 
     }
   }
 
-  LogWrite("0x%016I64X: Want to move (%g,%g,%g) arcing for %g secs\n", GetGUID(), totalMove->x, totalMove->y, totalMove->z, secsElapsed);
+  LogWrite("0x%016" FMT_I64 "X: Want to move (%g,%g,%g) arcing for %g secs\n", GetGUID(), totalMove->x, totalMove->y, totalMove->z, secsElapsed);
 }
 
 void CMovement::PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, float secsElapsed, NTempest::C3Vector *totalMove) {
@@ -637,7 +637,7 @@ void CMovement::PlotHorzCircularPosition(const NTempest::C2Vector &direction2d, 
   totalMove->x = (turnX * direction2d.x - turnY * direction2d.y) * m_cosAnchorPitch;
   totalMove->y = (turnY * direction2d.x + turnX * direction2d.y) * m_cosAnchorPitch;
   totalMove->z = currentSpeed * m_sinAnchorPitch * secsElapsed;
-  LogWrite("0x%016I64X: Want to move (%g,%g,%g) arcing for %g secs\n", GetGUID(), totalMove->x, totalMove->y, totalMove->z, secsElapsed);
+  LogWrite("0x%016" FMT_I64 "X: Want to move (%g,%g,%g) arcing for %g secs\n", GetGUID(), totalMove->x, totalMove->y, totalMove->z, secsElapsed);
 }
 
 void CMovement::PlotNormalCircularPosition(float secsElapsed, NTempest::C3Vector *totalMove) {
@@ -896,7 +896,7 @@ BOOL CMovement::PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move) {
     actionFlags |= IS_STRAFING;
   }
 
-  LogWrite("0x%016I64X: Plotting move for %u ms\n", m_guid, moveTime);
+  LogWrite("0x%016" FMT_I64 "X: Plotting move for %u ms\n", m_guid, moveTime);
 
   int result;
   switch (actionFlags) {
@@ -1055,14 +1055,14 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
         return 1;
       }
       BothLogWrite(
-          "0x%016I64X: Tried moving bogus distance (%g) in zero time, from (%g,%g,%g), teleporting\n", GetGUID(), CMath::sqrt_(distanceSq),
+          "0x%016" FMT_I64 "X: Tried moving bogus distance (%g) in zero time, from (%g,%g,%g), teleporting\n", GetGUID(), CMath::sqrt_(distanceSq),
           m_position.x, m_position.y, m_position.z
       );
     } else {
       float seconds = moveTime * 0.001f;
       if (distanceSq / (seconds * seconds) > 3600.0f) {
         BothLogWrite(
-          "0x%016I64X: Tried moving bogus speed (%g), from (%g,%g,%g), teleporting\n", GetGUID(), CMath::sqrt_(distanceSq) / seconds,
+          "0x%016" FMT_I64 "X: Tried moving bogus speed (%g), from (%g,%g,%g), teleporting\n", GetGUID(), CMath::sqrt_(distanceSq) / seconds,
             m_position.x, m_position.y, m_position.z
         );
       } else {
@@ -1070,7 +1070,7 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
       }
     }
   } else {
-    BothLogWrite("0x%016I64X: Bogus position (%g,%g,%g), teleporting\n", GetGUID(), m_position.x, m_position.y, m_position.z);
+    BothLogWrite("0x%016" FMT_I64 "X: Bogus position (%g,%g,%g), teleporting\n", GetGUID(), m_position.x, m_position.y, m_position.z);
   }
 
   MovementFixOutOfBoundsUnit(GetGUID());
@@ -1143,7 +1143,7 @@ void CMovement::ApplyMovement(DWORD eventTime, UINT fallTime, UINT moveTime, UIN
 
   CallMoveEventHandlers(eventTime, moveAdjusted, oldMoveFlags, wasJumping);
   LogWrite(
-      "0x%016I64X: Moving for %u ms, (%g,%g) from (%g,%g) to (%g,%g), falling %u ms, %g from %g to %g\n", GetGUID(), moveTime,
+      "0x%016" FMT_I64 "X: Moving for %u ms, (%g,%g) from (%g,%g) to (%g,%g), falling %u ms, %g from %g to %g\n", GetGUID(), moveTime,
       m_position.x - m_anchorPosition.x, m_position.y - m_anchorPosition.y, m_anchorPosition.x, m_anchorPosition.y, m_position.x, m_position.y,
       fallTime, m_fallStartElevation - m_position.z, m_fallStartElevation, m_position.z
   );
@@ -1312,9 +1312,9 @@ void CMovement::UpdateAnchors(DWORD eventTime) {
   m_anchorPitch = m_pitch;
   m_moveStartTime = eventTime;
   m_moveFlags |= MOVEFLAG_TIME_VALID;
-  FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", GetGUID(), eventTime);
+  FallLogWrite("0x%016" FMT_I64 "X: setting move start time (0x%08X)\n", GetGUID(), eventTime);
   LogWrite(
-      "0x%016I64X: Updating Anchors (0x%X): position(%g,%g) facing(%g degrees)", GetGUID(), m_moveStartTime, m_anchorPosition.x, m_anchorPosition.y,
+      "0x%016" FMT_I64 "X: Updating Anchors (0x%X): position(%g,%g) facing(%g degrees)", GetGUID(), m_moveStartTime, m_anchorPosition.x, m_anchorPosition.y,
       m_anchorFacing * 57.29578f
   );
   CalcDirection();
@@ -1335,14 +1335,14 @@ BOOL CMovement::StartMove(DWORD eventTime, int forward) {
           m_moveFlags |= MOVEFLAG_PENDING_BACKWARD;
         }
       }
-      LogWrite("0x%016I64X: Move start %s is pending\n", GetGUID(), forward ? "forward" : "backward");
+      LogWrite("0x%016" FMT_I64 "X: Move start %s is pending\n", GetGUID(), forward ? "forward" : "backward");
       return 0;
     }
     m_moveFlags |= MOVEFLAG_NUDGE;
   }
 
   BothLogWrite(
-      "0x%016I64X: Move start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), forward ? "forward" : "backward", eventTime, m_position.x,
+      "0x%016" FMT_I64 "X: Move start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), forward ? "forward" : "backward", eventTime, m_position.x,
       m_position.y, m_position.z, m_facing
   );
   UpdateAnchors(eventTime);
@@ -1402,14 +1402,14 @@ BOOL CMovement::StartStrafe(DWORD eventTime, int left) {
           m_moveFlags |= MOVEFLAG_PENDING_STR_RGHT;
         }
       }
-      LogWrite("0x%016I64X: Strafe start %s is pending\n", GetGUID(), left ? "left" : "right");
+      LogWrite("0x%016" FMT_I64 "X: Strafe start %s is pending\n", GetGUID(), left ? "left" : "right");
       return 0;
     }
     m_moveFlags |= MOVEFLAG_NUDGE;
   }
 
   BothLogWrite(
-      "0x%016I64X: Strafe start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), left ? "left" : "right", eventTime, m_position.x, m_position.y,
+      "0x%016" FMT_I64 "X: Strafe start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), left ? "left" : "right", eventTime, m_position.x, m_position.y,
       m_position.z, m_facing
   );
   UpdateAnchors(eventTime);
@@ -1444,7 +1444,7 @@ BOOL CMovement::ForceJump(DWORD eventTime) {
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_REDIRECTED) | 0x4000;
     m_fallStartElevation = m_position.z;
     m_fallStartTime = eventTime;
-    BothLogWrite("0x%016I64X: Executed jump at (0x%08X) from Z(%g)\n", GetGUID(), eventTime, m_fallStartElevation);
+    BothLogWrite("0x%016" FMT_I64 "X: Executed jump at (0x%08X) from Z(%g)\n", GetGUID(), eventTime, m_fallStartElevation);
   }
   return 1;
 }
@@ -1478,11 +1478,11 @@ void CMovement::OnFall(DWORD eventTime) {
 
 void CMovement::OnCollideRedirServer(DWORD eventTime, const NTempest::C3Vector &position, float facing, const NTempest::C3Vector &redirection) {
   LogWrite(
-      "0x%016I64X: Collide redirect (0x%X) at (%g,%g,%g), (%g), sliding (%g,%g,%g)\n", GetGUID(), eventTime, position.x, position.y, position.z,
+      "0x%016" FMT_I64 "X: Collide redirect (0x%X) at (%g,%g,%g), (%g), sliding (%g,%g,%g)\n", GetGUID(), eventTime, position.x, position.y, position.z,
       facing, redirection.x, redirection.y, redirection.z
   );
   LogWrite(
-      "0x%016I64X: Moving for %u ms, (%g,%g) from (%g,%g) to (%g,%g)\n", GetGUID(), eventTime - m_moveStartTime, position.x - m_anchorPosition.x,
+      "0x%016" FMT_I64 "X: Moving for %u ms, (%g,%g) from (%g,%g) to (%g,%g)\n", GetGUID(), eventTime - m_moveStartTime, position.x - m_anchorPosition.x,
       position.y - m_anchorPosition.y, m_anchorPosition.x, m_anchorPosition.y, position.x, position.y
   );
   m_position = position;
@@ -1496,7 +1496,7 @@ void CMovement::OnCollideRedirServer(DWORD eventTime, const NTempest::C3Vector &
 
 void CMovement::Halt(DWORD eventTime) {
   BothLogWrite(
-      "0x%016I64X: Unit halted (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
+      "0x%016" FMT_I64 "X: Unit halted (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing * 57.29578f
   );
   if (!IsFalling()) {
@@ -1539,7 +1539,7 @@ BOOL CMovement::StopMove(DWORD eventTime) {
   }
 
   if (IsFalling()) {
-    BothLogWrite("0x%016I64X: Move stop is pending\n", GetGUID());
+    BothLogWrite("0x%016" FMT_I64 "X: Move stop is pending\n", GetGUID());
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_PEND_MOVE_MASK) | 0x00010000;
     return 0;
   }
@@ -1550,7 +1550,7 @@ BOOL CMovement::StopMove(DWORD eventTime) {
 
 void CMovement::ForceStopMove(DWORD eventTime) {
   BothLogWrite(
-      "0x%016I64X: Move stop (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
+      "0x%016" FMT_I64 "X: Move stop (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing * 57.29578f
   );
   m_moveFlags = (m_moveFlags & ~(MOVEFLAG_MOVE_MASK | MOVEFLAG_REDIRECTED | MOVEFLAG_PENDING_STOP)) | 0x08000000;
@@ -1574,7 +1574,7 @@ BOOL CMovement::OnMoveStop(DWORD eventTime) {
 
 void CMovement::ForceStopStrafe(DWORD eventTime) {
   BothLogWrite(
-      "0x%016I64X: Strafe stop (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
+      "0x%016" FMT_I64 "X: Strafe stop (0x%X) at (%g,%g,%g), (%g degrees)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing * 57.29578f
   );
   m_moveFlags = (m_moveFlags & ~(MOVEFLAG_STRAFE_MASK | MOVEFLAG_REDIRECTED | MOVEFLAG_PENDING_UNSTRAFE)) | 0x08000000;
@@ -1591,7 +1591,7 @@ BOOL CMovement::StopStrafe(DWORD eventTime) {
   }
 
   if (IsFalling()) {
-    BothLogWrite("0x%016I64X: Strafe stop is pending\n", GetGUID());
+    BothLogWrite("0x%016" FMT_I64 "X: Strafe stop is pending\n", GetGUID());
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_PEND_STRAFE_MASK) | 0x00020000;
     return 0;
   }
@@ -1617,7 +1617,7 @@ BOOL CMovement::OnStrafeStop(DWORD eventTime) {
 
 void CMovement::StartTurn(DWORD eventTime, int left) {
   LogWrite(
-      "0x%016I64X: Turn start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), left ? "left" : "right", eventTime, m_position.x, m_position.y,
+      "0x%016" FMT_I64 "X: Turn start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), left ? "left" : "right", eventTime, m_position.x, m_position.y,
       m_position.z, m_facing
   );
   UpdateAnchors(eventTime);
@@ -1639,7 +1639,7 @@ void CMovement::OnTurnStart(DWORD eventTime, int left) {
 
 void CMovement::StopTurn(DWORD eventTime) {
   if (IsTurning()) {
-    LogWrite("0x%016I64X: Turn stop (0x%X) at (%g,%g,%g), (%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z, m_facing);
+    LogWrite("0x%016" FMT_I64 "X: Turn stop (0x%X) at (%g,%g,%g), (%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z, m_facing);
     UpdateAnchors(eventTime);
     m_moveFlags &= ~MOVEFLAG_TURN_MASK;
   }
@@ -1669,7 +1669,7 @@ void CMovement::SetRunMode(DWORD eventTime, int run) {
     m_moveFlags |= MOVEFLAG_WALK;
   }
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
-  LogWrite("0x%016I64X: Switching to %s mode (0x%08X)\n", m_guid, IsWalking() ? "walk" : "run", m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Switching to %s mode (0x%08X)\n", m_guid, IsWalking() ? "walk" : "run", m_moveStartTime);
 }
 
 void CMovement::OnSetRunMode(DWORD eventTime, int run) {
@@ -1678,7 +1678,7 @@ void CMovement::OnSetRunMode(DWORD eventTime, int run) {
 
 void CMovement::Teleport(DWORD eventTime, const NTempest::C3Vector &position, float facing) {
   LogWrite(
-      "0x%016I64X: Teleporting (0x%X) from (%g,%g,%g) (%g) to (%g,%g,%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
+      "0x%016" FMT_I64 "X: Teleporting (0x%X) from (%g,%g,%g) (%g) to (%g,%g,%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       m_facing, position.x, position.y, position.z
   );
   m_position = position;
@@ -1699,7 +1699,7 @@ void CMovement::Teleport(DWORD eventTime, const NTempest::C3Vector &position, fl
     }
     m_fallStartTime = eventTime;
     m_fallStartElevation = position.z;
-    FallLogWrite("0x%016I64X: Started to fall from teleport at (0x%08X) from (%g elevation)\n", GetGUID(), eventTime, m_fallStartElevation);
+    FallLogWrite("0x%016" FMT_I64 "X: Started to fall from teleport at (0x%08X) from (%g elevation)\n", GetGUID(), eventTime, m_fallStartElevation);
     OnMoveUpdate(GetGUID(), eventTime);
   }
 }
@@ -1817,7 +1817,7 @@ void CMovement::GetUpdateInfo(CClientMoveUpdate *init) const {
     init->spline = *m_spline;
   }
 
-  LogWrite("0x%016I64X: Send move (0x%X) ", GetGUID(), m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Send move (0x%X) ", GetGUID(), m_moveStartTime);
   switch (m_moveFlags & MOVEFLAG_MOVE_MASK) {
     case 2:
       LogWrite("moving backward from ");
@@ -1851,13 +1851,13 @@ void CMovement::UpdateCurrentSpeed() {
 
   if (!IsMovingOrStrafing()) {
     m_currentSpeed = 0.0f;
-    LogWrite("0x%016I64X: Updating current speed to zero\n", GetGUID());
+    LogWrite("0x%016" FMT_I64 "X: Updating current speed to zero\n", GetGUID());
     return;
   }
 
   if (IsSpline()) {
     m_currentSpeed = m_spline->spline.Length() / m_spline->time * 1000.0f;
-    LogWrite("0x%016I64X: Updating spline mover's current speed to (%g)\n", GetGUID(), m_currentSpeed);
+    LogWrite("0x%016" FMT_I64 "X: Updating spline mover's current speed to (%g)\n", GetGUID(), m_currentSpeed);
     return;
   }
 
@@ -1872,7 +1872,7 @@ void CMovement::UpdateCurrentSpeed() {
   }
   m_currentSpeed = speed;
   m_moveFlags &= ~MOVEFLAG_NUDGE;
-  LogWrite("0x%016I64X: Updating current speed to (%g)\n", GetGUID(), m_currentSpeed);
+  LogWrite("0x%016" FMT_I64 "X: Updating current speed to (%g)\n", GetGUID(), m_currentSpeed);
 }
 
 float CMovement::GetCurrentSpeed() {
@@ -1983,7 +1983,7 @@ void CMovement::UpdateTransportStatus(const CMovementStatus &update) {
 
 void CMovement::UpdateStatusInternal(DWORD eventTime, const CMovementStatus &update) {
   FallLogWrite(
-      "0x%016I64X: time (0x%08X) updating from (%g,%g,%g) to (%g,%g,%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
+      "0x%016" FMT_I64 "X: time (0x%08X) updating from (%g,%g,%g) to (%g,%g,%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z,
       update.transRelPosition.x, update.transRelPosition.y, update.transRelPosition.z
   );
 
@@ -2007,7 +2007,7 @@ void CMovement::UpdateStatusInternal(DWORD eventTime, const CMovementStatus &upd
            : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "m_moveFlags & MOVEFLAG_TIME_VALID", FALSE, 1);
     }
     m_moveStartTime = ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime;
-    FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", GetGUID(), m_moveStartTime);
+    FallLogWrite("0x%016" FMT_I64 "X: setting move start time (0x%08X)\n", GetGUID(), m_moveStartTime);
   }
 
   MovementNotifyZoneMgr(GetGUID());
@@ -2028,11 +2028,11 @@ void CMovement::UpdateStatus(DWORD eventTime, const CMovementStatus &update) {
 
 void CMovement::LogUpdateInfo(const CClientMoveUpdate &init) {
   FallLogWrite(
-      "0x%016I64X: ___INIT EVENT: time(0x%X) timeFallen(%u) pos(%g,%g,%g)\n", GetGUID(),
+      "0x%016" FMT_I64 "X: ___INIT EVENT: time(0x%X) timeFallen(%u) pos(%g,%g,%g)\n", GetGUID(),
       ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime, init.timeFallen, init.status.worldPosition.x, init.status.worldPosition.y,
       init.status.worldPosition.z
   );
-  LogWrite("0x%016I64X: Receive move (0x%X) ", GetGUID(), m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Receive move (0x%X) ", GetGUID(), m_moveStartTime);
   switch (m_moveFlags & MOVEFLAG_MOVE_MASK) {
     case 2:
       LogWrite("moving backward from ");
@@ -2088,7 +2088,7 @@ void CMovement::SetUpdateInfo(DWORD eventTime, const CClientMoveUpdate &init, in
   m_turnRate = init.turnRate;
 
   m_moveStartTime = ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime;
-  FallLogWrite("0x%016I64X: setting move start time (0x%08X)\n", GetGUID(), m_moveStartTime);
+  FallLogWrite("0x%016" FMT_I64 "X: setting move start time (0x%08X)\n", GetGUID(), m_moveStartTime);
   m_fallStartTime = ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime - init.timeFallen;
 
   if (init.status.moveFlags & MOVEFLAG_SPLINE_MOVER) {
@@ -2267,7 +2267,7 @@ BOOL CMovement::OnRunSpeedChange(DWORD eventTime, float speed) {
   if (CMath::fequal_(speed, m_runSpeed)) {
     return 0;
   }
-  LogWrite("0x%016I64X: Changing run speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_runSpeed, speed, m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Changing run speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_runSpeed, speed, m_moveStartTime);
   m_runSpeed = speed;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
@@ -2289,7 +2289,7 @@ BOOL CMovement::OnWalkSpeedChange(DWORD eventTime, float speed) {
   if (CMath::fequal_(speed, m_walkSpeed)) {
     return 0;
   }
-  LogWrite("0x%016I64X: Changing walk speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_walkSpeed, speed, m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Changing walk speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_walkSpeed, speed, m_moveStartTime);
   m_walkSpeed = speed;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
@@ -2311,7 +2311,7 @@ BOOL CMovement::OnSwimSpeedChange(DWORD eventTime, float speed) {
   if (CMath::fequal_(speed, m_swimSpeed)) {
     return 0;
   }
-  LogWrite("0x%016I64X: Changing swim speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_swimSpeed, speed, m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Changing swim speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_swimSpeed, speed, m_moveStartTime);
   m_swimSpeed = speed;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
@@ -2333,7 +2333,7 @@ BOOL CMovement::OnTurnRateChange(DWORD eventTime, float rate) {
   if (CMath::fequal_(rate, m_turnRate)) {
     return 0;
   }
-  LogWrite("0x%016I64X: Changing turn rate from (%g) to (%g) (0x%X)\n", GetGUID(), m_turnRate, rate, m_moveStartTime);
+  LogWrite("0x%016" FMT_I64 "X: Changing turn rate from (%g) to (%g) (0x%X)\n", GetGUID(), m_turnRate, rate, m_moveStartTime);
   m_turnRate = rate;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
   return 1;
@@ -2357,7 +2357,7 @@ void CMovement::OnSetFacingLocal(DWORD eventTime, float facing) {
 void CMovement::SetFacing(DWORD eventTime, float facing) {
   if (CMath::fnotequal4_(facing, m_facing)) {
     BothLogWrite(
-        "0x%016I64X: Set Facing (0x%X) at (%g,%g,%g), (%g degrees), changed facing to (%g degrees)\n", GetGUID(), eventTime, m_position.x,
+        "0x%016" FMT_I64 "X: Set Facing (0x%X) at (%g,%g,%g), (%g degrees), changed facing to (%g degrees)\n", GetGUID(), eventTime, m_position.x,
         m_position.y, m_position.z, m_facing * 57.29578f, facing * 57.29578f
     );
     m_facing = facing;
@@ -2375,7 +2375,7 @@ void CMovement::OnSetPitchLocal(DWORD eventTime, float pitch) {
 void CMovement::SetPitch(DWORD eventTime, float pitch) {
   if (IsSwimming() && CMath::fnotequal4_(pitch, m_pitch)) {
     BothLogWrite(
-        "0x%016I64X: Set Pitch (0x%X) at (%g,%g,%g), (%g degrees), changed facing to (%g degrees)\n", GetGUID(), eventTime, m_position.x,
+        "0x%016" FMT_I64 "X: Set Pitch (0x%X) at (%g,%g,%g), (%g degrees), changed facing to (%g degrees)\n", GetGUID(), eventTime, m_position.x,
         m_position.y, m_position.z, m_pitch * 57.29578f, pitch * 57.29578f
     );
     m_pitch = pitch;
@@ -2631,7 +2631,7 @@ void CMovement::RestoreMoveState(const CMoveState &state) {
   m_fallStartElevation = state.fallStartElevation;
   m_jumpVelocity = state.jumpVelocity;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
-  FallLogWrite("0x%016I64X: restoring move state (0x%08X)\n", m_guid, m_moveStartTime);
+  FallLogWrite("0x%016" FMT_I64 "X: restoring move state (0x%08X)\n", m_guid, m_moveStartTime);
 }
 
 int CMovement::GetMoveEventMsgId(UINT oldMoveFlags, BOOL wasJumping) {
@@ -2701,14 +2701,14 @@ void CMovement::StopSwimLocal(DWORD eventTime) {
 }
 
 void CMovement::StartSwim(DWORD eventTime) {
-  BothLogWrite("0x%016I64X: Swim start (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
+  BothLogWrite("0x%016" FMT_I64 "X: Swim start (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
   UpdateAnchors(eventTime);
   m_moveFlags |= MOVEFLAG_SWIMMING | MOVEFLAG_SPEED_DIRTY;
   OnDisableGravity(eventTime);
 }
 
 void CMovement::StopSwim(DWORD eventTime) {
-  BothLogWrite("0x%016I64X: Swim stop (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
+  BothLogWrite("0x%016" FMT_I64 "X: Swim stop (0x%X) from (%g,%g,%g), (%g)\n", m_guid, eventTime, m_position.x, m_position.y, m_position.z, m_facing);
   UpdateAnchors(eventTime);
   m_moveFlags = (m_moveFlags & ~(MOVEFLAG_PITCH_MASK | MOVEFLAG_SWIMMING | MOVEFLAG_SPEED_DIRTY)) | 0x08000000;
   m_anchorPitch = 0.0f;
@@ -2762,7 +2762,7 @@ void CMovement::OnPitchStop(DWORD eventTime) {
 void CMovement::StartPitch(DWORD eventTime, int up) {
   if (IsSwimming()) {
     LogWrite(
-        "0x%016I64X: Pitch start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), up ? "up" : "down", eventTime, m_position.x, m_position.y,
+        "0x%016" FMT_I64 "X: Pitch start %s (0x%X) from (%g,%g,%g), (%g)\n", GetGUID(), up ? "up" : "down", eventTime, m_position.x, m_position.y,
         m_position.z, m_facing
     );
     UpdateAnchors(eventTime);
@@ -2776,7 +2776,7 @@ void CMovement::StartPitch(DWORD eventTime, int up) {
 
 void CMovement::StopPitch(DWORD eventTime) {
   if (IsSwimming() && IsPitching()) {
-    LogWrite("0x%016I64X: Pitch stop (0x%X) at (%g,%g,%g), (%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z, m_facing);
+    LogWrite("0x%016" FMT_I64 "X: Pitch stop (0x%X) at (%g,%g,%g), (%g)\n", GetGUID(), eventTime, m_position.x, m_position.y, m_position.z, m_facing);
     UpdateAnchors(eventTime);
     m_moveFlags &= ~MOVEFLAG_PITCH_MASK;
   }

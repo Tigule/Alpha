@@ -38,6 +38,22 @@ if(WIN32)
         W32/SThread.cpp
         Storm.cpp
     )
+elseif(APPLE)
+    target_sources(Storm PRIVATE
+        Mac/SDir.cpp
+        Mac/SErrMac.cpp
+        SFile.cpp
+        Mac/SInterlocked.cpp
+        Mac/SLock.cpp
+        Mac/SLog.cpp
+        Mac/SMemMalloc.cpp
+        Mac/SRegMac.cpp
+        Mac/SSync.cpp
+        Mac/SThread.cpp
+        Mac/Storm.cpp
+    )
+    set_source_files_properties(Mac/SErrMac.cpp Mac/SThread.cpp PROPERTIES LANGUAGE OBJCXX)
+    target_include_directories(Storm PRIVATE ../../Engine/Source)
 endif()
 
 target_include_directories(Storm PRIVATE

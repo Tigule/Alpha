@@ -72,6 +72,7 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
       *(DWORD *)optval = g_opt.serrsuppresslogs;
       break;
     case 8:
+#ifdef _WIN32
       if (*optlen < 2 * sizeof(DWORD)) {
         return FALSE;
       }
@@ -86,6 +87,7 @@ extern "C" BOOL APIENTRY StormGetOption(int optname, LPVOID optval, LPDWORD optl
       *optlen = 2 * sizeof(DWORD);
       SErrSetLastError(ERROR_SUCCESS);
       return TRUE;
+#endif
     case 9:
       if (*optlen < sizeof(DWORD)) {
         return FALSE;

@@ -26,6 +26,14 @@ if(WIN32)
         CGxDeviceOpenGL/W32/CGxOglDeviceW32.cpp
         CGxDeviceOpenGL/W32/GlWndSupport.cpp
     )
+elseif(APPLE)
+    target_sources(Gx PRIVATE
+        CGxDevice/CGxDevice.cpp
+        CGxDeviceOpenGL/Mac/CGxOglDeviceMac.cpp
+        CGxDeviceOpenGL/Mac/CGxOglPrim_OSX.cpp
+        CGxDeviceOpenGL/Mac/GlWndSupportMac.mm
+    )
+    set_source_files_properties(CGxDeviceOpenGL/CGxOglPrim.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
 endif()
 
 target_include_directories(Gx PRIVATE
@@ -33,7 +41,8 @@ target_include_directories(Gx PRIVATE
     ../../../Storm/H
 )
 
-if(NOT HAVE_WIN8_SDK)
+if(APPLE)
+elseif(NOT HAVE_WIN8_SDK)
     target_include_directories(Gx PRIVATE "$ENV{DXSDK_DIR}/Include")
 else()
     # D3DAssemble is not exposed in Windows SDK headers

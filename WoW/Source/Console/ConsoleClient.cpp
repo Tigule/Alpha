@@ -1476,7 +1476,11 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
     SetDefaultsFormat(s_defaults, s_hardware);
   }
 
+#ifdef __APPLE__
+  gxApi = GxApi_OpenGl;
+#else
   gxApi = GxApi_Direct3d;
+#endif
   if (!SStrCmpI(s_cvGxApi->GetString(), "OpenGl", 0x7FFFFFFF)) {
     gxApi = GxApi_OpenGl;
   }

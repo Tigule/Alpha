@@ -1008,6 +1008,18 @@ BOOL CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID p
   int (*callback)(const CSizeEvent &) = top->m_displaySizeCallback;
 
   GxuFontWindowSizeChanged();
+#if BUILD_FIXES
+  // tigule: window resizing wasn't recalculating text widths without a UI reload, sometimes showing "Logi" instead of "Login"
+  for (UINT i = 0; i < NUM_FRAME_STRATA; ++i) {
+    for (UINT level = 0; level < top->m_strata[i]->topLevel; ++level) {
+      ITERATELIST(CSimpleFrame, top->m_strata[i]->levels[level]->frames, frame) {
+        if (!frame->GetParent()) {
+          frame->SetLayoutScale(frame->GetLayoutScale(), true);
+        }
+      }
+    }
+  }
+#endif
   if (callback) {
     CSizeEvent sizeEvent(*pSizeData);
 

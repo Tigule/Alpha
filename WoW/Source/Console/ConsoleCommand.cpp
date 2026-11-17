@@ -312,7 +312,7 @@ static BOOL ConsoleCommand_CloseExec(LPCSTR cmd, LPCSTR arguments) {
   SStrCopy(filePath, s_fileName, sizeof(filePath));
   if (CreateWTFFilePath(filePath, sizeof(filePath))) {
     file = OsCreateFile(filePath, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
-    if (file == (HOSFILE)-1) {
+    if (file == HOSFILE_INVALID) {
       ConsoleWrite("Error trying to create the file.", ERROR_COLOR);
     } else {
       if (g_ExecCreateMode == EM_APPEND) {

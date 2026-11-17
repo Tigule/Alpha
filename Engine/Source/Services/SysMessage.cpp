@@ -230,7 +230,7 @@ void SysMsgEnableFileLog(LPCSTR baseDir) {
     s_osFile = OsCreateFile(fileName, 0x40000000, 1, 4, 0x80, 0x3F3F3F3F);
   }
 
-  if (s_osFile == (HOSFILE)-1) {
+  if (s_osFile == HOSFILE_INVALID) {
     s_osFile = 0;
   }
 }

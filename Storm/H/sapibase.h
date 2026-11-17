@@ -572,7 +572,7 @@ extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename 
 extern "C" void APIENTRY   SMemSetDebugFlags(DWORD flags, DWORD changeMask);
 extern "C" void __cdecl    SMemTrace(LPCSTR format, ...);
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || !defined(_WIN32)
 inline void __cdecl operator delete(LPVOID ptr) {
   if (ptr) {
     SMemFree(ptr, "delete", -1, 0);

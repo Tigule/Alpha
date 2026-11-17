@@ -1,6 +1,7 @@
 #include <storm.h>
 #include <stpl.h>
 
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -23,6 +24,18 @@ struct RegistryEntry : TSHashObject<RegistryEntry, HASHKEY_STRI> {
     char *string;
   };
   DWORD size;
+
+  void Clear() {
+    if (type == REGTYPE_BINARY || type == REGTYPE_STRING) {
+      if (string) {
+        SMemFree(string, __FILE__, __LINE__, 0);
+      }
+    }
+
+    type = 0;
+    string = 0;
+    size = 0;
+  }
 };
 
 struct RegistryFileEntry : TSHashObject<RegistryFileEntry, HASHKEY_STRI> {};
@@ -33,67 +46,97 @@ struct WriteRegistryEntry : TSHashObject<WriteRegistryEntry, HASHKEY_STRI> {
   int   written;
 };
 
-static const char k_localMachineSubdirectory[] = "";
-static const char k_battleNetSubdirectory[] = "";
+const char *k_localMachineSubdirectory = "/Blizzard";
+const char *k_battleNetSubdirectory = "/Battle.net";
 
 static TSHashTable<RegistryFileEntry, HASHKEY_STRI> s_fileTable;
 static TSHashTable<RegistryEntry, HASHKEY_STRI>     s_entryTable;
 
-static LPCSTR AutoGetUserPath() {
-  static char s_path[0x400];
-  static int  s_valid;
+static LPCSTR GetGlobalPreferencesDirectory() {
+  static struct AutoGetPath {
+    char path[0x400];
 
-  if (!s_valid) {
-    FSRef ref;
-    OSErr err;
+    AutoGetPath() {
+      FSRef ref;
+      OSErr err;
+      UInt8 usersPath[0x400];
 
-    s_path[0] = 0;
+      path[0] = 0;
 
-    err = FSFindFolder(kUserDomain, kPreferencesFolderType, kCreateFolder, &ref);
-    ASSERT(err == noErr);
+      err = FSFindFolder(kOnAppropriateDisk, kUsersFolderType, kCreateFolder, &ref);
+      if (!(err == noErr)) {
+        SErrDisplayErrorFmt(
+            STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+            isprint((err >> 24) & 0xFF) && isprint((err >> 16) & 0xFF) && isprint((err >> 8) & 0xFF) && isprint(err & 0xFF)
+                ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+                : "\"%s\", %s = %ld (0x%08X)",
+            "err == noErr", "err", (long)err, err, (err >> 24) & 0xFF, (err >> 16) & 0xFF, (err >> 8) & 0xFF, err & 0xFF
+        );
+      }
 
-    if (!err) {
-      OSStatus status = FSRefMakePath(&ref, (UInt8 *)s_path, sizeof(s_path));
-      ASSERT(status == noErr);
-    }
+      if (err == noErr) {
+        err = FSRefMakePath(&ref, usersPath, sizeof(usersPath));
+        if (!(err == noErr)) {
+          SErrDisplayErrorFmt(
+              STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+              isprint((err >> 24) & 0xFF) && isprint((err >> 16) & 0xFF) && isprint((err >> 8) & 0xFF) && isprint(err & 0xFF)
+                  ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+                  : "\"%s\", %s = %ld (0x%08X)",
+              "err == noErr", "err", (long)err, err, (err >> 24) & 0xFF, (err >> 16) & 0xFF, (err >> 8) & 0xFF, err & 0xFF
+          );
+        }
 
-    s_valid = 1;
-  }
-
-  return s_path;
-}
-
-static LPCSTR AutoGetSharedPath() {
-  static char s_path[0x400];
-  static int  s_valid;
-
-  if (!s_valid) {
-    FSRef ref;
-    OSErr err;
-    UInt8 usersPath[0x400];
-
-    s_path[0] = 0;
-
-    err = FSFindFolder(kUserDomain, kUsersFolderType, kCreateFolder, &ref);
-    ASSERT(err == noErr);
-
-    if (!err) {
-      OSStatus status = FSRefMakePath(&ref, usersPath, sizeof(usersPath));
-      ASSERT(status == noErr);
-
-      if (!status) {
-        SStrPrintf(s_path, sizeof(s_path), "%s/Shared", usersPath);
-        OsCreateDirectory(s_path, 1);
+        if (err == noErr) {
+          SStrPrintf(path, sizeof(path), "%s/Shared", usersPath);
+          OsCreateDirectory(path, 1);
+        }
       }
     }
+  } s_autoGetPath;
 
-    s_valid = 1;
-  }
-
-  return s_path;
+  return s_autoGetPath.path;
 }
 
-static void BuildKeyAndPath(LPCSTR keyname, LPCSTR valuename, DWORD flags, char *key, DWORD keysize, char *path, DWORD pathsize) {
+static LPCSTR GetCurrentUserPreferencesDirectory() {
+  static struct AutoGetPath {
+    char path[0x400];
+
+    AutoGetPath() {
+      FSRef ref;
+      OSErr err;
+
+      path[0] = 0;
+
+      err = FSFindFolder(kOnAppropriateDisk, kPreferencesFolderType, kCreateFolder, &ref);
+      if (!(err == noErr)) {
+        SErrDisplayErrorFmt(
+            STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+            isprint((err >> 24) & 0xFF) && isprint((err >> 16) & 0xFF) && isprint((err >> 8) & 0xFF) && isprint(err & 0xFF)
+                ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+                : "\"%s\", %s = %ld (0x%08X)",
+            "err == noErr", "err", (long)err, err, (err >> 24) & 0xFF, (err >> 16) & 0xFF, (err >> 8) & 0xFF, err & 0xFF
+        );
+      }
+
+      if (err == noErr) {
+        err = FSRefMakePath(&ref, (UInt8 *)path, sizeof(path));
+        if (!(err == noErr)) {
+          SErrDisplayErrorFmt(
+              STORM_ERROR_ASSERTION, __FILE__, __LINE__, FALSE, 1,
+              isprint((err >> 24) & 0xFF) && isprint((err >> 16) & 0xFF) && isprint((err >> 8) & 0xFF) && isprint(err & 0xFF)
+                  ? "\"%s\", %s = %ld (0x%08X, '%c%c%c%c')"
+                  : "\"%s\", %s = %ld (0x%08X)",
+              "err == noErr", "err", (long)err, err, (err >> 24) & 0xFF, (err >> 16) & 0xFF, (err >> 8) & 0xFF, err & 0xFF
+          );
+        }
+      }
+    }
+  } s_autoGetPath;
+
+  return s_autoGetPath.path;
+}
+
+static void CreateKey(LPCSTR keyname, LPCSTR valuename, DWORD flags, char *key, UINT keysize, char *path, UINT pathsize) {
   char   group[0x400];
   char  *separator;
   LPCSTR scope;
@@ -109,11 +152,15 @@ static void BuildKeyAndPath(LPCSTR keyname, LPCSTR valuename, DWORD flags, char 
 
   if (flags & SREG_FLAG_BATTLENET) {
     scope = "Battle.net";
-    directory = AutoGetSharedPath();
+    directory = GetGlobalPreferencesDirectory();
     subdirectory = k_battleNetSubdirectory;
+  } else if (flags & 4) {
+    scope = "Local Machine";
+    directory = GetGlobalPreferencesDirectory();
+    subdirectory = k_localMachineSubdirectory;
   } else {
     scope = "Current User";
-    directory = AutoGetUserPath();
+    directory = GetCurrentUserPreferencesDirectory();
     subdirectory = "";
   }
 
@@ -121,25 +168,7 @@ static void BuildKeyAndPath(LPCSTR keyname, LPCSTR valuename, DWORD flags, char 
   SStrPrintf(path, pathsize, "%s%s/com.blizzard.%s.prefs", directory, subdirectory, group);
 }
 
-// Values are stored one per pair of lines.  Non printable bytes are escaped as
-// %XX hex pairs, and a literal percent is written as %%.
-static int HexDigit(int c) {
-  if (c >= '0' && c <= '9') {
-    return c - '0';
-  }
-
-  if (c >= 'A' && c <= 'F') {
-    return c - 'A' + 10;
-  }
-
-  if (c >= 'a' && c <= 'f') {
-    return c - 'a' + 10;
-  }
-
-  return 0;
-}
-
-static void ReadEscapedValue(FILE *file, RegistryEntry *entry, int terminate) {
+static void ReadEscapedString(FILE *file, RegistryEntry *entry, bool terminate) {
   TSGrowableArray<char> data;
   int                   escaped = 0;
   int                   highNibble = 0;
@@ -161,13 +190,15 @@ static void ReadEscapedValue(FILE *file, RegistryEntry *entry, int terminate) {
       highNibble = 1;
       pending = 0;
     } else if (escaped) {
+      int digit = (c >= '0' && c <= '9') ? c - '0' : (c >= 'A' && c <= 'F') ? c - 'A' + 10 : (c >= 'a' && c <= 'f') ? c - 'a' + 10 : 0;
+
       pending = 1;
 
       if (highNibble) {
-        *data.New() = (char)(16 * HexDigit(c));
+        *data.New() = (char)(16 * digit);
         highNibble = 0;
       } else {
-        data[data.Count() - 1] |= HexDigit(c);
+        data[data.Count() - 1] |= digit;
         highNibble = 1;
       }
     } else {
@@ -184,16 +215,20 @@ static void ReadEscapedValue(FILE *file, RegistryEntry *entry, int terminate) {
   memcpy(entry->string, &data[0], data.Count());
 }
 
-static void WriteEscapedValue(FILE *file, LPCSTR data, DWORD size) {
-  DWORD index;
+static void WriteEscapedString(FILE *file, LPCVOID data, UINT size) {
+  UINT index;
 
   for (index = 0; index < size; ++index) {
-    BYTE byte = (BYTE)data[index];
+    BYTE byte = ((const BYTE *)data)[index];
 
     if (byte == '%') {
-      fprintf(file, "%%%%");
+      fputc('%', file);
+      fputc('%', file);
     } else if (byte < 0x20 || byte >= 0x7F) {
-      fprintf(file, "%%%02X%%", byte);
+      fputc('%', file);
+      fputc("0123456789ABCDEF"[byte >> 4], file);
+      fputc("0123456789ABCDEF"[byte & 0xF], file);
+      fputc('%', file);
     } else {
       fputc(byte, file);
     }
@@ -224,10 +259,10 @@ static void LoadRegistryFile(LPCSTR path) {
 
       if (sigil == REGSIGIL_STRING) {
         entry->type = REGTYPE_STRING;
-        ReadEscapedValue(file, entry, 1);
+        ReadEscapedString(file, entry, true);
       } else if (sigil == REGSIGIL_BINARY) {
         entry->type = REGTYPE_BINARY;
-        ReadEscapedValue(file, entry, 0);
+        ReadEscapedString(file, entry, false);
       } else if (sigil == REGSIGIL_DWORD) {
         entry->type = REGTYPE_DWORD;
         fscanf(file, "%d\n", &entry->value);
@@ -240,7 +275,7 @@ static void LoadRegistryFile(LPCSTR path) {
   s_fileTable.New(path, 0, 0);
 }
 
-static RegistryEntry *FindEntry(LPCSTR key, LPCSTR path) {
+static RegistryEntry *LoadRegistryEntry(LPCSTR key, LPCSTR path) {
   RegistryEntry *entry = s_entryTable.Ptr(key);
 
   if (entry) {
@@ -251,19 +286,11 @@ static RegistryEntry *FindEntry(LPCSTR key, LPCSTR path) {
   return s_entryTable.Ptr(key);
 }
 
-static RegistryEntry *CreateEntry(LPCSTR key, LPCSTR path) {
-  RegistryEntry *entry = FindEntry(key, path);
+static RegistryEntry *CreateRegistryEntry(LPCSTR key, LPCSTR path) {
+  RegistryEntry *entry = LoadRegistryEntry(key, path);
 
   if (entry) {
-    if (entry->type == REGTYPE_BINARY || entry->type == REGTYPE_STRING) {
-      if (entry->string) {
-        SMemFree(entry->string, __FILE__, __LINE__, 0);
-      }
-    }
-
-    entry->type = 0;
-    entry->string = 0;
-    entry->size = 0;
+    entry->Clear();
     return entry;
   }
 
@@ -275,16 +302,18 @@ extern "C" BOOL APIENTRY SRegLoadString(LPCSTR keyname, LPCSTR valuename, UINT f
   char           key[0x400];
   char           path[0x400];
 
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
-  FATALASSERT(buffer);
-  FATALASSERT(buffersize);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATE(buffer);
+  VALIDATE(buffersize);
+  VALIDATEEND;
 
-  BuildKeyAndPath(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
+  CreateKey(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
 
-  entry = FindEntry(key, path);
+  entry = LoadRegistryEntry(key, path);
   if (entry && entry->type == REGTYPE_STRING) {
     SStrCopy(buffer, entry->string, buffersize);
     return TRUE;
@@ -298,15 +327,17 @@ extern "C" BOOL APIENTRY SRegLoadValue(LPCSTR keyname, LPCSTR valuename, UINT fl
   char           key[0x400];
   char           path[0x400];
 
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
-  FATALASSERT(value);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATE(value);
+  VALIDATEEND;
 
-  BuildKeyAndPath(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
+  CreateKey(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
 
-  entry = FindEntry(key, path);
+  entry = LoadRegistryEntry(key, path);
   if (entry && entry->type == REGTYPE_DWORD) {
     *value = entry->value;
     return TRUE;
@@ -321,17 +352,19 @@ extern "C" BOOL APIENTRY SRegSaveString(LPCSTR keyname, LPCSTR valuename, UINT f
   char           key[0x400];
   char           path[0x400];
 
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
-  FATALASSERT(string);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATE(string);
+  VALIDATEEND;
 
   bytes = SStrLen(string) + 1;
 
-  BuildKeyAndPath(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
+  CreateKey(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
 
-  entry = CreateEntry(key, path);
+  entry = CreateRegistryEntry(key, path);
   entry->type = REGTYPE_STRING;
   entry->string = (char *)SMemAlloc(bytes, __FILE__, __LINE__, 0);
   entry->size = bytes;
@@ -345,14 +378,16 @@ extern "C" BOOL APIENTRY SRegSaveValue(LPCSTR keyname, LPCSTR valuename, UINT fl
   char           key[0x400];
   char           path[0x400];
 
-  FATALASSERT(keyname);
-  FATALASSERT(*keyname);
-  FATALASSERT(valuename);
-  FATALASSERT(*valuename);
+  VALIDATEBEGIN;
+  VALIDATE(keyname);
+  VALIDATE(*keyname);
+  VALIDATE(valuename);
+  VALIDATE(*valuename);
+  VALIDATEEND;
 
-  BuildKeyAndPath(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
+  CreateKey(keyname, valuename, flags, key, sizeof(key), path, sizeof(path));
 
-  entry = CreateEntry(key, path);
+  entry = CreateRegistryEntry(key, path);
   entry->type = REGTYPE_DWORD;
   entry->value = value;
 
@@ -365,7 +400,7 @@ extern "C" BOOL APIENTRY SRegDestroy() {
   WriteRegistryEntry                           *writeEntry;
 
   while ((entry = s_entryTable.Head()) != 0) {
-    LPCSTR fullKey = entry->Key().GetString();
+    LPCSTR fullKey = entry->GetString();
     LPCSTR keyEnd;
     LPCSTR valueStart;
     char   group[0x400];
@@ -387,13 +422,13 @@ extern "C" BOOL APIENTRY SRegDestroy() {
       char   folder[0x400];
 
       if (group[0] == 'B') {
-        directory = AutoGetSharedPath();
+        directory = GetGlobalPreferencesDirectory();
         subdirectory = k_battleNetSubdirectory;
       } else if (group[0] == 'L') {
-        directory = AutoGetSharedPath();
+        directory = GetGlobalPreferencesDirectory();
         subdirectory = k_localMachineSubdirectory;
       } else if (group[0] == 'C') {
-        directory = AutoGetUserPath();
+        directory = GetCurrentUserPreferencesDirectory();
         subdirectory = "";
       } else {
         s_entryTable.Delete(entry);
@@ -415,10 +450,10 @@ extern "C" BOOL APIENTRY SRegDestroy() {
 
       if (entry->type == REGTYPE_STRING) {
         fprintf(writeEntry->file, "%c%s\n", REGSIGIL_STRING, fullKey);
-        WriteEscapedValue(writeEntry->file, entry->string, SStrLen(entry->string));
+        WriteEscapedString(writeEntry->file, entry->string, SStrLen(entry->string));
       } else if (entry->type == REGTYPE_BINARY) {
         fprintf(writeEntry->file, "%c%s\n", REGSIGIL_BINARY, fullKey);
-        WriteEscapedValue(writeEntry->file, entry->string, entry->size);
+        WriteEscapedString(writeEntry->file, entry->string, entry->size);
       } else if (entry->type == REGTYPE_DWORD) {
         fprintf(writeEntry->file, "%c%s\n%d\n", REGSIGIL_DWORD, fullKey, entry->value);
       }
@@ -430,6 +465,10 @@ extern "C" BOOL APIENTRY SRegDestroy() {
   while ((writeEntry = writeTable.Head()) != 0) {
     if (writeEntry->file) {
       fclose(writeEntry->file);
+    }
+
+    if (!writeEntry->written) {
+      unlink(writeEntry->path);
     }
 
     writeTable.Delete(writeEntry);

@@ -58,9 +58,11 @@ namespace NTempest {
     operator C2Vector() const {
       return C2Vector(x, y);
     }
+#ifdef _MSC_VER
     operator C3Vector() const {
       return C3Vector(x, y, z);
     }
+#endif
 
     C4Vector &operator+=(const C4Vector &a) {
       x += a.x;
@@ -193,6 +195,11 @@ namespace NTempest {
       return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
     }
   };
+
+#ifndef _MSC_VER
+  inline C3Vector::C3Vector(const C4Vector &a) : x(a.x), y(a.y), z(a.z) {
+  }
+#endif
 
   inline C4Vector operator+(const C4Vector &l, const C4Vector &r) {
     return C4Vector(l.x + r.x, l.y + r.y, l.z + r.z, l.w + r.w);

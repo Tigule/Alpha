@@ -2,6 +2,12 @@
 #include <StormStartup.h>
 #endif
 
+#ifdef __APPLE__
+#define BOOL OBJC_BOOL
+#import <AppKit/AppKit.h>
+#undef BOOL
+#endif
+
 #include <Base/Base.h>
 #include <Gx/Gx.h>
 #include <WowConst.h>
@@ -26,6 +32,13 @@
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleVar.h"
 #include "Client.h"
+#ifndef _WIN32
+#include "Mac/Source/MacClient.h"
+
+namespace MoreCocoa {
+BOOL AutoReleaseFlush(LPCVOID, LPVOID);
+}
+#endif
 #include "Glue/CGlueMgr.h"
 #include "UIUtil/Tooltip.h"
 #include "Ui/ChatFrame.h"
@@ -271,14 +284,14 @@ static BOOL MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD tim
   if (CMovement::ToggleFallLogging()) {
     SysMsgAdd("MOVEMENT|Movement fall logging started", SYSMSG_INFO, 1);
     if (CGUnit_C::GetActiveMover()) {
-      CMovement::FallLogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::GetActiveMover());
+      CMovement::FallLogWrite("Local mover guid (0x%016" FMT_I64 "X)\n", CGUnit_C::GetActiveMover());
     }
 
     DWORDLONG   guid = ClntObjMgrGetActivePlayer();
     CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
     if (object) {
       DWORDLONG target = ((CGPlayer_C *)object)->GetLocalTarget();
-      CMovement::FallLogWrite("Local target guid (0x%016I64X)\n", target);
+      CMovement::FallLogWrite("Local target guid (0x%016" FMT_I64 "X)\n", target);
     }
   } else {
     SysMsgAdd("MOVEMENT|Movement fall logging stopped", SYSMSG_INFO, 1);
@@ -291,7 +304,7 @@ static BOOL MovementLoggingHandler(LPVOID param, NETMESSAGE msgID, DWORD time, C
   if (CMovement::ToggleLogging()) {
     SysMsgAdd("MOVEMENT|Movement logging started", SYSMSG_INFO, 1);
     if (CGUnit_C::GetActiveMover()) {
-      CMovement::LogWrite("Local mover guid (0x%016I64X)\n", CGUnit_C::GetActiveMover());
+      CMovement::LogWrite("Local mover guid (0x%016" FMT_I64 "X)\n", CGUnit_C::GetActiveMover());
     }
   } else {
     SysMsgAdd("MOVEMENT|Movement logging stopped", SYSMSG_INFO, 1);
@@ -988,6 +1001,9 @@ static BOOL InitializeHandlerPlayer(LPCVOID, LPVOID) {
   TextureInitialize();
   ModelInitialize();
   CacheUpdateInitialize();
+#ifndef _WIN32
+  EventSetTimer(15000u, MoreCocoa::AutoReleaseFlush, 0);
+#endif
   WowClientInit();
   ConsoleCommandExecute("run autoexec.wtf", 1);
   return 1;
@@ -1394,6 +1410,7 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
 }
 
 static void LaunchWoWError(LPCSTR logFileName) {
+#ifdef _WIN32
   char cmd[520];
 
 #if defined(_DEBUG)
@@ -1405,6 +1422,17 @@ static void LaunchWoWError(LPCSTR logFileName) {
 #else
   SStrPrintf(cmd, sizeof(cmd), "%s %s", "WowError.exe", logFileName);
   SCreateProcess("WowError.exe", cmd, 0, 0);
+#endif
+#elif defined(__APPLE__)
+  NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+  NSString          *application = [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent:@"WoWError.app"];
+  NSWorkspace       *workspace = [NSWorkspace sharedWorkspace];
+
+  if ([workspace isFilePackageAtPath:application]) {
+    [workspace openFile:[NSString stringWithUTF8String:logFileName] withApplication:application];
+  }
+
+  [pool release];
 #endif
 }
 
@@ -1418,7 +1446,11 @@ static BOOL APIENTRY SendErrorLog(DWORD code, LPCSTR msg, LPCSTR file, int line,
   return TRUE;
 }
 
+#ifdef _WIN32
 int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
+#else
+void CommonMain() {
+#endif
   StormInitialize();
   SErrCatchUnhandledExceptions();
 
@@ -1441,12 +1473,20 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
     SErrRegisterHandler(SendErrorLog);
   }
 
+#ifndef _WIN32
+  MacClient::Initialize();
+#endif
   if (InitializeGlobal()) {
     EventDoMessageLoop();
     DestroyGlobal();
   }
 
+#ifndef _WIN32
+  MacClient::Destroy();
+#endif
   StormDestroy();
 
+#ifdef _WIN32
   return 0;
+#endif
 }
