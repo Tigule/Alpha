@@ -25,6 +25,27 @@ if(APPLE)
         Mac/Tls.cpp
         Mac/WAVPlayer.cpp
     )
+elseif(UNIX)
+    add_library(Os STATIC
+        Linux/Debugging.cpp
+        Linux/Errors.cpp
+        Linux/InputSDL.cpp
+        Linux/OsClipboard.cpp
+        Linux/OsFile.cpp
+        Linux/OsGui.cpp
+        Linux/OsNet.cpp
+        Linux/OSSystem.cpp
+        Linux/Time.cpp
+        Mac/OsCall.cpp
+        Mac/OsIME.cpp
+        Mac/OsJoystick.cpp
+        Mac/OsMemory.cpp
+        Mac/Path.cpp
+        Mac/Tls.cpp
+        W32/OsISoundCache.cpp
+        W32/OsSound.cpp
+        W32/OsSoundMIDI.cpp
+    )
 else()
     add_library(Os STATIC
         W32/Debugging.cpp
@@ -58,6 +79,8 @@ target_include_directories(Os PRIVATE
 
 if(APPLE)
     target_link_libraries(Os PUBLIC "-framework AudioToolbox" "-framework AudioUnit" "-framework CoreAudio" "-framework CoreFoundation")
+elseif(UNIX)
+    target_link_libraries(Os PUBLIC fmod PkgConfig::SDL2 X11)
 elseif(NOT HAVE_WIN8_SDK)
     target_include_directories(Os PRIVATE "$ENV{DXSDK_DIR}/Include")
 elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -66,10 +89,10 @@ endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     # dmusic was never ported to 64-bit
-    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS TIGULE_NO_AMBIENCE)
+    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS BUILD_NO_AMBIENCE)
 elseif(NOT EXISTS "$ENV{DXSDK_DIR}/Include/dmusici.h")
     message(STATUS "DXSDK_DIR has no DirectMusic headers (dmusici.h): building without ambience music")
-    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS TIGULE_NO_AMBIENCE)
+    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS BUILD_NO_AMBIENCE)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)

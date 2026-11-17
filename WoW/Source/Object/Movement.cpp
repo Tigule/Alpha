@@ -22,7 +22,7 @@
 
 using NTempest::CMath;
 
-void WVLog(UINT logMask, UINT priority, LPCSTR fmt, char *arglist);
+void WVLog(UINT logMask, UINT priority, LPCSTR fmt, va_list arglist);
 void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
 void OnCollideFalling(DWORDLONG unit, DWORD eventTime);
 void UnitUpdateMovementAnim(const DWORDLONG &unit);
@@ -2168,7 +2168,14 @@ void __cdecl CMovement::BothLogWrite(LPCSTR format, ...) {
     va_start(arglist, format);
     WVLog(0x400, 0x1E, format, arglist);
     if (globals->fallingLog) {
+#ifdef va_copy
+      va_list copy;
+      va_copy(copy, arglist);
+      vfprintf(globals->fallingLog, format, copy);
+      va_end(copy);
+#else
       vfprintf(globals->fallingLog, format, arglist);
+#endif
       fflush(globals->fallingLog);
     }
     if (globals->movementLog) {

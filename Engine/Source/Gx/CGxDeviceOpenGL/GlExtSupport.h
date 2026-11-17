@@ -148,8 +148,13 @@ extern int(APIENTRY *wglReleasePbufferDCARB)(HPBUFFERARB pbuffer, HDC dc);
 extern int(APIENTRY *wglDestroyPbufferARB)(HPBUFFERARB pbuffer);
 
 #ifndef _WIN32
+#ifdef __APPLE__
 #include <dlfcn.h>
 #define wglGetProcAddress(name) dlsym(dlopen("/System/Library/Frameworks/OpenGL.framework/OpenGL", RTLD_LAZY | RTLD_NOLOAD), name)
+#else
+#include <SDL.h>
+#define wglGetProcAddress(name) SDL_GL_GetProcAddress(name)
+#endif
 extern BOOL glExtVertexArrayRangeAPPLE;
 extern BOOL glExtFenceAPPLE;
 extern BOOL glExtVertexArrayObjectAPPLE;

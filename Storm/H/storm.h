@@ -171,7 +171,11 @@ typedef struct _CONTEXT     CONTEXT;
 #include <cstring>
 
 typedef unsigned int  uint;
+#ifdef __linux__
+#define ulong DWORD
+#else
 typedef DWORD         ulong;
+#endif
 
 #if defined(_MSC_VER) && _MSC_VER == 1200
 const UINT  INFINITY_ENCODING = 0x7F800000;

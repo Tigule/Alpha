@@ -56,7 +56,8 @@ elseif(APPLE)
     )
 elseif(UNIX)
     add_executable(Wow
-        LinuxClient.cpp
+        Client.cpp
+        Mac/Source/Utils.cpp
     )
 endif()
 
@@ -227,7 +228,7 @@ if(APPLE)
     )
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (UNIX AND NOT APPLE))
     target_link_libraries(Wow PRIVATE -Wl,--start-group ${WOW_PROJECT_LIBRARIES} -Wl,--end-group)
 else()
     target_link_libraries(Wow PRIVATE ${WOW_PROJECT_LIBRARIES})

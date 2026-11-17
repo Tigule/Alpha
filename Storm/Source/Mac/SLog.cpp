@@ -291,6 +291,20 @@ extern "C" void APIENTRY SLogDestroy() {
   s_logsysteminit = FALSE;
 }
 
+extern "C" void APIENTRY SLogFlush(HSLOG log) {
+  HLOCKEDLOG lockedhandle;
+  LOGPTR     rec;
+
+  rec = LockLog(log, &lockedhandle, FALSE);
+  if (!rec) {
+    return;
+  }
+  if (rec->file != HOSFILE_INVALID) {
+    FlushLog(rec);
+  }
+  UnlockLog(lockedhandle);
+}
+
 extern "C" void APIENTRY SLogFlushAll() {
   DWORD  i;
   LOGPTR rec;

@@ -126,7 +126,7 @@ static void FixUpLongLongFormatSpecifier(char *specifier) {
 #endif
 }
 
-int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList) {
+int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, va_list argumentList) {
   LPCSTR         end = out + outSize - 1;
   ArgumentSize   argumentSizeList[256] = {e_intSized};
   ArgumentType   orderedArgumentList[256] = {0};
@@ -241,7 +241,7 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
   return out - start;
 }
 
-int __cdecl vsoprintf(char *out, LPCSTR format, char *argumentList) {
+int __cdecl vsoprintf(char *out, LPCSTR format, va_list argumentList) {
   return vsnoprintf(out, PRINTF_DEFAULT_LIMIT, format, argumentList);
 }
 

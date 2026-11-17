@@ -34,6 +34,12 @@ elseif(APPLE)
         CGxDeviceOpenGL/Mac/GlWndSupportMac.mm
     )
     set_source_files_properties(CGxDeviceOpenGL/CGxOglPrim.cpp PROPERTIES HEADER_FILE_ONLY TRUE)
+elseif(UNIX)
+    target_sources(Gx PRIVATE
+        CGxDevice/CGxDevice.cpp
+        CGxDeviceOpenGL/SDL/CGxOglDeviceSDL.cpp
+    )
+    target_link_libraries(Gx PUBLIC PkgConfig::SDL2 GL GLU X11)
 endif()
 
 target_include_directories(Gx PRIVATE
@@ -41,7 +47,7 @@ target_include_directories(Gx PRIVATE
     ../../../Storm/H
 )
 
-if(APPLE)
+if(APPLE OR UNIX)
 elseif(NOT HAVE_WIN8_SDK)
     target_include_directories(Gx PRIVATE "$ENV{DXSDK_DIR}/Include")
 else()

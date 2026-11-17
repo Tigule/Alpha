@@ -54,7 +54,7 @@ class FrameScript_Object {
   }
 
   void         OnScriptEvent(LPCSTR name);
-  void __cdecl OnScriptEvent(LPCSTR name, LPCSTR format, char *arguments);
+  void __cdecl OnScriptEvent(LPCSTR name, LPCSTR format, va_list arguments);
 
  protected:
   virtual BOOL LookupScriptMethod(lua_State *state, LPCSTR name) = 0;
@@ -103,7 +103,7 @@ void         FrameScript_Execute(LPCSTR buffer, LPCSTR filename);
 void         FrameScript_Execute(int function);
 void         FrameScript_Execute(int function, FrameScript_Object *objectTHIS);
 void __cdecl FrameScript_Execute(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, ...);
-void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, char *arguments);
+void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, va_list arguments);
 LPCSTR       FrameScript_GetText(LPCSTR text, int unk, FRAMESCRIPT_GENDER gender);
 int          FrameScript_GetVariable(LPCSTR name, LPCSTR &value);
 void         FrameScript_SignalEvent(UINT index);

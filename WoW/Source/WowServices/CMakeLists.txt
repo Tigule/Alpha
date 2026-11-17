@@ -3,8 +3,13 @@ add_library(WowServices STATIC
     WDataStore.cpp
     WowConnection.cpp
     WowConnectionNet.cpp
-    Linux/WowConnectionNetSelect.cpp
 )
+
+if(UNIX AND NOT APPLE)
+    target_sources(WowServices PRIVATE Linux/WowConnectionNetRTSignal.cpp)
+else()
+    target_sources(WowServices PRIVATE Linux/WowConnectionNetSelect.cpp)
+endif()
 
 target_include_directories(WowServices PRIVATE
     ../../../Engine/Source

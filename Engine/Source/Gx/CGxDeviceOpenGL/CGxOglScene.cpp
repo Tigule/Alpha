@@ -1,8 +1,10 @@
 #include "CGxDeviceOpenGl.h"
 
 #include <gl/gl.h>
-#ifndef _WIN32
+#ifdef __APPLE__
 #include <OpenGL/OpenGL.h>
+#elif !defined(_WIN32)
+#include <SDL.h>
 #endif
 
 void CGxDeviceOpenGl::ISceneBegin(UINT mask) {
@@ -53,9 +55,11 @@ void CGxDeviceOpenGl::ScenePresent(UINT mask) {
   } else {
     wglSwapLayerBuffers(m_hdc, WGL_SWAP_MAIN_PLANE);
   }
-#else
+#elif defined(__APPLE__)
   CGLFlushDrawable(CGLGetCurrentContext());
   HandleModeChanges();
+#else
+  SDL_GL_SwapWindow(SDL_GL_GetCurrentWindow());
 #endif
 
   GetError();

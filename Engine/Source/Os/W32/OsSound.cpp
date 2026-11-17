@@ -171,7 +171,7 @@ static bool                      s_globalPause;
 static float                     s_soundVolume = 1.0f;
 static float                     s_musicVolume = 0.5f;
 static int                       s_muted = -1;
-static long                      s_categoryCounts[SOUNDCATEGORIES_NUMCATEGORIES];
+static LONG                      s_categoryCounts[SOUNDCATEGORIES_NUMCATEGORIES];
 static int                       s_activeSoundCount;
 
 struct InitParams {
@@ -371,11 +371,13 @@ int Sound::Initialize(bool (*GetParamInt)(LPCSTR, int &), bool (*GetParamFloat)(
     }
   }
 
+#ifdef _WIN32
   parameter = GxDevWindow();
   error = CheckInitError(FSOUND_SetHWND(parameter), "FSOUND_SetHWND", parameter);
   if (error) {
     goto Done;
   }
+#endif
 
   parameter = params.minNumHardwareChannels;
   if (parameter < -1) {

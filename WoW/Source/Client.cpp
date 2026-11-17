@@ -32,13 +32,15 @@
 #include "Console/ConsoleClient.h"
 #include "Console/ConsoleVar.h"
 #include "Client.h"
-#ifndef _WIN32
+
+#ifdef __APPLE__
 #include "Mac/Source/MacClient.h"
 
 namespace MoreCocoa {
 BOOL AutoReleaseFlush(LPCVOID, LPVOID);
 }
 #endif
+
 #include "Glue/CGlueMgr.h"
 #include "UIUtil/Tooltip.h"
 #include "Ui/ChatFrame.h"
@@ -1001,7 +1003,7 @@ static BOOL InitializeHandlerPlayer(LPCVOID, LPVOID) {
   TextureInitialize();
   ModelInitialize();
   CacheUpdateInitialize();
-#ifndef _WIN32
+#ifdef __APPLE__
   EventSetTimer(15000u, MoreCocoa::AutoReleaseFlush, 0);
 #endif
   WowClientInit();
@@ -1409,6 +1411,7 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   return 1;
 }
 
+#ifndef __linux__
 static void LaunchWoWError(LPCSTR logFileName) {
 #ifdef _WIN32
   char cmd[520];
@@ -1445,6 +1448,7 @@ static BOOL APIENTRY SendErrorLog(DWORD code, LPCSTR msg, LPCSTR file, int line,
 
   return TRUE;
 }
+#endif
 
 #ifdef _WIN32
 int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
@@ -1467,13 +1471,15 @@ void CommonMain() {
 #else
   SErrSetLogTitleString("World of WarCraft (build " STRINGIFY(BUILD_VERSION) ")");
 #endif
+#ifndef __linux__
   SErrSetLogCallback(WowLogHeader);
 
   if (sendErrorLogs) {
     SErrRegisterHandler(SendErrorLog);
   }
+#endif
 
-#ifndef _WIN32
+#ifdef __APPLE__
   MacClient::Initialize();
 #endif
   if (InitializeGlobal()) {
@@ -1481,7 +1487,7 @@ void CommonMain() {
     DestroyGlobal();
   }
 
-#ifndef _WIN32
+#ifdef __APPLE__
   MacClient::Destroy();
 #endif
   StormDestroy();
@@ -1490,3 +1496,13 @@ void CommonMain() {
   return 0;
 #endif
 }
+
+#ifdef __linux__
+int OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
+
+int main(int argc, char **argv) {
+  OsSetArgs(argv, true, false);
+  CommonMain();
+  return 0;
+}
+#endif

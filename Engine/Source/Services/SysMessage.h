@@ -17,7 +17,7 @@ typedef void (*SYSMSGCALLBACK)(LPCSTR msg, SYSMSG_TYPE severity);
 
 BOOL        SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask);
 BOOL        SysMsgAdd(const CStatus &status, UINT categoryMask);
-int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, char *arglist);
+int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, va_list arglist);
 int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, ...);
 
 inline int __cdecl SysMsgPrintf(SYSMSG_TYPE severity, LPCSTR format, ...) {

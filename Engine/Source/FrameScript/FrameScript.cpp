@@ -268,7 +268,7 @@ void FrameScript_Object::OnScriptEvent(LPCSTR name) {
   lua_setglobal(state, "event");
 }
 
-void __cdecl FrameScript_Object::OnScriptEvent(LPCSTR name, LPCSTR format, char *arguments) {
+void __cdecl FrameScript_Object::OnScriptEvent(LPCSTR name, LPCSTR format, va_list arguments) {
   lua_State *state;
 
   if (!m_onEvent) {
@@ -278,7 +278,14 @@ void __cdecl FrameScript_Object::OnScriptEvent(LPCSTR name, LPCSTR format, char 
   state = FrameScript_GetContext();
   lua_pushstring(state, name);
   lua_setglobal(state, "event");
+#ifdef va_copy
+  va_list copy;
+  va_copy(copy, arguments);
+  FrameScript_ExecuteV(m_onEvent, this, format, copy);
+  va_end(copy);
+#else
   FrameScript_ExecuteV(m_onEvent, this, format, arguments);
+#endif
   lua_pushnil(state);
   lua_setglobal(state, "event");
 }
@@ -845,7 +852,7 @@ void __cdecl FrameScript_Execute(int function, FrameScript_Object *objectTHIS, L
   va_end(arguments);
 }
 
-void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, char *arguments) {
+void __cdecl FrameScript_ExecuteV(int function, FrameScript_Object *objectTHIS, LPCSTR args_fmt, va_list arguments) {
   lua_State *state;
   int        argCount;
   char       current;

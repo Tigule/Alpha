@@ -125,7 +125,7 @@ BOOL SysMsgAdd(const CStatus &status, UINT categoryMask) {
   return result;
 }
 
-int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, char *arglist) {
+int __cdecl SysMsgVPrintf(SYSMSG_TYPE severity, UINT categoryMask, LPCSTR format, va_list arglist) {
   char buff[256];
 
   _vsnprintf(buff, sizeof(buff), format, arglist);

@@ -1476,7 +1476,7 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
     SetDefaultsFormat(s_defaults, s_hardware);
   }
 
-#ifdef __APPLE__
+#ifndef _WIN32
   gxApi = GxApi_OpenGl;
 #else
   gxApi = GxApi_Direct3d;

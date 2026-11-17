@@ -164,7 +164,7 @@ void BindGlExtensions() {
   }
 
   glExtBgra = FindGlExt("GL_EXT_bgra");
-#ifdef _WIN32
+#ifndef __APPLE__
   glExtClampToEdge = FindGlExt("GL_EXT_texture_edge_clamp");
 #else
   glExtClampToEdge = FindGlExt("GL_SGIS_texture_edge_clamp") || FindGlExt("GL_EXT_texture_edge_clamp");
@@ -178,7 +178,7 @@ void BindGlExtensions() {
     compressedTexSubImageProcName = "glCompressedTexSubImage2DARB";
     glExtTextureCompression = 1;
   }
-#ifdef _WIN32
+#ifndef __APPLE__
   else if (FindGlExt("GL_EXT_texture_compression")) {
     compressedTexImageProcName = "glCompressedTexImage2DEXT";
     compressedTexSubImageProcName = "glCompressedTexSubImage2DEXT";
@@ -196,18 +196,20 @@ void BindGlExtensions() {
     glExtTextureCompression = 0;
     glExtTextureCompressionS3tc = 0;
   }
-#ifndef _WIN32
+#ifdef __APPLE__
   glSGISTextureLod = FindGlExt("GL_SGIS_texture_lod") && glExtTextureCompression && glExtTextureCompressionS3tc;
 #endif
 
-#ifdef _WIN32
+#ifndef __APPLE__
   if (FindGlExt("GL_SGIS_generate_mipmap")) {
     glSGISGenerateMipmap = 1;
   }
   if (FindGlExt("GL_EXT_texture_filter_anisotropic")) {
     glExtTextureFilterAnisotropic = 1;
   }
+#endif
 
+#ifdef _WIN32
   if (FindGlExt("GL_NV_vertex_array_range") && FindGlExt("GL_NV_vertex_array_range2") && FindGlExt("GL_NV_fence")) {
     glVertexArrayRangeNV = (void(APIENTRY *)(int, LPCVOID))wglGetProcAddress("glVertexArrayRangeNV");
     glFlushVertexArrayRangeNV = (void(APIENTRY *)())wglGetProcAddress("glFlushVertexArrayRangeNV");
@@ -220,7 +222,7 @@ void BindGlExtensions() {
     glTestFenceNV = (BYTE(APIENTRY *)(UINT))wglGetProcAddress("glTestFenceNV");
   }
 #endif
-#ifndef _WIN32
+#ifdef __APPLE__
   glExtVertexArrayRangeAPPLE = FindGlExt("GL_APPLE_vertex_array_range") || wglGetProcAddress("glVertexArrayRangeAPPLE");
   glExtFenceAPPLE = FindGlExt("GL_APPLE_fence");
   glExtVertexArrayObjectAPPLE = FindGlExt("GL_APPLE_vertex_array_object");
@@ -235,7 +237,7 @@ void BindGlExtensions() {
     glGetIntegerv(0x80E9, &maxIdxs);
   }
 
-#ifdef _WIN32
+#ifndef __APPLE__
   glSGISTextureLod = 0;
   if (FindGlExt("GL_NV_register_combiners")) {
     glNVRegisterCombiners = 1;

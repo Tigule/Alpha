@@ -54,6 +54,21 @@ elseif(APPLE)
     )
     set_source_files_properties(Mac/SErrMac.cpp Mac/SThread.cpp PROPERTIES LANGUAGE OBJCXX)
     target_include_directories(Storm PRIVATE ../../Engine/Source)
+elseif(UNIX)
+    target_sources(Storm PRIVATE
+        Mac/SDir.cpp
+        Linux/SErr.cpp
+        SFile.cpp
+        Mac/SInterlocked.cpp
+        Mac/SLock.cpp
+        Mac/SLog.cpp
+        Mac/SMemMalloc.cpp
+        Linux/SReg.cpp
+        Mac/SSync.cpp
+        Linux/SThread.cpp
+        Mac/Storm.cpp
+    )
+    target_include_directories(Storm PRIVATE ../../Engine/Source)
 endif()
 
 target_include_directories(Storm PRIVATE

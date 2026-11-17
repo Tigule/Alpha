@@ -8670,7 +8670,7 @@ void DDGenerateLogString(HSLOG handle, TSGrowableArray<char> *stringBuffer, char
   char    buf[1024];
   va_list arguments;
   va_start(arguments, format);
-  SStrVPrintf(buf, sizeof(buf), format, (char *)arguments);
+  SStrVPrintf(buf, sizeof(buf), format, arguments);
   va_end(arguments);
 
   if (handle) {

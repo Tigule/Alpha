@@ -24,7 +24,7 @@ float ParticleSystemManager::GetScaler() {
 ParticleSystemManager *ParticleSystemManager::GetInstance() {
   if (!manager) {
     manager = NEW(ParticleSystemManager);
-#ifndef __APPLE__
+#ifdef _MSC_VER
     NTempest::CRndSeed randSeed((rand() << 16) | (rand() & 0xFFFF));
 #else
     DWORD randLow = vc_rand() & 0xFFFF;

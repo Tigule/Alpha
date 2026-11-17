@@ -5,11 +5,11 @@
 #include "Gx/Gx.h"
 #include "Services/AsyncFileRead.h"
 
-#ifndef _WIN64
+#if defined(_WIN32) && !defined(_WIN64)
 typedef DWORD DWORD_PTR;
 #endif
 
-#ifndef TIGULE_NO_AMBIENCE
+#ifndef BUILD_NO_AMBIENCE
 // embeds guids into object file
 #include <initguid.h>
 #include <dmusici.h>

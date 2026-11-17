@@ -35,7 +35,7 @@ CParticleEmitter2::CParticleEmitter2() : m_refCount(1) {
   m_replaceableId = 0;
   m_emitterType = PET_BASE_EMITTER;
   m_particleType = PT_QUAD;
-#ifndef __APPLE__
+#ifdef _MSC_VER
   m_randSeed.SetSeed((rand() << 16) | (rand() & 0xFFFF));
 #else
   DWORD randLow = vc_rand() & 0xFFFF;
@@ -104,7 +104,7 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep) : m
   m_priorityPlane = rhs.m_priorityPlane;
   m_emitterType = rhs.m_emitterType;
   m_particleType = rhs.m_particleType;
-#ifndef __APPLE__
+#ifdef _MSC_VER
   m_randSeed.SetSeed((rand() << 16) | (rand() & 0xFFFF));
 #else
   DWORD randLow = vc_rand() & 0xFFFF;

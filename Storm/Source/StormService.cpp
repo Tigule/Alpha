@@ -12,10 +12,10 @@
 
 char *Int64ToString(LONGLONG num, char *buf, DWORD destsize);
 
-int ISMemGetAllocator(char *arglist);
-int ISMemGenerateReport(char *arglist);
-int ISMemMarkAllHeaps(char *arglist);
-int ISStrI64ToString(char *arglist);
+int ISMemGetAllocator(va_list arglist);
+int ISMemGenerateReport(va_list arglist);
+int ISMemMarkAllHeaps(va_list arglist);
+int ISStrI64ToString(va_list arglist);
 
 extern "C" int __cdecl StormCallService(int selector, ...) {
   va_list args;
@@ -49,7 +49,7 @@ extern "C" int __cdecl StormCallService(int selector, ...) {
   return result;
 }
 
-int ISMemGetAllocator(char *arglist) {
+int ISMemGetAllocator(va_list arglist) {
   LPVOID *allocator;
 
   allocator = va_arg(arglist, LPVOID *);
@@ -57,15 +57,15 @@ int ISMemGetAllocator(char *arglist) {
   return TRUE;
 }
 
-int ISMemGenerateReport(char *arglist) {
+int ISMemGenerateReport(va_list arglist) {
   return SMemDumpStateEx(arglist);
 }
 
-int ISMemMarkAllHeaps(char *arglist) {
+int ISMemMarkAllHeaps(va_list arglist) {
   return SMemMarkAllHeapsEx(arglist);
 }
 
-int ISStrI64ToString(char *arglist) {
+int ISStrI64ToString(va_list arglist) {
   LONGLONG num = va_arg(arglist, LONGLONG);
   char    *buf = va_arg(arglist, char *);
   DWORD    destsize = va_arg(arglist, DWORD);

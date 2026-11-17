@@ -78,10 +78,10 @@ extern "C" BOOL APIENTRY SMemDumpState(SMEMDUMPPROC outputproc, HOUTPUTCONTEXT o
   return TRUE;
 }
 
-BOOL APIENTRY SMemDumpStateEx(char *arglist) {
+BOOL APIENTRY SMemDumpStateEx(va_list arglist) {
   return TRUE;
 }
 
-BOOL APIENTRY SMemMarkAllHeapsEx(char *arglist) {
+BOOL APIENTRY SMemMarkAllHeapsEx(va_list arglist) {
   return TRUE;
 }

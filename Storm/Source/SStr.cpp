@@ -347,7 +347,7 @@ DWORD APIENTRY SStrPack(char *dest, LPCSTR source, DWORD destsize) {
   }
 }
 
-static int ISStrVPrintf(char *dest, UINT maxchars, LPCSTR format, char *arglist) {
+static int ISStrVPrintf(char *dest, UINT maxchars, LPCSTR format, va_list arglist) {
   int written;
 
   if (maxchars) {
@@ -384,7 +384,7 @@ DWORD __cdecl SStrPrintf(char *dest, DWORD maxchars, LPCSTR format, ...) {
   return ISStrVPrintf(dest, maxchars, format, args);
 }
 
-DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, char *arglist) {
+DWORD __cdecl SStrVPrintf(char *dest, DWORD maxchars, LPCSTR format, va_list arglist) {
   VALIDATEBEGIN;
   VALIDATE(dest);
   VALIDATE(format);

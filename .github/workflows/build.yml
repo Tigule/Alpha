@@ -242,3 +242,34 @@ jobs:
           name: macos-arm64
           path: World of Warcraft.zip
           if-no-files-found: error
+
+  linux-x64:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake pkg-config libsdl2-dev libopenal-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
+
+      - name: Build executable
+        env:
+          CC: clang
+          CXX: clang++
+        run: |
+          cmake -S . -B Build/linux-x64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build Build/linux-x64 --parallel $(nproc)
+
+      - name: Package executable
+        run: |
+          tar -czf Wow64.tar.gz -C Build/linux-x64/WoW/bin Wow64
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-x64
+          path: Wow64.tar.gz
+          if-no-files-found: error

@@ -1,14 +1,6 @@
 // include this header to provide win32 typedefs and macros on toolchains other than Visual C++
 #pragma once
 
-#ifndef max
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-#endif
-
-#ifndef min
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
 #include <climits>
 #include <new>
 #include <typeinfo>
@@ -21,6 +13,14 @@
 #include <strings.h>
 #include <pthread.h>
 #include <sys/stat.h>
+
+#ifndef max
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#endif
+
+#ifndef min
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
 
 #define CALLBACK
 #define WINAPI
@@ -40,9 +40,7 @@
 #define rand() (rand() & 0x7FFF)
 #endif
 
-#ifdef __APPLE__
 extern "C" int vc_rand();
-#endif
 
 #define __min(a, b) (((a) < (b)) ? (a) : (b))
 #define __max(a, b) (((a) > (b)) ? (a) : (b))

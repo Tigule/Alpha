@@ -293,7 +293,7 @@ class CGxDeviceOpenGl : public CGxDevice {
   virtual void PixelShaderDestroy(CGxPixelShader *&ps);
 
   static LRESULT CALLBACK WindowProcGl(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
-#ifndef _WIN32
+#ifdef __APPLE__
   static int GxWindowEventHandler(struct OSMACEVENT *event, LPVOID userData);
 
   enum ERenderTargetType {
