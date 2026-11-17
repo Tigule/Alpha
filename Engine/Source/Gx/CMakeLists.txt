@@ -56,7 +56,7 @@ else()
     file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp "extern \"C\" long __stdcall D3DAssemble(const void *, unsigned long, const char *, const void *, void *, unsigned int, void **, void **) {\n  return 0;\n}\n")
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib
-        COMMAND ${CMAKE_CXX_COMPILER} /nologo /Zl /c ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp /Fo${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.obj
+        COMMAND ${CMAKE_CXX_COMPILER} /nologo /Zl $<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64EC>:/arm64EC> /c ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp /Fo${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.obj
         COMMAND ${CMAKE_AR} /nologo /def:${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.obj /out:${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib /machine:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp)
     add_custom_target(d3dcompiler_47 DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib)
