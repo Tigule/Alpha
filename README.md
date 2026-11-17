@@ -91,10 +91,10 @@ cmake --build --preset macos-makefile
 
 ### Linux
 
-The port targets x86_64 and uses SDL2 for the window and input, and OpenAL for sound. On Ubuntu 22.04:
+The port targets x86_64 and uses SDL2 for the window and input, and miniaudio for sound. On Ubuntu 22.04:
 
 ```sh
-sudo apt install clang cmake pkg-config libsdl2-dev libopenal-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
+sudo apt install clang cmake pkg-config libsdl2-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
 ```
 
 ```sh
@@ -113,7 +113,7 @@ Copy your game install to `WoW/Client/`.
 The original game client was meant to use a launcher for authentication, most people bypass that, so you'll have to use `-uptodate` when you run it.  
 
 The client runs from the folder its executable is in, so copy the executable there first:
-* Windows: copy the `.exe` into `WoW/Client/`. The 64-bit build also needs `fmod64.dll`, if needed copy it from `Engine/Source/FMOD/api/fmod64.dll` into `WoW/Client/`.
+* Windows: copy the `.exe` into `WoW/Client/`. Builds with `-DBUILD_PORTABLE_AUDIO=OFF` also need `fmod.dll` or `fmod64.dll`, if needed copy it from `Engine/Source/FMOD/api/` into `WoW/Client/`.
 * macOS: copy `World of Warcraft.app` into `WoW/Client/`
 * Linux: copy `Wow64ae` into `WoW/Client/` (a symlink won't work), then run `./Wow64ae -uptodate`. Settings and crash logs go to `~/.blizzard/`.
 

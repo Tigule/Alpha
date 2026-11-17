@@ -1,12 +1,17 @@
-#include <AL/al.h>
-#include <AL/alc.h>
-#include <AL/alext.h>
 #include <math.h>
-#include <pthread.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+
+#include <mutex>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
+#define WINAPI
+#endif
+
+#include "../../miniaudio/miniaudio.h"
 
 struct FSOUND_SAMPLE {
   float minDistance;
@@ -15,34 +20,29 @@ struct FSOUND_SAMPLE {
 
 struct FSOUND_STREAM;
 
-typedef signed char (*FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, void *, int, intptr_t);
-typedef void *(*FSOUND_ALLOCCALLBACK)(unsigned int);
-typedef void *(*FSOUND_REALLOCCALLBACK)(void *, unsigned int);
-typedef void (*FSOUND_FREECALLBACK)(void *);
-typedef unsigned int (*FSOUND_OPENCALLBACK)(const char *);
-typedef void (*FSOUND_CLOSECALLBACK)(unsigned int);
-typedef int (*FSOUND_READCALLBACK)(void *, int, unsigned int);
-typedef int (*FSOUND_SEEKCALLBACK)(unsigned int, int, signed char);
-typedef int (*FSOUND_TELLCALLBACK)(unsigned int);
+typedef signed char(WINAPI *FSOUND_STREAMCALLBACK)(FSOUND_STREAM *, void *, int, intptr_t);
+typedef void *(WINAPI *FSOUND_ALLOCCALLBACK)(unsigned int);
+typedef void *(WINAPI *FSOUND_REALLOCCALLBACK)(void *, unsigned int);
+typedef void(WINAPI *FSOUND_FREECALLBACK)(void *);
+typedef unsigned int(WINAPI *FSOUND_OPENCALLBACK)(const char *);
+typedef void(WINAPI *FSOUND_CLOSECALLBACK)(unsigned int);
+typedef int(WINAPI *FSOUND_READCALLBACK)(void *, int, unsigned int);
+typedef int(WINAPI *FSOUND_SEEKCALLBACK)(unsigned int, int, signed char);
+typedef int(WINAPI *FSOUND_TELLCALLBACK)(unsigned int);
 
 struct FSOUND_STREAM {
-  FSOUND_SAMPLE         sample;
-  unsigned int          file;
-  unsigned int          mode;
-  int                   channel;
-  int                   loopCount;
-  int                   loopsLeft;
-  ALenum                format;
-  int                   rate;
-  int                   blockAlign;
-  int                   dataStart;
-  int                   dataSize;
-  int                   position;
-  bool                  ended;
-  FSOUND_STREAMCALLBACK endCallback;
-  intptr_t              endUserData;
-  int                   pcmSize;
-  unsigned char        *pcm;
+  ma_data_source_base             base;
+  ma_resource_manager_data_source source;
+  FSOUND_SAMPLE                   sample;
+  unsigned int                    mode;
+  int                             channel;
+  int                             loopCount;
+  int                             loopsLeft;
+  int                             channels;
+  int                             rate;
+  bool                            ended;
+  FSOUND_STREAMCALLBACK           endCallback;
+  intptr_t                        endUserData;
 };
 
 enum {
@@ -59,9 +59,9 @@ enum {
 
 enum {
   FSOUND_OUTPUT_NOSOUND = 0,
-  FSOUND_OUTPUT_OSS = 4,
-  FSOUND_OUTPUT_ESD = 5,
+  FSOUND_OUTPUT_DSOUND = 2,
   FSOUND_OUTPUT_ALSA = 6,
+  FSOUND_OUTPUT_MAC = 10,
   FSOUND_OUTPUT_NOSOUND_NONREALTIME = 12
 };
 
@@ -81,22 +81,12 @@ enum {
 };
 
 enum {
-  NUM_BUFFERS = 4,
-  BUFFERS_PER_SECOND = 20,
-  STREAM_THREAD_MS = 10,
   MAX_DRIVERS = 32
 };
 
-#ifndef ALC_OUTPUT_MODE_SOFT
-#define ALC_OUTPUT_MODE_SOFT 0x19AC
-#define ALC_STEREO_BASIC_SOFT 0x19AE
-#endif
-
 struct Channel {
-  ALuint         sources[2];
-  ALuint         buffers[NUM_BUFFERS];
+  ma_sound       sound;
   FSOUND_STREAM *stream;
-  int            numSources;
   int            ref;
   int            volume;
   int            frequency;
@@ -104,52 +94,178 @@ struct Channel {
   bool           muted;
   float          position[3];
   float          velocity[3];
+  float          mixPosition[3];
+  float          mixVelocity[3];
+  bool           placed;
   float          minDistance;
   float          maxDistance;
 };
 
-static void *DefaultAlloc(unsigned int size) {
+static void *WINAPI DefaultAlloc(unsigned int size) {
   return malloc(size);
 }
 
-static void DefaultFree(void *ptr) {
+static void *WINAPI DefaultRealloc(void *ptr, unsigned int size) {
+  return realloc(ptr, size);
+}
+
+static void WINAPI DefaultFree(void *ptr) {
   free(ptr);
 }
 
-static pthread_mutex_t       s_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_t             s_thread;
-static volatile bool         s_running;
-static bool                  s_initialized;
-static ALCdevice            *s_device;
-static ALCcontext           *s_context;
-static Channel              *s_channels;
-static int                   s_numChannels;
-static int                   s_error;
-static int                   s_output = -1;
-static int                   s_driver;
-static int                   s_mixer = FSOUND_MIXER_QUALITY_AUTODETECT;
-static int                   s_mixRate = 44100;
-static int                   s_masterVolume = 255;
-static float                 s_distanceFactor = 1.0f;
-static float                 s_dopplerFactor = 1.0f;
-static float                 s_rolloffFactor = 1.0f;
-static float                 s_listenerPos[3];
-static float                 s_listenerVel[3];
-static float                 s_listenerForward[3] = {0.0f, 0.0f, 1.0f};
-static float                 s_listenerTop[3] = {0.0f, 1.0f, 0.0f};
-static FSOUND_ALLOCCALLBACK  s_alloc = DefaultAlloc;
-static FSOUND_FREECALLBACK   s_free = DefaultFree;
-static FSOUND_OPENCALLBACK   s_open;
-static FSOUND_CLOSECALLBACK  s_close;
-static FSOUND_READCALLBACK   s_read;
-static FSOUND_SEEKCALLBACK   s_seek;
-static FSOUND_TELLCALLBACK   s_tell;
-static int                   s_numDrivers = -1;
-static const char           *s_driverNames[MAX_DRIVERS];
-static char                  s_driverNameData[4096];
-static int                   s_driverNameUsed;
+static std::recursive_mutex   s_lock;
+static bool                   s_initialized;
+static bool                   s_haveContext;
+static ma_context             s_context;
+static ma_resource_manager    s_resourceManager;
+static ma_engine              s_engine;
+static ma_vfs_callbacks       s_vfs;
+static Channel               *s_channels;
+static int                    s_numChannels;
+static int                    s_error;
+static int                    s_output = -1;
+static int                    s_driver;
+static int                    s_mixer = FSOUND_MIXER_QUALITY_AUTODETECT;
+static int                    s_mixRate = 44100;
+static int                    s_masterVolume = 255;
+static float                  s_distanceFactor = 1.0f;
+static float                  s_dopplerFactor = 1.0f;
+static float                  s_rolloffFactor = 1.0f;
+static float                  s_listenerPos[3];
+static float                  s_listenerVel[3];
+static float                  s_listenerForward[3] = {0.0f, 0.0f, 1.0f};
+static float                  s_listenerTop[3] = {0.0f, 1.0f, 0.0f};
+static float                  s_mixListenerPos[3];
+static float                  s_mixListenerVel[3];
+static float                  s_mixListenerForward[3] = {0.0f, 0.0f, 1.0f};
+static float                  s_mixListenerTop[3] = {0.0f, 1.0f, 0.0f};
+static FSOUND_ALLOCCALLBACK   s_alloc = DefaultAlloc;
+static FSOUND_REALLOCCALLBACK s_realloc = DefaultRealloc;
+static FSOUND_FREECALLBACK    s_free = DefaultFree;
+static FSOUND_OPENCALLBACK    s_open;
+static FSOUND_CLOSECALLBACK   s_close;
+static FSOUND_READCALLBACK    s_read;
+static FSOUND_SEEKCALLBACK    s_seek;
+static FSOUND_TELLCALLBACK    s_tell;
+static int                    s_numDrivers = -1;
+static const char            *s_driverNames[MAX_DRIVERS];
+static ma_device_id           s_driverIds[MAX_DRIVERS];
+static char                   s_driverNameData[4096];
+static int                    s_driverNameUsed;
 
-static void AddDriver(const char *name) {
+static void *AllocCallback(size_t size, void *) {
+  return s_alloc((unsigned int)size);
+}
+
+static void *ReallocCallback(void *ptr, size_t size, void *) {
+  return s_realloc(ptr, (unsigned int)size);
+}
+
+static void FreeCallback(void *ptr, void *) {
+  if (ptr) {
+    s_free(ptr);
+  }
+}
+
+static ma_result VfsOpen(ma_vfs *, const char *path, ma_uint32, ma_vfs_file *file) {
+  unsigned int handle = s_open ? s_open(path) : 0;
+
+  *file = (ma_vfs_file)(uintptr_t)handle;
+  return handle ? MA_SUCCESS : MA_DOES_NOT_EXIST;
+}
+
+static ma_result VfsClose(ma_vfs *, ma_vfs_file file) {
+  s_close((unsigned int)(uintptr_t)file);
+  return MA_SUCCESS;
+}
+
+static ma_result VfsRead(ma_vfs *, ma_vfs_file file, void *buffer, size_t size, size_t *bytesRead) {
+  int count = s_read(buffer, (int)size, (unsigned int)(uintptr_t)file);
+
+  *bytesRead = count > 0 ? count : 0;
+  return *bytesRead || !size ? MA_SUCCESS : MA_AT_END;
+}
+
+static ma_result VfsSeek(ma_vfs *, ma_vfs_file file, ma_int64 offset, ma_seek_origin origin) {
+  return s_seek((unsigned int)(uintptr_t)file, (int)offset, (signed char)origin) >= 0 ? MA_SUCCESS : MA_ERROR;
+}
+
+static ma_result VfsTell(ma_vfs *, ma_vfs_file file, ma_int64 *cursor) {
+  *cursor = s_tell((unsigned int)(uintptr_t)file);
+  return MA_SUCCESS;
+}
+
+static ma_result VfsInfo(ma_vfs *, ma_vfs_file file, ma_file_info *info) {
+  unsigned int handle = (unsigned int)(uintptr_t)file;
+  int          cursor = s_tell(handle);
+
+  s_seek(handle, 0, ma_seek_origin_end);
+  info->sizeInBytes = s_tell(handle);
+  s_seek(handle, cursor, ma_seek_origin_start);
+  return MA_SUCCESS;
+}
+
+static ma_result StreamRead(ma_data_source *source, void *output, ma_uint64 frameCount, ma_uint64 *framesRead) {
+  FSOUND_STREAM *stream = (FSOUND_STREAM *)source;
+  ma_uint64      total = 0;
+  ma_result      result = MA_SUCCESS;
+  bool           rewound = false;
+
+  while (total < frameCount) {
+    ma_uint64 count = 0;
+    void     *target = output ? (char *)output + total * stream->channels * sizeof(short) : 0;
+
+    result = ma_resource_manager_data_source_read_pcm_frames(&stream->source, target, frameCount - total, &count);
+    if (count) {
+      total += count;
+      rewound = false;
+      continue;
+    }
+
+    if (result != MA_AT_END || !(stream->mode & FSOUND_LOOP_NORMAL) || !stream->loopsLeft || rewound) {
+      break;
+    }
+    if (stream->loopsLeft > 0) {
+      --stream->loopsLeft;
+    }
+    ma_resource_manager_data_source_seek_to_pcm_frame(&stream->source, 0);
+    rewound = true;
+  }
+
+  *framesRead = total;
+  if (total) {
+    return MA_SUCCESS;
+  }
+
+  return result == MA_SUCCESS ? MA_AT_END : result;
+}
+
+static ma_result StreamSeek(ma_data_source *source, ma_uint64 frame) {
+  return ma_resource_manager_data_source_seek_to_pcm_frame(&((FSOUND_STREAM *)source)->source, frame);
+}
+
+static ma_result StreamGetDataFormat(
+    ma_data_source *source,
+    ma_format      *format,
+    ma_uint32      *channels,
+    ma_uint32      *sampleRate,
+    ma_channel     *channelMap,
+    size_t          channelMapCap
+) {
+  return ma_resource_manager_data_source_get_data_format(&((FSOUND_STREAM *)source)->source, format, channels, sampleRate, channelMap, channelMapCap);
+}
+
+static ma_result StreamGetCursor(ma_data_source *source, ma_uint64 *cursor) {
+  return ma_resource_manager_data_source_get_cursor_in_pcm_frames(&((FSOUND_STREAM *)source)->source, cursor);
+}
+
+static ma_result StreamGetLength(ma_data_source *source, ma_uint64 *length) {
+  return ma_resource_manager_data_source_get_length_in_pcm_frames(&((FSOUND_STREAM *)source)->source, length);
+}
+
+static ma_data_source_vtable s_streamVtable = {StreamRead, StreamSeek, StreamGetDataFormat, StreamGetCursor, StreamGetLength, 0, 0};
+
+static void AddDriver(const char *name, const ma_device_id *id) {
   int length = strlen(name) + 1;
 
   if (s_numDrivers >= MAX_DRIVERS || s_driverNameUsed + length > (int)sizeof(s_driverNameData)) {
@@ -157,35 +273,45 @@ static void AddDriver(const char *name) {
   }
 
   memcpy(s_driverNameData + s_driverNameUsed, name, length);
+  if (id) {
+    s_driverIds[s_numDrivers] = *id;
+  }
   s_driverNames[s_numDrivers++] = s_driverNameData + s_driverNameUsed;
   s_driverNameUsed += length;
 }
 
 static void EnumerateDrivers() {
+  ma_device_info *devices;
+  ma_uint32       count;
+
   if (s_numDrivers >= 0) {
     return;
   }
 
   s_numDrivers = 0;
-  bool        all = alcIsExtensionPresent(0, "ALC_ENUMERATE_ALL_EXT") == ALC_TRUE;
-  const char *name = alcGetString(0, all ? ALC_DEFAULT_ALL_DEVICES_SPECIFIER : ALC_DEFAULT_DEVICE_SPECIFIER);
-  if (name && *name) {
-    AddDriver(name);
+  s_driverNameUsed = 0;
+
+  if (!s_haveContext) {
+    s_haveContext = ma_context_init(0, 0, 0, &s_context) == MA_SUCCESS;
+  }
+  if (!s_haveContext || ma_context_get_devices(&s_context, &devices, &count, 0, 0) != MA_SUCCESS) {
+    return;
   }
 
-  for (name = alcGetString(0, all ? ALC_ALL_DEVICES_SPECIFIER : ALC_DEVICE_SPECIFIER); name && *name; name += strlen(name) + 1) {
-    if (!s_numDrivers || strcmp(name, s_driverNames[0])) {
-      AddDriver(name);
+  for (ma_uint32 i = 0; i < count; ++i) {
+    if (devices[i].isDefault) {
+      AddDriver(devices[i].name, 0);
     }
   }
-}
+  if (!s_numDrivers) {
+    AddDriver("Default", 0);
+  }
 
-static void ApplyListener() {
-  ALfloat orientation[6] = {s_listenerForward[0], s_listenerForward[1], -s_listenerForward[2], s_listenerTop[0], s_listenerTop[1], -s_listenerTop[2]};
-
-  alListener3f(AL_POSITION, s_listenerPos[0], s_listenerPos[1], -s_listenerPos[2]);
-  alListener3f(AL_VELOCITY, s_listenerVel[0], s_listenerVel[1], -s_listenerVel[2]);
-  alListenerfv(AL_ORIENTATION, orientation);
+  for (ma_uint32 i = 0; i < count; ++i) {
+    if (!devices[i].isDefault) {
+      AddDriver(devices[i].name, &devices[i].id);
+    }
+  }
 }
 
 static Channel *GetChannel(int handle) {
@@ -204,9 +330,9 @@ static void UpdateChannel(Channel *channel) {
   float          gain = channel->muted ? 0.0f : channel->volume / 255.0f;
   float          pitch = (float)channel->frequency / stream->rate;
 
-  if (channel->numSources == 1) {
-    alSourcef(channel->sources[0], AL_GAIN, gain);
-    alSourcef(channel->sources[0], AL_PITCH, pitch);
+  if (stream->channels != 1) {
+    ma_sound_set_volume(&channel->sound, gain);
+    ma_sound_set_pitch(&channel->sound, pitch);
     return;
   }
 
@@ -215,15 +341,15 @@ static void UpdateChannel(Channel *channel) {
 
   if (!(stream->mode & FSOUND_2D)) {
     float rel[3] = {
-        channel->position[0] - s_listenerPos[0], channel->position[1] - s_listenerPos[1], channel->position[2] - s_listenerPos[2]
+        channel->mixPosition[0] - s_mixListenerPos[0], channel->mixPosition[1] - s_mixListenerPos[1], channel->mixPosition[2] - s_mixListenerPos[2]
     };
     float side[3] = {
-        s_listenerTop[1] * s_listenerForward[2] - s_listenerTop[2] * s_listenerForward[1],
-        s_listenerTop[2] * s_listenerForward[0] - s_listenerTop[0] * s_listenerForward[2],
-        s_listenerTop[0] * s_listenerForward[1] - s_listenerTop[1] * s_listenerForward[0]
+        s_mixListenerTop[1] * s_mixListenerForward[2] - s_mixListenerTop[2] * s_mixListenerForward[1],
+        s_mixListenerTop[2] * s_mixListenerForward[0] - s_mixListenerTop[0] * s_mixListenerForward[2],
+        s_mixListenerTop[0] * s_mixListenerForward[1] - s_mixListenerTop[1] * s_mixListenerForward[0]
     };
     float x = rel[0] * side[0] + rel[1] * side[1] + rel[2] * side[2];
-    float z = rel[0] * s_listenerForward[0] + rel[1] * s_listenerForward[1] + rel[2] * s_listenerForward[2];
+    float z = rel[0] * s_mixListenerForward[0] + rel[1] * s_mixListenerForward[1] + rel[2] * s_mixListenerForward[2];
     float horizontal = sqrtf(x * x + z * z);
     float distance = sqrtf(rel[0] * rel[0] + rel[1] * rel[1] + rel[2] * rel[2]);
     float clamped = distance < channel->minDistance ? channel->minDistance : distance > channel->maxDistance ? channel->maxDistance : distance;
@@ -246,8 +372,8 @@ static void UpdateChannel(Channel *channel) {
     if (distance > 0.0f && s_dopplerFactor > 0.0f) {
       float speed = 343.3f * s_distanceFactor;
       float limit = speed / s_dopplerFactor;
-      float listenerSpeed = -(rel[0] * s_listenerVel[0] + rel[1] * s_listenerVel[1] + rel[2] * s_listenerVel[2]) / distance;
-      float sourceSpeed = -(rel[0] * channel->velocity[0] + rel[1] * channel->velocity[1] + rel[2] * channel->velocity[2]) / distance;
+      float listenerSpeed = -(rel[0] * s_mixListenerVel[0] + rel[1] * s_mixListenerVel[1] + rel[2] * s_mixListenerVel[2]) / distance;
+      float sourceSpeed = -(rel[0] * channel->mixVelocity[0] + rel[1] * channel->mixVelocity[1] + rel[2] * channel->mixVelocity[2]) / distance;
       listenerSpeed = listenerSpeed < limit ? listenerSpeed : limit;
       sourceSpeed = sourceSpeed < limit ? sourceSpeed : limit;
       if (speed - s_dopplerFactor * sourceSpeed > 0.0f) {
@@ -256,73 +382,38 @@ static void UpdateChannel(Channel *channel) {
     }
   }
 
-  alSourcef(channel->sources[0], AL_GAIN, gain * left);
-  alSourcef(channel->sources[1], AL_GAIN, gain * right);
-  alSourcef(channel->sources[0], AL_PITCH, pitch);
-  alSourcef(channel->sources[1], AL_PITCH, pitch);
-}
-
-static bool FillBuffer(FSOUND_STREAM *stream, ALuint buffer) {
-  int filled = 0;
-
-  while (filled < stream->pcmSize) {
-    if (stream->position >= stream->dataSize) {
-      if (!(stream->mode & FSOUND_LOOP_NORMAL) || !stream->loopsLeft || !stream->dataSize) {
-        break;
-      }
-      if (stream->loopsLeft > 0) {
-        --stream->loopsLeft;
-      }
-      s_seek(stream->file, stream->dataStart, 0);
-      stream->position = 0;
-    }
-
-    int size = stream->pcmSize - filled;
-    if (size > stream->dataSize - stream->position) {
-      size = stream->dataSize - stream->position;
-    }
-
-    int bytesRead = s_read(stream->pcm + filled, size, stream->file);
-    if (bytesRead <= 0) {
-      stream->loopsLeft = 0;
-      stream->position = stream->dataSize;
-      break;
-    }
-
-    filled += bytesRead;
-    stream->position += bytesRead;
+  if (left >= right) {
+    ma_sound_set_volume(&channel->sound, gain * left);
+    ma_sound_set_pan(&channel->sound, left > 0.0f ? right / left - 1.0f : 0.0f);
+  } else {
+    ma_sound_set_volume(&channel->sound, gain * right);
+    ma_sound_set_pan(&channel->sound, 1.0f - left / right);
   }
-
-  filled -= filled % stream->blockAlign;
-  if (!filled) {
-    stream->ended = true;
-    return false;
-  }
-
-  alBufferData(buffer, stream->format, stream->pcm, filled, stream->rate);
-  return true;
-}
-
-static void QueueBuffers(Channel *channel) {
-  for (int i = 0; i < NUM_BUFFERS && FillBuffer(channel->stream, channel->buffers[i]); ++i) {
-    for (int j = 0; j < channel->numSources; ++j) {
-      alSourceQueueBuffers(channel->sources[j], 1, &channel->buffers[i]);
-    }
-  }
-
-  if (!channel->paused) {
-    alSourcePlayv(channel->numSources, channel->sources);
-  }
+  ma_sound_set_pitch(&channel->sound, pitch);
 }
 
 static void ReleaseChannel(Channel *channel) {
-  alSourceRewindv(channel->numSources, channel->sources);
-  for (int i = 0; i < channel->numSources; ++i) {
-    alSourcei(channel->sources[i], AL_BUFFER, 0);
-  }
+  ma_sound_uninit(&channel->sound);
   channel->stream->channel = -1;
   channel->stream = 0;
   channel->ref = channel->ref % 0x7FFF + 1;
+}
+
+static void ProcessEndedChannels() {
+  for (int i = 0; i < s_numChannels; ++i) {
+    Channel       *channel = &s_channels[i];
+    FSOUND_STREAM *stream = channel->stream;
+
+    if (!stream || !ma_sound_at_end(&channel->sound)) {
+      continue;
+    }
+
+    ReleaseChannel(channel);
+    stream->ended = true;
+    if (stream->endCallback) {
+      stream->endCallback(stream, 0, 0, stream->endUserData);
+    }
+  }
 }
 
 static void StopStream(FSOUND_STREAM *stream) {
@@ -330,81 +421,20 @@ static void StopStream(FSOUND_STREAM *stream) {
     ReleaseChannel(&s_channels[stream->channel & 0xFFFF]);
   }
 
-  s_seek(stream->file, stream->dataStart, 0);
-  stream->position = 0;
+  ma_resource_manager_data_source_seek_to_pcm_frame(&stream->source, 0);
   stream->loopsLeft = stream->loopCount;
   stream->ended = false;
 }
 
-static void *StreamThread(void *) {
-  while (s_running) {
-    pthread_mutex_lock(&s_lock);
-
-    for (int i = 0; i < s_numChannels; ++i) {
-      Channel       *channel = &s_channels[i];
-      FSOUND_STREAM *stream = channel->stream;
-      ALint          processed = 0;
-      ALint          otherProcessed = 0;
-      ALint          queued = 0;
-      ALint          state = 0;
-
-      if (!stream) {
-        continue;
-      }
-
-      alGetSourcei(channel->sources[0], AL_BUFFERS_PROCESSED, &processed);
-      if (channel->numSources == 2) {
-        alGetSourcei(channel->sources[1], AL_BUFFERS_PROCESSED, &otherProcessed);
-        if (otherProcessed < processed) {
-          processed = otherProcessed;
-        }
-      }
-      while (processed-- > 0) {
-        ALuint buffer;
-        for (int j = 0; j < channel->numSources; ++j) {
-          alSourceUnqueueBuffers(channel->sources[j], 1, &buffer);
-        }
-        if (!stream->ended && FillBuffer(stream, buffer)) {
-          for (int j = 0; j < channel->numSources; ++j) {
-            alSourceQueueBuffers(channel->sources[j], 1, &buffer);
-          }
-        }
-      }
-
-      alGetSourcei(channel->sources[0], AL_BUFFERS_QUEUED, &queued);
-      if (!queued) {
-        ReleaseChannel(channel);
-        if (stream->endCallback) {
-          stream->endCallback(stream, 0, 0, stream->endUserData);
-        }
-        continue;
-      }
-
-      alGetSourcei(channel->sources[0], AL_SOURCE_STATE, &state);
-      if (state != AL_PLAYING && !channel->paused) {
-        alSourcePlayv(channel->numSources, channel->sources);
-      }
-    }
-
-    pthread_mutex_unlock(&s_lock);
-
-    struct timespec delay = {0, STREAM_THREAD_MS * 1000000};
-    nanosleep(&delay, 0);
-  }
-
-  return 0;
-}
-
 extern "C" {
 
-signed char FSOUND_SetOutput(int outputtype) {
+signed char WINAPI FSOUND_SetOutput(int outputtype) {
   if (s_initialized) {
     s_error = FMOD_ERR_BUSY;
     return 0;
   }
 
-  if (outputtype != -1 && outputtype != FSOUND_OUTPUT_NOSOUND && outputtype != FSOUND_OUTPUT_OSS && outputtype != FSOUND_OUTPUT_ESD &&
-      outputtype != FSOUND_OUTPUT_ALSA && outputtype != FSOUND_OUTPUT_NOSOUND_NONREALTIME) {
+  if (outputtype < -1 || outputtype > FSOUND_OUTPUT_NOSOUND_NONREALTIME) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
@@ -413,16 +443,30 @@ signed char FSOUND_SetOutput(int outputtype) {
   return 1;
 }
 
-int FSOUND_GetOutput() {
-  return s_output == -1 ? FSOUND_OUTPUT_ALSA : s_output;
+signed char WINAPI FSOUND_SetHWND(unsigned long window) {
+  return 1;
 }
 
-int FSOUND_GetNumDrivers() {
+int WINAPI FSOUND_GetOutput() {
+  if (s_output != -1) {
+    return s_output;
+  }
+
+#if defined(_WIN32)
+  return FSOUND_OUTPUT_DSOUND;
+#elif defined(__APPLE__)
+  return FSOUND_OUTPUT_MAC;
+#else
+  return FSOUND_OUTPUT_ALSA;
+#endif
+}
+
+int WINAPI FSOUND_GetNumDrivers() {
   EnumerateDrivers();
   return s_numDrivers;
 }
 
-const char *FSOUND_GetDriverName(int driver) {
+const char *WINAPI FSOUND_GetDriverName(int driver) {
   EnumerateDrivers();
 
   if (driver < 0 || driver >= s_numDrivers) {
@@ -433,7 +477,7 @@ const char *FSOUND_GetDriverName(int driver) {
   return s_driverNames[driver];
 }
 
-signed char FSOUND_SetDriver(int driver) {
+signed char WINAPI FSOUND_SetDriver(int driver) {
   if (s_initialized) {
     s_error = FMOD_ERR_BUSY;
     return 0;
@@ -448,16 +492,16 @@ signed char FSOUND_SetDriver(int driver) {
   return 1;
 }
 
-int FSOUND_GetDriver() {
+int WINAPI FSOUND_GetDriver() {
   return s_driver;
 }
 
-signed char FSOUND_GetDriverCaps(int driver, unsigned int *caps) {
+signed char WINAPI FSOUND_GetDriverCaps(int driver, unsigned int *caps) {
   *caps = 0;
   return 1;
 }
 
-signed char FSOUND_SetMixer(int mixer) {
+signed char WINAPI FSOUND_SetMixer(int mixer) {
   if (mixer < 0 || mixer >= FSOUND_MIXER_MAX) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
@@ -467,7 +511,7 @@ signed char FSOUND_SetMixer(int mixer) {
   return 1;
 }
 
-int FSOUND_GetMixer() {
+int WINAPI FSOUND_GetMixer() {
   if (s_mixer == FSOUND_MIXER_AUTODETECT) {
     return FSOUND_MIXER_BLENDMODE;
   }
@@ -479,7 +523,7 @@ int FSOUND_GetMixer() {
   return s_mixer;
 }
 
-signed char FSOUND_SetBufferSize(int milliseconds) {
+signed char WINAPI FSOUND_SetBufferSize(int milliseconds) {
   if (s_initialized) {
     s_error = FMOD_ERR_BUSY;
     return 0;
@@ -488,15 +532,15 @@ signed char FSOUND_SetBufferSize(int milliseconds) {
   return 1;
 }
 
-signed char FSOUND_SetMinHardwareChannels(int minimum) {
+signed char WINAPI FSOUND_SetMinHardwareChannels(int minimum) {
   return 1;
 }
 
-signed char FSOUND_SetMaxHardwareChannels(int maximum) {
+signed char WINAPI FSOUND_SetMaxHardwareChannels(int maximum) {
   return 1;
 }
 
-signed char FSOUND_SetMemorySystem(
+signed char WINAPI FSOUND_SetMemorySystem(
     void                  *pool,
     int                    poolLength,
     FSOUND_ALLOCCALLBACK   allocCallback,
@@ -508,17 +552,18 @@ signed char FSOUND_SetMemorySystem(
     return 0;
   }
 
-  if (pool || !allocCallback || !freeCallback) {
+  if (pool || !allocCallback || !reallocCallback || !freeCallback) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
   s_alloc = allocCallback;
+  s_realloc = reallocCallback;
   s_free = freeCallback;
   return 1;
 }
 
-void FSOUND_File_SetCallbacks(
+void WINAPI FSOUND_File_SetCallbacks(
     FSOUND_OPENCALLBACK  openCallback,
     FSOUND_CLOSECALLBACK closeCallback,
     FSOUND_READCALLBACK  readCallback,
@@ -532,42 +577,30 @@ void FSOUND_File_SetCallbacks(
   s_tell = tellCallback;
 }
 
-void FSOUND_3D_SetDistanceFactor(float factor) {
+void WINAPI FSOUND_3D_SetDistanceFactor(float factor) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
   s_distanceFactor = factor;
-
-  if (s_context) {
-    alSpeedOfSound(343.3f * s_distanceFactor);
-  }
 }
 
-void FSOUND_3D_SetDopplerFactor(float factor) {
+void WINAPI FSOUND_3D_SetDopplerFactor(float factor) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
   s_dopplerFactor = factor;
-
-  if (s_context) {
-    alDopplerFactor(s_dopplerFactor);
-  }
 }
 
-void FSOUND_3D_SetRolloffFactor(float factor) {
-  pthread_mutex_lock(&s_lock);
+void WINAPI FSOUND_3D_SetRolloffFactor(float factor) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   s_rolloffFactor = factor;
   for (int i = 0; i < s_numChannels; ++i) {
-    if (s_channels[i].stream && !(s_channels[i].stream->mode & FSOUND_2D)) {
-      if (s_channels[i].numSources == 1) {
-        alSourcef(s_channels[i].sources[0], AL_ROLLOFF_FACTOR, s_rolloffFactor);
-      } else {
-        UpdateChannel(&s_channels[i]);
-      }
+    if (s_channels[i].stream) {
+      UpdateChannel(&s_channels[i]);
     }
   }
-
-  pthread_mutex_unlock(&s_lock);
 }
 
-void FSOUND_Close();
+void WINAPI FSOUND_Close();
 
-signed char FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags) {
+signed char WINAPI FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags) {
   if (s_initialized) {
     s_error = FMOD_ERR_BUSY;
     return 0;
@@ -578,25 +611,43 @@ signed char FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags
     return 0;
   }
 
-  s_mixRate = mixrate;
-  s_initialized = true;
+  ma_allocation_callbacks callbacks = {0, AllocCallback, ReallocCallback, FreeCallback};
 
-  if (s_output == FSOUND_OUTPUT_NOSOUND || s_output == FSOUND_OUTPUT_NOSOUND_NONREALTIME) {
-    return 1;
-  }
+  s_vfs.onOpen = VfsOpen;
+  s_vfs.onClose = VfsClose;
+  s_vfs.onRead = VfsRead;
+  s_vfs.onSeek = VfsSeek;
+  s_vfs.onTell = VfsTell;
+  s_vfs.onInfo = VfsInfo;
 
-  EnumerateDrivers();
-  s_device = alcOpenDevice(s_driver < s_numDrivers ? s_driverNames[s_driver] : 0);
-  if (s_device) {
-    ALCint attributes[] = {ALC_FREQUENCY, mixrate, ALC_HRTF_SOFT, ALC_FALSE, ALC_OUTPUT_MODE_SOFT, ALC_STEREO_BASIC_SOFT, 0};
-    s_context = alcCreateContext(s_device, attributes);
-  }
-
-  if (!s_context || !alcMakeContextCurrent(s_context)) {
-    FSOUND_Close();
+  ma_resource_manager_config managerConfig = ma_resource_manager_config_init();
+  managerConfig.allocationCallbacks = callbacks;
+  managerConfig.pVFS = &s_vfs;
+  managerConfig.decodedFormat = ma_format_s16;
+  if (ma_resource_manager_init(&managerConfig, &s_resourceManager) != MA_SUCCESS) {
     s_error = FMOD_ERR_INIT;
     return 0;
   }
+
+  EnumerateDrivers();
+
+  ma_engine_config engineConfig = ma_engine_config_init();
+  engineConfig.pContext = s_haveContext ? &s_context : 0;
+  engineConfig.pPlaybackDeviceID = s_driver > 0 && s_driver < s_numDrivers ? &s_driverIds[s_driver] : 0;
+  engineConfig.pResourceManager = &s_resourceManager;
+  engineConfig.allocationCallbacks = callbacks;
+  engineConfig.channels = 2;
+  engineConfig.sampleRate = mixrate;
+  engineConfig.listenerCount = 1;
+  engineConfig.noDevice = s_output == FSOUND_OUTPUT_NOSOUND || s_output == FSOUND_OUTPUT_NOSOUND_NONREALTIME;
+  if (ma_engine_init(&engineConfig, &s_engine) != MA_SUCCESS) {
+    ma_resource_manager_uninit(&s_resourceManager);
+    s_error = FMOD_ERR_INIT;
+    return 0;
+  }
+
+  s_mixRate = mixrate;
+  s_initialized = true;
 
   s_channels = (Channel *)s_alloc(maxsoftwarechannels * sizeof(Channel));
   if (!s_channels) {
@@ -605,65 +656,26 @@ signed char FSOUND_Init(int mixrate, int maxsoftwarechannels, unsigned int flags
     return 0;
   }
 
-  alGetError();
+  memset(s_channels, 0, maxsoftwarechannels * sizeof(Channel));
   for (s_numChannels = 0; s_numChannels < maxsoftwarechannels; ++s_numChannels) {
-    Channel *channel = &s_channels[s_numChannels];
-    memset(channel, 0, sizeof(*channel));
-    channel->ref = 1;
-
-    alGenSources(2, channel->sources);
-    if (alGetError() != AL_NO_ERROR) {
-      break;
-    }
-
-    alGenBuffers(NUM_BUFFERS, channel->buffers);
-    if (alGetError() != AL_NO_ERROR) {
-      alDeleteSources(2, channel->sources);
-      break;
-    }
+    s_channels[s_numChannels].ref = 1;
   }
 
-  if (s_numChannels < maxsoftwarechannels) {
-    FSOUND_Close();
-    s_error = FMOD_ERR_INIT;
-    return 0;
-  }
-
-  alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
-  alSpeedOfSound(343.3f * s_distanceFactor);
-  alDopplerFactor(s_dopplerFactor);
-  alListenerf(AL_GAIN, s_masterVolume / 255.0f);
-  ApplyListener();
-
-  s_running = true;
-  if (pthread_create(&s_thread, 0, StreamThread, 0)) {
-    s_running = false;
-    FSOUND_Close();
-    s_error = FMOD_ERR_INIT;
-    return 0;
-  }
-
+  ma_engine_set_volume(&s_engine, s_masterVolume / 255.0f);
   return 1;
 }
 
-void FSOUND_Close() {
+void WINAPI FSOUND_Close() {
   if (!s_initialized) {
     return;
   }
 
-  if (s_running) {
-    s_running = false;
-    pthread_join(s_thread, 0);
-  }
-
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   for (int i = 0; i < s_numChannels; ++i) {
     if (s_channels[i].stream) {
       ReleaseChannel(&s_channels[i]);
     }
-    alDeleteSources(2, s_channels[i].sources);
-    alDeleteBuffers(NUM_BUFFERS, s_channels[i].buffers);
   }
 
   if (s_channels) {
@@ -672,59 +684,68 @@ void FSOUND_Close() {
   }
   s_numChannels = 0;
 
-  pthread_mutex_unlock(&s_lock);
+  ma_engine_uninit(&s_engine);
+  ma_resource_manager_uninit(&s_resourceManager);
 
-  alcMakeContextCurrent(0);
-  if (s_context) {
-    alcDestroyContext(s_context);
-    s_context = 0;
-  }
-  if (s_device) {
-    alcCloseDevice(s_device);
-    s_device = 0;
+  if (s_haveContext) {
+    ma_context_uninit(&s_context);
+    s_haveContext = false;
+    s_numDrivers = -1;
   }
 
   s_initialized = false;
 }
 
-void FSOUND_Update() {
+void WINAPI FSOUND_Update() {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
+  ProcessEndedChannels();
+
+  memcpy(s_mixListenerPos, s_listenerPos, sizeof(s_mixListenerPos));
+  memcpy(s_mixListenerVel, s_listenerVel, sizeof(s_mixListenerVel));
+  memcpy(s_mixListenerForward, s_listenerForward, sizeof(s_mixListenerForward));
+  memcpy(s_mixListenerTop, s_listenerTop, sizeof(s_mixListenerTop));
+
+  for (int i = 0; i < s_numChannels; ++i) {
+    Channel *channel = &s_channels[i];
+
+    if (channel->stream && !(channel->stream->mode & FSOUND_2D)) {
+      memcpy(channel->mixPosition, channel->position, sizeof(channel->mixPosition));
+      memcpy(channel->mixVelocity, channel->velocity, sizeof(channel->mixVelocity));
+      channel->placed = true;
+      UpdateChannel(channel);
+    }
+  }
 }
 
-int FSOUND_GetError() {
+int WINAPI FSOUND_GetError() {
   return s_error;
 }
 
-int FSOUND_GetMaxChannels() {
+int WINAPI FSOUND_GetMaxChannels() {
   return s_numChannels;
 }
 
-int FSOUND_GetNumHardwareChannels() {
+int WINAPI FSOUND_GetNumHardwareChannels() {
   return 0;
 }
 
-int FSOUND_GetOutputRate() {
-  ALCint frequency = s_mixRate;
-
-  if (s_device) {
-    alcGetIntegerv(s_device, ALC_FREQUENCY, 1, &frequency);
-  }
-
-  return frequency;
+int WINAPI FSOUND_GetOutputRate() {
+  return s_initialized ? (int)ma_engine_get_sample_rate(&s_engine) : s_mixRate;
 }
 
-float FSOUND_GetCPUUsage() {
+float WINAPI FSOUND_GetCPUUsage() {
   return 0.0f;
 }
 
-void FSOUND_SetSFXMasterVolume(int volume) {
+void WINAPI FSOUND_SetSFXMasterVolume(int volume) {
   s_masterVolume = volume < 0 ? 0 : volume > 255 ? 255 : volume;
 
-  if (s_context) {
-    alListenerf(AL_GAIN, s_masterVolume / 255.0f);
+  if (s_initialized) {
+    ma_engine_set_volume(&s_engine, s_masterVolume / 255.0f);
   }
 }
 
-signed char FSOUND_3D_Listener_SetAttributes(
+signed char WINAPI FSOUND_3D_Listener_SetAttributes(
     const float *position,
     const float *velocity,
     float        forwardX,
@@ -734,7 +755,7 @@ signed char FSOUND_3D_Listener_SetAttributes(
     float        topY,
     float        topZ
 ) {
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   if (position) {
     memcpy(s_listenerPos, position, sizeof(s_listenerPos));
@@ -750,21 +771,10 @@ signed char FSOUND_3D_Listener_SetAttributes(
   s_listenerTop[1] = topY;
   s_listenerTop[2] = topZ;
 
-  if (s_context) {
-    ApplyListener();
-  }
-
-  for (int i = 0; i < s_numChannels; ++i) {
-    if (s_channels[i].stream && s_channels[i].numSources == 2 && !(s_channels[i].stream->mode & FSOUND_2D)) {
-      UpdateChannel(&s_channels[i]);
-    }
-  }
-
-  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
-void FSOUND_3D_Listener_GetAttributes(
+void WINAPI FSOUND_3D_Listener_GetAttributes(
     float *position,
     float *velocity,
     float *forwardX,
@@ -774,6 +784,8 @@ void FSOUND_3D_Listener_GetAttributes(
     float *topY,
     float *topZ
 ) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
+
   if (position) {
     memcpy(position, s_listenerPos, sizeof(s_listenerPos));
   }
@@ -800,15 +812,11 @@ void FSOUND_3D_Listener_GetAttributes(
   }
 }
 
-FSOUND_STREAM *FSOUND_Stream_Open(const char *filename, unsigned int mode, int offset, int length) {
-  unsigned char  header[16];
-  int            formatTag = 0;
-  int            channels = 0;
-  int            rate = 0;
-  int            blockAlign = 0;
-  int            bits = 0;
-  int            dataSize;
-  unsigned int   file;
+FSOUND_STREAM *WINAPI FSOUND_Stream_Open(const char *filename, unsigned int mode, int offset, int length) {
+  ma_format      format;
+  ma_uint32      channels;
+  ma_uint32      rate;
+  ma_result      result;
   FSOUND_STREAM *stream;
 
   if (!s_initialized) {
@@ -816,107 +824,71 @@ FSOUND_STREAM *FSOUND_Stream_Open(const char *filename, unsigned int mode, int o
     return 0;
   }
 
-  file = s_open ? s_open(filename) : 0;
-  if (!file) {
-    s_error = FMOD_ERR_FILE_NOTFOUND;
-    return 0;
-  }
-
-  if (s_read(header, 12, file) != 12 || memcmp(header, "RIFF", 4) || memcmp(header + 8, "WAVE", 4)) {
-    s_close(file);
-    s_error = FMOD_ERR_FILE_FORMAT;
-    return 0;
-  }
-
-  for (;;) {
-    if (s_read(header, 8, file) != 8) {
-      s_close(file);
-      s_error = FMOD_ERR_FILE_FORMAT;
-      return 0;
-    }
-
-    int chunkSize = header[4] | header[5] << 8 | header[6] << 16 | header[7] << 24;
-
-    if (!memcmp(header, "data", 4)) {
-      dataSize = chunkSize;
-      break;
-    }
-
-    if (!memcmp(header, "fmt ", 4) && chunkSize >= 16) {
-      if (s_read(header, 16, file) != 16) {
-        s_close(file);
-        s_error = FMOD_ERR_FILE_FORMAT;
-        return 0;
-      }
-      formatTag = header[0] | header[1] << 8;
-      channels = header[2] | header[3] << 8;
-      rate = header[4] | header[5] << 8 | header[6] << 16 | header[7] << 24;
-      blockAlign = header[12] | header[13] << 8;
-      bits = header[14] | header[15] << 8;
-      chunkSize -= 16;
-    }
-
-    s_seek(file, chunkSize + (chunkSize & 1), 1);
-  }
-
-  if (formatTag != 1 || (channels != 1 && channels != 2) || (bits != 8 && bits != 16) || rate <= 0 || blockAlign != channels * bits / 8 ||
-      dataSize < 0) {
-    s_close(file);
-    s_error = FMOD_ERR_FILE_FORMAT;
-    return 0;
-  }
-
   stream = (FSOUND_STREAM *)s_alloc(sizeof(FSOUND_STREAM));
   if (!stream) {
-    s_close(file);
     s_error = FMOD_ERR_MEMORY;
     return 0;
   }
 
   memset(stream, 0, sizeof(*stream));
+
+  result = ma_resource_manager_data_source_init(
+      &s_resourceManager,
+      filename,
+      MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE | MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC | MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT,
+      0,
+      &stream->source
+  );
+  if (result != MA_SUCCESS) {
+    s_free(stream);
+    s_error = result == MA_DOES_NOT_EXIST ? FMOD_ERR_FILE_NOTFOUND : FMOD_ERR_FILE_FORMAT;
+    return 0;
+  }
+
+  if (ma_resource_manager_data_source_get_data_format(&stream->source, &format, &channels, &rate, 0, 0) != MA_SUCCESS ||
+      (channels != 1 && channels != 2) || !rate) {
+    ma_resource_manager_data_source_uninit(&stream->source);
+    s_free(stream);
+    s_error = FMOD_ERR_FILE_FORMAT;
+    return 0;
+  }
+
+  ma_data_source_config config = ma_data_source_config_init();
+  config.vtable = &s_streamVtable;
+  ma_data_source_init(&config, &stream->base);
+
   stream->sample.minDistance = 1.0f;
   stream->sample.maxDistance = 1000000000.0f;
-  stream->file = file;
   stream->mode = mode;
   stream->channel = -1;
   stream->loopCount = -1;
   stream->loopsLeft = -1;
-  stream->format = channels == 1 ? (bits == 8 ? AL_FORMAT_MONO8 : AL_FORMAT_MONO16) : (bits == 8 ? AL_FORMAT_STEREO8 : AL_FORMAT_STEREO16);
+  stream->channels = channels;
   stream->rate = rate;
-  stream->blockAlign = blockAlign;
-  stream->dataStart = s_tell(file);
-  stream->dataSize = dataSize - dataSize % blockAlign;
-  stream->pcmSize = (rate / BUFFERS_PER_SECOND) * blockAlign;
-  stream->pcm = (unsigned char *)s_alloc(stream->pcmSize);
-  if (!stream->pcm) {
-    s_free(stream);
-    s_close(file);
-    s_error = FMOD_ERR_MEMORY;
-    return 0;
-  }
-
   return stream;
 }
 
-signed char FSOUND_Stream_Close(FSOUND_STREAM *stream) {
+signed char WINAPI FSOUND_Stream_Close(FSOUND_STREAM *stream) {
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
+
   if (stream->channel != -1) {
     ReleaseChannel(&s_channels[stream->channel & 0xFFFF]);
   }
-  pthread_mutex_unlock(&s_lock);
 
-  s_close(stream->file);
-  s_free(stream->pcm);
+  ma_data_source_uninit(&stream->base);
+  if (s_initialized) {
+    ma_resource_manager_data_source_uninit(&stream->source);
+  }
   s_free(stream);
   return 1;
 }
 
-int FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed char startpaused) {
+int WINAPI FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed char startpaused) {
   int handle = -1;
 
   if (!stream || channel != FSOUND_FREE) {
@@ -924,7 +896,9 @@ int FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed c
     return -1;
   }
 
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
+
+  ProcessEndedChannels();
 
   if (stream->channel != -1 || stream->ended) {
     StopStream(stream);
@@ -937,41 +911,31 @@ int FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed c
       continue;
     }
 
+    if (ma_sound_init_from_data_source(&s_engine, &stream->base, MA_SOUND_FLAG_NO_SPATIALIZATION, 0, &target->sound) != MA_SUCCESS) {
+      break;
+    }
+
     target->stream = stream;
     target->volume = 255;
     target->paused = startpaused != 0;
     target->muted = false;
     target->frequency = stream->rate;
-    target->numSources = stream->format == AL_FORMAT_MONO8 || stream->format == AL_FORMAT_MONO16 ? 2 : 1;
     memset(target->position, 0, sizeof(target->position));
     memset(target->velocity, 0, sizeof(target->velocity));
+    memset(target->mixPosition, 0, sizeof(target->mixPosition));
+    memset(target->mixVelocity, 0, sizeof(target->mixVelocity));
+    target->placed = false;
     target->minDistance = stream->sample.minDistance;
     target->maxDistance = stream->sample.maxDistance;
     handle = i | target->ref << 16;
     stream->channel = handle;
 
-    if (target->numSources == 2) {
-      for (int j = 0; j < 2; ++j) {
-        alSourcei(target->sources[j], AL_SOURCE_RELATIVE, AL_TRUE);
-        alSource3f(target->sources[j], AL_POSITION, j ? 1.0f : -1.0f, 0.0f, 0.0f);
-        alSource3f(target->sources[j], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
-        alSourcef(target->sources[j], AL_ROLLOFF_FACTOR, 0.0f);
-      }
-    } else {
-      bool is3d = !(stream->mode & FSOUND_2D);
-      alSourcei(target->sources[0], AL_SOURCE_RELATIVE, is3d ? AL_FALSE : AL_TRUE);
-      alSource3f(target->sources[0], AL_POSITION, 0.0f, 0.0f, 0.0f);
-      alSource3f(target->sources[0], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
-      alSourcef(target->sources[0], AL_REFERENCE_DISTANCE, stream->sample.minDistance);
-      alSourcef(target->sources[0], AL_MAX_DISTANCE, stream->sample.maxDistance);
-      alSourcef(target->sources[0], AL_ROLLOFF_FACTOR, is3d ? s_rolloffFactor : 0.0f);
-    }
     UpdateChannel(target);
-    QueueBuffers(target);
+    if (!target->paused) {
+      ma_sound_start(&target->sound);
+    }
     break;
   }
-
-  pthread_mutex_unlock(&s_lock);
 
   if (handle == -1) {
     s_error = FMOD_ERR_CHANNEL_ALLOC;
@@ -980,84 +944,74 @@ int FSOUND_Stream_PlayEx(int channel, FSOUND_STREAM *stream, void *dsp, signed c
   return handle;
 }
 
-signed char FSOUND_Stream_Stop(FSOUND_STREAM *stream) {
+signed char WINAPI FSOUND_Stream_Stop(FSOUND_STREAM *stream) {
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
   StopStream(stream);
-  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
-signed char FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, intptr_t userdata) {
+signed char WINAPI FSOUND_Stream_SetEndCallback(FSOUND_STREAM *stream, FSOUND_STREAMCALLBACK callback, intptr_t userdata) {
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
   stream->endCallback = callback;
   stream->endUserData = userdata;
-  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
-signed char FSOUND_Stream_SetLoopCount(FSOUND_STREAM *stream, int count) {
+signed char WINAPI FSOUND_Stream_SetLoopCount(FSOUND_STREAM *stream, int count) {
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  pthread_mutex_lock(&s_lock);
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
   stream->loopCount = count;
   stream->loopsLeft = count;
-  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
-int FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream) {
+int WINAPI FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream) {
+  ma_uint64 frames = 0;
+
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  return (int)((long long)(stream->dataSize / stream->blockAlign) * 1000 / stream->rate);
+  ma_resource_manager_data_source_get_length_in_pcm_frames(&stream->source, &frames);
+  return (int)(frames * 1000 / stream->rate);
 }
 
-signed char FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int milliseconds) {
+signed char WINAPI FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int milliseconds) {
   if (!stream || milliseconds < 0) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
   }
 
-  int position = (int)((long long)milliseconds * stream->rate / 1000) * stream->blockAlign;
-  if (position > stream->dataSize) {
-    position = stream->dataSize;
-  }
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
-  pthread_mutex_lock(&s_lock);
+  ma_uint64 frame = (ma_uint64)milliseconds * stream->rate / 1000;
 
-  s_seek(stream->file, stream->dataStart + position, 0);
-  stream->position = position;
   stream->ended = false;
-
   if (stream->channel != -1) {
-    Channel *channel = &s_channels[stream->channel & 0xFFFF];
-    alSourceRewindv(channel->numSources, channel->sources);
-    for (int i = 0; i < channel->numSources; ++i) {
-      alSourcei(channel->sources[i], AL_BUFFER, 0);
-    }
-    QueueBuffers(channel);
+    ma_sound_seek_to_pcm_frame(&s_channels[stream->channel & 0xFFFF].sound, frame);
+  } else {
+    ma_resource_manager_data_source_seek_to_pcm_frame(&stream->source, frame);
   }
 
-  pthread_mutex_unlock(&s_lock);
   return 1;
 }
 
-FSOUND_SAMPLE *FSOUND_Stream_GetSample(FSOUND_STREAM *stream) {
+FSOUND_SAMPLE *WINAPI FSOUND_Stream_GetSample(FSOUND_STREAM *stream) {
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
@@ -1066,7 +1020,7 @@ FSOUND_SAMPLE *FSOUND_Stream_GetSample(FSOUND_STREAM *stream) {
   return &stream->sample;
 }
 
-signed char FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDistance, float maxDistance) {
+signed char WINAPI FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDistance, float maxDistance) {
   if (!sample || minDistance < 0.0f || maxDistance < 0.0f) {
     s_error = FMOD_ERR_INVALID_PARAM;
     return 0;
@@ -1077,8 +1031,8 @@ signed char FSOUND_Sample_SetMinMaxDistance(FSOUND_SAMPLE *sample, float minDist
   return 1;
 }
 
-signed char FSOUND_StopSound(int channel) {
-  pthread_mutex_lock(&s_lock);
+signed char WINAPI FSOUND_StopSound(int channel) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   if (channel == FSOUND_ALL) {
     for (int i = 0; i < s_numChannels; ++i) {
@@ -1086,7 +1040,6 @@ signed char FSOUND_StopSound(int channel) {
         ReleaseChannel(&s_channels[i]);
       }
     }
-    pthread_mutex_unlock(&s_lock);
     return 1;
   }
 
@@ -1095,38 +1048,33 @@ signed char FSOUND_StopSound(int channel) {
     ReleaseChannel(stop);
   }
 
-  pthread_mutex_unlock(&s_lock);
   return stop != 0;
 }
 
-signed char FSOUND_IsPlaying(int channel) {
-  pthread_mutex_lock(&s_lock);
-  Channel *playing = GetChannel(channel);
-  pthread_mutex_unlock(&s_lock);
-  return playing != 0;
+signed char WINAPI FSOUND_IsPlaying(int channel) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
+  Channel                              *playing = GetChannel(channel);
+  return playing && !ma_sound_at_end(&playing->sound);
 }
 
-signed char FSOUND_SetPaused(int channel, signed char paused) {
-  pthread_mutex_lock(&s_lock);
+signed char WINAPI FSOUND_SetPaused(int channel, signed char paused) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   Channel *pause = GetChannel(channel);
-  if (pause) {
-    ALint state = 0;
+  if (pause && !ma_sound_at_end(&pause->sound)) {
     pause->paused = paused != 0;
-    alGetSourcei(pause->sources[0], AL_SOURCE_STATE, &state);
     if (pause->paused) {
-      alSourcePausev(pause->numSources, pause->sources);
-    } else if (state != AL_PLAYING) {
-      alSourcePlayv(pause->numSources, pause->sources);
+      ma_sound_stop(&pause->sound);
+    } else {
+      ma_sound_start(&pause->sound);
     }
   }
 
-  pthread_mutex_unlock(&s_lock);
   return pause != 0;
 }
 
-signed char FSOUND_SetMute(int channel, signed char mute) {
-  pthread_mutex_lock(&s_lock);
+signed char WINAPI FSOUND_SetMute(int channel, signed char mute) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   Channel *muted = GetChannel(channel);
   if (muted) {
@@ -1134,12 +1082,11 @@ signed char FSOUND_SetMute(int channel, signed char mute) {
     UpdateChannel(muted);
   }
 
-  pthread_mutex_unlock(&s_lock);
   return muted != 0;
 }
 
-signed char FSOUND_SetVolume(int channel, int volume) {
-  pthread_mutex_lock(&s_lock);
+signed char WINAPI FSOUND_SetVolume(int channel, int volume) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   Channel *target = GetChannel(channel);
   if (target) {
@@ -1147,12 +1094,11 @@ signed char FSOUND_SetVolume(int channel, int volume) {
     UpdateChannel(target);
   }
 
-  pthread_mutex_unlock(&s_lock);
   return target != 0;
 }
 
-signed char FSOUND_SetFrequency(int channel, int frequency) {
-  pthread_mutex_lock(&s_lock);
+signed char WINAPI FSOUND_SetFrequency(int channel, int frequency) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   Channel *target = GetChannel(channel);
   if (target && frequency > 0) {
@@ -1160,12 +1106,11 @@ signed char FSOUND_SetFrequency(int channel, int frequency) {
     UpdateChannel(target);
   }
 
-  pthread_mutex_unlock(&s_lock);
   return target != 0;
 }
 
-signed char FSOUND_3D_SetAttributes(int channel, const float *position, const float *velocity) {
-  pthread_mutex_lock(&s_lock);
+signed char WINAPI FSOUND_3D_SetAttributes(int channel, const float *position, const float *velocity) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
 
   Channel *target = GetChannel(channel);
   if (target && !(target->stream->mode & FSOUND_2D)) {
@@ -1175,16 +1120,14 @@ signed char FSOUND_3D_SetAttributes(int channel, const float *position, const fl
     if (velocity) {
       memcpy(target->velocity, velocity, sizeof(target->velocity));
     }
-    if (target->numSources == 1) {
-      alSource3f(target->sources[0], AL_POSITION, target->position[0], target->position[1], -target->position[2]);
-      alSource3f(target->sources[0], AL_VELOCITY, target->velocity[0], target->velocity[1], -target->velocity[2]);
-    } else {
+    if (!target->placed) {
+      memcpy(target->mixPosition, target->position, sizeof(target->mixPosition));
+      memcpy(target->mixVelocity, target->velocity, sizeof(target->mixVelocity));
+      target->placed = true;
       UpdateChannel(target);
     }
   }
 
-  pthread_mutex_unlock(&s_lock);
   return target != 0;
 }
-
 }

@@ -157,7 +157,7 @@ jobs:
         env:
           DXSDK_DIR: ${{ github.workspace }}\DXSDK2010
         run: |
-          cmake -G "Visual Studio 18 2026" -A Win32 -S . -B Build/vs2026
+          cmake -G "Visual Studio 18 2026" -A Win32 -S . -B Build/vs2026 -DBUILD_PORTABLE_AUDIO=OFF
           cmake --build Build/vs2026 --config Release --parallel
 
       - name: Copy FMOD library
@@ -216,7 +216,7 @@ jobs:
         env:
           DXSDK_DIR: ${{ github.workspace }}\DXSDK2010
         run: |
-          cmake -G "Visual Studio 18 2026" -A x64 -S . -B Build/vs2026-x64
+          cmake -G "Visual Studio 18 2026" -A x64 -S . -B Build/vs2026-x64 -DBUILD_PORTABLE_AUDIO=OFF
           cmake --build Build/vs2026-x64 --config Release --parallel
 
       - name: Copy FMOD library
@@ -268,7 +268,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake pkg-config libsdl2-dev libopenal-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
+          sudo apt-get install -y clang cmake pkg-config libsdl2-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
 
       - name: Build executable
         env:
