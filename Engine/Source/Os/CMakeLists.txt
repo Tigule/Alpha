@@ -1,3 +1,9 @@
+if(BUILD_PORTABLE_MIDI)
+    set(OS_MIDI_SOURCES W32/OsSoundMIDISynth.cpp W32/OsSoundSynth.cpp)
+else()
+    set(OS_MIDI_SOURCES W32/OsSoundMIDI.cpp)
+endif()
+
 if(APPLE)
     add_library(Os STATIC
         Mac/Debugging.cpp
@@ -44,7 +50,7 @@ elseif(UNIX)
         Mac/Tls.cpp
         W32/OsISoundCache.cpp
         W32/OsSound.cpp
-        W32/OsSoundMIDI.cpp
+        ${OS_MIDI_SOURCES}
     )
 else()
     add_library(Os STATIC
@@ -60,7 +66,7 @@ else()
         W32/OsJoystick.cpp
         W32/OsMemory.cpp
         W32/OsSound.cpp
-        W32/OsSoundMIDI.cpp
+        ${OS_MIDI_SOURCES}
         W32/OSSystem.cpp
         W32/OsTcp.cpp
         W32/Path.cpp
@@ -83,16 +89,8 @@ elseif(UNIX)
     target_link_libraries(Os PUBLIC fmod PkgConfig::SDL2 X11)
 elseif(NOT HAVE_WIN8_SDK)
     target_include_directories(Os PRIVATE "$ENV{DXSDK_DIR}/Include")
-elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+elseif(NOT BUILD_PORTABLE_MIDI)
     set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY INCLUDE_DIRECTORIES "$ENV{DXSDK_DIR}/Include")
-endif()
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    # dmusic was never ported to 64-bit
-    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS BUILD_NO_AMBIENCE)
-elseif(NOT EXISTS "$ENV{DXSDK_DIR}/Include/dmusici.h")
-    message(STATUS "DXSDK_DIR has no DirectMusic headers (dmusici.h): building without ambience music")
-    set_property(SOURCE W32/OsSoundMIDI.cpp APPEND PROPERTY COMPILE_DEFINITIONS BUILD_NO_AMBIENCE)
 endif()
 
 if(MSVC_VERSION EQUAL 1200)

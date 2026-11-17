@@ -159,6 +159,10 @@ FSOUND_STREAM *WINAPI FSOUND_Stream_Open(const char *filename, unsigned int mode
   return 0;
 }
 
+FSOUND_STREAM *WINAPI FSOUND_Stream_Create(FSOUND_STREAMCALLBACK callback, int lenbytes, unsigned int mode, int samplerate, intptr_t userdata) {
+  return 0;
+}
+
 signed char WINAPI FSOUND_Stream_Close(FSOUND_STREAM *stream) {
   return 0;
 }
@@ -212,6 +216,10 @@ signed char WINAPI FSOUND_SetMute(int channel, signed char mute) {
 }
 
 signed char WINAPI FSOUND_SetVolume(int channel, int volume) {
+  return 0;
+}
+
+signed char WINAPI FSOUND_SetPan(int channel, int pan) {
   return 0;
 }
 

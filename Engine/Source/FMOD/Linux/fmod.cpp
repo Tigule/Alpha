@@ -43,6 +43,8 @@ struct FSOUND_STREAM {
   bool                            ended;
   FSOUND_STREAMCALLBACK           endCallback;
   intptr_t                        endUserData;
+  FSOUND_STREAMCALLBACK           callback;
+  intptr_t                        userData;
 };
 
 enum {
@@ -75,6 +77,8 @@ enum {
 
 enum {
   FSOUND_LOOP_NORMAL = 0x2,
+  FSOUND_16BITS = 0x10,
+  FSOUND_STEREO = 0x40,
   FSOUND_2D = 0x2000,
   FSOUND_FREE = -1,
   FSOUND_ALL = -3
@@ -211,6 +215,24 @@ static ma_result StreamRead(ma_data_source *source, void *output, ma_uint64 fram
   ma_result      result = MA_SUCCESS;
   bool           rewound = false;
 
+  if (stream->callback) {
+    short scratch[1024];
+
+    while (total < frameCount) {
+      ma_uint64 count = frameCount - total;
+      short    *target = output ? (short *)output + total * stream->channels : scratch;
+
+      if (!output && count > sizeof(scratch) / sizeof(short) / stream->channels) {
+        count = sizeof(scratch) / sizeof(short) / stream->channels;
+      }
+      stream->callback(stream, target, (int)(count * stream->channels * sizeof(short)), stream->userData);
+      total += count;
+    }
+
+    *framesRead = total;
+    return MA_SUCCESS;
+  }
+
   while (total < frameCount) {
     ma_uint64 count = 0;
     void     *target = output ? (char *)output + total * stream->channels * sizeof(short) : 0;
@@ -241,6 +263,9 @@ static ma_result StreamRead(ma_data_source *source, void *output, ma_uint64 fram
 }
 
 static ma_result StreamSeek(ma_data_source *source, ma_uint64 frame) {
+  if (((FSOUND_STREAM *)source)->callback) {
+    return MA_NOT_IMPLEMENTED;
+  }
   return ma_resource_manager_data_source_seek_to_pcm_frame(&((FSOUND_STREAM *)source)->source, frame);
 }
 
@@ -252,14 +277,31 @@ static ma_result StreamGetDataFormat(
     ma_channel     *channelMap,
     size_t          channelMapCap
 ) {
+  FSOUND_STREAM *stream = (FSOUND_STREAM *)source;
+
+  if (stream->callback) {
+    *format = ma_format_s16;
+    *channels = stream->channels;
+    *sampleRate = stream->rate;
+    ma_channel_map_init_standard(ma_standard_channel_map_default, channelMap, channelMapCap, stream->channels);
+    return MA_SUCCESS;
+  }
   return ma_resource_manager_data_source_get_data_format(&((FSOUND_STREAM *)source)->source, format, channels, sampleRate, channelMap, channelMapCap);
 }
 
 static ma_result StreamGetCursor(ma_data_source *source, ma_uint64 *cursor) {
+  if (((FSOUND_STREAM *)source)->callback) {
+    *cursor = 0;
+    return MA_NOT_IMPLEMENTED;
+  }
   return ma_resource_manager_data_source_get_cursor_in_pcm_frames(&((FSOUND_STREAM *)source)->source, cursor);
 }
 
 static ma_result StreamGetLength(ma_data_source *source, ma_uint64 *length) {
+  if (((FSOUND_STREAM *)source)->callback) {
+    *length = 0;
+    return MA_NOT_IMPLEMENTED;
+  }
   return ma_resource_manager_data_source_get_length_in_pcm_frames(&((FSOUND_STREAM *)source)->source, length);
 }
 
@@ -421,7 +463,9 @@ static void StopStream(FSOUND_STREAM *stream) {
     ReleaseChannel(&s_channels[stream->channel & 0xFFFF]);
   }
 
-  ma_resource_manager_data_source_seek_to_pcm_frame(&stream->source, 0);
+  if (!stream->callback) {
+    ma_resource_manager_data_source_seek_to_pcm_frame(&stream->source, 0);
+  }
   stream->loopsLeft = stream->loopCount;
   stream->ended = false;
 }
@@ -868,6 +912,42 @@ FSOUND_STREAM *WINAPI FSOUND_Stream_Open(const char *filename, unsigned int mode
   return stream;
 }
 
+FSOUND_STREAM *WINAPI FSOUND_Stream_Create(FSOUND_STREAMCALLBACK callback, int lenbytes, unsigned int mode, int samplerate, intptr_t userdata) {
+  if (!s_initialized) {
+    s_error = FMOD_ERR_UNINITIALIZED;
+    return 0;
+  }
+
+  if (!callback || lenbytes <= 0 || samplerate <= 0 || !(mode & FSOUND_16BITS)) {
+    s_error = FMOD_ERR_INVALID_PARAM;
+    return 0;
+  }
+
+  FSOUND_STREAM *stream = (FSOUND_STREAM *)s_alloc(sizeof(FSOUND_STREAM));
+  if (!stream) {
+    s_error = FMOD_ERR_MEMORY;
+    return 0;
+  }
+
+  memset(stream, 0, sizeof(*stream));
+
+  ma_data_source_config config = ma_data_source_config_init();
+  config.vtable = &s_streamVtable;
+  ma_data_source_init(&config, &stream->base);
+
+  stream->sample.minDistance = 1.0f;
+  stream->sample.maxDistance = 1000000000.0f;
+  stream->mode = mode;
+  stream->channel = -1;
+  stream->loopCount = -1;
+  stream->loopsLeft = -1;
+  stream->channels = mode & FSOUND_STEREO ? 2 : 1;
+  stream->rate = samplerate;
+  stream->callback = callback;
+  stream->userData = userdata;
+  return stream;
+}
+
 signed char WINAPI FSOUND_Stream_Close(FSOUND_STREAM *stream) {
   if (!stream) {
     s_error = FMOD_ERR_INVALID_PARAM;
@@ -881,7 +961,7 @@ signed char WINAPI FSOUND_Stream_Close(FSOUND_STREAM *stream) {
   }
 
   ma_data_source_uninit(&stream->base);
-  if (s_initialized) {
+  if (s_initialized && !stream->callback) {
     ma_resource_manager_data_source_uninit(&stream->source);
   }
   s_free(stream);
@@ -987,7 +1067,9 @@ int WINAPI FSOUND_Stream_GetLengthMs(FSOUND_STREAM *stream) {
     return 0;
   }
 
-  ma_resource_manager_data_source_get_length_in_pcm_frames(&stream->source, &frames);
+  if (!stream->callback) {
+    ma_resource_manager_data_source_get_length_in_pcm_frames(&stream->source, &frames);
+  }
   return (int)(frames * 1000 / stream->rate);
 }
 
@@ -1002,6 +1084,9 @@ signed char WINAPI FSOUND_Stream_SetTime(FSOUND_STREAM *stream, int milliseconds
   ma_uint64 frame = (ma_uint64)milliseconds * stream->rate / 1000;
 
   stream->ended = false;
+  if (stream->callback) {
+    return 1;
+  }
   if (stream->channel != -1) {
     ma_sound_seek_to_pcm_frame(&s_channels[stream->channel & 0xFFFF].sound, frame);
   } else {
@@ -1095,6 +1180,11 @@ signed char WINAPI FSOUND_SetVolume(int channel, int volume) {
   }
 
   return target != 0;
+}
+
+signed char WINAPI FSOUND_SetPan(int channel, int pan) {
+  std::lock_guard<std::recursive_mutex> guard(s_lock);
+  return GetChannel(channel) != 0;
 }
 
 signed char WINAPI FSOUND_SetFrequency(int channel, int frequency) {

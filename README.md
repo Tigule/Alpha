@@ -58,9 +58,8 @@ cd Build
 
 ### Visual Studio 2026
 
-Install [Visual Studio Community](https://visualstudio.microsoft.com/downloads/) and the "Desktop development with C++" workload.
-
-For MIDI ambience on 32-bit (not supported on 64-bit), set `DXSDK_DIR` to a DirectX SDK, such as [DXSDK2010.zip](https://tigule.org/files/ci/DXSDK2010.zip). This is optional.
+Install [Visual Studio Community](https://visualstudio.microsoft.com/downloads/) and the "Desktop development with C++" workload.  
+The Windows SDK includes DirectX. If you're trying to use DirectMusic you will need the legacy DirectX SDK: [DXSDK2010.zip](https://tigule.org/files/ci/DXSDK2010.zip) with `dmusic.h`, and set `BUILD_PORTABLE_MIDI=OFF`.
 
 ```bat
 cmake --preset windows-x86
@@ -113,7 +112,7 @@ Copy your game install to `WoW/Client/`.
 The original game client was meant to use a launcher for authentication, most people bypass that, so you'll have to use `-uptodate` when you run it.  
 
 The client runs from the folder its executable is in, so copy the executable there first:
-* Windows: copy the `.exe` into `WoW/Client/`. Builds with `-DBUILD_PORTABLE_AUDIO=OFF` also need `fmod.dll` or `fmod64.dll`, if needed copy it from `Engine/Source/FMOD/api/` into `WoW/Client/`.
+* Windows: copy the `.exe` into `WoW/Client/`. Builds with `-DBUILD_PORTABLE_AUDIO=OFF` (not default) also need `fmod.dll` or `fmod64.dll`, if needed copy it from `Engine/Source/FMOD/api/` into `WoW/Client/`.
 * macOS: copy `World of Warcraft.app` into `WoW/Client/`
 * Linux: copy `Wow64ae` into `WoW/Client/` (a symlink won't work), then run `./Wow64ae -uptodate`. Settings and crash logs go to `~/.blizzard/`.
 
