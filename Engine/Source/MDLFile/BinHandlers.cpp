@@ -112,8 +112,8 @@ namespace MDL {
     BINHANDLER *handler = s_binHandlers;
     for (UINT i = 21; i--; ++handler)
       if (!(*handler)(data, buffer, status))
-        return 0;
-    return 1;
+        return FALSE;
+    return TRUE;
   }
 
 }  // namespace MDL

@@ -57,7 +57,7 @@ void GuildCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
   }
 }
 
-CGTabardModelFrame::CGTabardModelFrame(CSimpleFrame *parent) : CGCharacterModelBase(parent), m_charComponent(0) {
+CGTabardModelFrame::CGTabardModelFrame(CSimpleFrame *parent) : CGCharacterModelBase(parent), m_charComponent(NULL) {
 }
 
 void CGTabardModelFrame::InitializeModel(HMODEL model) {
@@ -74,7 +74,7 @@ void CGTabardModelFrame::InitializeModel(HMODEL model) {
   if (m_charComponent) {
     HandleClose(m_charComponent);
   }
-  m_charComponent = 0;
+  m_charComponent = NULL;
 
   InitializeTabardColors(playerPtr);
   HTEXTURE skinTexture = CharCustomizationSetSkin(model, playerPtr->GetDisplayRace(), playerPtr->GetDisplaySex(), playerPtr->GetSkin(), 0);
@@ -130,7 +130,7 @@ void CGTabardModelFrame::SaveTabard() {
 BOOL CGTabardModelFrame::CanSaveTabard() {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   const GuildStats_C *guild = g_guildInfoCache.GetRecord(player->GetGuildID(), 0, GuildCallback, 0);
@@ -329,7 +329,7 @@ void CGTabardModelFrame::UnregisterScriptMethods() {
 
 BOOL CGTabardModelFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
-    return 1;
+    return TRUE;
   }
   return CGCharacterModelBase::LookupScriptMethod(L, name);
 }

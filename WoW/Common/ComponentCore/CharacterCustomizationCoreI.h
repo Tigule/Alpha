@@ -51,7 +51,7 @@ struct STRINGWANNABE {
   void SetString(LPCSTR prefix, LPCSTR value) {
     string = value;
   }
-  STRINGWANNABE() : string(0) {
+  STRINGWANNABE() : string(NULL) {
   }
 };
 

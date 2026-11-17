@@ -77,8 +77,8 @@ class ClntObjMgr {
     m_callingMirrorHandlers = 0;
     m_mapID = 0;
     m_activePlayer = 0;
-    m_net = 0;
-    m_movement = 0;
+    m_net = NULL;
+    m_movement = NULL;
     m_allowGuidDeref = 1;
     m_clientPtr = clientPtr;
   }
@@ -289,7 +289,7 @@ static BOOL GetMirrorHandler(LISTPTR(CMirrorHandler) mirrorHandlers, LISTPTREX(C
 
   FATALASSERT(handlerList);
   if (!mirrorHandlers || mirrorHandlers->IsEmpty()) {
-    return 0;
+    return FALSE;
   }
 
   ITERATELISTPTR(CMirrorHandler, mirrorHandlers, handler) {
@@ -298,7 +298,7 @@ static BOOL GetMirrorHandler(LISTPTR(CMirrorHandler) mirrorHandlers, LISTPTREX(C
     handler->blocksLeft = (handler->previous.Count() + offDword + 3) >> 2;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static UINT GetNumDwordBlocks(OBJECT_TYPE objType) {
@@ -607,12 +607,12 @@ static CGObject_C *GetObjectPtr(DWORDLONG guid) {
   C_OBJECTHASH *foundObj;
 
   if (!guid) {
-    return 0;
+    return NULL;
   }
 
   foundObj = FindActiveObj(guid);
   if (!foundObj) {
-    return 0;
+    return NULL;
   }
 
   return (CGObject_C *)ObjectPtr(foundObj->memHandle);
@@ -708,7 +708,7 @@ static C_OBJECTHASH *GetUpdateObject(DWORDLONG guid) {
 
   foundObj = s_curMgr->m_lazyCleanupObjects.Ptr(guid, hashKey);
   if (!foundObj) {
-    return 0;
+    return NULL;
   }
 
   s_curMgr->m_lazyCleanupObjects.Unlink(foundObj);
@@ -779,12 +779,12 @@ static C_OBJECTHASH *AllocNewObj() {
   UINT memHandle;
 
   if (!ObjectAlloc(s_hashMemBlock, &memHandle)) {
-    return 0;
+    return NULL;
   }
 
   C_OBJECTHASH *hash = (C_OBJECTHASH *)ObjectPtr(memHandle);
   if (!hash) {
-    return 0;
+    return NULL;
   }
 
   new (hash) C_OBJECTHASH;
@@ -807,7 +807,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
   if (foundObj) {
     PartialUpdateFromFullUpdate(eventTime, foundObj, msg);
-    return 1;
+    return TRUE;
   }
 
   foundObj = s_curMgr->m_freeObjects.Head();
@@ -818,7 +818,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
     if (!foundObj) {
       foundObj = AllocNewObj();
       if (!foundObj) {
-        return 0;
+        return FALSE;
       }
       SysMsgAdd("NOFREEOBJECTSALLOCATING", SYSMSG_WARNING, 0x20);
     } else {
@@ -832,7 +832,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
   if (!ObjectAlloc(s_objHeapId[type - 1], &memHandle)) {
     s_curMgr->m_freeObjects.LinkNode(foundObj, LIST_TAIL, 0);
     SkipCreateObject(msg);
-    return 0;
+    return FALSE;
   }
 
   s_curMgr->m_objects.Insert(foundObj, guid, CHashKeyGUID(guid));
@@ -843,7 +843,7 @@ static BOOL CreateObject(DWORD eventTime, CDataStore *msg) {
   s_curMgr->m_visibleObjects.LinkNode(foundObj, LIST_TAIL, 0);
   InitObject(eventTime, type, memHandle, &init);
   CreateMessage(type);
-  return 1;
+  return TRUE;
 }
 
 static BOOL UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
@@ -854,17 +854,17 @@ static BOOL UpdateObjectMovement(DWORD eventTime, CDataStore *msg) {
   CClientMoveUpdate update;
   *msg >> update;
   if (guid == CGUnit_C::GetActiveMover()) {
-    return 1;
+    return TRUE;
   }
 
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
   if (!foundObj) {
-    return 0;
+    return FALSE;
   }
   CGUnit_C *unit = (CGUnit_C *)ObjectPtr(foundObj->memHandle);
   FATALASSERT(unit);
   unit->UpdateMoveInfo(eventTime, update);
-  return 1;
+  return TRUE;
 }
 
 static BOOL UpdateObject(CDataStore *msg) {
@@ -879,10 +879,10 @@ static BOOL UpdateObject(CDataStore *msg) {
   C_OBJECTHASH *foundObj = GetUpdateObject(guid);
   if (!foundObj) {
     SkipPartialObjectUpdate(msg);
-    return 0;
+    return FALSE;
   }
   FillInPartialObjectData(foundObj, msg, 0, 0);
-  return 1;
+  return TRUE;
 }
 
 static void PostMovementUpdate(CDataStore *msg) {
@@ -1198,7 +1198,7 @@ static BOOL OnObjectDestroy(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG guid;
   msg->Get(guid);
   ClntObjMgrFreeObject(guid);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ObjUsage(LPCSTR command, LPCSTR arguments) {
@@ -1228,7 +1228,7 @@ static BOOL CCommand_ObjUsage(LPCSTR command, LPCSTR arguments) {
   ConsoleWriteA("    Active objects:              %u objects (%u visible)", HIGHLIGHT_COLOR, numActive, numVisible);
   ConsoleWriteA("    Objects waiting to be freed: %u objects", HIGHLIGHT_COLOR, numWaiting);
   ConsoleWriteA("    Free objects:                %u objects", HIGHLIGHT_COLOR, numFree);
-  return 1;
+  return TRUE;
 }
 
 ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, LPVOID clientPtr) {
@@ -1237,7 +1237,7 @@ ClntObjMgr *ClntObjMgrCreate(PLAYER_TYPE type, LPVOID clientPtr) {
 
 void ClntObjMgrDestruct(ClntObjMgr *mgr) {
   if (s_curMgr == mgr) {
-    s_curMgr = 0;
+    s_curMgr = NULL;
   }
 
   if (mgr) {
@@ -1263,10 +1263,10 @@ ClntObjMgr *ClntObjMgrGetCurrent() {
 
 BOOL ClntObjMgrIsValid(int forWriting) {
   if (!s_curMgr) {
-    return 0;
+    return FALSE;
   }
 
-  return SMemIsValidPointer(s_curMgr, sizeof(ClntObjMgr), forWriting) != 0;
+  return SMemIsValidPointer(s_curMgr, sizeof(ClntObjMgr), forWriting) != FALSE;
 }
 
 void ClntObjMgrInitializeShared() {
@@ -1334,10 +1334,10 @@ static BOOL MirrorHandlerRemoveQueued(DWORDLONG guid, CMirrorHandler *mirror) {
     if (!request->set && request->handler == mirror->handler && request->guid == guid && request->offset == mirror->offset &&
         request->param == mirror->param)
     {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static void ProcessObjHandlersQueue() {
@@ -1457,7 +1457,7 @@ CGObject_C *ClntObjMgrObjectPtr(DWORDLONG guid, LPCSTR fileName, UINT lineNumber
   CGObject_C *object;
 
   if (!s_curMgr) {
-    return 0;
+    return NULL;
   }
 
   if (!s_curMgr->m_allowGuidDeref && guid != s_curMgr->m_legalGuidDeref) {
@@ -1540,7 +1540,7 @@ void ClntObjMgrSetNet(ClientConnection *net) {
 
 ClientConnection *ClntObjMgrGetNet() {
   if (!s_curMgr) {
-    return 0;
+    return NULL;
   }
 
   return s_curMgr->m_net;
@@ -1548,7 +1548,7 @@ ClientConnection *ClntObjMgrGetNet() {
 
 LPVOID ClntObjMgrGetMovementGlobals() {
   if (!s_curMgr) {
-    return 0;
+    return NULL;
   }
 
   return s_curMgr->m_movement;
@@ -1562,7 +1562,7 @@ void ClntObjMgrSetMovementGlobals(LPVOID ptr) {
 
 LPVOID ClntObjMgrGetClientPtr() {
   if (!s_curMgr) {
-    return 0;
+    return NULL;
   }
 
   return s_curMgr->m_clientPtr;

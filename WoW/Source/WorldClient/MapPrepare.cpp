@@ -20,7 +20,7 @@
 void CMap::PrepareUpdate() {
   bspRecurseCount = 0;
   mapGetFacetsCount = 0;
-  oldSelectLightParm = 0;
+  oldSelectLightParm = NULL;
   CMapObj::PrepareUpdate();
   PrepareAreas();
   PrepareChunks();
@@ -33,7 +33,7 @@ void CMap::PrepareAreas() {
     CMapArea *area = (CMapArea *)areaLink->owner;
 
     if (!CWorld::areaRect.Contains(area->mIndex)) {
-      areaTable[area->infoIndex] = 0;
+      areaTable[area->infoIndex] = NULL;
       areaInfo[area->infoIndex].flags &= ~1u;
       areaInfo[area->infoIndex].asyncId = 0;
       FreeBaseObjLink(areaLink);
@@ -130,14 +130,14 @@ void CMap::UpdateMapObjDefGroupDoodads(CMapObj *mapObj, CMapObjGroup *mapObjGrou
   FATALASSERT(mapObjDef);
   FATALASSERT(mapObjDefGroup);
 
-  BOOL bFini = 1;
+  BOOL bFini = TRUE;
   UINT count = 0;
 
   ITERATELIST(CMapBaseObjLink, mapObjDefGroup->doodadDefLinkList, doodadDefLink) {
     CMapDoodadDef *doodadDef = (CMapDoodadDef *)doodadDefLink->owner;
 
     if (!doodadDef->model) {
-      bFini = 0;
+      bFini = FALSE;
       LoadDoodadModel(doodadDef, 0);
       ModelSetLightSelectCallback(doodadDef->model, SelectLight, doodadDef, 1);
 
@@ -172,7 +172,7 @@ void CMap::PrepareMapObjDef(CMapObjDef *mapObjDef, CMapObj *mapObj) {
 
   mapObjDef->lightList.SetCount(mapObj->lightCount);
   for (UINT i = 0; i < mapObjDef->lightList.Count(); ++i) {
-    mapObjDef->lightList[i] = 0;
+    mapObjDef->lightList[i] = NULL;
   }
 
   CreateMapObjDefGroups(mapObj, mapObjDef);
@@ -302,14 +302,14 @@ void CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
   UINT areaIndex = area->mIndex.x + 64 * area->mIndex.y;
   UINT chunkIndex = chunk->aIndex.x + 16 * chunk->aIndex.y;
 
-  chunk->neighbor[0] = 0;
-  chunk->neighbor[1] = 0;
-  chunk->neighbor[2] = 0;
-  chunk->neighbor[3] = 0;
+  chunk->neighbor[0] = NULL;
+  chunk->neighbor[1] = NULL;
+  chunk->neighbor[2] = NULL;
+  chunk->neighbor[3] = NULL;
 
   CMapChunk *neighbor;
 
-  neighbor = 0;
+  neighbor = NULL;
   if (chunk->aIndex.y > 0) {
     neighbor = chunk->neighbor[0] = area->chunkTable[chunkIndex - 16];
   } else if (chunk->aIndex.y == 0 && area->mIndex.y > 0) {
@@ -322,7 +322,7 @@ void CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
     neighbor->neighbor[2] = chunk;
   }
 
-  neighbor = 0;
+  neighbor = NULL;
   if (chunk->aIndex.x < 15) {
     neighbor = chunk->neighbor[1] = area->chunkTable[chunkIndex + 1];
   } else if (chunk->aIndex.x == 15 && area->mIndex.x < 63) {
@@ -335,7 +335,7 @@ void CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
     neighbor->neighbor[3] = chunk;
   }
 
-  neighbor = 0;
+  neighbor = NULL;
   if (chunk->aIndex.y < 15) {
     neighbor = chunk->neighbor[2] = area->chunkTable[chunkIndex + 16];
   } else if (chunk->aIndex.y == 15 && area->mIndex.y < 63) {
@@ -348,7 +348,7 @@ void CMap::CreateChunkNeighborPtrs(CMapChunk *chunk) {
     neighbor->neighbor[0] = chunk;
   }
 
-  neighbor = 0;
+  neighbor = NULL;
   if (chunk->aIndex.x > 0) {
     neighbor = chunk->neighbor[3] = area->chunkTable[chunkIndex - 1];
   } else if (chunk->aIndex.x == 0 && area->mIndex.x > 0) {

@@ -228,12 +228,12 @@ static BOOL SoundIdle(LPCVOID, LPVOID) {
     Sound::Update();
   }
 
-  return 1;
+  return TRUE;
 }
 
 Sound::Sound()
     : m_channel(-1),
-      m_stream(0),
+      m_stream(NULL),
       m_flags(0),
       m_worldPosition(),
       m_velocity(),
@@ -648,14 +648,14 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
 
   sound->m_flags |= flags & 0xFF;
   if (!(sound->m_flags & 0x00000002) && s_muted > 0) {
-    return 0;
+    return NULL;
   }
 
   ASSERT(filename);
   sound->m_stream = FSOUND_Stream_Open(filename, mode, 0, 0);
   if (!sound->m_stream) {
     s_soundListFree.Put(sound);
-    return 0;
+    return NULL;
   }
 
   FSOUND_Stream_SetEndCallback((FSOUND_STREAM *)sound->m_stream, FSoundStreamEndCallback, (INT_PTR)sound);
@@ -665,7 +665,7 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
     sound->m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)sound->m_stream, 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
-      sound = 0;
+      sound = NULL;
     } else {
       sound->IncrementCategory(sound->m_category);
       sound->UpdateVolume();
@@ -678,7 +678,7 @@ Sound *Sound::Play(SOUNDCATEGORIES category, LPCSTR filename, UINT mode, bool st
 
 Sound *Sound::Play2D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
 
   return Play(category, filename, 0x2000, startPaused, flags);
@@ -686,12 +686,12 @@ Sound *Sound::Play2D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool 
 
 Sound *Sound::Play3D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
 
   Sound *sound = Play(category, filename, 0x1000, startPaused, flags);
   if (!sound) {
-    return 0;
+    return NULL;
   }
 
   sound->m_flags |= 0x08000000;
@@ -714,7 +714,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
   sound->m_stream = FSOUND_Stream_Open(filename, mode, 0, 0);
   if (!sound->m_stream) {
     s_soundListFree.Put(sound);
-    return 0;
+    return NULL;
   }
 
   if (loopCount) {
@@ -727,7 +727,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
     sound->m_channel = FSOUND_Stream_PlayEx(-1, (FSOUND_STREAM *)sound->m_stream, 0, 0);
     if (sound->m_channel == -1) {
       s_soundListFree.Put(sound);
-      return 0;
+      return NULL;
     }
 
     if (s_muted > 0) {
@@ -746,7 +746,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
 
 Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
 
   if (loopCount == 1) {
@@ -760,7 +760,7 @@ Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags,
   Sound *sound;
 
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
 
   if (loopCount == 1) {
@@ -769,7 +769,7 @@ Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags,
 
   sound = PlayLooped(category, filename, loopCount - 1, 0x1002, true, flags);
   if (!sound) {
-    return 0;
+    return NULL;
   }
 
   if (!startPaused) {
@@ -785,7 +785,7 @@ void Sound::KillSound(Sound *&sound) {
     s_soundListFree.Put(released);
   }
 
-  sound = 0;
+  sound = NULL;
 }
 
 void Sound::SetFadeIn(float fadeTime, float volume) {
@@ -925,7 +925,7 @@ void Sound::Stop() {
   if (m_stream) {
     FSOUND_Stream_Stop((FSOUND_STREAM *)m_stream);
     FSOUND_Stream_Close((FSOUND_STREAM *)m_stream);
-    m_stream = 0;
+    m_stream = NULL;
   }
 
   RemoveFromFadeList();

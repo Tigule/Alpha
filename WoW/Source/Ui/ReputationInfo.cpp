@@ -199,7 +199,7 @@ void CGReputationInfo::SetAtWar(int faction, bool state) {
   CDataStore msg;
   msg.Put(CMSG_SET_FACTION_ATWAR);
   msg.Put(index);
-  msg.Put((BYTE)(state != 0));
+  msg.Put((BYTE)(state != false));
   msg.Finalize();
   ClientServices_Send(&msg);
 }

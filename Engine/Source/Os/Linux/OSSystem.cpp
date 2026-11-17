@@ -14,7 +14,7 @@
 static DWORD s_processorFeatures;
 static int   s_processorVendor;
 
-static int IOsGetProcessorFeatures(DWORD *vendor, DWORD *standard, DWORD *extended) {
+static BOOL IOsGetProcessorFeatures(DWORD *vendor, DWORD *standard, DWORD *extended) {
   unsigned int eax;
   unsigned int ebx;
   unsigned int ecx;
@@ -36,7 +36,7 @@ static int IOsGetProcessorFeatures(DWORD *vendor, DWORD *standard, DWORD *extend
     *extended = 0;
   }
 
-  return 1;
+  return TRUE;
 }
 
 DWORD OsGetProcessorFeaturesEx(int &vendorID) {
@@ -111,13 +111,13 @@ BOOL OsGetComputerName(char *computerName, DWORD *computerNameLen) {
     SStrCopy(computerName, "LinuxBox", *computerNameLen);
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL OsGetUserName(char *userName, DWORD *userNameLen) {
   SStrCopy(userName, "UnknownUser", *userNameLen);
   *userNameLen = SStrLen(userName);
-  return 1;
+  return TRUE;
 }
 
 DWORD OsGetPhysicalMemory() {
@@ -200,7 +200,7 @@ BOOL OsLaunchURL(LPCSTR url) {
   UINT   index;
 
   if (!url || !*url) {
-    return 0;
+    return FALSE;
   }
 
   format = getenv("BROWSER");
@@ -211,7 +211,7 @@ BOOL OsLaunchURL(LPCSTR url) {
   }
 
   if (!format) {
-    return 0;
+    return FALSE;
   }
 
   SStrPrintf(command, sizeof(command), format, url, url);

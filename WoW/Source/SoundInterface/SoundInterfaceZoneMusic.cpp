@@ -75,7 +75,7 @@ static BOOL ZoneMusicIdle(LPCVOID dataPtr, LPVOID ptr) {
       PlayMusic();
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void InitializeZoneMusic() {
@@ -88,7 +88,7 @@ void InitializeZoneMusic() {
 void ShutdownZoneMusic() {
   EventUnregister(EVENT_ID_IDLE, ZoneMusicIdle);
   s_flags &= ~2;
-  s_currentMusic = 0;
+  s_currentMusic = NULL;
   Sound::KillSound(s_sound);
 }
 

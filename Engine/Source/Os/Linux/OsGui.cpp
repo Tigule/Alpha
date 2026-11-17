@@ -16,7 +16,7 @@ void OsGuiSetGxWindow(LPVOID window) {
 }
 
 LPVOID OsGuiGetWindow(int inWindowType) {
-  return 0;
+  return NULL;
 }
 
 int OsGuiMessageBox(LPVOID inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR inTitle) {

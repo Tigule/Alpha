@@ -27,11 +27,11 @@ void CMapObj::AsyncPostloadCallbackHeader(LPVOID userArg) {
   FATALASSERT(mapObj);
 
   AsyncFileReadDestroyObject(mapObj->asyncObject);
-  mapObj->asyncObject = 0;
+  mapObj->asyncObject = NULL;
   if (mapObj->fileHeader.version != 14) {
     SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", mapObj->name);
     SFile::Close(mapObj->file);
-    mapObj->file = 0;
+    mapObj->file = NULL;
     return;
   }
 
@@ -57,7 +57,7 @@ void CMapObj::AsyncPostloadCallback(LPVOID userArg) {
   FATALASSERT(mapObj);
 
   AsyncFileReadDestroyObject(mapObj->asyncObject);
-  mapObj->asyncObject = 0;
+  mapObj->asyncObject = NULL;
   mapObj->CreateData();
 }
 
@@ -66,15 +66,15 @@ void CMapObj::AsyncPostloadCallbackAll(LPVOID userArg) {
   FATALASSERT(mapObj);
 
   AsyncFileReadDestroyObject(mapObj->asyncObject);
-  mapObj->asyncObject = 0;
+  mapObj->asyncObject = NULL;
   SFile::Close(mapObj->file);
-  mapObj->file = 0;
+  mapObj->file = NULL;
   memcpy(&mapObj->fileHeader, mapObj->data, sizeof(mapObj->fileHeader));
   if (mapObj->fileHeader.version != 14) {
     SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", mapObj->name);
     SMemFree(mapObj->data, __FILE__, __LINE__, 0);
     mapObj->dataBytes = 0;
-    mapObj->data = 0;
+    mapObj->data = NULL;
     return;
   }
 
@@ -88,7 +88,7 @@ BOOL CMapObj::Read(LPCSTR fileName) {
   if (!SFile::Open(fileName, &file)) {
     OsOutputDebugString("CMapObj::Read(): Failed to open %s\n", fileName);
     bLoaded = 1;
-    return 0;
+    return FALSE;
   }
 
   if (CMap::bPreload) {
@@ -98,19 +98,19 @@ BOOL CMapObj::Read(LPCSTR fileName) {
       FATALASSERT(data);
       SFile::Read(file, data, fileSize, &dataBytes, 0, 0);
       SFile::Close(file);
-      file = 0;
+      file = NULL;
       memcpy(&fileHeader, data, sizeof(fileHeader));
       if (fileHeader.version != 14) {
         SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", name);
         SMemFree(data, __FILE__, __LINE__, 0);
         dataBytes = 0;
-        data = 0;
-        return 0;
+        data = NULL;
+        return FALSE;
       }
 
       CreateData();
       CreateAllGroups();
-      return 1;
+      return TRUE;
     }
 
     DWORD bRead;
@@ -118,8 +118,8 @@ BOOL CMapObj::Read(LPCSTR fileName) {
     if (fileHeader.version != 14) {
       SysMsgPrintf(SYSMSG_FATAL, 2, "MAPWRONGVERSION|%s", name);
       SFile::Close(file);
-      file = 0;
-      return 0;
+      file = NULL;
+      return FALSE;
     }
 
     FATALASSERT(fileHeader.iffChunkHeader.token=='MOMO');
@@ -129,7 +129,7 @@ BOOL CMapObj::Read(LPCSTR fileName) {
     SFile::SetFilePointer(file, 0, 0, FILE_BEGIN);
     SFile::Read(file, data, fileSize, &dataBytes, 0, 0);
     CreateData();
-    return 1;
+    return TRUE;
   }
 
   asyncObject = AsyncFileReadCreateObject();
@@ -151,7 +151,7 @@ BOOL CMapObj::Read(LPCSTR fileName) {
     asyncObject->userPostloadCallback = AsyncPostloadCallbackHeader;
   }
   AsyncFileReadObject(asyncObject);
-  return 1;
+  return TRUE;
 }
 
 void CMapObj::CreateData() {
@@ -227,10 +227,10 @@ SIffChunk *CMapObj::ReadChunkHeader(BYTE *&pData, DWORD expectedToken) {
 SIffChunk *CMapObj::ReadOptionalChunkHeader(BYTE *&pData, DWORD expectedToken) {
   SIffChunk *pIffChunk = (SIffChunk *)pData;
   if (pData >= data + dataBytes) {
-    return 0;
+    return NULL;
   }
   if (pIffChunk->token != expectedToken) {
-    return 0;
+    return NULL;
   }
   pData += sizeof(SIffChunk);
   return pIffChunk;
@@ -324,8 +324,8 @@ void CMapObj::CreateDataPointers() {
 void CMapObj::CreateMaterials() {
   SMOMaterial *material = materialList;
   for (UINT i = 0; i < materialCount; ++i, ++material) {
-    material->hMaps[0] = 0;
-    material->hMaps[1] = 0;
+    material->hMaps[0] = NULL;
+    material->hMaps[1] = NULL;
   }
 }
 
@@ -342,7 +342,7 @@ void CMapObj::CreateMaterial(UINT materialId) {
       if (*textureName) {
         material->hMaps[1] = CMap::LoadTexture(textureName);
       } else {
-        material->hMaps[1] = 0;
+        material->hMaps[1] = NULL;
       }
     }
   }
@@ -352,7 +352,7 @@ void CMapObj::CreateGroup(CMapObjGroup *group, SMOGroupInfo *groupInfo) {
   FATALASSERT(group);
   FATALASSERT(groupInfo);
 
-  group->data = 0;
+  group->data = NULL;
   group->parent = this;
   group->Create(data + groupInfo->offset);
 }
@@ -390,7 +390,7 @@ void CMapObjGroup::AsyncPostloadCallback(LPVOID userArg) {
   FATALASSERT(mapObjGroup);
 
   AsyncFileReadDestroyObject(mapObjGroup->asyncObject);
-  mapObjGroup->asyncObject = 0;
+  mapObjGroup->asyncObject = NULL;
   mapObjGroup->Create(mapObjGroup->data);
 }
 
@@ -447,7 +447,7 @@ void CMapObjGroup::Create(BYTE *rawData) {
       }
     }
   }
-  bLoaded = 1;
+  bLoaded = true;
 }
 
 void CMapObjGroup::CreateDataPointers(BYTE *pData) {
@@ -599,7 +599,7 @@ void CMapObjGroup::CreateLightmapPointers(BYTE *&pData) {
   lightmapTexList = (SMOLightmapTex *)SMemAlloc(lightmapTexCount * sizeof(*lightmapTexList), __FILE__, __LINE__, 0);
   for (UINT t = 0; t < lightmapTexCount; ++t) {
     memcpy(lightmapTexList[t].texels, pData + lightmapStride * t, sizeof(lightmapTexList->texels));
-    lightmapTexList[t].hTexture = 0;
+    lightmapTexList[t].hTexture = NULL;
   }
 #else
   lightmapTexList = (SMOLightmapTex *)pData;

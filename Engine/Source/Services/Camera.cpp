@@ -100,7 +100,7 @@ void CameraCalcTargFromPos(HCAMERA camera, NTempest::C3Vector *target) {
 HCAMERA CameraCreate() {
   CCamera *camera = NEWHANDLE(HCAMERA, CCamera);
   if (!camera)
-    return 0;
+    return NULL;
   return CREATEHANDLE(HCAMERA, camera);
 }
 
@@ -110,7 +110,7 @@ HCAMERA CameraDuplicate(HCAMERA source) {
 
   CCamera *cameraPtr = NEWHANDLE(HCAMERA, CCamera);
   if (!cameraPtr) {
-    return 0;
+    return NULL;
   }
 
   cameraPtr->m_position.Set(srcPtr->m_position.Get());

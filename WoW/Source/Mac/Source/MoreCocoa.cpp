@@ -48,7 +48,7 @@ BOOL AutoReleaseFlush(LPCVOID, LPVOID) {
   [s_pool release];
   s_pool = [[NSAutoreleasePool alloc] init];
   EventSetTimer(15000u, AutoReleaseFlush, 0);
-  return 1;
+  return TRUE;
 }
 
 void Initialize() {

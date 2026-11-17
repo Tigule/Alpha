@@ -210,11 +210,11 @@ void CGActionBar::UpdateBonusBar() {
 }
 
 BOOL CGActionBar::IsUsableAction(int id, BOOL &noMana) {
-  noMana = 0;
+  noMana = FALSE;
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   if (IsAttackAction(id)) {
@@ -225,68 +225,68 @@ BOOL CGActionBar::IsUsableAction(int id, BOOL &noMana) {
     if (IsItem(id)) {
       return !Spell_C_NeedsCooldownEvent(GetItem(id));
     }
-    return 1;
+    return TRUE;
   }
 
   if (IsToggledAction(id)) {
-    return 1;
+    return TRUE;
   }
 
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   if (!spell) {
-    return 0;
+    return FALSE;
   }
 
   if (!Spell_C_HaveSpellTokens(player, spell, false) || !Spell_C_HaveEquippedSpellItems(player, spell, true, false)) {
-    return 0;
+    return FALSE;
   }
 
   if ((spell->m_attributesEx & 0x500000) && !player->GetComboPoints()) {
-    return 0;
+    return FALSE;
   }
 
   if (spell->m_shapeshiftMask && !(spell->m_shapeshiftMask & (1 << (player->GetShapeshiftForm() - 1)))) {
-    return 0;
+    return FALSE;
   }
 
   if ((spell->m_attributes & 0x10000) && player->IsShapeShifted()) {
-    return 0;
+    return FALSE;
   }
 
   if ((spell->m_attributes & 0x20000) && !player->IsStealthed()) {
-    return 0;
+    return FALSE;
   }
 
   if ((spell->m_attributes & 0x10000000) && player->IsAffectingCombat()) {
-    return 0;
+    return FALSE;
   }
 
   if (spell->m_casterAuraState && !(player->GetAuraState() & (1 << (spell->m_casterAuraState - 1)))) {
-    return 0;
+    return FALSE;
   }
 
   if (spell->m_targetAuraState && spell->m_implicitTargetA[0] == 6) {
     CGUnit_C *target = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGGameUI::GetLockedTarget(), __FILE__, __LINE__));
     if (!target || !(target->GetAuraState() & (1 << (spell->m_targetAuraState - 1)))) {
-      return 0;
+      return FALSE;
     }
   }
 
   if ((spell->m_attributes & 0x2000000) && Spell_C_NeedsCooldownEvent(spell, 0)) {
-    return 0;
+    return FALSE;
   }
 
   if (Spell_C_GetManaCost(spell->m_ID, 0) > player->GetPower((POWER_TYPE)spell->m_powerType)) {
-    noMana = 1;
-    return 0;
+    noMana = TRUE;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CGActionBar::IsCurrentAction(int id) {
   if (!HasAction(id)) {
-    return 0;
+    return FALSE;
   }
 
   if (IsAttackAction(id)) {
@@ -300,12 +300,12 @@ BOOL CGActionBar::IsCurrentAction(int id) {
   }
 
   if (Spell_C_GetModalSpell() == GetSpell(id) || Spell_C_GetTargettingSpell() == GetSpell(id)) {
-    return 1;
+    return TRUE;
   }
 
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   if (!spell) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -313,10 +313,10 @@ BOOL CGActionBar::IsCurrentAction(int id) {
     if (!spell->m_effectMiscValue[0]) {
       const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetRace(), player->GetClass(), spell->m_ID);
       if (ability && CGTradeSkillInfo::GetSkillLine() == ability->m_skillLine) {
-        return 1;
+        return TRUE;
       }
     } else if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
-      return 1;
+      return TRUE;
     }
   }
 
@@ -324,19 +324,19 @@ BOOL CGActionBar::IsCurrentAction(int id) {
     if (spell->m_effectAura[i] == 36) {
       int form = spell->m_effectMiscValue[i];
       if (!form) {
-        return 0;
+        return FALSE;
       }
 
       return player && player->GetShapeshiftForm() == form;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGActionBar::IsToggledAction(int id) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   int active = 0;
@@ -378,9 +378,9 @@ void CGActionBar::SlotChanged(int id) {
 BOOL CGActionBar::IsAttackAction(int id) {
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(id));
   if (spell && spell->m_effect[0] == 78) {
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 void CGActionBar::UpdateSelection() {
@@ -596,7 +596,7 @@ LPCSTR CGActionBar::GetAttackTexture() {
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return NULL;
   }
 
   if (!(player->GetUnitFlags() & 0x200000)) {
@@ -641,7 +641,7 @@ LPCSTR CGActionBar::GetTexture(int id) {
       }
     }
   }
-  return 0;
+  return NULL;
 }
 
 int CGActionBar::GetCount(int id) {
@@ -736,7 +736,7 @@ static int Script_HasAction(lua_State *L) {
 static int Script_UseAction(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     int  id = (int)lua_tonumber(L, 1) - 1;
-    BOOL checkCursor = 1;
+    BOOL checkCursor = TRUE;
     if (lua_isstring(L, 2)) {
       checkCursor = StringToBOOL(lua_tostring(L, 2));
     }
@@ -798,7 +798,7 @@ static int Script_IsCurrentAction(lua_State *L) {
 static int Script_IsUsableAction(lua_State *L) {
   if (lua_isnumber(L, 1)) {
     int  id = (int)lua_tonumber(L, 1) - 1;
-    BOOL noMana = 0;
+    BOOL noMana = FALSE;
     if (CGActionBar::IsUsableAction(id, noMana)) {
       lua_pushnumber(L, 1.0);
     } else {

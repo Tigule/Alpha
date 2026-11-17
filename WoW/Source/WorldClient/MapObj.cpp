@@ -85,15 +85,15 @@ CMapObj::~CMapObj() {
 }
 
 void CMapObj::Init() {
-  file = 0;
+  file = NULL;
   refCount = 0;
-  data = 0;
+  data = NULL;
   dataBytes = 0;
-  asyncObject = 0;
+  asyncObject = NULL;
   flushTime = 0.0f;
   bLoaded = 0;
   nGroupsRead = 0;
-  materialList = 0;
+  materialList = NULL;
   materialCount = 0;
   aaBox.b = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
   aaBox.t = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
@@ -102,19 +102,19 @@ void CMapObj::Init() {
 }
 
 void CMapObj::InitPtrs() {
-  header = 0;
-  textureNameList = 0;
-  groupNameList = 0;
-  groupInfoList = 0;
-  portalVertexList = 0;
-  portalList = 0;
-  portalRefList = 0;
-  lightList = 0;
-  doodadSetList = 0;
-  doodadNameList = 0;
-  doodadDefList = 0;
-  fogList = 0;
-  convexVolumePlanes = 0;
+  header = NULL;
+  textureNameList = NULL;
+  groupNameList = NULL;
+  groupInfoList = NULL;
+  portalVertexList = NULL;
+  portalList = NULL;
+  portalRefList = NULL;
+  lightList = NULL;
+  doodadSetList = NULL;
+  doodadNameList = NULL;
+  doodadDefList = NULL;
+  fogList = NULL;
+  convexVolumePlanes = NULL;
   textureNameCount = 0;
   groupNameCount = 0;
   groupCount = 0;
@@ -135,14 +135,14 @@ void CMapObj::Clear() {
   if (asyncObject) {
     AsyncFileReadDestroyObject(asyncObject);
   }
-  asyncObject = 0;
+  asyncObject = NULL;
 
   SMOMaterial *material = materialList;
   for (i = 0; i < materialCount; ++i, ++material) {
     for (UINT map = 0; map < 2; ++map) {
       if (material->hMaps[map]) {
         HandleClose(material->hMaps[map]);
-        material->hMaps[map] = 0;
+        material->hMaps[map] = NULL;
       }
     }
   }
@@ -150,13 +150,13 @@ void CMapObj::Clear() {
   if (materialList) {
     SMemFree(materialList, __FILE__, __LINE__, 0);
   }
-  materialList = 0;
+  materialList = NULL;
   materialCount = 0;
 #endif
 
   for (i = 0; i < groupPtrList.Count(); ++i) {
     CMap::FreeMapObjGroup(groupPtrList[i]);
-    groupPtrList[i] = 0;
+    groupPtrList[i] = NULL;
   }
   groupPtrList.SetCount(0);
 
@@ -164,13 +164,13 @@ void CMapObj::Clear() {
   if (data) {
     SMemFree(data, __FILE__, __LINE__, 0);
   }
-  data = 0;
+  data = NULL;
   dataBytes = 0;
 
   if (file) {
     SFile::Close(file);
   }
-  file = 0;
+  file = NULL;
 }
 
 bool CMapObj::VectorIntersect(
@@ -193,7 +193,7 @@ bool CMapObj::VectorIntersect(
 
   NTempest::C3Vector wsp0 = *v0 * mapObjDef->mat;
   NTempest::C3Vector wsp1 = *v1 * mapObjDef->mat;
-  SMOPoly           *hitPoly = 0;
+  SMOPoly           *hitPoly = NULL;
   bool               hit = false;
 
   ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
@@ -216,7 +216,7 @@ bool CMapObj::VectorIntersect(
     if ((queryFlags & 0xF) && (CMap::VectorIntersectDoodadDefLinkList(mapObjDefGroup->doodadDefLinkList, &wsp0, &wsp1, dist, queryFlags) ||
                                CMap::VectorIntersectGameObjLinkList(mapObjDefGroup->entityLinkList, &wsp0, &wsp1, dist, queryFlags)))
     {
-      hitPoly = 0;
+      hitPoly = NULL;
       hit = true;
     }
   }
@@ -448,7 +448,7 @@ bool CMapObj::TestBounds(const NTempest::CAaBox &box) {
     return false;
   }
 
-  return aaBox.Intersects(box) != 0;
+  return aaBox.Intersects(box) != false;
 }
 
 bool CMapObj::TestBounds(const NTempest::C3Vector &point) {
@@ -456,7 +456,7 @@ bool CMapObj::TestBounds(const NTempest::C3Vector &point) {
     return false;
   }
 
-  return aaBox.Contains(point) != 0;
+  return aaBox.Contains(point) != false;
 }
 
 bool CMapObj::TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1) {
@@ -464,16 +464,16 @@ bool CMapObj::TestBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector 
     return false;
   }
 
-  return CWorldMath::VectorIntersectAABox2(aaBox, v0, v1) != 0;
+  return CWorldMath::VectorIntersectAABox2(aaBox, v0, v1) != FALSE;
 }
 
 bool CMapObj::TestGroupBounds(const NTempest::C3Vector &v0, const NTempest::C3Vector &v1, UINT index) {
   if (bLoaded && IsGroupLoaded(index)) {
     SMOGroupInfo *info = &groupInfoList[index];
-    return CWorldMath::VectorIntersectAABox2(info->aaBox, v0, v1) != 0;
+    return CWorldMath::VectorIntersectAABox2(info->aaBox, v0, v1) != FALSE;
   }
 
-  return 0;
+  return false;
 }
 
 bool CMapObj::TestGroupBounds(const NTempest::CAaBox &box, const UINT index) {
@@ -481,7 +481,7 @@ bool CMapObj::TestGroupBounds(const NTempest::CAaBox &box, const UINT index) {
     return false;
   }
 
-  return groupInfoList[index].aaBox.Intersects(box) != 0;
+  return groupInfoList[index].aaBox.Intersects(box) != false;
 }
 
 bool CMapObj::TestGroupBounds(const NTempest::C3Vector &point, const UINT index) {
@@ -489,7 +489,7 @@ bool CMapObj::TestGroupBounds(const NTempest::C3Vector &point, const UINT index)
     return false;
   }
 
-  return groupInfoList[index].aaBox.Contains(point) != 0;
+  return groupInfoList[index].aaBox.Contains(point) != false;
 }
 
 bool CMapObj::TestConvexVolume(const NTempest::C3Vector &point) {
@@ -507,14 +507,14 @@ bool CMapObj::TestConvexVolume(const NTempest::C3Vector &point) {
 
 CMapObjGroup *CMapObj::GetGroup(UINT index, int force) {
   if (!bLoaded) {
-    return 0;
+    return NULL;
   }
 
   CMapObjGroup *group = groupPtrList[index];
   ASSERT(group);
 
   if (!group->bLoaded && !force) {
-    return 0;
+    return NULL;
   }
 
   return group;
@@ -555,7 +555,7 @@ void CMapObj::WaitLoadGroup(UINT index) {
 
 char *CMapObj::GetGroupName(UINT index) {
   if (!bLoaded || !IsGroupLoaded(index)) {
-    return 0;
+    return NULL;
   }
 
   CMapObjGroup *group = groupPtrList[index];
@@ -565,7 +565,7 @@ char *CMapObj::GetGroupName(UINT index) {
 
 const SMOGroupInfo *CMapObj::GetGroupInfo(UINT index) {
   if (!bLoaded) {
-    return 0;
+    return NULL;
   }
   return &groupInfoList[index];
 }
@@ -573,7 +573,7 @@ const SMOGroupInfo *CMapObj::GetGroupInfo(UINT index) {
 bool CMapObj::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color, float *t) {
   float            hitT = 1.0f;
   WORD             hitPoly = 0;
-  CMapObjGroup    *hitGroup = 0;
+  CMapObjGroup    *hitGroup = NULL;
   NTempest::CAaBox gbox;
   UINT             grouplp;
 
@@ -620,11 +620,11 @@ bool CMapObj::QueryLiquidStatus(UINT ignoreGroupFlags, const NTempest::C3Vector 
 
     CMapObjGroup *group = GetGroup(grouplp, 0);
     if (group && group->QueryLiquidStatus(pos, liquid, surface, dir)) {
-      return 1;
+      return true;
     }
   }
 
-  return 0;
+  return false;
 }
 
 bool CMapObj::QueryLiquidFishable(UINT ignoreGroupFlags, const NTempest::C3Vector &pos, int &fishable) {
@@ -711,18 +711,18 @@ void CMapObj::QueryMapObjMinimapGroup(UINT groupID, UINT parentID, const NTempes
 bool CMapObj::QueryMapObjMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {
   ++sMinimapTag;
   if (!bLoaded) {
-    return 0;
+    return false;
   }
 
   NTempest::CAaBox clipLocalBox = localBox;
   CMapObjGroup    *group = GetGroup(groupID, 0);
   if (!group) {
-    return 0;
+    return false;
   }
 
   clipLocalBox.t.z = group->aaBox.t.z;
   QueryMapObjMinimapGroup(groupID, groupID, clipLocalBox, quads);
-  return 1;
+  return true;
 }
 
 void CMapObjGroup::QueryMinimap(UINT groupID, const NTempest::CAaBox &localBox, TSStackArray<CWorld::MinimapQuad> &quads) {

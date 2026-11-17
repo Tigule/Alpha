@@ -245,14 +245,14 @@ BOOL MDL::WriteModelGlobals(const MDLDATA &data, TSGrowableArray<char> &buffer, 
     }
     MDL::WriteLine(buffer, "}\n");
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinModelGlobals(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
   VALIDATE2(status != 0);
   if (len != 373) {
     status->Add(STATUS_ERROR, "Invalid MODL section detected in model.\n");
-    return 0;
+    return FALSE;
   }
   buf.GetTcharArray(data.model.name, 80);
   buf.GetTcharArray(data.model.animationFile, 260);
@@ -261,7 +261,7 @@ BOOL MDL::ReadBinModelGlobals(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStat
   buf.GetFloatArray(&data.model.bounds.extent.t.x, 3);
   data.model.flags = buf.GetByte();
   data.objects.ReserveSpace(buf.GetUint());
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
@@ -274,5 +274,5 @@ BOOL MDL::WriteBinModelGlobals(const MDLDATA &data, CMsgBuffer &buffer, CMDLStat
   buffer.AddFloatArray(&data.model.bounds.extent.t.x, 3);
   buffer.AddByte(data.model.flags);
   buffer.AddUint(data.objects.Count());
-  return 1;
+  return TRUE;
 }

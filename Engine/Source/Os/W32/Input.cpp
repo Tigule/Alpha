@@ -176,7 +176,7 @@ static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param
 
 static BOOL OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   if (s_queueTail == s_queueHead) {
-    return 0;
+    return FALSE;
   }
 
   OSEVENT *event = &s_queue[s_queueTail];
@@ -192,7 +192,7 @@ static BOOL OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *
     ++s_queueTail;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void OsQueueSetParam(int index, int param) {
@@ -211,12 +211,12 @@ static void OsQueueSetParam(int index, int param) {
 static BOOL ConvertKeyCode(int vkey, KEY *key) {
   if ((vkey >= '0' && vkey <= '9') || (vkey >= 'A' && vkey <= 'Z')) {
     *key = (KEY)vkey;
-    return 1;
+    return TRUE;
   }
 
   if (vkey >= VK_F1 && vkey <= VK_F12) {
     *key = (KEY)(KEY_F1 + vkey - VK_F1);
-    return 1;
+    return TRUE;
   }
 
   switch (vkey) {
@@ -372,10 +372,10 @@ static BOOL ConvertKeyCode(int vkey, KEY *key) {
 
     default:
       *key = KEY_SHIFT;
-      return 0;
+      return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void CenterMouse() {
@@ -392,34 +392,34 @@ static BOOL ConvertButton(UINT message, UINT wparam, MOUSEBUTTON *button) {
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
       *button = MOUSE_BUTTON_LEFT;
-      return 1;
+      return TRUE;
 
     case WM_MBUTTONDOWN:
     case WM_MBUTTONUP:
       *button = MOUSE_BUTTON_MIDDLE;
-      return 1;
+      return TRUE;
 
     case WM_RBUTTONDOWN:
     case WM_RBUTTONUP:
       *button = MOUSE_BUTTON_RIGHT;
-      return 1;
+      return TRUE;
 
     case WM_XBUTTONDOWN:
     case WM_XBUTTONUP:
       if (HIWORD(wparam) == 1) {
         *button = MOUSE_BUTTON_XBUTTON1;
-        return 1;
+        return TRUE;
       }
       if (HIWORD(wparam) == 2) {
         *button = MOUSE_BUTTON_XBUTTON2;
-        return 1;
+        return TRUE;
       }
       *button = MOUSE_BUTTON_NONE;
-      return 0;
+      return FALSE;
   }
 
   *button = MOUSE_BUTTON_NONE;
-  return 0;
+  return FALSE;
 }
 
 static void RestoreMouse() {
@@ -455,12 +455,12 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
     *param2 = 0;
     *param3 = 0;
     s_savedResize = 0;
-    return 1;
+    return TRUE;
   }
 
   if (s_queueTail != s_queueHead) {
     OsQueueGet(id, param0, param1, param2, param3);
-    return 1;
+    return TRUE;
   }
 
   messageAvailable = PeekMessageA(&message, 0, 0, 0, PM_NOREMOVE);
@@ -471,7 +471,7 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
   while (messageAvailable) {
     if (!GetMessageA(&message, 0, 0, 0)) {
       *id = OS_INPUT_SHUTDOWN;
-      return 1;
+      return TRUE;
     }
 
     if (OsGuiProcessMessage(&message)) {
@@ -499,12 +499,12 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
     OsSleep(OsGetBackgroundSleepMs());
   }
 
-  return 0;
+  return FALSE;
 
 deliverMessage:
   OsQueueSetParam(3, message.time);
   OsQueueGet(id, param0, param1, param2, param3);
-  return 1;
+  return TRUE;
 }
 
 void OsInputNotifyScreenResize(int x, int y) {
@@ -562,11 +562,11 @@ BOOL OsGetDefaultWindowRect(RECT *rect) {
   VALIDATE2(rect);
 
   if ((!s_defaultwindowrect.right || !s_defaultwindowrect.bottom) && !GetClientRect((HWND)OsGuiGetWindow(0), &s_defaultwindowrect)) {
-    return 0;
+    return FALSE;
   }
 
   *rect = s_defaultwindowrect;
-  return 1;
+  return TRUE;
 }
 
 UINT OsInputGetCodePage() {

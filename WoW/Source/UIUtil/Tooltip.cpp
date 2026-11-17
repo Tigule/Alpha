@@ -503,15 +503,15 @@ static void TooltipItemCreatorCallback(int id, const DWORDLONG &, LPVOID arg, bo
 static void TooltipCorpseNameCallback(int id, const DWORDLONG &, LPVOID arg, bool granted);
 
 CGTooltip::CGTooltip(CSimpleFrame *parent) : CSimpleFrame(parent) {
-  m_owner = 0;
+  m_owner = NULL;
   m_lines = 0;
   m_linesMax = 0;
-  m_reposition = 0;
+  m_reposition = FALSE;
   m_itemID = 0;
   m_itemGUID = 0;
   m_unit = 0;
   m_debugUnit = 0;
-  m_fading = 0;
+  m_fading = FALSE;
   m_padding = 0.0f;
 }
 
@@ -562,7 +562,7 @@ void CGTooltip::PostLoadXML(const XMLNode *node, CStatus *status) {
 
 BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
   if (unit == m_unit) {
-    return 0;
+    return FALSE;
   }
 
   if (m_unit && m_statusBar) {
@@ -576,7 +576,7 @@ BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
     if (m_statusBar) {
       m_statusBar->Hide();
     }
-    return 0;
+    return FALSE;
   }
 
   const NameCache *nc = g_nameDBCache.GetRecord(unit, 0, 0, 0);
@@ -672,7 +672,7 @@ BOOL CGTooltip::SetUnit(const DWORDLONG &unit) {
     m_debugUnit = unit;
   }
   Show();
-  return 0;
+  return FALSE;
 }
 
 static BOOL HealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID param) {
@@ -683,7 +683,7 @@ static BOOL HealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID para
     statusbar->SetMinMaxValues(0.0f, (float)unit->GetMaxHealth());
     statusbar->SetValue((float)unit->GetHealth());
   }
-  return 1;
+  return TRUE;
 }
 
 void CGTooltip::SetObject(const DWORDLONG &object) {
@@ -841,11 +841,11 @@ BOOL CGTooltip::SetItem(
     TooltipExtendedItemInfo *info
 ) {
   if (!itemID) {
-    return 0;
+    return FALSE;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   s_nameOnly = nameOnly;
@@ -854,7 +854,7 @@ BOOL CGTooltip::SetItem(
   m_itemID = itemID;
   const ItemStats *stats = g_itemDBCache.GetRecord(itemID, refGUID, TooltipItemStatsCallback, this);
   if (!stats) {
-    return 0;
+    return FALSE;
   }
 
   ClearLines();
@@ -886,7 +886,7 @@ BOOL CGTooltip::SetItem(
   if (itemPtr && itemPtr->GetItemStaticFlag(ITEM_FLAG_PETITION)) {
     const CGPetition *petition = g_petitionCache.GetRecord(itemPtr->GetPetitionID(), itemGUID, TooltipItemPetitionCallback, this);
     if (!petition) {
-      return 0;
+      return FALSE;
     }
     if (petition->m_flags & 0x1) {
       SStrPrintf(buf, sizeof(buf), FrameScript_GetText("GUILD_CHARTER_TITLE", -1, GENDER_NOT_APPLICABLE), petition->m_title);
@@ -1011,7 +1011,7 @@ BOOL CGTooltip::SetItem(
   }
 
   right[0] = 0;
-  const ItemSubClassRec *subClass = 0;
+  const ItemSubClassRec *subClass = NULL;
   for (i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
     const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
     if (rec && rec->m_classID == stats->m_class && rec->m_subClassID == stats->m_subclass) {
@@ -1458,15 +1458,15 @@ static void TooltipItemCreatorCallback(int id, const DWORDLONG &, LPVOID arg, bo
 
 BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPet) {
   if (!spellID) {
-    return 0;
+    return FALSE;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
-    return 0;
+    return FALSE;
   }
   const SkillLineAbilityRec *ability = player->LookupAbility(spellID);
   const SkillLineRec        *skillLine = ability ? g_skillLineDB.GetRecord(ability->m_skillLine) : 0;
@@ -1688,7 +1688,7 @@ BOOL CGTooltip::SetSpell(int spellID, int nameOnly, UINT cooldownTime, BOOL isPe
 
   if (passive && (spell->m_effect[0] == 20 || spell->m_effect[0] == 23 || spell->m_effect[0] == 22)) {
     float  chance;
-    LPCSTR token = 0;
+    LPCSTR token = NULL;
     switch (spell->m_effect[0]) {
       case 23:
         chance = player->GetBlockChance();
@@ -1893,7 +1893,7 @@ void CGTooltip::GetSpellEffectString(
     case 41:
     case 42:
     case 56: {
-      const CreatureStats_C *creature = 0;
+      const CreatureStats_C *creature = NULL;
       if (spell->m_effectMiscValue[effectIndex]) {
         creature = g_creatureDBCache.GetRecord(
             spell->m_effectMiscValue[effectIndex], spell->m_ID | 0xB000000000000000ui64, TooltipSpellCreatureStatsCallback, &m_spellID
@@ -2415,7 +2415,7 @@ static const SpellEffectNamesRec *GetEffectNameRec(int enumID) {
       return record;
     }
   }
-  return 0;
+  return NULL;
 }
 
 static const SpellAuraNamesRec *GetAuraNameRec(int enumID) {
@@ -2426,7 +2426,7 @@ static const SpellAuraNamesRec *GetAuraNameRec(int enumID) {
       return record;
     }
   }
-  return 0;
+  return NULL;
 }
 
 void CGTooltip::GetItemEnchantString(char *buf, UINT bufSize, const SpellItemEnchantmentRec *enchant, UINT effectIndex, TOOLTIP_DETAIL detail) {
@@ -2760,11 +2760,11 @@ void CGTooltip::SetOwner(CLayoutFrame *owner, TOOLTIP_ANCHORPOINT anchorpoint, f
       }
     }
     ClearLines();
-    m_reposition = 0;
+    m_reposition = FALSE;
   }
 
   SetAlpha(255);
-  m_fading = 0;
+  m_fading = FALSE;
   m_owner = owner;
 }
 
@@ -2776,11 +2776,11 @@ void CGTooltip::SetOwner(CLayoutFrame *owner, float x, float y) {
     ClearAllPoints(1);
     SetPoint(FRAMEPOINT_BOTTOMLEFT, owner, FRAMEPOINT_BOTTOMLEFT, x, STATUS_BAR_HEIGHT + STATUS_BAR_OFFSETY + y, 1);
     ClearLines();
-    m_reposition = 1;
+    m_reposition = TRUE;
   }
 
   SetAlpha(255);
-  m_fading = 0;
+  m_fading = FALSE;
   m_owner = owner;
 }
 
@@ -2942,22 +2942,22 @@ BOOL CGTooltip::HideThis() {
 BOOL CGTooltip::ShowThis() {
   if (m_owner && m_lines) {
     SetAlpha(255);
-    m_fading = 0;
+    m_fading = FALSE;
     CalculateSize();
     return CSimpleFrame::ShowThis();
   }
 
-  m_shown = 0;
+  m_shown = FALSE;
   HideThis();
-  return 0;
+  return FALSE;
 }
 
 void CGTooltip::FadeOut() {
   if (m_anchorPoint == TOOLTIP_ANCHOR_CURSOR) {
     HideThis();
-    m_fading = 0;
+    m_fading = FALSE;
   } else {
-    m_fading = 1;
+    m_fading = TRUE;
     m_fadeTime = TOOLTIP_FADE_TIME;
   }
 }
@@ -3054,8 +3054,8 @@ static int CGTooltip_ClearLines(lua_State *L) {
 
 static int CGTooltip_AddLine(lua_State *L) {
   CGTooltip *tooltip = (CGTooltip *)FrameScript_GetObjectThis(L);
-  LPCSTR              leftText = 0;
-  LPCSTR              rightText = 0;
+  LPCSTR              leftText = NULL;
+  LPCSTR              rightText = NULL;
   NTempest::CImVector leftColor = s_defaultColor;
   NTempest::CImVector rightColor = s_defaultColor;
   int                 argument = 2;
@@ -3532,7 +3532,7 @@ static int CGTooltip_SetTradeTargetItem(lua_State *L) {
 static int CGTooltip_SetBagItem(lua_State *L) {
   CGTooltip *tooltip = (CGTooltip *)FrameScript_GetObjectThis(L);
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-  CGBag_C *bag = 0;
+  CGBag_C *bag = NULL;
   if (player && lua_isnumber(L, 2) && lua_isnumber(L, 3)) {
     int bagIndex = (int)lua_tonumber(L, 2) - 1;
     if (bagIndex == -1) {
@@ -3622,7 +3622,7 @@ void CGTooltip::UnregisterScriptMethods() {
 
 BOOL CGTooltip::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
-    return 1;
+    return TRUE;
   }
   return CSimpleFrame::LookupScriptMethod(L, name);
 }

@@ -34,13 +34,13 @@ class FogQ {
 };
 
 BOOL CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
-  BOOL found = 0;
+  BOOL found = FALSE;
   ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
     if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
       CMapObjDefGroup *mapObjDefGroup = (CMapObjDefGroup *)parentLink->ref;
       mapObjDef = (CMapObjDef *)mapObjDefGroup->parentLinkList.Head()->ref;
       FATALASSERT(mapObjDef->GetType() & Type_MapObjDef);
-      found = 1;
+      found = TRUE;
       break;
     }
   }
@@ -49,7 +49,7 @@ BOOL CMapStaticEntity::GetMapObjDef(CMapObjDef *&mapObjDef) {
 }
 
 BOOL CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapObj, CMapObjDefGroup *&mapObjDefGroup, CMapObjGroup *&mapObjGroup) {
-  BOOL found = 0;
+  BOOL found = FALSE;
   if (flagInside) {
     ITERATELIST(CMapBaseObjLink, parentLinkList, parentLink) {
       if (parentLink->ref->GetType() & Type_MapObjDefGroup) {
@@ -61,7 +61,7 @@ BOOL CMapStaticEntity::GetMapObjAndGroup(CMapObjDef *&mapObjDef, CMapObj *&mapOb
         FATALASSERT(mapObj);
         mapObjGroup = mapObj->GetGroup(mapObjDefGroup->groupNum, 0);
         FATALASSERT(mapObjGroup);
-        found = 1;
+        found = TRUE;
         break;
       }
     }
@@ -83,14 +83,14 @@ BOOL CMapEntity::QueryMapObjZoneName(LPCSTR &zoneName) {
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
   CMapObjDef      *mapObjDef;
-  BOOL result = 0;
+  BOOL result = FALSE;
   if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
     if (!mapObjDef->zoneName) {
       mapObjDef->zoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, -1);
     }
 
     zoneName = mapObjDef->zoneName;
-    result = 1;
+    result = TRUE;
   }
 
   return result;
@@ -101,7 +101,7 @@ BOOL CMapEntity::QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId) {
   CMapObj         *mapObj;
   CMapObjGroup    *mapObjGroup;
   CMapObjDefGroup *mapObjDefGroup;
-  BOOL result = 0;
+  BOOL result = FALSE;
   if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
     if (!mapObjDefGroup->subzoneName) {
       mapObjDefGroup->subzoneName = SDBWMOAreaTableLookup(mapObj->GetWmoID(), mapObjDef->nameSet, mapObjGroup->GetUniqueID());
@@ -109,7 +109,7 @@ BOOL CMapEntity::QueryMapObjSubzoneName(LPCSTR &subzoneName, UINT &subzoneId) {
 
     subzoneName = mapObjDefGroup->subzoneName;
     subzoneId = mapObjDefGroup->groupNum;
-    result = 1;
+    result = TRUE;
   }
 
   return result;
@@ -134,10 +134,10 @@ BOOL CMapEntity::QueryMapObjFileName(LPCSTR &fileName) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObjGroup    *mapObjGroup;
   CMapObj         *mapObj;
-  BOOL result = 0;
+  BOOL result = FALSE;
   if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
     fileName = mapObj->name;
-    result = 1;
+    result = TRUE;
   }
 
   return result;
@@ -148,10 +148,10 @@ BOOL CMapEntity::QueryMapObjListenerId(UINT &listenerId) {
   CMapObjDefGroup *mapObjDefGroup;
   CMapObj         *mapObj;
   CMapObjDef      *mapObjDef;
-  BOOL result = 0;
+  BOOL result = FALSE;
   if (GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup)) {
     listenerId = 0;
-    result = 1;
+    result = TRUE;
   }
 
   return result;
@@ -296,21 +296,21 @@ BOOL CMapEntity::QueryMapObjFog(SMOFog::Fogs &oFog, float &oPct) {
     } else {
       oPct = 1.0f;
     }
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   if (!CWorldScene::camMapObjDef || !CWorldScene::camMapObj || !CWorldScene::camMapObjGroup)
-    return 0;
+    return FALSE;
 
   if ((CWorldScene::camMapObjGroup->GetFlags() & 0x40) || CWorldScene::camMapObjGroup->GetGroupLiquid() != 15)
-    return 0;
+    return FALSE;
 
   if (CWorldScene::camMapObj->fogCount == 1)
-    return 0;
+    return FALSE;
 
   NTempest::C3Vector localPos = CWorldScene::camPos * CWorldScene::camMapObjDef->invMat;
   oFog = CWorldScene::camMapObj->GetFog(0).fogs;
@@ -347,7 +347,7 @@ BOOL CMapEntity::QueryCameraFog(SMOFog::Fogs &oFog, float &oPct) {
   } else {
     oPct = 1.0f;
   }
-  return 1;
+  return TRUE;
 }
 
 void CMap::UpdateEntity(CMapEntity *entity) {
@@ -459,8 +459,8 @@ bool CMap::LinkIntersectMapObjs(
     CMapObjDef              *&hitMapObjDef,
     CMapObjDefGroup         *&hitMapObjDefGroup
 ) {
-  hitMapObjDef = 0;
-  hitMapObjDefGroup = 0;
+  hitMapObjDef = NULL;
+  hitMapObjDefGroup = NULL;
   hitT = 1.0f;
 
   ITERATELIST(CMapObjDef, mapObjDefHash, mapObjDef) {
@@ -489,7 +489,7 @@ bool CMap::LinkIntersectMapObjs(
     }
   }
 
-  return hitMapObjDef != 0;
+  return hitMapObjDef != NULL;
 }
 
 void CMapEntity::QueryLightmap(CMapObjDef *mapObjDef, CMapObjGroup *mapObjGroup) {

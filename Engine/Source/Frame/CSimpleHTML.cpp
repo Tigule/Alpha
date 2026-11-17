@@ -84,7 +84,7 @@ void CSimpleHTML::ClearContent() {
     ITERATE_DELETE;
   }
 
-  m_layoutAnchor = 0;
+  m_layoutAnchor = NULL;
   m_layoutOffset = 0.0f;
 
   while (m_hyperlinks.Head()) {

@@ -60,7 +60,7 @@ BOOL OsFileExists(LPCSTR path) {
   DWORD attributes;
 
   if (!path || !path[0]) {
-    return 0;
+    return FALSE;
   }
 
   attributes = OsGetFileAttributes(path);
@@ -69,7 +69,7 @@ BOOL OsFileExists(LPCSTR path) {
 
 BOOL OsDirectoryExists(LPCSTR dirName) {
   if (!dirName || !dirName[0]) {
-    return 0;
+    return FALSE;
   }
 
   DWORD attributes = OsGetFileAttributes(dirName);
@@ -293,7 +293,7 @@ static BOOL EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
       RemoveDirectoryRecurseData recurseData = {relPath, data->flags};
       OsFileList(relPath, "*", EnumRemoveDirectoryRecurse, &recurseData, 0);
       if (!OsRemoveDirectory(relPath)) {
-        return 1;
+        return TRUE;
       }
     }
   } else {
@@ -304,7 +304,7 @@ static BOOL EnumRemoveDirectoryRecurse(OS_FILE_DATA &file, LPVOID param) {
     }
     OsDeleteFile(relPath);
   }
-  return 0;
+  return FALSE;
 }
 
 int OsRemoveDirectoryRecurse(LPCSTR pathName, DWORD flags) {
@@ -332,24 +332,24 @@ BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   VALIDATE2(pathName);
 
   if (!GetCurrentDirectoryW(pathLen, pathNameW)) {
-    return 0;
+    return FALSE;
   }
 
   UTF16ToUTF8(pathNameW, pathName, pathLen);
-  return 1;
+  return TRUE;
 }
 
 BOOL OsFileAssocGetIdentifier(LPCSTR inFileExt, char *inBuffer, int inBufSize) {
   HKEY key;
   if (RegOpenKeyExA(HKEY_CLASSES_ROOT, inFileExt, 0, KEY_READ, &key)) {
-    return 0;
+    return FALSE;
   }
   DWORD type;
   DWORD bytesRead = inBufSize;
   long  result = RegQueryValueExA(key, "", 0, &type, (BYTE *)inBuffer, &bytesRead);
   RegCloseKey(key);
   if (type != REG_SZ) {
-    return 0;
+    return FALSE;
   }
   return result == ERROR_SUCCESS;
 }
@@ -370,21 +370,21 @@ BOOL OsFileAssocGetValue(LPCSTR inFileExt, int inAssocType, char *inBuffer, int 
   char ident[MAX_PATH];
   char keyName[MAX_PATH];
   if (!OsFileAssocGetIdentifier(inFileExt, ident, sizeof(ident))) {
-    return 0;
+    return FALSE;
   }
   SStrCopy(keyName, ident, 0x7FFFFFFF);
   SStrPack(keyName, sFileAssocKey[inAssocType], 0x7FFFFFFF);
 
   HKEY key;
   if (RegOpenKeyExA(HKEY_CLASSES_ROOT, keyName, 0, KEY_READ, &key)) {
-    return 0;
+    return FALSE;
   }
   DWORD type;
   DWORD bytesRead = inBufSize;
   long  result = RegQueryValueExA(key, "", 0, &type, (BYTE *)inBuffer, &bytesRead);
   RegCloseKey(key);
   if (type != REG_SZ) {
-    return 0;
+    return FALSE;
   }
   return result == ERROR_SUCCESS;
 }

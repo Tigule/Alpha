@@ -12,7 +12,7 @@
 struct FONTHASHOBJ : public TSHashObject<FONTHASHOBJ, HASHKEY_STR>, public CHandleObject {
   CGxFont *font;
 
-  FONTHASHOBJ() : font(0) {
+  FONTHASHOBJ() : font(NULL) {
   }
 
   virtual ~FONTHASHOBJ() {
@@ -62,7 +62,7 @@ HTEXTFONT TextBlockGenerateFont(LPCSTR fontName, UINT fontFlags, float fontHeigh
 
   if (!GxuFontCreateFont(fontName, fontHeight, fontObj->font, gxFontFlags)) {
     s_fontHash.Delete(fontObj);
-    return 0;
+    return NULL;
   }
 
   return CREATEHANDLE(HTEXTFONT, fontObj);

@@ -873,7 +873,7 @@ void DNClouds::Callback_GxTex(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mi
 
 void DNClouds::Destroy() {
   GxTexDestroy(m_texid);
-  m_texid = 0;
+  m_texid = NULL;
 }
 
 void DNClouds::OverrideDensitySharpness(float newDensity, float newSharpness) {
@@ -901,7 +901,7 @@ void DNClouds::SetDensity(float newDensity) {
 void DNClouds::SetLOD(DWORD newlod, DWORD newUpdateSize) {
   if (m_texid) {
     GxTexDestroy(m_texid);
-    m_texid = 0;
+    m_texid = NULL;
     m_height.Clear();
     m_texels.Clear();
     m_noise.Clear();
@@ -1170,7 +1170,7 @@ static BOOL ConsoleCommand_SkyCloudDensity(LPCSTR, LPCSTR args) {
     ConsoleWrite("SkyCloudDensity set from data", DEFAULT_COLOR);
   }
 
-  return 0;
+  return FALSE;
 }
 
 static bool CloudLODCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
@@ -1192,13 +1192,13 @@ static bool CloudLODCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID a
 }
 
 static BOOL ConsoleCommand_SkyCloudLayers(LPCSTR, LPCSTR args) {
-  BOOL result = 0;
+  BOOL result = FALSE;
   int  layers = -1;
   sscanf(args, "%d", &layers);
   if (layers >= 0 && layers <= 1) {
     s_clouds.SetLayers(layers);
     ConsoleWrite("CloudLayers set", DEFAULT_COLOR);
-    result = 1;
+    result = TRUE;
   } else {
     ConsoleWrite("CloudLayers must be in the range [0, 1]", DEFAULT_COLOR);
   }
@@ -1217,7 +1217,7 @@ static BOOL ConsoleCommand_SkySunGlare(LPCSTR, LPCSTR args) {
     s_sunGlare.m_enabled = 0;
     s_moonGlare.m_enabled = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_SkyShow(LPCSTR, LPCSTR args) {
@@ -1229,7 +1229,7 @@ static BOOL ConsoleCommand_SkyShow(LPCSTR, LPCSTR args) {
     ConsoleWrite("The sky is falling.", DEFAULT_COLOR);
     s_dnInfo.showSky = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 void DayNightInitialize(LPCSTR litFile) {

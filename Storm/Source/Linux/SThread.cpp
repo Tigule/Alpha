@@ -86,7 +86,7 @@ LPVOID S_Thread::s_SLaunchThread(LPVOID lpThreadParameter) {
   }
 
   FREE(params);
-  return 0;
+  return NULL;
 }
 
 LPVOID SCreateThread(DWORD stackSize, STHREADPROC proc, LPVOID param, DWORD flags, UINT *threadId, LPVOID sync, LPCSTR name) {

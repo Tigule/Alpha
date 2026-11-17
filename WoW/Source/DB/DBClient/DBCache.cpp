@@ -34,7 +34,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
   DBCACHECALLBACK *callbackEntry;
 
   if (!id) {
-    return 0;
+    return NULL;
   }
 
   entry = m_table.Ptr((UINT)id, HASHKEY(id));
@@ -58,7 +58,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
       ClientServices_Send(&queryMsg);
     }
 
-    return 0;
+    return NULL;
   }
 
   if (!entry->m_haveData) {
@@ -69,7 +69,7 @@ const RECORD *DBCache<RECORD, KEY, HASHKEY>::GetRecord(KEY id, const DWORDLONG &
       callbackEntry->m_cbArg = cbArg;
     }
 
-    return 0;
+    return NULL;
   }
 
   return &entry->m_record;

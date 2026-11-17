@@ -209,7 +209,7 @@ void CLayoutFrame::FreePoints() {
       }
 
       DEL(*point);
-      *point = 0;
+      *point = NULL;
     }
 
     ++point;
@@ -387,7 +387,7 @@ void CLayoutFrame::Clear(CLayoutFrame *relative, int doResize) {
   while (count) {
     if (*point && relative == (*point)->GetRelative()) {
       DEL(*point);
-      *point = 0;
+      *point = NULL;
     }
 
     ++point;
@@ -442,12 +442,12 @@ BOOL CLayoutFrame::IsResizeDependency(CLayoutFrame *pNewDependentFrame) {
       CLayoutFrame *relative = point->GetRelative();
 
       if (relative && (relative == pNewDependentFrame || relative->IsResizeDependency(pNewDependentFrame))) {
-        return 1;
+        return TRUE;
       }
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 void CLayoutFrame::SetDeferredResize(int enable) {
@@ -496,7 +496,7 @@ void CLayoutFrame::Resize(int force) {
   }
 
   if (!s_resizePendingList.IsLinked(this)) {
-    CLayoutFrame *pDependentNode = 0;
+    CLayoutFrame *pDependentNode = NULL;
 
     ITERATELIST(CLayoutFrame, s_resizePendingList, frame) {
       UINT whichPoint;
@@ -542,11 +542,11 @@ int CLayoutFrame::SetRect(NTempest::CRect &rect) {
 
 BOOL CLayoutFrame::GetRect(NTempest::CRect *rect) const {
   if (!(m_flags & 0x1)) {
-    return 0;
+    return FALSE;
   }
 
   *rect = m_rect;
-  return 1;
+  return TRUE;
 }
 
 void CLayoutFrame::SetLayoutScale(float scale, bool force) {
@@ -583,7 +583,7 @@ BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, fl
   NTempest::CRect toprect;
 
   if (!GetRect(&rect) || !top->GetRect(&toprect)) {
-    return 0;
+    return FALSE;
   }
 
   FreePoints();
@@ -609,7 +609,7 @@ BOOL CLayoutFrame::FlattenFrame(CLayoutFrame *top, float width, float height, fl
     finalrect->b = finalrect->t + height;
   }
 
-  return 1;
+  return TRUE;
 }
 
 int CLayoutFrame::ScaleBy(CLayoutFrame *top, float scale_x, float scale_y, FRAMEPOINT anchorpoint, NTempest::CRect *finalrect) {
@@ -795,10 +795,10 @@ BOOL CLayoutFrame::OnFrameResize() {
 
   if (m_flags & 0x1) {
     SetRect(rect);
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void CLayoutFrame::DestroyLayout() {
@@ -813,7 +813,7 @@ void CLayoutFrame::DestroyLayout() {
     iterNode->frame->Clear(this, 1);
   }
 
-  while ((node = m_resizeList.Head()) != 0) {
+  while ((node = m_resizeList.Head()) != NULL) {
     m_resizeList.DeleteNode(node);
   }
 

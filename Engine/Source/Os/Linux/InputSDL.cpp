@@ -18,176 +18,176 @@ static BOOL ConvertKey(SDL_Keycode sym, KEY *key) {
   switch (sym) {
     case SDLK_BACKSPACE:
       *key = KEY_BACKSPACE;
-      return 1;
+      return TRUE;
     case SDLK_TAB:
       *key = KEY_TAB;
-      return 1;
+      return TRUE;
     case SDLK_RETURN:
       *key = KEY_ENTER;
-      return 1;
+      return TRUE;
     case SDLK_PAUSE:
       *key = KEY_PAUSE;
-      return 1;
+      return TRUE;
     case SDLK_ESCAPE:
       *key = KEY_ESCAPE;
-      return 1;
+      return TRUE;
     case SDLK_SPACE:
       *key = KEY_SPACE;
-      return 1;
+      return TRUE;
     case SDLK_PLUS:
       *key = KEY_PLUS;
-      return 1;
+      return TRUE;
     case SDLK_MINUS:
       *key = KEY_MINUS;
-      return 1;
+      return TRUE;
     case SDLK_SLASH:
       *key = KEY_SLASH;
-      return 1;
+      return TRUE;
     case SDLK_LEFTBRACKET:
       *key = KEY_BRACKET_OPEN;
-      return 1;
+      return TRUE;
     case SDLK_RIGHTBRACKET:
       *key = KEY_BRACKET_CLOSE;
-      return 1;
+      return TRUE;
     case SDLK_BACKQUOTE:
       *key = KEY_TILDE;
-      return 1;
+      return TRUE;
     case SDLK_DELETE:
       *key = KEY_DELETE;
-      return 1;
+      return TRUE;
     case SDLK_KP_0:
       *key = KEY_NUMPAD0;
-      return 1;
+      return TRUE;
     case SDLK_KP_1:
       *key = KEY_NUMPAD1;
-      return 1;
+      return TRUE;
     case SDLK_KP_2:
       *key = KEY_NUMPAD2;
-      return 1;
+      return TRUE;
     case SDLK_KP_3:
       *key = KEY_NUMPAD3;
-      return 1;
+      return TRUE;
     case SDLK_KP_4:
       *key = KEY_NUMPAD4;
-      return 1;
+      return TRUE;
     case SDLK_KP_5:
       *key = KEY_NUMPAD5;
-      return 1;
+      return TRUE;
     case SDLK_KP_6:
       *key = KEY_NUMPAD6;
-      return 1;
+      return TRUE;
     case SDLK_KP_7:
       *key = KEY_NUMPAD7;
-      return 1;
+      return TRUE;
     case SDLK_KP_8:
       *key = KEY_NUMPAD8;
-      return 1;
+      return TRUE;
     case SDLK_KP_9:
       *key = KEY_NUMPAD9;
-      return 1;
+      return TRUE;
     case SDLK_KP_DIVIDE:
       *key = KEY_NUMPAD_DIVIDE;
-      return 1;
+      return TRUE;
     case SDLK_KP_MULTIPLY:
       *key = KEY_NUMPAD_MULTIPLY;
-      return 1;
+      return TRUE;
     case SDLK_KP_MINUS:
       *key = KEY_NUMPAD_MINUS;
-      return 1;
+      return TRUE;
     case SDLK_KP_PLUS:
       *key = KEY_NUMPAD_PLUS;
-      return 1;
+      return TRUE;
     case SDLK_UP:
       *key = KEY_UP;
-      return 1;
+      return TRUE;
     case SDLK_DOWN:
       *key = KEY_DOWN;
-      return 1;
+      return TRUE;
     case SDLK_RIGHT:
       *key = KEY_RIGHT;
-      return 1;
+      return TRUE;
     case SDLK_LEFT:
       *key = KEY_LEFT;
-      return 1;
+      return TRUE;
     case SDLK_INSERT:
       *key = KEY_INSERT;
-      return 1;
+      return TRUE;
     case SDLK_HOME:
       *key = KEY_HOME;
-      return 1;
+      return TRUE;
     case SDLK_END:
       *key = KEY_END;
-      return 1;
+      return TRUE;
     case SDLK_PAGEUP:
       *key = KEY_PAGEUP;
-      return 1;
+      return TRUE;
     case SDLK_PAGEDOWN:
       *key = KEY_PAGEDOWN;
-      return 1;
+      return TRUE;
     case SDLK_NUMLOCKCLEAR:
       *key = KEY_NUMLOCK;
-      return 1;
+      return TRUE;
     case SDLK_CAPSLOCK:
       *key = KEY_CAPSLOCK;
-      return 1;
+      return TRUE;
     case SDLK_SCROLLLOCK:
       *key = KEY_SCROLLLOCK;
-      return 1;
+      return TRUE;
     case SDLK_RSHIFT:
     case SDLK_LSHIFT:
       *key = KEY_SHIFT;
-      return 1;
+      return TRUE;
     case SDLK_RCTRL:
     case SDLK_LCTRL:
       *key = KEY_CONTROL;
-      return 1;
+      return TRUE;
     case SDLK_RALT:
     case SDLK_LALT:
       *key = KEY_ALT;
-      return 1;
+      return TRUE;
     case SDLK_PRINTSCREEN:
       *key = KEY_PRINTSCREEN;
-      return 1;
+      return TRUE;
   }
 
   if (sym >= SDLK_0 && sym <= SDLK_9) {
     *key = (KEY)sym;
-    return 1;
+    return TRUE;
   }
   if (sym >= SDLK_a && sym <= SDLK_z) {
     *key = (KEY)(sym - 0x20);
-    return 1;
+    return TRUE;
   }
   if (sym >= SDLK_F1 && sym <= SDLK_F12) {
     *key = (KEY)(KEY_F1 + (sym - SDLK_F1));
-    return 1;
+    return TRUE;
   }
 
   *key = (KEY)0;
-  return 0;
+  return FALSE;
 }
 
 static BOOL ConvertButton(Uint8 sdlButton, MOUSEBUTTON *button) {
   switch (sdlButton) {
     case SDL_BUTTON_LEFT:
       *button = MOUSE_BUTTON_LEFT;
-      return 1;
+      return TRUE;
     case SDL_BUTTON_MIDDLE:
       *button = MOUSE_BUTTON_MIDDLE;
-      return 1;
+      return TRUE;
     case SDL_BUTTON_RIGHT:
       *button = MOUSE_BUTTON_RIGHT;
-      return 1;
+      return TRUE;
     case SDL_BUTTON_X1:
       *button = MOUSE_BUTTON_XBUTTON1;
-      return 1;
+      return TRUE;
     case SDL_BUTTON_X2:
       *button = MOUSE_BUTTON_XBUTTON2;
-      return 1;
+      return TRUE;
   }
 
   *button = MOUSE_BUTTON_NONE;
-  return 0;
+  return FALSE;
 }
 
 BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
@@ -211,13 +211,13 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
       if (ch > 0x1F && ch <= 0xFFFF) {
         *id = OS_INPUT_CHAR;
         *param0 = ch;
-        return 1;
+        return TRUE;
       }
       continue;
     }
 
     if (!SDL_PollEvent(&event)) {
-      return 0;
+      return FALSE;
     }
 
     switch (event.type) {
@@ -302,7 +302,7 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
     }
 
     if (*id != (OSINPUT)-1) {
-      return 1;
+      return TRUE;
     }
   }
 }
@@ -341,13 +341,13 @@ BOOL OsGetDefaultWindowRect(RECT *rect) {
 
   window = SDL_GL_GetCurrentWindow();
   if (!window) {
-    return 0;
+    return FALSE;
   }
 
   SDL_GetWindowSize(window, (int *)&rect->right, (int *)&rect->bottom);
   rect->top = 0;
   rect->left = 0;
-  return 1;
+  return TRUE;
 }
 
 UINT OsInputGetCodePage() {

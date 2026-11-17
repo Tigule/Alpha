@@ -23,6 +23,6 @@ namespace MDL {
     if (SStrLen(data.header.sourceFilename)) {
       WriteLine(buffer, "// SCENE_FILENAME \"%s\"\n", (LPCSTR)data.header.sourceFilename);
     }
-    return 1;
+    return TRUE;
   }
 }  // namespace MDL

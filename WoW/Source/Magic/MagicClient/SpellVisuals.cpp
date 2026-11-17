@@ -58,7 +58,7 @@ NODEDECL(BlizzardObject) {
     DWORD              startTime;
 
     void Init() {
-      hModel = 0;
+      hModel = NULL;
     }
   };
 
@@ -70,7 +70,7 @@ NODEDECL(BlizzardObject) {
 
   static Shard *AllocShard();
   static void   FreeShard(Shard * &shard);
-  static BOOL   ShardSeqFinished(LPVOID param) { return 0; }
+  static BOOL   ShardSeqFinished(LPVOID param) { return FALSE; }
 
   HMODEL              shardModel;
   DWORD_PTR           hWorldObject;
@@ -294,7 +294,7 @@ BlizzardObject::Shard *BlizzardObject::AllocShard() {
 void BlizzardObject::FreeShard(Shard *&shard) {
   shard->Unlink();
   shardPool.LinkNode(shard, LIST_TAIL, 0);
-  shard = 0;
+  shard = NULL;
 }
 
 void BlizzardObject::WorldObjectRender(LPVOID param, const NTempest::C44Matrix &mtx) {
@@ -326,7 +326,7 @@ void BlizzardObject::Init(const NTempest::C3Vector &pos, LPCSTR modelName, float
 
 void BlizzardObject::Destroy() {
   HandleClose(shardModel);
-  shardModel = 0;
+  shardModel = NULL;
 }
 
 void BlizzardObject::Update() {
@@ -435,13 +435,13 @@ void FishingLineObject::Render() {
 static bool GetFishingLineStartPos(HMODEL model, NTempest::C3Vector &pos) {
   FATALASSERT(model);
 
-  HMODEL attached = 0;
+  HMODEL attached = NULL;
   UINT   size = 1;
   if (!ModelGetLinkPoint(model, 1, &attached, &size) || !attached) {
     return false;
   }
 
-  bool result = ModelGetEventObjectPosition(attached, 2, 0, &pos) != 0;
+  bool result = ModelGetEventObjectPosition(attached, 2, 0, &pos) != FALSE;
   HandleClose(attached);
   return result;
 }
@@ -1087,18 +1087,18 @@ static BlizzardObject *AllocBlizzard() {
 
 void SpellVisualsBlizzardDestroy(BlizzardObject *&blizzard) {
   blizzard->dead = 1;
-  blizzard = 0;
+  blizzard = NULL;
 }
 
 FishingLineObject *SpellVisualsFishingLineCreate(const SpellVisualKitRec *kitRec, const DWORDLONG &gameObj, const DWORDLONG &caster) {
   if (!kitRec) {
-    return 0;
+    return NULL;
   }
   FishingLineObject *object = s_freeFishingObjects.Get(0);
   object->object = gameObj;
   object->caster = caster;
   object->color.Set((UINT)kitRec->m_characterParam[0] | 0xFF000000);
-  object->visible = 0;
+  object->visible = false;
   s_fishingLineObjects.LinkNode(object, LIST_TAIL, 0);
   return object;
 }
@@ -1111,7 +1111,7 @@ void SpellVisualsFishingLineDestroy(FishingLineObject *object) {
 
 void SpellVisualFishingLineSetVisible(FishingLineObject *obj) {
   if (obj) {
-    obj->visible = 1;
+    obj->visible = true;
   }
 }
 
@@ -1129,7 +1129,7 @@ LightningObject::~LightningObject() {
   guids.Clear();
   if (texture) {
     HandleClose(texture);
-    texture = 0;
+    texture = NULL;
   }
 }
 
@@ -1252,15 +1252,15 @@ static bool GetSpellRecords(
   srec = g_spellDB.GetRecord(spellID);
   if (!srec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", spellID);
-    return 0;
+    return false;
   }
   visRec = caster->GetAppropriateSpellVisual((SpellRec *)srec, visRecData);
   if (!visRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d", spellID);
-    return 0;
+    return false;
   }
   kitRec = caster->GetRangedSpellAnim(spellID, 1);
-  return 1;
+  return true;
 }
 
 static void PlayCastAnim(

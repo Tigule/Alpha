@@ -234,7 +234,7 @@ BOOL MDL::WriteSequences(const MDLDATA &data, TSGrowableArray<char> &buffer, CMD
     }
     MDL::WriteLine(buffer, "}\n");
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadGlobalSequences(Parser &parse, MDLDATA &data, CMDLStatus *) {
@@ -263,7 +263,7 @@ BOOL MDL::WriteGlobalSequences(const MDLDATA &data, TSGrowableArray<char> &buffe
     }
     MDL::WriteLine(buffer, "}\n");
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -272,7 +272,7 @@ BOOL MDL::ReadBinSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
   numSeqs = buf.GetUint();
   if (length - 4 != sizeof(MDLSEQUENCESSECTION) * numSeqs) {
     status->Add(STATUS_ERROR, "Invalid SEQX section detected in model -- nonintegral number of sequences.\n");
-    return 0;
+    return FALSE;
   }
 
   data.sequences.SetCount(numSeqs);
@@ -291,7 +291,7 @@ BOOL MDL::ReadBinSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
     sequence.replay.h = buf.GetInt();
     sequence.blendTime = buf.GetUint();
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
@@ -315,32 +315,32 @@ BOOL MDL::WriteBinSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) 
       buf.AddUint(data.sequences[i].blendTime);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinGlobalSequences(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
   VALIDATE2(status != 0);
   if (length & 3) {
     status->Add(STATUS_ERROR, "Invalid GLBX section detected in model -- nonintegral number of global sequences.\n");
-    return 0;
+    return FALSE;
   }
   UINT count = length / 4;
   data.globalSeqs.SetCount(count);
   for (UINT i = 0; i < count; ++i) {
     data.globalSeqs[i].length = buf.GetUint();
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinGlobalSequences(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numGlobalSeqs = data.globalSeqs.Count();
   if (data.model.animationFile[0] || !numGlobalSeqs) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('SBLG');
   buf.AddUint(4 * numGlobalSeqs);
   for (UINT i = 0; i < numGlobalSeqs; ++i) {
     buf.AddUint(data.globalSeqs[i].length);
   }
-  return 1;
+  return TRUE;
 }

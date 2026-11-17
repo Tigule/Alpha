@@ -55,8 +55,8 @@ void SoundInterfaceInitializeWorldMIDICVars() {
 void SoundInterfaceInitializeWorldMIDI() {
   SoundInterfaceInitializeWorldMIDICVars();
   Sound::MIDI_Initialize();
-  s_ambienceRecNormal = 0;
-  s_ambienceRecUnderwater = 0;
+  s_ambienceRecNormal = NULL;
+  s_ambienceRecUnderwater = NULL;
 }
 
 void SoundInterfaceShutdownWorldMIDI() {
@@ -87,8 +87,8 @@ void SndInterfaceSetMIDIArea(int normal, int underwater) {
 }
 
 void SndInterfaceClearMIDI() {
-  s_ambienceRecNormal = 0;
-  s_ambienceRecUnderwater = 0;
+  s_ambienceRecNormal = NULL;
+  s_ambienceRecUnderwater = NULL;
   Sound::MIDI_Stop();
 }
 

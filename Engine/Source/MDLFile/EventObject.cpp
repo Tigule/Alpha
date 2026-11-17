@@ -63,17 +63,17 @@ void WriteEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, TSGrow
 
 BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf, UINT *totalRead) {
   if (buf.Bytes() < 2 * sizeof(UINT)) {
-    return 0;
+    return FALSE;
   }
   UINT numKeys = buf.GetUint();
   *totalRead += sizeof(UINT);
   if (!numKeys) {
-    return 0;
+    return FALSE;
   }
   keyframes.globalSeqId = buf.GetUint();
   *totalRead += sizeof(UINT);
   if ((int)(numKeys * sizeof(MDLEVENTKEY)) > buf.Bytes()) {
-    return 0;
+    return FALSE;
   }
   keyframes.keys.SetCount(numKeys);
   MDLEVENTKEY *key = keyframes.keys.Ptr();
@@ -81,7 +81,7 @@ BOOL ReadBinEventKeyFrames(MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer
     key->time = buf.GetInt();
     *totalRead += sizeof(int);
   }
-  return 1;
+  return TRUE;
 }
 
 void WriteBinEventKeyFrames(const MDLSIMPLEKEYTRACK<MDLEVENTKEY> &keyframes, CMsgBuffer &buf) {
@@ -136,7 +136,7 @@ namespace MDL {
 
   BOOL WriteEventObjects(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (data.model.animationFile[0]) {
-      return 1;
+      return TRUE;
     }
     UINT                   numEvents = data.events.Count();
     int                    needObjIds = numEvents != data.objects.Count();
@@ -146,13 +146,13 @@ namespace MDL {
       WriteEventKeyFrames(eventObject->eventKeys, buffer);
       WriteObjectTrailer(*eventObject, buffer);
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL WriteBinEventObjects(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     UINT numEvents = data.events.Count();
     if (data.model.animationFile[0] || !numEvents) {
-      return 1;
+      return TRUE;
     }
     buf.AddDword('STVE');
     UINT totalSize = 4;
@@ -173,7 +173,7 @@ namespace MDL {
       WriteBinGenObject(eventObject, buf, status);
       WriteBinEventKeyFrames(eventObject.eventKeys, buf);
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL ReadBinEventObjects(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -185,13 +185,13 @@ namespace MDL {
       MDLEVENTSECTION *eventObject = data.events.New();
       if (!eventObject) {
         status->FatalFlunked("EventObject", -1);
-        return 0;
+        return FALSE;
       }
       UINT sectionLength = buf.GetUint();
       UINT read = 4;
       if (!ReadBinGenObject(*eventObject, buf, status, read)) {
         status->Add(STATUS_ERROR, "Error reading gen object portion of event.\n");
-        return 0;
+        return FALSE;
       }
       if (read < sectionLength) {
         DWORD tag = buf.GetDword();
@@ -200,7 +200,7 @@ namespace MDL {
           case 'TVEK':
             if (!ReadBinEventKeyFrames(eventObject->eventKeys, buf, &read)) {
               status->Add(STATUS_ERROR, "Error reading event keys portion of event object.\n");
-              return 0;
+              return FALSE;
             }
             break;
           default:
@@ -211,11 +211,11 @@ namespace MDL {
       totalRead += read;
       if (totalRead > length) {
         status->FatalOverran("EventObject section overran read buffer.\n", -1);
-        return 0;
+        return FALSE;
       }
       ReadBinObjectEnd(data, eventObject, data.events.Count() - 1, 0x60000000);
     }
-    return 1;
+    return TRUE;
   }
 
 }  // namespace MDL

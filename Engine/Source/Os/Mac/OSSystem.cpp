@@ -29,7 +29,7 @@ BOOL OsLaunchURL(LPCSTR url) {
   void *workspace;
 
   if (!url || !*url) {
-    return 0;
+    return FALSE;
   }
 
   if (s_launchUrlCallback) {
@@ -103,14 +103,14 @@ BOOL OsGetComputerName(char *computerName, DWORD *computerNameLen) {
   if (!name) {
     *computerName = 0;
     *computerNameLen = 0;
-    return 0;
+    return FALSE;
   }
 
   CFStringGetCString(name, computerName, *computerNameLen, kCFStringEncodingUTF8);
   *computerNameLen = strlen(computerName);
   CFRelease(name);
 
-  return 1;
+  return TRUE;
 }
 
 BOOL OsGetUserName(char *userName, DWORD *userNameLen) {
@@ -119,14 +119,14 @@ BOOL OsGetUserName(char *userName, DWORD *userNameLen) {
   if (!name) {
     *userName = 0;
     *userNameLen = 0;
-    return 0;
+    return FALSE;
   }
 
   CFStringGetCString(name, userName, *userNameLen, kCFStringEncodingUTF8);
   *userNameLen = strlen(userName);
   CFRelease(name);
 
-  return 1;
+  return TRUE;
 }
 
 DWORD OsGetPhysicalMemory() {

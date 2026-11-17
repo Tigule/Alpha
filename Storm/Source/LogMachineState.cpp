@@ -82,7 +82,7 @@ class CDbgHelpDll {
   PFN_SYMENUMERATESYMBOLS    SymEnumerateSymbols;
   PFN_MINIDUMPWRITEDUMP      MiniDumpWriteDump;
 
-  int  Load();
+  BOOL Load();
   void Unload();
   BOOL IsLoaded() {
     return hInstance != NULL;
@@ -135,7 +135,7 @@ CDbgHelpDll::CDbgHelpDll() {
 CDbgHelpDll::~CDbgHelpDll() {
   Unload();
 }
-int CDbgHelpDll::Load() {
+BOOL CDbgHelpDll::Load() {
   HMODULE module;
 
   ++loadCount;
@@ -571,7 +571,7 @@ static int sSymInitialize(LPVOID process) {
 
   return sgDbgHelpDll.SymInitialize(process, path, TRUE);
 }
-int sQuickStackWalkInit(int init) {
+BOOL sQuickStackWalkInit(int init) {
   HANDLE process;
   int    initialized;
 
@@ -609,7 +609,7 @@ int sQuickStackWalkInit(int init) {
   s_StackInit = FALSE;
   return TRUE;
 }
-extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFramesToSkip) {
+extern "C" BOOL APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFramesToSkip) {
 #if defined(_M_IX86) || defined(_X86_)
   STACKFRAME stackFrame;
   DWORD      registerEsp;
@@ -684,7 +684,7 @@ extern "C" int APIENTRY QuickStackWalk(DWORD *crawl, int &depth, int stackFrames
   return FALSE;
 #endif
 }
-extern "C" int APIENTRY StackWalkAddrsToNames(DWORD *crawlAddrs, int depth, char **crawlNames) {
+extern "C" BOOL APIENTRY StackWalkAddrsToNames(DWORD *crawlAddrs, int depth, char **crawlNames) {
   if (!sQuickStackWalkInit(TRUE)) {
     return FALSE;
   }

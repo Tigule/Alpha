@@ -397,19 +397,19 @@ static BOOL ReadParticleEmitter2BlendMode(Parser &parse, UINT savedtoken, MDLPAR
       emitter->blendMode = MDLPARTICLEEMITTER2::PBM_ALPHA_KEY;
       break;
     default:
-      return 0;
+      return FALSE;
   }
   parse.Expect(',');
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadParticleEmitter2EmitterType(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
   if (savedtoken == MDLTOK_TYPE) {
     emitter->emitterType = (MDLPARTICLEEMITTER2::PARTICLE_EMITTER_TYPE)parse.ExpectInt();
     parse.Expect(',');
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
@@ -424,10 +424,10 @@ static BOOL ReadParticleEmitter2Type(Parser &parse, UINT savedtoken, MDLPARTICLE
       emitter->type = MDLPARTICLEEMITTER2::PT_TAIL;
       break;
     default:
-      return 0;
+      return FALSE;
   }
   parse.Expect(',');
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTICLEEMITTER2 *emitter) {
@@ -478,17 +478,17 @@ static BOOL IReadParticleEmitter2Flags(Parser &parse, UINT savedtoken, MDLPARTIC
       emitter->flags |= 0x20000000;
       break;
     default:
-      return 0;
+      return FALSE;
   }
   parse.Expect(',');
-  return 1;
+  return TRUE;
 }
 
 namespace MDL {
 
   BOOL WriteParticleEmitters2(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (data.model.animationFile[0]) {
-      return 1;
+      return TRUE;
     }
     UINT                       numEmitters = data.particleEmitters2.Count();
     int                        needObjIds = numEmitters != data.objects.Count();
@@ -496,7 +496,7 @@ namespace MDL {
     for (UINT i = numEmitters; i; --i, ++pEmit) {
       IWriteParticleEmitter2(data, *pEmit, needObjIds, buffer);
     }
-    return 1;
+    return TRUE;
   }
 
 }
@@ -669,7 +669,7 @@ namespace MDL {
   BOOL WriteBinParticleEmitters2(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     UINT numEmitters = data.particleEmitters2.Count();
     if (data.model.animationFile[0] || !numEmitters) {
-      return 1;
+      return TRUE;
     }
     buf.AddDword('2ERP');
     UINT totalSize = 4;
@@ -682,7 +682,7 @@ namespace MDL {
     for (i = 0; i < numEmitters; ++i) {
       IWriteBinParticleEmitter2(data.particleEmitters2[i], buf, status);
     }
-    return 1;
+    return TRUE;
   }
 
 }
@@ -813,19 +813,19 @@ namespace MDL {
       MDLPARTICLEEMITTER2 *pEmit = data.particleEmitters2.New();
       if (!pEmit) {
         status->FatalFlunked("ParticleEmitter2", -1);
-        return 0;
+        return FALSE;
       }
       if (!ReadBinParticleEmitter2(buf, pEmit, status, totalRead)) {
         status->Add(STATUS_ERROR, "Error reading ParticleEmitter2.\n");
-        return 0;
+        return FALSE;
       }
       if (totalRead > length) {
         status->FatalOverran("ParticleEmitter2 Section", -1);
-        return 0;
+        return FALSE;
       }
       ReadBinObjectEnd(data, pEmit, data.particleEmitters2.Count() - 1, 0x70000000);
     }
-    return 1;
+    return TRUE;
   }
 
 }
@@ -835,7 +835,7 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
   UINT localBytesRead = 4;
   if (!ReadBinGenObject(*pEmit, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of ParticleEmitter2.\n");
-    return 0;
+    return FALSE;
   }
   buf.GetUint();
   localBytesRead += 4;
@@ -974,67 +974,67 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
       case 'E2PK':
         if (!ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading emission rate portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'G2PK':
         if (!ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading gravity portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'L2PK':
         if (!ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading latitude portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'NLPK':
         if (!ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading longitude portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'R2PK':
         if (!ReadBinFloatKeyFrames(pEmit->variation, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading variation portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'N2PK':
         if (!ReadBinFloatKeyFrames(pEmit->length, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading length keys portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'S2PK':
         if (!ReadBinFloatKeyFrames(pEmit->speed, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading speed portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'SIVK':
         if (!ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading visibility keys portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'W2PK':
         if (!ReadBinFloatKeyFrames(pEmit->width, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading width keys portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'Z2PK':
         if (!ReadBinFloatKeyFrames(pEmit->zsource, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading zsource keys portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'FILK':
         if (!ReadBinFloatKeyFrames(pEmit->life, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading zsource keys portion of ParticleEmitter2.\n");
-          return 0;
+          return FALSE;
         }
         break;
       default:
@@ -1043,9 +1043,9 @@ static BOOL ReadBinParticleEmitter2(CMsgBuffer &buf, MDLPARTICLEEMITTER2 *pEmit,
     }
     if (localBytesRead > sectionLength) {
       status->FatalOverran("ParticleEmitters2", -1);
-      return 0;
+      return FALSE;
     }
   }
   totalRead += localBytesRead;
-  return 1;
+  return TRUE;
 }

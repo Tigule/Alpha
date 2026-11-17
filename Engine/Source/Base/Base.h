@@ -88,7 +88,7 @@ class CHandleObject {
   }
 
   virtual LPCSTR GetObjectName() {
-    return 0;
+    return NULL;
   }
 };
 

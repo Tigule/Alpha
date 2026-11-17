@@ -23,7 +23,7 @@ void CStringManager::DestroyManager() {
     DEL(s_stringManager);
   }
 
-  s_stringManager = 0;
+  s_stringManager = NULL;
 }
 
 CStringManager::~CStringManager() {
@@ -68,11 +68,11 @@ BOOL CStringRep::IsString(LPCSTR str) const {
   LPCSTR thisString = GetString();
 
   if (!thisString) {
-    return str == 0;
+    return str == NULL;
   }
 
   if (!str) {
-    return 0;
+    return FALSE;
   }
 
   return SStrCmp(str, thisString, 0x7FFFFFFF) == 0;
@@ -121,7 +121,7 @@ int RCString::operator==(const RCString &r) const {
 
 int RCString::operator==(LPCSTR str) const {
   if (!m_rep) {
-    return str == 0;
+    return str == NULL;
   }
 
   return *m_rep == str;

@@ -53,7 +53,7 @@ struct AREAHASHOBJECT : TSHashObject<AREAHASHOBJECT, AREAHASHKEY> {
   UINT                continent;
   UINT                area;
   UINT                subArea;
-  AREAHASHOBJECT() : rec(0), midi(0), midiUnderwater(0), zoneMusic(0), reverb(0), reverbUnderwater(0) {
+  AREAHASHOBJECT() : rec(NULL), midi(0), midiUnderwater(0), zoneMusic(0), reverb(0), reverbUnderwater(0) {
   }
   AREAHASHOBJECT(const AREAHASHOBJECT &);
 

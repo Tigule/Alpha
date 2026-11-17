@@ -67,7 +67,7 @@ class CGObject_C : public CGObject {
   }
 
   virtual CGBag_C *GetBag() {
-    return 0;
+    return NULL;
   }
   virtual NTempest::C3Vector GetPosition() const {
     return NTempest::C3Vector();
@@ -122,7 +122,7 @@ class CGObject_C : public CGObject {
   virtual BOOL GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
     FATALASSERT(outPtr);
     outPtr->Set(0xFFFFFFFF);
-    return 1;
+    return TRUE;
   }
 
  public:
@@ -144,7 +144,7 @@ class CGObject_C : public CGObject {
   virtual BOOL UpdateModelLoadStatus();
   virtual BOOL UpdateAttachmentLoadStatus();
   virtual BOOL UpdateTexComponentLoadStatus() {
-    return 0;
+    return FALSE;
   }
   virtual void PreRender(int currentTime, float elapsed) {
   }
@@ -170,19 +170,19 @@ class CGObject_C : public CGObject {
   }
   void         UpdateObjectHeight(HMODEL model);
   virtual BOOL IsSolidSelectable() const {
-    return 1;
+    return TRUE;
   }
   virtual BOOL IsSolidCollidable() const {
-    return 1;
+    return TRUE;
   }
   virtual BOOL CanHighlight() const {
-    return 0;
+    return FALSE;
   }
   virtual BOOL CanBeTargetted() const {
-    return 0;
+    return FALSE;
   }
   virtual BOOL FloatingTooltip() const {
-    return 0;
+    return FALSE;
   }
   virtual void OnLeftClick() {
   }
@@ -194,7 +194,7 @@ class CGObject_C : public CGObject {
 
  protected:
   virtual BOOL ShouldFadeIn() const {
-    return 1;
+    return TRUE;
   }
 
  public:
@@ -213,7 +213,7 @@ class CGObject_C : public CGObject {
 
  public:
   virtual LPCSTR GetObjectName() const {
-    return 0;
+    return NULL;
   }
   virtual int GetPageTextID(void (*)(int, const DWORDLONG &, LPVOID, bool)) const {
     return 0;

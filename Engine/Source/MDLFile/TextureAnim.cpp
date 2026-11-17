@@ -82,11 +82,11 @@ static void IWriteTextureAnim(const MDLTEXANIMSECTION &section, TSGrowableArray<
 
 BOOL MDL::WriteTextureAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.model.animationFile[0]) {
-    return 1;
+    return TRUE;
   }
   UINT numTexAnims = data.textureanims.Count();
   if (!numTexAnims) {
-    return 1;
+    return TRUE;
   }
   MDL::WriteLine(buffer, "%s %d {\n", MDL::TokenText(MDLTOK_TEXTUREANIMS), numTexAnims);
   const MDLTEXANIMSECTION *texAnim = data.textureanims.Ptr();
@@ -94,7 +94,7 @@ BOOL MDL::WriteTextureAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, 
     IWriteTextureAnim(*texAnim++, buffer);
   }
   MDL::WriteLine(buffer, "}\n");
-  return 1;
+  return TRUE;
 }
 
 static UINT GetBinTexAnimSize(const MDLTEXANIMSECTION &section) {
@@ -121,7 +121,7 @@ BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLS
     MDLTEXANIMSECTION *section = data.textureanims.New();
     if (!section) {
       status->FatalFlunked("TexAnim", -1);
-      return 0;
+      return FALSE;
     }
     UINT sectionSize = buf.GetUint();
     UINT sectionRead = 4;
@@ -132,19 +132,19 @@ BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLS
         case 'TATK':
           if (!ReadBinFloatKeyFrames(section->transkeys, buf, sectionRead)) {
             status->Add(STATUS_ERROR, "Error reading transkeys of texanim.\n");
-            return 0;
+            return FALSE;
           }
           break;
         case 'RATK':
           if (!ReadBinQuatKeyFrames(section->rotkeys, buf, sectionRead)) {
             status->Add(STATUS_ERROR, "Error reading rotkeys of texanim.\n");
-            return 0;
+            return FALSE;
           }
           break;
         case 'SATK':
           if (!ReadBinFloatKeyFrames(section->scalekeys, buf, sectionRead)) {
             status->Add(STATUS_ERROR, "Error reading scalekeys of texanim.\n");
-            return 0;
+            return FALSE;
           }
           break;
         default:
@@ -155,16 +155,16 @@ BOOL MDL::ReadBinTextureAnims(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLS
     totalRead += sectionRead;
     if (totalRead > length) {
       status->FatalOverran("TexAnim", -1);
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numTexAnims = data.textureanims.Count();
   if (data.model.animationFile[0] || !numTexAnims) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('NAXT');
   UINT totalSize = 4;
@@ -177,5 +177,5 @@ BOOL MDL::WriteBinTextureAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus 
   for (i = 0; i < numTexAnims; ++i) {
     IWriteBinTextureAnim(data.textureanims[i], buf);
   }
-  return 1;
+  return TRUE;
 }

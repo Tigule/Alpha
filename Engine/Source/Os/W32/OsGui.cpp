@@ -280,7 +280,7 @@ void OsGuiDestroy() {
   OsSetWindowProc(0);
   if (sGlobalTips) {
     DestroyWindow(sGlobalTips);
-    sGlobalTips = 0;
+    sGlobalTips = NULL;
   }
 }
 
@@ -292,7 +292,7 @@ BOOL OsGuiProcessMessage(LPVOID inMsgData) {
   MSG *message = (MSG *)inMsgData;
 
   if (!sAppInstance) {
-    return 0;
+    return FALSE;
   }
 
   int handled = 0;
@@ -312,7 +312,7 @@ BOOL OsGuiProcessMessage(LPVOID inMsgData) {
         if (canTranslate && TranslateAcceleratorA(menuWindow, accelTable, message)) {
           handled = 1;
           if (message->message != WM_KEYDOWN || message->wParam != VK_DELETE) {
-            return 1;
+            return TRUE;
           }
           break;
         }
@@ -558,7 +558,7 @@ static int sHandleDrawItem(LPARAM lParam) {
 static LPVOID sHandleCtlColor(WPARAM wParam, LPARAM lParam) {
   COsControl *control = (COsControl *)sGetOsGuiPointer((HWND)lParam);
   if (!control) {
-    return 0;
+    return NULL;
   }
   return control->OnSetColors((LPVOID)wParam);
 }
@@ -702,15 +702,15 @@ static INT_PTR CALLBACK sDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lPar
   return 0;
 }
 
-static int CALLBACK sDisableWindow(HWND hwnd, LPARAM param) {
+static BOOL CALLBACK sDisableWindow(HWND hwnd, LPARAM param) {
   TSGrowableArray<LPVOID> *windows = (TSGrowableArray<LPVOID> *)param;
   if ((HINSTANCE)GetWindowLongPtrA(hwnd, GWLP_HINSTANCE) != sAppInstance)
-    return 1;
+    return TRUE;
   if (IsWindowEnabled(hwnd)) {
     EnableWindow(hwnd, FALSE);
     *windows->New() = hwnd;
   }
-  return 1;
+  return TRUE;
 }
 
 static INT_PTR CALLBACK sEditBoxProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -723,7 +723,7 @@ COsControl::COsControl(COsDialog *inDialog, int inType, short inID, UINT inFlags
 }
 
 COsControl::COsControl(LPVOID inWindow, int inType, short inID, UINT inFlags) {
-  mDialog = 0;
+  mDialog = NULL;
   Initialize(inWindow, inType, inID, inFlags);
 }
 
@@ -732,9 +732,9 @@ void COsControl::Initialize(LPVOID inWindow, int inType, short inID, UINT inFlag
   ASSERT(inID == -1 || inID >= OSGUI_CONTROL_ID_BASE);
 
   mID = inID;
-  mCallback = 0;
-  mCallbackParam = 0;
-  mContextMenu = 0;
+  mCallback = NULL;
+  mCallbackParam = NULL;
+  mContextMenu = NULL;
   mRedrawLevel = 0;
   mType = inType;
   mFlags = inFlags;
@@ -889,10 +889,10 @@ BOOL COsControl::OnEvent(int inItemID, int inNotifyCode, int inCode) {
     params.code = inCode;
     params.user = mCallbackParam;
     mCallback(params);
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void COsControl::SetFont(int inFont) {
@@ -1072,10 +1072,10 @@ int COsMenu::GetNumItems() {
 BOOL COsMenu::GetHotkey(int inPos, OsGuiMenuHotkey *outHotkey) {
   ASSERT(inPos >= 0 && inPos < (int) mHotkeys.Count());
   if (mHotkeys[inPos].keyID == -1) {
-    return 0;
+    return FALSE;
   }
   *outHotkey = mHotkeys[inPos];
-  return 1;
+  return TRUE;
 }
 
 void COsMenu::AddHotkey(int inPos) {
@@ -1194,7 +1194,7 @@ COsMenuBar::COsMenuBar(LPVOID inWindowHandle) {
   mWindowHandle = inWindowHandle;
   mMenuBarHandle = CreateMenu();
   SetMenu((HWND)mWindowHandle, (HMENU)mMenuBarHandle);
-  mAccelerators = 0;
+  mAccelerators = NULL;
   *sMenubars.New() = this;
 }
 
@@ -1239,7 +1239,7 @@ void COsMenuBar::Set(TSGrowableArray<COsMenu *> &inMenus) {
 void COsMenuBar::UpdateAccelerators() {
   if (mAccelerators) {
     DestroyAcceleratorTable((HACCEL)mAccelerators);
-    mAccelerators = 0;
+    mAccelerators = NULL;
   }
 
   TSGrowableArray<ACCEL> accels;
@@ -1267,15 +1267,15 @@ void COsMenuBar::Refresh() {
 }
 
 COsDialog::COsDialog(LPVOID inWindowHandle, UINT inFlags) {
-  mCallback = 0;
-  mCallbackParam = 0;
-  mTooltips = 0;
-  mCancelButton = 0;
+  mCallback = NULL;
+  mCallbackParam = NULL;
+  mTooltips = NULL;
+  mCancelButton = NULL;
   mTrackMouse = 0;
   mTooltipsEnabled = sMasterTooltipsEnabled;
   mMinSize.x = -1;
   mMinSize.y = -1;
-  mContextMenu = 0;
+  mContextMenu = NULL;
   mContextMenuEnabled = 1;
   mFlags = inFlags;
 
@@ -1401,7 +1401,7 @@ COsControl *COsDialog::FindControl(LPVOID inHandle) {
       return mControls[i];
     }
   }
-  return 0;
+  return NULL;
 }
 
 int COsDialog::ProcessMessage(LPVOID inMsgData) {
@@ -1463,7 +1463,7 @@ void COsDialog::SetTrackMouse(int inVal) {
   mTrackMouse = inVal;
   if (inVal) {
     mMouseInside = IsMouseInside();
-    mNeedNewTrack = 1;
+    mNeedNewTrack = TRUE;
   }
 }
 
@@ -1560,7 +1560,7 @@ void COsDialog::SetTitle(LPCSTR inText) {
 }
 
 BOOL COsDialog::OnAccept() {
-  return 1;
+  return TRUE;
 }
 
 int COsDialog::OnCancel() {
@@ -1575,20 +1575,20 @@ BOOL COsDialog::OnMouseDown() {
   for (UINT i = 0; i < mControls.Count(); ++i) {
     mControls[i]->OnMouseDown();
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL COsDialog::OnMouseUp() {
   for (UINT i = 0; i < mControls.Count(); ++i) {
     mControls[i]->OnMouseUp();
   }
-  return 0;
+  return FALSE;
 }
 
 int COsDialog::OnMouseLeave() {
   if (mTrackMouse) {
     BOOL wasInside = mMouseInside;
-    mNeedNewTrack = 1;
+    mNeedNewTrack = TRUE;
     mMouseInside = IsMouseInside();
     if (!mMouseInside && wasInside) {
       return OnEvent(-1, 4, 0);
@@ -1603,7 +1603,7 @@ BOOL COsDialog::OnMouseMove(int inX, int inY) {
   }
 
   if (!mTrackMouse) {
-    return 0;
+    return FALSE;
   }
 
   BOOL wasInside = mMouseInside;
@@ -1615,18 +1615,18 @@ BOOL COsDialog::OnMouseMove(int inX, int inY) {
     trackInfo.hwndTrack = (HWND)mHandle;
     BOOL success = _TrackMouseEvent(&trackInfo);
     ASSERT(success);
-    mNeedNewTrack = 0;
+    mNeedNewTrack = FALSE;
   }
 
   if (mMouseInside && !wasInside) {
     return OnEvent(-1, 3, 0);
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL COsDialog::OnControlTab() {
   int         controlCount = (int)mControls.Count();
-  COsControl *control = 0;
+  COsControl *control = NULL;
 
   for (int index = 0; index < controlCount; ++index) {
     if (mControls[index]->GetType() == 15) {
@@ -1636,7 +1636,7 @@ BOOL COsDialog::OnControlTab() {
   }
 
   if (!control) {
-    return 0;
+    return FALSE;
   }
   return ((COsTabControl *)control)->OnControlTab();
 }
@@ -1694,13 +1694,13 @@ void COsButton::SetHighlight(int inVal) {
 }
 
 COsCheckbox::COsCheckbox(COsDialog *inDialog, short inID) : COsControl(inDialog, 7, inID, 0) {
-  mSettingSize = 0;
+  mSettingSize = FALSE;
   mMaxWidth = 0;
   OnTextChange();
 }
 
 COsCheckbox::COsCheckbox(LPVOID inWindow, short inID) : COsControl(inWindow, 7, inID, 0) {
-  mSettingSize = 0;
+  mSettingSize = FALSE;
   mMaxWidth = 0;
   OnTextChange();
 }
@@ -1745,9 +1745,9 @@ void COsCheckbox::OnTextChange() {
   int ctrlH;
   GetSize(&ctrlW, &ctrlH);
   if (ctrlW != width || ctrlH != 16) {
-    mSettingSize = 1;
+    mSettingSize = TRUE;
     SetSize(width, 16);
-    mSettingSize = 0;
+    mSettingSize = FALSE;
   }
 }
 
@@ -1822,18 +1822,18 @@ BOOL COsEditBox::CanDoClipboardAction(int inAction) {
       return GetSelectionSize() > 0;
     case 2: {
       if (!OpenClipboard((HWND)mHandle)) {
-        return 0;
+        return FALSE;
       }
-      int result = GetClipboardData(CF_TEXT) != 0;
+      int result = GetClipboardData(CF_TEXT) != NULL;
       CloseClipboard();
       return result;
     }
     case 4:
-      return 1;
+      return TRUE;
     case 5:
       return SendMessageA((HWND)mHandle, EM_CANUNDO, 0, 0);
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1841,24 +1841,24 @@ BOOL COsEditBox::DoClipboardAction(int inAction) {
   switch (inAction) {
     case 0:
       SendMessageA((HWND)mHandle, WM_CUT, 0, 0);
-      return 1;
+      return TRUE;
     case 1:
       SendMessageA((HWND)mHandle, WM_COPY, 0, 0);
-      return 1;
+      return TRUE;
     case 3:
       SendMessageA((HWND)mHandle, WM_CLEAR, 0, 0);
-      return 1;
+      return TRUE;
     case 2:
       SendMessageA((HWND)mHandle, WM_PASTE, 0, 0);
-      return 1;
+      return TRUE;
     case 4:
       SelectAll();
-      return 1;
+      return TRUE;
     case 5:
       SendMessageA((HWND)mHandle, EM_UNDO, 0, 0);
-      return 1;
+      return TRUE;
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -2506,14 +2506,14 @@ int COsControl::OnScroll(int inParam) {
 
 BOOL COsControl::SendEvent(int inEvent, int inCode) {
   if (OnEvent(mID, inEvent, inCode)) {
-    return 1;
+    return TRUE;
   }
 
   if (mDialog) {
     return mDialog->OnEvent(mID, inEvent, inCode);
   }
 
-  return 0;
+  return FALSE;
 }
 
 static HBITMAP sBitmapFromImageData(int inWidth, int inHeight, LPVOID inData, HDC inDC) {
@@ -2648,7 +2648,7 @@ BOOL COsTextButton::OnDraw(LPVOID inContext, UINT inState, NTempest::CiRect &inR
   SetTextColor(dc, oldColor);
   DeleteObject(pen);
   DeleteObject(bgBrush);
-  return 1;
+  return TRUE;
 }
 
 void COsStaticBox::ClearTransparentRects() {
@@ -2681,7 +2681,7 @@ BOOL COsStaticBox::OnDraw(LPVOID inContext, UINT, NTempest::CiRect &inRect) {
   SetBkMode(dc, oldBkMode);
   DeleteObject(brush);
   DeleteObject(drawRgn);
-  return 1;
+  return TRUE;
 }
 
 COsStaticText::COsStaticText(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 2, inID, inFlags), mTextColor(0ul) {
@@ -2724,7 +2724,7 @@ void COsStaticText::SetTextColor(const NTempest::CImVector &inColor) {
 
 LPVOID COsStaticText::OnSetColors(LPVOID inContext) {
   if (!mTextColor.a) {
-    return 0;
+    return NULL;
   }
 
   HDC dc = (HDC)inContext;
@@ -2788,36 +2788,36 @@ static INT_PTR CALLBACK sEditBoxProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 static BOOL sIsCharacterAllowed(char inChar, UINT inFilters) {
   if (inChar >= 0 && inChar < 0x20) {
-    return 1;
+    return TRUE;
   }
 
   if (inFilters & 0x01) {
     if (inChar >= 'a' && inChar <= 'z') {
-      return 1;
+      return TRUE;
     }
     if (inChar >= 'A' && inChar <= 'Z') {
-      return 1;
+      return TRUE;
     }
   }
 
   if ((inFilters & 0x02) && inChar >= '0' && inChar <= '9') {
-    return 1;
+    return TRUE;
   }
 
   if ((inFilters & 0x04) && (inChar == '+' || inChar == '-')) {
-    return 1;
+    return TRUE;
   }
 
   if ((inFilters & 0x08) && inChar == '.') {
-    return 1;
+    return TRUE;
   }
 
   if ((inFilters & 0x10) && inChar == ' ') {
-    return 1;
+    return TRUE;
   }
 
   if ((inFilters & 0x20) && inChar == '_') {
-    return 1;
+    return TRUE;
   }
 
   return (inFilters & 0x40) && inChar >= 0 && inChar < 0x7F;
@@ -2825,11 +2825,11 @@ static BOOL sIsCharacterAllowed(char inChar, UINT inFilters) {
 
 BOOL COsTreeView::IsCharacterAllowed(char inChar) {
   if (!GetEditControl()) {
-    return 1;
+    return TRUE;
   }
 
   if (!mFiltersEnabled) {
-    return 1;
+    return TRUE;
   }
 
   return sIsCharacterAllowed(inChar, mFilters);
@@ -2837,7 +2837,7 @@ BOOL COsTreeView::IsCharacterAllowed(char inChar) {
 
 BOOL COsEditBox::IsCharacterAllowed(char inChar) {
   if (!mFiltersEnabled) {
-    return 1;
+    return TRUE;
   }
 
   return sIsCharacterAllowed(inChar, mFilters);
@@ -2886,7 +2886,7 @@ BOOL COsTabControl::OnControlTab() {
 
   SetValue(value);
   SendEvent(2, 0);
-  return 1;
+  return TRUE;
 }
 
 BOOL COsDialog::OnEvent(int inItemID, int inNotifyCode, int inCode) {
@@ -2900,13 +2900,13 @@ BOOL COsDialog::OnEvent(int inItemID, int inNotifyCode, int inCode) {
     mCallback(params);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static INT_PTR CALLBACK sTreeViewProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
   COsTreeView *tree = (COsTreeView *)sGetOsGuiPointer(hwnd);
   if (tree) {
-    BOOL handled = 0;
+    BOOL handled = FALSE;
     switch (msg) {
       case WM_LBUTTONDOWN:
         handled = tree->OnMouseDown();
@@ -2936,16 +2936,16 @@ COsTreeView::~COsTreeView() {
 }
 
 void COsTreeView::InitializeTreeView() {
-  mDragImage = 0;
+  mDragImage = NULL;
   mDragging = 0;
-  mDragHandler = 0;
-  mDragHandlerParam = 0;
+  mDragHandler = NULL;
+  mDragHandlerParam = NULL;
   memset(&mDragInfo, 0, sizeof(mDragInfo));
   mDragInfo.treeView = this;
-  mCanEditFunc = 0;
-  mCanEditParam = 0;
-  mExpandFunc = 0;
-  mExpandParam = 0;
+  mCanEditFunc = NULL;
+  mCanEditParam = NULL;
+  mExpandFunc = NULL;
+  mExpandParam = NULL;
   mTextLimit = -1;
   mFiltersEnabled = 0;
   mFilters = 0;
@@ -3060,7 +3060,7 @@ LPVOID COsTreeView::GetItemChild(LPVOID inItem, int inIndex) {
     item = (LPVOID)SendMessageA((HWND)mHandle, TVM_GETNEXTITEM, TVGN_NEXT, (LPARAM)item);
     ++index;
   }
-  return 0;
+  return NULL;
 }
 
 void COsTreeView::EnumerateItems(LPVOID inParent, void (*inFunc)(COsTreeView *, LPVOID, LPVOID), LPVOID inParam) {
@@ -3239,22 +3239,22 @@ void COsTreeView::SelectAll(int inVal) {
 
 BOOL COsTreeView::OnMouseDown() {
   if (!(mFlags & 0x40000)) {
-    return 0;
+    return FALSE;
   }
   LPVOID item = FindItemUnderCursor();
   SetInputFocus();
   SendMessageA((HWND)mHandle, TVM_SELECTITEM, TVGN_CARET, 0);
-  return item != 0;
+  return item != NULL;
 }
 
 BOOL COsTreeView::OnMouseUp() {
   if (mDragging) {
     OnEndDrag();
     mDragging = 0;
-    return 0;
+    return FALSE;
   }
   if (!(mFlags & 0x40000)) {
-    return 0;
+    return FALSE;
   }
 
   LPVOID item = FindItemUnderCursor();
@@ -3262,7 +3262,7 @@ BOOL COsTreeView::OnMouseUp() {
   int    ctrl = OsGuiIsModifierKeyDown(0);
   int    selected = IsItemSelected(item);
   if (shift) {
-    return 0;
+    return FALSE;
   }
   if (ctrl) {
     SelectItem(item, !selected);
@@ -3270,7 +3270,7 @@ BOOL COsTreeView::OnMouseUp() {
     SelectAll(0);
     SelectItem(item, 1);
   }
-  return 1;
+  return TRUE;
 }
 
 LPVOID COsTreeView::FindItemUnderCursor() {
@@ -3288,13 +3288,13 @@ LPVOID COsTreeView::FindItemUnderCursor() {
   if (htInfo.flags & TVHT_ONITEM) {
     return htInfo.hItem;
   }
-  return 0;
+  return NULL;
 }
 
 BOOL COsTreeView::OnReturn() {
   if (GetEditControl()) {
     SendMessageA((HWND)mHandle, TVM_ENDEDITLABELNOW, 0, 0);
-    return 1;
+    return TRUE;
   }
   return SendEvent(9, 0);
 }
@@ -3302,9 +3302,9 @@ BOOL COsTreeView::OnReturn() {
 BOOL COsTreeView::OnEscape() {
   if (GetEditControl()) {
     SendMessageA((HWND)mHandle, TVM_ENDEDITLABELNOW, 1, 0);
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
@@ -3385,7 +3385,7 @@ int COsTreeView::OnNotify(int inCode, LPVOID inParam) {
 BOOL COsTreeView::IsHandleFromControl(LPVOID inHandle) {
   LPVOID editControl = GetEditControl();
   if (editControl && inHandle == editControl) {
-    return 1;
+    return TRUE;
   }
   return mHandle == inHandle;
 }
@@ -3413,7 +3413,7 @@ void COsTreeView::CreateDragImage(LPVOID inItem) {
 void COsTreeView::DestroyDragImage() {
   if (mDragImage) {
     ImageList_Destroy((HIMAGELIST)mDragImage);
-    mDragImage = 0;
+    mDragImage = NULL;
   }
 }
 
@@ -3557,10 +3557,10 @@ int COsTreeView::OnBeginEdit(LPVOID inItem) {
 
 BOOL COsTreeView::OnEndEdit(LPVOID inItem, LPCSTR inNewText) {
   if (!inNewText || !*inNewText) {
-    return 0;
+    return FALSE;
   }
   SetItemText(inItem, inNewText);
-  return 1;
+  return TRUE;
 }
 
 void COsTreeView::SetTextLimit(int inSize) {
@@ -3619,7 +3619,7 @@ void COsTreeView::InitParams(LPVOID inItem) {
   }
   mItemParams[paramID].used = 1;
   mItemParams[paramID].color = 0;
-  mItemParams[paramID].user = 0;
+  mItemParams[paramID].user = NULL;
 
   TVITEMA itemInfo;
   itemInfo.mask = TVIF_PARAM;
@@ -3823,14 +3823,14 @@ int COsScrollBar::OnScroll(int inParam) {
 
 BOOL COsScrollBar::OnMouseWheel(int inDelta) {
   if (!inDelta) {
-    return 0;
+    return FALSE;
   }
 
   int scrollMessage = (inDelta > 0) + 2;
   if (sProcessScrollMessage(mHandle, SB_CTL, scrollMessage, abs(inDelta))) {
     return SendEvent(2, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 COsDivider::COsDivider(COsDialog *inDialog, short inID, UINT inFlags) : COsControl(inDialog, 19, inID, inFlags), mDragStartPos(0) {
@@ -3845,7 +3845,7 @@ COsDivider::~COsDivider() {
 }
 
 void COsDivider::Initialize() {
-  mDragging = 0;
+  mDragging = FALSE;
   mTracking = 0;
   mMaxPos = 100000;
   mMinPos = -100000;
@@ -3862,7 +3862,7 @@ void COsDivider::UpdateCursor() {
 
 void COsDivider::OnDivMouseDown() {
   SetCapture((HWND)mHandle);
-  mDragging = 1;
+  mDragging = TRUE;
   OsGuiGetCursorPosition(&mDragStartMouseX, &mDragStartMouseY);
 
   NTempest::CiRect parentRect = OsGuiGetWindowRect(GetParent((HWND)mHandle), 1);
@@ -3921,7 +3921,7 @@ void COsDivider::OnDivMouseMove(int, int) {
 void COsDivider::OnDivMouseUp() {
   if (mDragging) {
     ReleaseCapture();
-    mDragging = 0;
+    mDragging = FALSE;
     SendEvent(2, 0);
   }
   UpdateCursor();
@@ -4018,7 +4018,7 @@ HICON sWinCursor(int inCursor) {
       break;
 
     default:
-      return 0;
+      return NULL;
   }
 
   return LoadCursorA(0, cursorName);
@@ -4091,7 +4091,7 @@ LPVOID OsGuiGetWindow(int inWindowType) {
       return GetForegroundWindow();
   }
 
-  return 0;
+  return NULL;
 }
 
 void OsGuiSetGxWindow(LPVOID window) {
@@ -4139,13 +4139,13 @@ BOOL OsGuiWindowIsCursorInside(LPVOID inWindow, int inClientOnly) {
   POINT cursor = {cx, cy};
   BOOL result;
   if (WindowFromPoint(cursor) == inWindow) {
-    result = 1;
+    result = TRUE;
     if (inClientOnly) {
       NTempest::CiRect winRect = OsGuiGetWindowRect(inWindow, 1);
       result = winRect.Contains(NTempest::C2iVector(cx, cy));
     }
   } else {
-    result = 0;
+    result = FALSE;
   }
   return result;
 }
@@ -4217,7 +4217,7 @@ BOOL OsGuiIsModifierKeyDown(int inKey) {
 
     default:
       ASSERT(0);
-      return 0;
+      return FALSE;
   }
 
   return (GetKeyState(virtualKey) & 0xF000) != 0;

@@ -131,10 +131,10 @@ void WowConnection::Init(WowConnectionResponse *response, void (*func)()) {
   m_bufferAutoSendSize = 0;
   m_serviceFlags = 0;
   m_serviceCount = 0;
-  m_readBuffer = 0;
+  m_readBuffer = NULL;
   m_readBytes = 0;
   m_readBufferSize = 0;
-  m_event = 0;
+  m_event = NULL;
   SetState(WOWC_INITIALIZED);
   m_type = WOWC_TYPE_MESSAGES;
 }
@@ -451,7 +451,7 @@ void WowConnection::DoWrites() {
   } while (m_sendList.Head() && !disconnected);
 
 finallylabel:
-  WowConnectionResponse *response = 0;
+  WowConnectionResponse *response = NULL;
   int                    sock = -1;
   BYTE                   sendWriteNotify = 0;
 
@@ -846,7 +846,7 @@ void WowConnection::DestroyOsNet() {
   s_network->Stop();
   s_network->PlatformDestroy();
   DEL(s_network);
-  s_network = 0;
+  s_network = NULL;
   WDataStore::StaticDestroy();
 }
 

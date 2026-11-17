@@ -48,7 +48,7 @@ static BOOL OnLFGResponse(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
   msg->Get(looking);
   CGPartyInfo::SetLookingForGroup(looking);
   FrameScript_SignalEvent(372);
-  return 1;
+  return TRUE;
 }
 
 void CGPartyInfo::InitializeGame() {
@@ -79,20 +79,20 @@ void CGPartyInfo::ShutdownGame() {
 
 BOOL CGPartyInfo::IsMember(const DWORDLONG &guid) {
   if (!guid) {
-    return 0;
+    return FALSE;
   }
 
   if (guid == ClntObjMgrGetActivePlayer()) {
-    return 1;
+    return TRUE;
   }
 
   for (UINT i = 0; i < 4; ++i) {
     if (m_members[i] == guid) {
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 DWORDLONG CGPartyInfo::GetMemberByName(LPCSTR name) {
@@ -245,7 +245,7 @@ void CGPartyInfo::SetLootMethod(LOOT_METHOD method, DWORDLONG master) {
 
 CGPartyInfo::RemoteStats *CGPartyInfo::GetRemoteStats(DWORDLONG guid) {
   if (!guid) {
-    return 0;
+    return NULL;
   }
 
   for (UINT index = 0; index < 4; ++index) {
@@ -254,7 +254,7 @@ CGPartyInfo::RemoteStats *CGPartyInfo::GetRemoteStats(DWORDLONG guid) {
     }
   }
 
-  return 0;
+  return NULL;
 }
 
 void CGPartyInfo::SetLookingForGroup(int looking) {
@@ -378,7 +378,7 @@ static int Script_SetLootMethod(lua_State *L) {
   DWORDLONG master = 0;
   if (method == LOOT_METHOD_MASTERLOOTER) {
     LPCSTR name;
-    if (lua_isstring(L, 2) && (name = lua_tostring(L, 2)) != 0 && *name) {
+    if (lua_isstring(L, 2) && (name = lua_tostring(L, 2)) != NULL && *name) {
       master = CGPartyInfo::GetMemberByName(name);
       if (!master) {
         master = CGGameUI::ClosestObjectMatch(name, TYPE_PLAYER);

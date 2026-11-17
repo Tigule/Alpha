@@ -28,7 +28,7 @@ BOOL MdlReadCameras(const MDLDATA &data, TSFixedArray<HCAMERA> *cameras) {
     *dest = camera;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void MdxReadCameras(BYTE *data, UINT fileBytes, TSFixedArray<HCAMERA> *cameras) {

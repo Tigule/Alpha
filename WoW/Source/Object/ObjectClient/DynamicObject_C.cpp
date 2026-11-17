@@ -66,7 +66,7 @@ void CGDynamicObject_C::SetStorage(DWORD *storage) {
 }
 
 CGDynamicObject_C::CGDynamicObject_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + CGObject::TotalFields()), m_dynamicScale(1.0f), m_blizzardObject(0), m_sound(0) {
+    : CGObject_C(storage, eventTime, init), CGDynamicObject(storage + CGObject::TotalFields()), m_dynamicScale(1.0f), m_blizzardObject(NULL), m_sound(NULL) {
   m_dynamicObj->m_position = init->move.status.worldPosition;
   m_dynamicObj->m_facing = init->move.status.worldFacing;
   m_haveStandSequence = 0;
@@ -88,11 +88,11 @@ CGDynamicObject_C::~CGDynamicObject_C() {
 
 BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
   if (!CGObject_C::UpdateModelLoadStatus()) {
-    return 0;
+    return FALSE;
   }
 
-  m_haveStandSequence = ModelHasSequenceId(GetObjectModel(), 0) != 0;
-  m_haveHoldSequence = ModelHasSequenceId(GetObjectModel(), 1) != 0;
+  m_haveStandSequence = ModelHasSequenceId(GetObjectModel(), 0) != FALSE;
+  m_haveHoldSequence = ModelHasSequenceId(GetObjectModel(), 1) != FALSE;
 
   if (GetDynamicType() != DYNAMIC_OBJECT_FARSIGHT_FOCUS && GetDynamicType() != DYNAMIC_OBJECT_AREA_SPELL) {
     NTempest::CAaSphere bounds;
@@ -111,7 +111,7 @@ BOOL CGDynamicObject_C::UpdateModelLoadStatus() {
   if (m_haveHoldSequence && !m_haveStandSequence) {
     ObjectModelSetSequence(GetObjectModel(), 1, 0, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
@@ -122,7 +122,7 @@ static BOOL AnimFinishedCallback(LPVOID param) {
   if (param) {
     ((CGDynamicObject_C *)param)->AnimFinished();
   }
-  return 1;
+  return TRUE;
 }
 
 void CGDynamicObject_C::PostInit(const CClientObjCreate &init) {
@@ -175,7 +175,7 @@ void CGDynamicObject_C::ObjectVisKitProc() {
 void CGDynamicObject_C::ClearSound() {
   if (m_sound) {
     m_sound->Stop(3.0f);
-    m_sound = 0;
+    m_sound = NULL;
   }
 }
 
@@ -193,7 +193,7 @@ void CGDynamicObject_C::Reenable() {
 
 BOOL CGDynamicObject_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
-  return 1;
+  return TRUE;
 }
 
 void CGDynamicObject_C::SetData(LPCVOID data, UINT bytes) {
@@ -217,24 +217,24 @@ const SpellVisualEffectNameRec *CGDynamicObject_C::GetVisualEffectNameRec() cons
   const SpellRec *spellRec = g_spellDB.GetRecord(GetSpellID());
   if (!spellRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "NOSPELLIDFOUND|%d", GetSpellID());
-    return 0;
+    return NULL;
   }
 
   const SpellVisualRec *visualRec = g_spellVisualDB.GetRecord(spellRec->m_spellVisualID);
   if (!visualRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLVISUALIDNOTFOUND|%d|%d", spellRec->m_spellVisualID, GetSpellID());
-    return 0;
+    return NULL;
   }
 
   if (!visualRec->m_hasAreaEffect) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTNOAREAEFFECT|%d", spellRec->m_spellVisualID);
-    return 0;
+    return NULL;
   }
 
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(visualRec->m_areaModel);
   if (!effectRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", visualRec->m_areaModel);
-    return 0;
+    return NULL;
   }
   return effectRec;
 }

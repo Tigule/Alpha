@@ -124,20 +124,20 @@ class CDataStore {
   BOOL FetchRead(UINT pos, UINT bytes) {
     if (pos + bytes > m_size) {
       Invalidate();
-      return 0;
+      return FALSE;
     }
 
     if (pos < m_base || pos + bytes > m_base + m_alloc) {
       if (!InternalFetchRead(pos, bytes, m_data, m_base, m_alloc)) {
         Invalidate();
-        return 0;
+        return FALSE;
       }
 
       ASSERT(pos >= m_base);
       ASSERT(pos + bytes <= m_base + m_alloc);
     }
 
-    return 1;
+    return TRUE;
   }
 
   virtual BOOL InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber);
@@ -145,14 +145,14 @@ class CDataStore {
   BOOL FetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
     if (pos < m_base || pos + bytes > m_base + m_alloc) {
       if (!InternalFetchWrite(pos, bytes, m_data, m_base, m_alloc, fileName, lineNumber)) {
-        return 0;
+        return FALSE;
       }
 
       ASSERT(pos >= m_base);
       ASSERT(pos + bytes <= m_base + m_alloc);
     }
 
-    return 1;
+    return TRUE;
   }
 
   void AssertFetchWrite(UINT pos, UINT bytes, LPCSTR fileName, int lineNumber) {
@@ -162,7 +162,7 @@ class CDataStore {
   }
 
  public:
-  CDataStore() : m_data(0), m_base(0), m_alloc(0), m_size(0), m_read(-1) {
+  CDataStore() : m_data(NULL), m_base(0), m_alloc(0), m_size(0), m_read(-1) {
   }
 
   CDataStore(BYTE *data, UINT size) : m_data(data), m_base(0), m_alloc(-1), m_size(size), m_read(0) {
@@ -197,7 +197,7 @@ class CDataStore {
   }
   virtual void Reset() {
     if (m_alloc == (UINT)-1) {
-      m_data = 0;
+      m_data = NULL;
       m_alloc = 0;
     }
 

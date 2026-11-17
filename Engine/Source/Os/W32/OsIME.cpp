@@ -48,7 +48,7 @@ static BOOL GetCompositionString(int which, char *string, int maxlen) {
   HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC context = ImmGetContext(wnd);
   if (!context) {
-    return 0;
+    return FALSE;
   }
 
   WORD wtemp[512];
@@ -58,7 +58,7 @@ static BOOL GetCompositionString(int which, char *string, int maxlen) {
   ConvertUTF16toUTF8(string, maxlen - 1, wtemp, 512, &written, 0);
   string[written] = 0;
   ImmReleaseContext(wnd, context);
-  return 1;
+  return TRUE;
 }
 
 int OsIMEGetCompositionString(char *string, UINT maxlen) {
@@ -74,14 +74,14 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC context = ImmGetContext(wnd);
   if (!context) {
-    return 0;
+    return FALSE;
   }
 
   UINT cursor = ImmGetCompositionStringA(context, GCS_CURSORPOS, 0, 0) & 0xFFFF;
   UINT length = ImmGetCompositionStringA(context, GCS_COMPCLAUSE, 0, 0);
   if (!length) {
     ImmReleaseContext(wnd, context);
-    return 0;
+    return FALSE;
   }
 
   UINT *clauses = (UINT *)SMemAlloc(length, __FILE__, __LINE__, 0);
@@ -91,7 +91,7 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   if (length == IMM_ERROR_NODATA || length == IMM_ERROR_GENERAL) {
     SMemFree(clauses, __FILE__, __LINE__, 0);
     ImmReleaseContext(wnd, context);
-    return 0;
+    return FALSE;
   }
 
   length /= sizeof(UINT);
@@ -124,7 +124,7 @@ BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
   clauseLeft = length;
   clauseRight = length + clauseLen;
   cursorPos = cursorLen;
-  return 1;
+  return TRUE;
 }
 
 BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
@@ -133,12 +133,12 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
   HWND wnd = (HWND)OsGuiGetWindow(0);
   HIMC hIMC = ImmGetContext(wnd);
   if (!hIMC) {
-    return 0;
+    return FALSE;
   }
 
   if (!which) {
     ImmReleaseContext(wnd, hIMC);
-    return 0;
+    return FALSE;
   }
 
   DWORD listIndex = -1;
@@ -150,7 +150,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
   DWORD size = ImmGetCandidateListA(hIMC, listIndex, 0, 0);
   if (!size) {
     ImmReleaseContext(wnd, hIMC);
-    return 0;
+    return FALSE;
   }
 
   int            pageStartChanged = 0;
@@ -161,7 +161,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     ImmNotifyIME(hIMC, NI_SETCANDIDATE_PAGESIZE, listIndex, 9);
     SMemFree(pcl, __FILE__, __LINE__, 0);
     ImmReleaseContext(wnd, hIMC);
-    return 0;
+    return FALSE;
   }
 
   while (pcl->dwSelection < pcl->dwPageStart) {
@@ -182,7 +182,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
     ImmNotifyIME(hIMC, NI_SETCANDIDATE_PAGESTART, listIndex, pcl->dwPageStart);
     SMemFree(pcl, __FILE__, __LINE__, 0);
     ImmReleaseContext(wnd, hIMC);
-    return 0;
+    return FALSE;
   }
 
   pagesize = pcl->dwPageSize;
@@ -204,7 +204,7 @@ BOOL OsIMEGetCandidates(DWORD which, UINT &pagesize, UINT &count, UINT &selectio
 
   SMemFree(pcl, __FILE__, __LINE__, 0);
   ImmReleaseContext(wnd, hIMC);
-  return 1;
+  return TRUE;
 }
 
 void OsIMEEnable(int enabled) {
@@ -224,5 +224,5 @@ void OsIMEInitialize() {
 
 void OsIMEDestroy() {
   ImmAssociateContextEx((HWND)OsGuiGetWindow(0), 0, IACE_DEFAULT);
-  s_IMC = 0;
+  s_IMC = NULL;
 }

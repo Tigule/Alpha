@@ -229,14 +229,14 @@ static BOOL CallSeqFinishedHandlers(CAnim *unique, UINT seqIndex) {
   ASSERT(unique);
 
   if (unique->anySeqFinished.callback && !unique->anySeqFinished.callback(unique->anySeqFinished.param)) {
-    return 0;
+    return FALSE;
   }
 
   if (unique->seq[seqIndex].finished.callback && !unique->seq[seqIndex].finished.callback(unique->seq[seqIndex].finished.param)) {
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static int SetSequenceTime(CAnim *unique, UINT sequence, const CAnimSequence *seq, CSeqInfo *seqInfo, int seqTime) {
@@ -460,7 +460,7 @@ static BOOL AdvanceTime(CAnim *unique, CAnimData *shared) {
               unique, seqIndex, &shared->seq[seqIndex], &unique->seq[seqIndex],
               unique->seq[seqIndex].scaledElapsedTime - shared->seq[seqIndex].time.Low() + unique->seq[seqIndex].elapsed
           )) {
-        return 0;
+        return FALSE;
       }
     }
   }
@@ -477,7 +477,7 @@ static BOOL AdvanceTime(CAnim *unique, CAnimData *shared) {
     ribbonStatus->elapsedTime = fTimeElapsed;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void SetGeosetColor(const InterpInfo &animInfo, CAnimGeoset *currgeoset, CAnimGeosetObjStatus *geoStatus, NTempest::CImVector *currentColor) {
@@ -518,7 +518,7 @@ void CalcGeosetColor(const InterpInfo &animInfo, CAnimGeoset *geoset, CAnimGeose
 
 BOOL CAnimBoneObj::IsVisible(const CAnim &anim) const {
   if (geosetId == 0xFF) {
-    return 1;
+    return TRUE;
   }
 
   return anim.geosetStatus[geosetId].base.flags & 1;
@@ -631,13 +631,13 @@ BOOL AnimSetObjectTimeScale(HANIM anim, UINT objectId, float timeScale) {
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
 
   VALIDATE2(objectId < shared->obj.Count());
 
   unique->seq[unique->status[objectId]->base.currSeq].seqTimeScale = timeScale;
-  return 1;
+  return TRUE;
 }
 
 float AnimGetTimeScale(HANIM anim) {
@@ -711,14 +711,14 @@ BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT flags) {
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
     SErrSetLastError(ERROR_INVALID_FUNCTION);
-    return 0;
+    return FALSE;
   }
 
   seqIndex = PickRandomSequence(shared->seqOrder[unique->seqMapIndex].order[seqIndex], shared->seq);
 
   ASSERT(seqIndex < uint8(0xff));
   SetSequence(unique, shared, seqIndex, flags);
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
@@ -729,18 +729,18 @@ BOOL AnimSetRandomSequenceFidget(HANIM anim, UINT seqIndex, UINT objectId, UINT 
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
     SErrSetLastError(ERROR_INVALID_FUNCTION);
-    return 0;
+    return FALSE;
   }
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
-    return 0;
+    return FALSE;
   }
 
   seqIndex = PickRandomSequence(shared->seqOrder[unique->seqMapIndex].order[seqIndex], shared->seq);
   SetSplitBodySequence(unique, shared, seqIndex, objectId, flags);
-  return 1;
+  return TRUE;
 }
 
 UINT AnimGetNumSequenceFidgets(HANIM anim, UINT seqIndex) {
@@ -764,7 +764,7 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags)
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
     SErrSetLastError(ERROR_INVALID_FUNCTION);
-    return 0;
+    return FALSE;
   }
 
   if (fidgetId == 0) {
@@ -775,7 +775,7 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT flags)
 
   ASSERT(seqIndex < uint8(0xff));
   SetSequence(unique, shared, seqIndex, flags);
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT objectId, UINT flags) {
@@ -786,13 +786,13 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT object
 
   if (shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary == 0xFF) {
     SErrSetLastError(ERROR_INVALID_FUNCTION);
-    return 0;
+    return FALSE;
   }
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
-    return 0;
+    return FALSE;
   }
 
   if (fidgetId == 0) {
@@ -802,7 +802,7 @@ BOOL AnimSetSequenceFidget(HANIM anim, UINT seqIndex, UINT fidgetId, UINT object
   }
 
   SetSplitBodySequence(unique, shared, seqIndex, objectId, flags);
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
@@ -829,13 +829,13 @@ BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT flags) {
 
   if (seqIndex == 0xFF) {
     SErrSetLastError(ERROR_INVALID_FUNCTION);
-    return 0;
+    return FALSE;
   }
 
   ASSERT((seqIndex == 0) || (seqIndex < shared->seq.Count()));
   ASSERT(seqIndex < uint8(0xff));
   SetSequence(unique, shared, seqIndex, flags);
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
@@ -848,16 +848,16 @@ BOOL AnimSetSequence(HANIM anim, UINT seqIndex, UINT objectId, UINT flags) {
   objectId = shared->objectOrder[objectId];
   if (seqIndex == 0xFF) {
     SErrSetLastError(ERROR_INVALID_FUNCTION);
-    return 0;
+    return FALSE;
   }
 
   if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
-    return 0;
+    return FALSE;
   }
 
   SetSplitBodySequence(unique, shared, seqIndex, objectId, flags);
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flags) {
@@ -876,12 +876,12 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
 
   if (objectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
-    return 0;
+    return FALSE;
   }
 
   if (sameAsObjectId == (UINT)-1) {
     SErrSetLastError(ERROR_FILE_NOT_FOUND);
-    return 0;
+    return FALSE;
   }
 
   VALIDATE(objectId < shared->obj.Count());
@@ -889,7 +889,7 @@ BOOL AnimMatchSequence(HANIM anim, UINT objectId, UINT sameAsObjectId, UINT flag
   VALIDATEEND;
 
   SetSplitBodySequence(unique, shared, unique->status[sameAsObjectId]->base.currSeq, objectId, flags);
-  return 1;
+  return TRUE;
 }
 
 void AnimResetGlobalSequenceTimes(HANIM anim) {

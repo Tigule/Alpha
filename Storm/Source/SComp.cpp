@@ -1235,7 +1235,7 @@ static const _DECOMPRESSALGORITHM s_decompressalgorithm[ALGORITHMS] = {
     {          SCOMP_PKWARE,         PkwareDecompress},
 };
 
-extern "C" int APIENTRY
+extern "C" BOOL APIENTRY
 SCompCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization) {
   LPVOID  work;
   LPVOID  target;
@@ -1315,7 +1315,7 @@ extern "C" int APIENTRY SCompDecompress(LPVOID dest, DWORD *destsize, LPCVOID so
   return SCompDecompress2(dest, destsize, source, sourcesize, NULL);
 }
 
-int APIENTRY SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
+BOOL APIENTRY SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename) {
   DWORD  compressiontypes;
   LPVOID work;
   LPVOID target;
@@ -1387,7 +1387,7 @@ int APIENTRY SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWOR
   return TRUE;
 }
 
-extern "C" int APIENTRY SCompDestroy() {
+extern "C" BOOL APIENTRY SCompDestroy() {
   if (s_DecompressBuffer) {
     SMemFree(s_DecompressBuffer, __FILE__, __LINE__, 0);
     s_DecompressBuffer = NULL;

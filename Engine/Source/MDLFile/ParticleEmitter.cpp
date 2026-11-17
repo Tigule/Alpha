@@ -136,13 +136,13 @@ static BOOL IReadParticleEmitterFlags(Parser &parse, UINT savedtoken, MDLPARTICL
     case MDLTOK_EMITTER_USES_MDL:
       emitter->flags |= 0x8000;
       parse.Expect(',');
-      return 1;
+      return TRUE;
     case MDLTOK_EMITTER_USES_TGA:
       emitter->flags |= 0x10000;
       parse.Expect(',');
-      return 1;
+      return TRUE;
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -216,7 +216,7 @@ namespace MDL {
 
   BOOL WriteParticleEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (data.model.animationFile[0]) {
-      return 1;
+      return TRUE;
     }
     UINT numEmitters = data.particleEmitters.Count();
     int needObjIds = numEmitters != data.objects.Count();
@@ -224,7 +224,7 @@ namespace MDL {
     for (UINT i = numEmitters; i; --i, ++pEmit) {
       IWriteParticleEmitter(data, *pEmit, needObjIds, buffer);
     }
-    return 1;
+    return TRUE;
   }
 
 }  // namespace MDL
@@ -265,7 +265,7 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
   UINT localBytesRead = 4;
   if (!ReadBinGenObject(*pEmit, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of particle emitter.\n");
-    return 0;
+    return FALSE;
   }
   pEmit->staticEmissionRate = buf.GetFloat();
   localBytesRead += 4;
@@ -288,43 +288,43 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
       case 'EEPK':
         if (!ReadBinFloatKeyFrames(pEmit->emissionRate, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading emission rate portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'GEPK':
         if (!ReadBinFloatKeyFrames(pEmit->gravity, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading gravity portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'NLPK':
         if (!ReadBinFloatKeyFrames(pEmit->longitude, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading longitude portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'TLPK':
         if (!ReadBinFloatKeyFrames(pEmit->latitude, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading latitude portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'LEPK':
         if (!ReadBinFloatKeyFrames(pEmit->particle.life, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading particle life portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'SEPK':
         if (!ReadBinFloatKeyFrames(pEmit->particle.speed, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading particle speed portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'SIVK':
         if (!ReadBinFloatKeyFrames(pEmit->visibilityKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading visibility keys portion of particle emitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       default:
@@ -333,21 +333,21 @@ static BOOL ReadBinParticleEmitter(CMsgBuffer &buf, MDLPARTICLEEMITTER *pEmit, C
     }
     if (localBytesRead > sectionLength) {
       status->FatalOverran("ParticleEmitters", -1);
-      return 0;
+      return FALSE;
     }
   }
   totalRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 namespace MDL {
 
   BOOL WriteBinParticleEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     if (data.model.animationFile[0]) {
-      return 1;
+      return TRUE;
     }
     if (!data.particleEmitters.Count()) {
-      return 1;
+      return TRUE;
     }
     buf.AddDword('MERP');
     UINT numEmitters = data.particleEmitters.Count();
@@ -361,7 +361,7 @@ namespace MDL {
     for (i = 0; i < numEmitters; ++i) {
       IWriteBinParticleEmitter(data.particleEmitters[i], buf, status);
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL ReadBinParticleEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -373,19 +373,19 @@ namespace MDL {
       MDLPARTICLEEMITTER *emitter = data.particleEmitters.New();
       if (!emitter) {
         status->FatalFlunked("ParticleEmitter", -1);
-        return 0;
+        return FALSE;
       }
       if (!ReadBinParticleEmitter(buf, emitter, status, totalRead)) {
         status->Add(STATUS_ERROR, "Error reading particle emitter.\n");
-        return 0;
+        return FALSE;
       }
       if (totalRead > length) {
         status->FatalOverran("ParticleEmitter Section", -1);
-        return 0;
+        return FALSE;
       }
       ReadBinObjectEnd(data, emitter, data.particleEmitters.Count() - 1, 0x50000000);
     }
-    return 1;
+    return TRUE;
   }
 
 }  // namespace MDL

@@ -39,7 +39,7 @@ static BOOL CCommand_Ghost(LPCSTR command, LPCSTR args) {
     ClientServices_Send(&msg);
     CGPlayer_C::StartGhosting(CGGameUI::GetLockedTarget());
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Invis(LPCSTR command, LPCSTR args) {
@@ -52,7 +52,7 @@ static BOOL CCommand_Invis(LPCSTR command, LPCSTR args) {
   }
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
@@ -67,7 +67,7 @@ static BOOL CCommand_BindPlayer(LPCSTR command, LPCSTR args) {
   }
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Summon(LPCSTR command, LPCSTR args) {
@@ -76,7 +76,7 @@ static BOOL CCommand_Summon(LPCSTR command, LPCSTR args) {
   msg.PutString(args);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ShowLabel(LPCSTR command, LPCSTR args) {
@@ -85,7 +85,7 @@ static BOOL CCommand_ShowLabel(LPCSTR command, LPCSTR args) {
   msg.Put(SStrToInt(args));
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetSecurity(LPCSTR command, LPCSTR args) {
@@ -109,7 +109,7 @@ static BOOL CCommand_SetSecurity(LPCSTR command, LPCSTR args) {
   msg.Put(security);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Nuke(LPCSTR command, LPCSTR args) {
@@ -118,7 +118,7 @@ static BOOL CCommand_Nuke(LPCSTR command, LPCSTR args) {
   msg.PutString(args);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 void InstallGMCommands() {

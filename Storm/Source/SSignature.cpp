@@ -113,7 +113,7 @@ SSignatureVerify(const BYTE *data, DWORD size, const BYTE *modulus, DWORD modulu
   return SSignatureVerifyStream_Finish(token, modulus, pubExponent);
 }
 
-extern "C" int SSignatureGenerate(
+extern "C" BOOL SSignatureGenerate(
     BYTE       *data,
     DWORD      &size,
     const BYTE *modulus,

@@ -85,7 +85,7 @@ static HLAYER              s_layerBackground;
 static HLAYER              s_layerText;
 static int                 s_completionMode;
 static LPCSTR              s_completedCmd;
-static LPCSTR              s_previousCmd = 0;
+static LPCSTR              s_previousCmd = NULL;
 static char                s_partial[0x100];
 static int                 s_historyIndex = -1;
 static NTempest::CImVector s_colorArray[NUM_COLORTYPES] = {0xFFFFFFFF, 0xFFFFFFFF, 0xFF808080, 0xFFFF0000, 0xFFFFFF00,
@@ -383,7 +383,7 @@ static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
     ScrnLayerSetRect(s_layerBackground, &s_rect);
     ScrnLayerSetRect(s_layerText, &s_rect);
   }
-  return 1;
+  return TRUE;
 }
 
 static void ReserveInputSpace(CONSOLELINE *lineptr, DWORD chars) {
@@ -415,7 +415,7 @@ static CONSOLELINE *GetLineAtMousePosition(float y) {
     }
     --lineNumber;
   }
-  return 0;
+  return NULL;
 }
 
 static void PasteInInputLine(LPCSTR characters) {
@@ -466,13 +466,13 @@ static BOOL OnChar(const EVENT_DATA_CHAR *data, LPVOID) {
   char character[2];
 
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
-    return 1;
+    return TRUE;
   }
   character[0] = data->ch;
   character[1] = 0;
   PasteInInputLine(character);
   ResetHighlight();
-  return 0;
+  return FALSE;
 }
 
 static void UpdateHighlight() {
@@ -506,7 +506,7 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   CONSOLELINE *line;
 
   if (EventIsKeyDown(KEY_TILDE) || !s_active || 1.0f - s_consoleHeight > data->y) {
-    return 1;
+    return TRUE;
   }
 
   visibleHeight = min(s_consoleHeight, 1.0f);
@@ -515,7 +515,7 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   if (clickPos >= visibleHeight - s_fontHeight * 0.75f && clickPos <= s_consoleHeight) {
     ResetHighlight();
     s_consoleResizeState = CS_STRETCH;
-    return 0;
+    return FALSE;
   }
 
   ResetHighlight();
@@ -532,22 +532,22 @@ static BOOL OnMouseDown(const EVENT_DATA_MOUSE *data, LPVOID) {
   } else {
     s_copyText[0] = 0;
   }
-  return 0;
+  return FALSE;
 }
 
 static BOOL OnMouseUp(const EVENT_DATA_MOUSE *data, LPVOID) {
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
-    return 1;
+    return TRUE;
   }
 
   s_highlightState = HS_ENDHIGHLIGHT;
   s_consoleResizeState = CS_NONE;
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID) {
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
-    return 1;
+    return TRUE;
   }
 
   if (s_consoleResizeState == CS_STRETCH) {
@@ -557,14 +557,14 @@ static BOOL OnMouseMove(const EVENT_DATA_MOUSE *data, LPVOID) {
       s_consoleHeight = s_fontHeight;
     }
   } else if (1.0f - s_consoleHeight > data->y) {
-    return 1;
+    return TRUE;
   }
 
   s_highlightHEnd = data->x;
   if (s_highlightState == HS_HIGHLIGHTING) {
     UpdateHighlight();
   }
-  return 1;
+  return TRUE;
 }
 
 static void MakeCommandCurrent(CONSOLELINE *lineptr, LPCSTR command) {
@@ -617,10 +617,10 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
     if (!s_active) {
       ResetHighlight();
     }
-    return 0;
+    return FALSE;
   }
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
-    return 1;
+    return TRUE;
   }
 
   CONSOLELINE *inputLine = GetInputLine();
@@ -647,7 +647,7 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
     case KEY_TAB:
       if (!s_completionMode) {
         s_completionMode = 1;
-        s_completedCmd = 0;
+        s_completedCmd = NULL;
         SStrCopy(s_partial, &inputLine->buffer[inputLine->inputstart], 0x7FFFFFFF);
       }
       if (ConsoleCommandComplete(s_partial, &s_completedCmd, data->metaKeyState == 1)) {
@@ -762,16 +762,16 @@ static BOOL OnKeyDown(const EVENT_DATA_KEY *data, LPVOID) {
     s_completionMode = 0;
     ResetHighlight();
   }
-  return 0;
+  return FALSE;
 }
 
 static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
   if (data->key == KEY_TILDE) {
     s_active = !s_active;
-    return 0;
+    return FALSE;
   }
   if (EventIsKeyDown(KEY_TILDE) || !s_active) {
-    return 1;
+    return TRUE;
   }
 
   CONSOLELINE *inputLine = GetInputLine();
@@ -842,7 +842,7 @@ static BOOL OnKeyDownRepeat(const EVENT_DATA_KEY *data, LPVOID) {
     s_completionMode = 0;
     ResetHighlight();
   }
-  return 0;
+  return FALSE;
 }
 
 static BOOL OnKeyUp(const EVENT_DATA_KEY *data, LPVOID) {
@@ -880,13 +880,13 @@ static void RegenerateFontStrings() {
 static BOOL ConsoleCommand_ClearConsole(LPCSTR cmd, LPCSTR arguments) {
   s_NumLines = 0;
   s_linelist.Clear();
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_Proportional(LPCSTR cmd, LPCSTR args) {
   s_baseTextFlags ^= 0x10;
   RegenerateFontStrings();
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args) {
@@ -896,7 +896,7 @@ static BOOL ConsoleCommand_CharSpacing(LPCSTR cmd, LPCSTR args) {
     s_charSpacing = 0.0f;
   }
   RegenerateFontStrings();
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments) {
@@ -919,12 +919,12 @@ static BOOL ConsoleCommand_DefaultSettings(LPCSTR cmd, LPCSTR arguments) {
   RegenerateFontStrings();
   s_consoleLines = 10.0f;
   s_consoleHeight = s_fontHeight * 10.0f;
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_CloseConsole(LPCSTR cmd, LPCSTR arguments) {
   s_active = 0;
-  return 0;
+  return FALSE;
 }
 
 static BOOL ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments) {
@@ -947,12 +947,12 @@ static BOOL ConsoleCommand_RepeatHandler(LPCSTR cmd, LPCSTR arguments) {
     if (count && command && *command) {
       SStrPrintf(s_repeatBuffer, sizeof(s_repeatBuffer), "%s", command);
       s_repeatCount = count;
-      return 1;
+      return TRUE;
     }
   } else {
     s_repeatCount = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments) {
@@ -964,7 +964,7 @@ static BOOL ConsoleCommand_CurrentSettings(LPCSTR cmd, LPCSTR arguments) {
   ConsoleWrite(buffer, DEFAULT_COLOR);
   SStrPrintf(buffer, sizeof(buffer), "Number of Console Lines %f", s_consoleLines);
   ConsoleWrite(buffer, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
@@ -978,7 +978,7 @@ static BOOL ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
   if (sscanf(arguments, "%s %d %d %d", colorType, &red, &green, &blue) != 4) {
     ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
     ConsoleCommandWriteHelp(cmd);
-    return 0;
+    return FALSE;
   }
 
   if (!SStrCmpI(colorType, "input", 0x7FFFFFFF)) {
@@ -1001,13 +1001,13 @@ static BOOL ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
         "'global' as the first parameter",
         ERROR_COLOR
     );
-    return 0;
+    return FALSE;
   }
 
   if (red > 255 || green > 255 || blue > 255) {
     ConsoleWrite("One or more colors are not in the 0 to 255 range or missing.", ERROR_COLOR);
     ConsoleWrite("Make sure to specify the red, green and blue colors.", ERROR_COLOR);
-    return 0;
+    return FALSE;
   }
 
   color.Set(255, (BYTE)red, (BYTE)green, (BYTE)blue);
@@ -1017,7 +1017,7 @@ static BOOL ConsoleCommand_FontColor(LPCSTR cmd, LPCSTR arguments) {
       GxuFontSetStringColor(line->fontPointer, color);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments) {
@@ -1027,18 +1027,18 @@ static BOOL ConsoleCommand_BufferSize(LPCSTR cmd, LPCSTR arguments) {
     if (sscanf(arguments, "%f", &height) != 1) {
       ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
       ConsoleCommandWriteHelp(cmd);
-      return 0;
+      return FALSE;
     }
     if (height == 0.0f) {
-      return 0;
+      return FALSE;
     }
     s_consoleLines = height;
     s_consoleHeight = s_fontHeight * height;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("Please specify how many lines to display", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
@@ -1058,7 +1058,7 @@ static BOOL ConsoleCommand_FontSize(LPCSTR cmd, LPCSTR arguments) {
   s_consoleLines = s_consoleHeight / s_fontHeight;
   s_consoleHeight = s_consoleLines * s_fontHeight;
   RegenerateFontStrings();
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments) {
@@ -1076,7 +1076,7 @@ static BOOL ConsoleCommand_Font(LPCSTR cmd, LPCSTR arguments) {
     SStrCopy(s_fontName, buffer, 0x7FFFFFFF);
   }
   RegenerateFontStrings();
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments) {
@@ -1087,15 +1087,15 @@ static BOOL ConsoleCommand_BackGroundColor(LPCSTR cmd, LPCSTR arguments) {
   if (sscanf(arguments, "%d %d %d %d", &alpha, &red, &green, &blue) != 4) {
     ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
     ConsoleCommandWriteHelp(cmd);
-    return 0;
+    return FALSE;
   }
   if (alpha > 255 || red > 255 || green > 255 || blue > 255) {
     ConsoleWrite("One or more colors are not in the 0 to 255 range or missing.", ERROR_COLOR);
     ConsoleWrite("Make sure to specify the red, green and blue colors.", ERROR_COLOR);
-    return 0;
+    return FALSE;
   }
   SetColor(BACKGROUND_COLOR, NTempest::CImVector(alpha, red, green, blue));
-  return 1;
+  return TRUE;
 }
 
 static BOOL ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments) {
@@ -1106,15 +1106,15 @@ static BOOL ConsoleCommand_HighLightColor(LPCSTR cmd, LPCSTR arguments) {
   if (sscanf(arguments, "%d %d %d %d", &alpha, &red, &green, &blue) != 4) {
     ConsoleWrite("Invalid number of parameters", ERROR_COLOR);
     ConsoleCommandWriteHelp(cmd);
-    return 0;
+    return FALSE;
   }
   if (alpha > 255 || red > 255 || green > 255 || blue > 255) {
     ConsoleWrite("One or more colors are not in the 0 to 255 range or missing.", ERROR_COLOR);
     ConsoleWrite("Make sure to specify the red, green and blue colors.", ERROR_COLOR);
-    return 0;
+    return FALSE;
   }
   SetColor(HIGHLIGHT_COLOR, NTempest::CImVector(alpha, red, green, blue));
-  return 1;
+  return TRUE;
 }
 
 static void SetCVar(CVar *cvar, float val) {
@@ -1341,7 +1341,7 @@ static BOOL CCGxRestart(LPCSTR, LPCSTR args) {
     s_lastGoodFormat = s_requestedFormat;
     UpdateGxCVars();
     OsGuiSetGxWindow((LPVOID)GxDevWindow());
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("unable to set requested display mode", DEFAULT_COLOR);
@@ -1349,7 +1349,7 @@ static BOOL CCGxRestart(LPCSTR, LPCSTR args) {
   if (GxDevSetFormat(s_requestedFormat)) {
     SetGxCVars(s_requestedFormat);
     OsGuiSetGxWindow((LPVOID)GxDevWindow());
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("unable to set last good mode", DEFAULT_COLOR);
@@ -1358,7 +1358,7 @@ static BOOL CCGxRestart(LPCSTR, LPCSTR args) {
     s_lastGoodFormat = s_requestedFormat;
     SetGxCVars(s_requestedFormat);
     OsGuiSetGxWindow((LPVOID)GxDevWindow());
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("unable to set default format", DEFAULT_COLOR);
@@ -1370,7 +1370,7 @@ static BOOL CCGxRestart(LPCSTR, LPCSTR args) {
     FATALERROR(("unable to set fallback mode"));
   }
   OsGuiSetGxWindow((LPVOID)GxDevWindow());
-  return 1;
+  return TRUE;
 }
 
 static void RegisterGxCVars() {
@@ -1563,13 +1563,13 @@ void ConsoleDeviceInitialize(LPCSTR title, bool multithreaded) {
 
 void ConsoleDeviceDestroy() {
   GxDevDestroy(s_device);
-  s_device = 0;
+  s_device = NULL;
   GxLogClose();
 }
 
 static BOOL EventCloseCallback(LPVOID param) {
   ConsolePostClose();
-  return 0;
+  return FALSE;
 }
 
 void ConsoleScreenInitialize(LPCSTR title) {
@@ -1700,7 +1700,7 @@ void ConsoleCommandExecute(LPCSTR commandLine, int addToHistory) {
   entry = ParseCommand(commandLine, &command, &arguments);
   if (!entry) {
     if (g_defaultCommand) {
-      handled = g_defaultCommand(command, arguments) != 0;
+      handled = g_defaultCommand(command, arguments) != FALSE;
     } else {
       entry = g_consoleCommandHash.Ptr("run");
       if (!entry) {

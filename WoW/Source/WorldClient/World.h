@@ -357,7 +357,7 @@ class CWorld {
   static const NTempest::C3Vector &GetCamPos();
   static const NTempest::C3Vector &GetCamTarget();
   static UINT                      QueryAreaId(float x, float y);
-  static int                       QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb);
+  static BOOL                      QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb);
   static int                       QueryObjectInside(DWORD_PTR hWorldObject);
   static int                       QueryObjectVisible(DWORD_PTR hWorldObject);
   static int                       QueryMapObjZoneName(DWORD_PTR hWorldObject, LPCSTR &zoneName);
@@ -365,7 +365,7 @@ class CWorld {
   static int                       QueryMapObjFileName(DWORD_PTR hWorldObject, LPCSTR &fileName);
   static bool                      QueryMapObjIDs(DWORD_PTR hWorldObject, UINT &wmoID, UINT &instanceID, UINT &groupID);
   static int                       QueryMapObjFog(DWORD_PTR hWorldObject, SMOFog::Fogs &oFogs, float &oPct);
-  static int                       QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType);
+  static BOOL                      QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType);
   static bool                      QueryMountAllowed(DWORD_PTR hWorldObject, bool &allowed);
   static bool QueryMapObjAreaTable(DWORD_PTR hWorldObject, const WMOAreaTableRec *&subzoneRec, const WMOAreaTableRec *&globalRec);
 
@@ -384,7 +384,7 @@ class CWorld {
   static const UINT MAX_SOUND_EXT_LEVEL;
   static const UINT MIN_SOUND_EXT_LEVEL;
 
-  static int    QueryLiquidSounds(DWORD_PTR hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
+  static BOOL   QueryLiquidSounds(DWORD_PTR hWorldObject, float radius, int *lbool, NTempest::C3Vector *ldelta);
   static UINT   SceneCamLiquidStatus();
   static UINT_PTR ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle, BOOL bWait, BOOL bSnap, DWORDLONG param64);
   static void   ObjectUpdate(UINT_PTR id, NTempest::C3Vector &pos, float angle, BOOL bSnap);

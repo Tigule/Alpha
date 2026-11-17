@@ -18,7 +18,7 @@ enum {
 };
 
 struct CModelCreate {
-  CModelCreate() : flags(0), sequenceNames(0), numSequences(0), boneNames(0), numBones(0), cameraNames(0), numCameras(0) {
+  CModelCreate() : flags(0), sequenceNames(NULL), numSequences(0), boneNames(NULL), numBones(0), cameraNames(NULL), numCameras(0) {
   }
 
   UINT    flags;
@@ -108,7 +108,7 @@ NODEDECL(CModelModItem) {
 
 class CModel : public CHandleObject {
  public:
-  CModel(EModelLoad state = CMODEL_ASYNC_WAIT) : asyncObject(0), createData(0), shared(0), state(state) {
+  CModel(EModelLoad state = CMODEL_ASYNC_WAIT) : asyncObject(NULL), createData(NULL), shared(NULL), state(state) {
   }
   CModel(CModel &source);
   void FinishDuplication(CModel &source);

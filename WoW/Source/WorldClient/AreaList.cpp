@@ -41,7 +41,7 @@ static AREAHASHOBJECT *GetZone(UINT cont, UINT zName, UINT subZone) {
 
 AREAHASHOBJECT *AREAHASHOBJECT::GetParent() const {
   if (!subArea) {
-    return 0;
+    return NULL;
   }
 
   AREAHASHKEY key(continent, area, 0);
@@ -132,7 +132,7 @@ static BOOL MIDISetHandler(LPCSTR command, LPCSTR arguments) {
   } else {
     SndInterfaceClearMIDI();
   }
-  return 1;
+  return TRUE;
 }
 
 void AreaListInitialize() {
@@ -154,20 +154,20 @@ BOOL AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer
   int             badRec;
 
   if (!buffer || !size) {
-    return 0;
+    return FALSE;
   }
 
   buffer[0] = 0;
   area = GetZone(continentID, areaID, subAreaID);
 
   if (!area || !SMemIsValidPointer(area, sizeof(*area), FALSE)) {
-    return 0;
+    return FALSE;
   }
 
   badRec = !area->rec || !SMemIsValidPointer(area->rec, sizeof(*area->rec), FALSE);
   if (badRec) {
     ASSERT(!badRec);
-    return 0;
+    return FALSE;
   }
 
   SStrCopy(buffer, area->rec->m_AreaName_lang[CURRENT_LANGUAGE], size);
@@ -178,7 +178,7 @@ BOOL AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer
       badRec = !parent->rec || !SMemIsValidPointer(parent->rec, sizeof(*parent->rec), FALSE);
       if (badRec) {
         ASSERT(!badRec);
-        return 0;
+        return FALSE;
       }
 
       SStrPack(buffer, ", ", size);
@@ -186,7 +186,7 @@ BOOL AreaListGetName(UINT continentID, UINT areaID, UINT subAreaID, char *buffer
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void SendZoneUpdate(AREAHASHOBJECT *hash) {
@@ -202,8 +202,8 @@ static void SendZoneUpdate(AREAHASHOBJECT *hash) {
 static bool HandleIndoorZoneChange(DWORD_PTR worldObject, LPCSTR &zoneName, LPCSTR &subZoneName, bool &clearMusic) {
   const WMOAreaTableRec *globalRec;
   const WMOAreaTableRec *rec;
-  LPCSTR                 szName = 0;
-  LPCSTR                 zName = 0;
+  LPCSTR                 szName = NULL;
+  LPCSTR                 zName = NULL;
   UINT                   chunk = 0;
 
   CWorld::QueryMapObjZoneName(worldObject, zName);
@@ -222,7 +222,7 @@ static bool HandleIndoorZoneChange(DWORD_PTR worldObject, LPCSTR &zoneName, LPCS
     subZoneName = szName;
   }
   if (!zName || !*zName) {
-    zoneName = 0;
+    zoneName = NULL;
   }
 
   if (CWorld::QueryMapObjAreaTable(worldObject, rec, globalRec)) {
@@ -272,8 +272,8 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent
   FATALASSERT(worldObject);
 
   int    indoors = CWorld::QueryObjectInside(worldObject) != 0;
-  LPCSTR subZoneName = 0;
-  LPCSTR zoneName = 0;
+  LPCSTR subZoneName = NULL;
+  LPCSTR zoneName = NULL;
   UINT   areaID = CWorld::QueryAreaId(location.x, location.y);
   UINT   zoneID = areaID >> 16;
   UINT   subZoneID = areaID & 0xFFFF;
@@ -289,7 +289,7 @@ void AreaListRegisterLocation(const NTempest::C3Vector &location, UINT continent
       parentAreaID = parent->rec->m_ID;
     } else {
       zoneName = hash->rec->m_AreaName_lang[CURRENT_LANGUAGE];
-      subZoneName = 0;
+      subZoneName = NULL;
       parentAreaID = hash->rec->m_ID;
     }
   }

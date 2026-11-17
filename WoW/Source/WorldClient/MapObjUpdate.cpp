@@ -39,7 +39,7 @@ void CMapObjGroup::FreeLightmaps() {
     SMOLightmapTex &lightmapTex = lightmapTexList[i];
     if (lightmapTex.hTexture) {
       HandleClose(lightmapTex.hTexture);
-      lightmapTex.hTexture = 0;
+      lightmapTex.hTexture = NULL;
       freed = 1;
     }
   }

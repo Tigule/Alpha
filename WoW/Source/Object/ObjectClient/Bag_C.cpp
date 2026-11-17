@@ -43,7 +43,7 @@ static BOOL GetItemTypeCountCallback(const CGItem_C *item, LPVOID param) {
   if (item->GetEntryID() == data->entryID || data->entryID == -1) {
     data->count += item->GetStackCount();
   }
-  return 0;
+  return FALSE;
 }
 
 static BOOL FindItemIDCallback(const CGItem_C *item, LPVOID param) {
@@ -139,7 +139,7 @@ CGItem_C *CGBag_C::FindItem(BOOL (*func)(const CGItem_C *, LPVOID), LPVOID param
 
   bagGUID = 0;
   slot = 0;
-  return 0;
+  return NULL;
 }
 
 GAME_ERROR_TYPE CGBag_C::GetGameError(BAG_RESULT result) {

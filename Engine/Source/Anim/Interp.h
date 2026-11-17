@@ -105,17 +105,17 @@ BYTE *AnimObjectSetRibbonAlpha(BYTE *data, UINT fileBytes, CAnimData *shared, CA
 template <class T>
 class CArray {
  public:
-  CArray() : m_data(0), m_count(0) {
+  CArray() : m_data(NULL), m_count(0) {
   }
 
-  CArray(const CArray<T> &source) : m_data(0), m_count(0) {
+  CArray(const CArray<T> &source) : m_data(NULL), m_count(0) {
     Set(source.m_count, source.m_data);
   }
 
   ~CArray() {
     if (m_data) {
       delete[] m_data;
-      m_data = 0;
+      m_data = NULL;
     }
   }
 
@@ -140,7 +140,7 @@ class CArray {
       delete[] m_data;
     }
     if (!elements) {
-      m_data = 0;
+      m_data = NULL;
       return;
     }
 
@@ -508,7 +508,7 @@ class CKeyFrameTrackBase {
   friend void  AnimAddGeoset(CAnimData *, const MDLGEOSETANIMSECTION &, MDLTRACKTYPE);
 
  public:
-  CKeyFrameTrackBase() : m_keyFrames(0), m_numKeyFrames(0), m_indices(), m_globalSeqId(-1) {
+  CKeyFrameTrackBase() : m_keyFrames(NULL), m_numKeyFrames(0), m_indices(), m_globalSeqId(-1) {
   }
   ~CKeyFrameTrackBase() {
     if (m_keyFrames)
@@ -937,7 +937,7 @@ inline CAnimEventObj *ConvertToEvent(CAnimObj *currobj) {
 
 template <class T>
 struct CCallbackFcn {
-  CCallbackFcn() : callback(0), param(0) {
+  CCallbackFcn() : callback(0), param(NULL) {
   }
 
   T      callback;
@@ -950,8 +950,8 @@ struct CSeqInfo {
     seqTimeScale = 1.0f;
   }
   void ResetCallback() {
-    finished.callback = 0;
-    finished.param = 0;
+    finished.callback = NULL;
+    finished.param = NULL;
   }
 
   CSeqInfo() {
@@ -970,7 +970,7 @@ struct CSeqInfo {
 
 struct CAnim : public CHandleObject {
  public:
-  CAnim(BYTE flags = 0) : hdata(0), seqLastTime(0), flags(flags), primarySeq(0), seqMapIndex(0) {
+  CAnim(BYTE flags = 0) : hdata(NULL), seqLastTime(0), flags(flags), primarySeq(0), seqMapIndex(0) {
   }
   ~CAnim() {
     if (hdata) {

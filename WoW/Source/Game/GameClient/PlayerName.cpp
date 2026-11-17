@@ -85,7 +85,7 @@ static UINT  s_lastRenderFrame;
 #include "Object/ObjectClient/Unit_C.h"
 
 PLAYERNAMEDESC::PLAYERNAMEDESC()
-    : m_string(0),
+    : m_string(NULL),
       m_customGeosetID(-1),
       m_stringColor(0ul),
       m_basePos(0.0f),
@@ -174,7 +174,7 @@ void PLAYERNAMEDESC::Render(const NTempest::C44Matrix &b) {
 
   UINT mode = s_unitShowMode->GetInt();
   if (s_showNames && mode < 4) {
-    BOOL nameVisible = m_unitPtr->ShouldRenderUnitName(mode) != 0;
+    BOOL nameVisible = m_unitPtr->ShouldRenderUnitName(mode) != FALSE;
     if (nameVisible != ((m_flags >> 3) & 1)) {
       m_unitPtr->PlayerNameVisibilityChanged(nameVisible);
     }
@@ -194,7 +194,7 @@ void PLAYERNAMEDESC::Render(const NTempest::C44Matrix &b) {
           GxuFontDestroyString(m_string);
         }
         m_heightOffset = 0.0f;
-        m_string = 0;
+        m_string = NULL;
 
         char buffer[260];
         buffer[0] = 0;
@@ -289,7 +289,7 @@ void PLAYERNAMEDESC::UpdateWorldPos() {
       WorldTextUpdate(m_worldTextHandles[i], elapsedSeconds, cameraMatrix, &m_basePos);
       if (WorldTextIsTextDone(m_worldTextHandles[i])) {
         HandleClose(m_worldTextHandles[i]);
-        m_worldTextHandles[i] = 0;
+        m_worldTextHandles[i] = NULL;
       }
     }
   }
@@ -357,7 +357,7 @@ void PlayerNameShutdown() {
     GxuFontDestroyFont(s_playerNameFont);
   }
 
-  s_playerNameFont = 0;
+  s_playerNameFont = NULL;
   ConsoleCommandUnregister("PlayerNames");
 }
 
@@ -377,7 +377,7 @@ HPLAYERNAME PlayerNameCreate(CGUnit_C *unitPtr) {
 
   HMODEL model = unitPtr->GetCharacterModel(0);
   if (!model) {
-    return 0;
+    return NULL;
   }
 
   NTempest::C3Vector namePosition(0.0f);

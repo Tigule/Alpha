@@ -29,7 +29,7 @@ class CBaseManaged {
   LPVOID m_updateData;
   float  m_updatePriority;
 
-  CBaseManaged() : m_dataTypeId(0), m_flags(0), m_updateFcn(0), m_updateData(0), m_updatePriority(0.0f) {
+  CBaseManaged() : m_dataTypeId(0), m_flags(0), m_updateFcn(NULL), m_updateData(NULL), m_updatePriority(0.0f) {
   }
   virtual ~CBaseManaged() {
   }

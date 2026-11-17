@@ -47,7 +47,7 @@ class TInstanceIdTable {
     for (;;) {
       id = ++m_id;
       if (!id) {
-        m_idWrapped = 1;
+        m_idWrapped = TRUE;
         continue;
       }
       if (!m_idWrapped) {
@@ -107,7 +107,7 @@ class TInstanceIdTable {
       m_idLock[slot].Leave(forWriting);
     }
     instanceLock = (INSTANCELOCK)-1;
-    return 0;
+    return NULL;
   }
 
   void Unlock(INSTANCELOCK instanceLock, LPCSTR, DWORD) {

@@ -58,7 +58,7 @@ LPVOID OsTlsGetValue(DWORD index) {
     return data->m_values[index];
   }
 
-  return 0;
+  return NULL;
 }
 
 BOOL OsTlsSetValue(DWORD index, LPVOID value) {

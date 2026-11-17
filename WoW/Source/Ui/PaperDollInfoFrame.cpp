@@ -72,12 +72,12 @@ static int __cdecl            QSortCompareProficiency(LPCVOID a, LPCVOID b);
 
 static BOOL PlayerCharacterPointsUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   FrameScript_SignalEvent(247);
-  return 1;
+  return TRUE;
 }
 
 void CGCharacterInfo::InitializeGame() {
   for (UINT i = 0; i < 93; ++i) {
-    m_skillInfoList[i].isProf = 0;
+    m_skillInfoList[i].isProf = FALSE;
     m_skillInfoList[i].skillID = 0;
   }
 }
@@ -253,12 +253,12 @@ BOOL CGCharacterInfo::PutItemInBag(int slot) {
     ASSERT(slot < NUM_INVENTORY_SLOTS);
   }
   if (!CGGameUI::HasPlayerControl()) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   DWORDLONG cursorItem;
@@ -277,20 +277,20 @@ BOOL CGCharacterInfo::PutItemInBag(int slot) {
   }
   if (!targetBag) {
     PickupItem(slot);
-    return 0;
+    return FALSE;
   }
   if (cursorItem == targetBag) {
     CGGameUI::ClearCursor(1);
-    return 1;
+    return TRUE;
   }
   if (!cursorItem && !virtualItem) {
     CGGameUI::ClearCursor(1);
-    return 0;
+    return FALSE;
   }
   if (cursorItemPack == targetBag &&
       (cursorItemPack != player->GetGUID() || (cursorItemSlot >= BACKPACK_FIRST && cursorItemSlot <= BACKPACK_LAST))) {
     CGGameUI::ClearCursor(1);
-    return 1;
+    return TRUE;
   }
 
   if (cursorItem) {
@@ -298,14 +298,14 @@ BOOL CGCharacterInfo::PutItemInBag(int slot) {
       if (cursorItemPack == player->GetGUID() && cursorItemSlot >= INVSLOT_BAGFIRST && cursorItemSlot <= INVSLOT_BAGLAST) {
         CGGameUI::LockItem(targetBag);
         player->SwapItems(cursorItem, cursorItemPack, cursorItemSlot, player->GetGUID(), slot, 0);
-        return 1;
+        return TRUE;
       }
 
       CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(cursorItem, __FILE__, __LINE__));
       if (item && item->IsA(TYPE_CONTAINER)) {
         CGGameUI::LockItem(targetBag);
         player->SwapItems(cursorItem, cursorItemPack, cursorItemSlot, player->GetGUID(), slot, 0);
-        return 1;
+        return TRUE;
       }
     }
 
@@ -316,7 +316,7 @@ BOOL CGCharacterInfo::PutItemInBag(int slot) {
       player->AutoStoreItemInBag(cursorItem, cursorItemPack, cursorItemSlot, targetBag, 0);
     }
     CGGameUI::ClearCursor(0);
-    return 1;
+    return TRUE;
   }
 
   if (CGGameUI::GetCursorType() == UICURSOR_MERCHANT && CGMerchantInfo::GetMerchant()) {
@@ -324,7 +324,7 @@ BOOL CGCharacterInfo::PutItemInBag(int slot) {
     CGPlayer_C::XBuyItemInSlot(CGMerchantInfo::GetMerchant(), item->m_itemType, 1, targetBag, 255);
   }
   CGGameUI::ClearCursor(1);
-  return 0;
+  return FALSE;
 }
 
 int CGCharacterInfo::PutItemInBackpack() {
@@ -372,7 +372,7 @@ void CGCharacterInfo::OrderSkillLines() {
   UINT i;
   UINT numClassSkills = 0;
   for (i = 0; i < 69; ++i) {
-    m_skillInfoList[i].isProf = 0;
+    m_skillInfoList[i].isProf = FALSE;
     m_skillInfoList[i].skillID = 0;
     if (i < 64 && playerPtr->GetMirrorSkillID(i) > 0) {
       const SkillLineRec *rec = g_skillLineDB.GetRecord(playerPtr->GetMirrorSkillID(i));
@@ -396,7 +396,7 @@ void CGCharacterInfo::OrderSkillLines() {
     ++numProfs;
   }
   UINT skillCount = 1;
-  m_skillInfoList[0].isProf = 0;
+  m_skillInfoList[0].isProf = FALSE;
   m_skillInfoList[0].skillID = 0;
   for (i = 0; i < count; ++i) {
     if (!m_specialOffset && skillInfo[i]->m_skillType == 1) {
@@ -421,7 +421,7 @@ void CGCharacterInfo::OrderSkillLines() {
       ++skillCount;
     }
     UINT index = (skillInfo[i]->m_skillType ? numProfs : 0) + skillCount;
-    m_skillInfoList[index].isProf = 0;
+    m_skillInfoList[index].isProf = FALSE;
     m_skillInfoList[index].skillID = skillInfo[i]->m_ID;
     ++skillCount;
   }
@@ -445,7 +445,7 @@ static const CharBaseInfoRec *GetCharBaseInfo(int raceID, int classID) {
       return rec;
     }
   }
-  return 0;
+  return NULL;
 }
 
 static const ItemSubClassRec *FindItemSubClassRecord(int classID, int subClassID) {
@@ -456,7 +456,7 @@ static const ItemSubClassRec *FindItemSubClassRecord(int classID, int subClassID
       return rec;
     }
   }
-  return 0;
+  return NULL;
 }
 
 static int __cdecl QSortCompareProficiency(LPCVOID a, LPCVOID b) {
@@ -483,7 +483,7 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
           (rec->m_classID != 4 || !(proficiency & (1 << rec->m_postrequisiteProficiency))))
       {
         if (rec->m_verboseName_lang[CURRENT_LANGUAGE] && *rec->m_verboseName_lang[CURRENT_LANGUAGE]) {
-          m_skillInfoList[offset + numProfs].isProf = 1;
+          m_skillInfoList[offset + numProfs].isProf = TRUE;
           m_skillInfoList[offset + numProfs].profLevel = 0;
           SStrCopy(m_skillInfoList[offset + numProfs].profName, rec->m_verboseName_lang[CURRENT_LANGUAGE], sizeof(m_skillInfoList[offset + numProfs].profName));
           ++numProfs;
@@ -515,7 +515,7 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
             if ((proficiencyRec->m_proficiency_itemSubClassMask[orderedSlots[i].slot] & (1 << bit)) && !(proficiency & (1 << bit))) {
               const ItemSubClassRec *rec = FindItemSubClassRecord(proficiencyRec->m_proficiency_itemClass[orderedSlots[i].slot], bit);
               if (rec && *rec->m_verboseName_lang[CURRENT_LANGUAGE]) {
-                m_skillInfoList[offset + numProfs].isProf = 1;
+                m_skillInfoList[offset + numProfs].isProf = TRUE;
                 m_skillInfoList[offset + numProfs].profLevel = proficiencyRec->m_proficiency_minLevel[orderedSlots[i].slot];
                 SStrCopy(
                     m_skillInfoList[offset + numProfs].profName, rec->m_verboseName_lang[CURRENT_LANGUAGE],
@@ -533,38 +533,38 @@ UINT CGCharacterInfo::OrderProficiencies(UINT offset) {
   return numProfs;
 }
 
-int CGCharacterInfo::GetSkillOffsetFromString(LPCSTR string, int &offset) {
+BOOL CGCharacterInfo::GetSkillOffsetFromString(LPCSTR string, int &offset) {
   if (!string || !*string) {
-    return 0;
+    return FALSE;
   }
   if (!SStrCmpI(string, "class", 0x7FFFFFFF)) {
     offset = 0;
-    return 1;
+    return TRUE;
   }
   if (!SStrCmpI(string, "spec", 0x7FFFFFFF)) {
     offset = m_specialOffset;
-    return 1;
+    return TRUE;
   }
   if (!SStrCmpI(string, "racial", 0x7FFFFFFF)) {
     offset = m_racialOffset;
-    return 1;
+    return TRUE;
   }
   if (!SStrCmpI(string, "secondary", 0x7FFFFFFF)) {
     offset = m_secondaryOffset;
-    return 1;
+    return TRUE;
   }
   if (!SStrCmpI(string, "proficiency", 0x7FFFFFFF)) {
     offset = m_profOffset;
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 const SkillInfo *CGCharacterInfo::GetSkillInfoByIndex(int index) {
   if (index >= 0 && (UINT)index < 93) {
     return &m_skillInfoList[index];
   }
-  return 0;
+  return NULL;
 }
 
 static BOOL GetSlotFromLua(lua_State *L, int &slot, int index) {
@@ -572,10 +572,10 @@ static BOOL GetSlotFromLua(lua_State *L, int &slot, int index) {
     int value = (int)lua_tonumber(L, index) - 1;
     if (value >= 0 && value <= 22 || value >= 39 && value <= 62 || value >= 63 && value <= 68) {
       slot = value;
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static int Script_GetInventorySlotInfo(lua_State *L) {

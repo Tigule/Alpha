@@ -85,7 +85,7 @@ void ProjectTex2dMakeMatrices(
 }
 
 static void ProjectTexRenderVerticesPN(const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPN *vertices = 0;
+  CGxVertexPN *vertices = NULL;
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
       vertices = (CGxVertexPN *)GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices));
@@ -108,7 +108,7 @@ static void ProjectTexRenderVerticesPN(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 static void ProjectTexRenderVerticesPC(const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPC *vertices = 0;
+  CGxVertexPC *vertices = NULL;
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
       vertices = (CGxVertexPC *)GxAllocVertexMem(buf->VertexCount() * sizeof(*vertices));
@@ -131,7 +131,7 @@ static void ProjectTexRenderVerticesPC(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 static void ProjectTexRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
-  WORD *indices = 0;
+  WORD *indices = NULL;
   switch (cmd.index.op) {
     case GxBufOp_Assign:
       indices = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(*indices));
@@ -360,7 +360,7 @@ void ShadowInit() {
 void ShadowDestroy() {
   HandleClose(s_hTexture);
   GxTexDestroy(s_fadeTex);
-  s_fadeTex = 0;
+  s_fadeTex = NULL;
 }
 
 static BOOL ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args) {
@@ -382,9 +382,9 @@ static BOOL ConsoleCommand_ShadowLOD(LPCSTR, LPCSTR args) {
         GxTexUpdate(s_fadeTex, updRect, 0);
         break;
     }
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("Shadow LOD must be in the range (0, 1)", DEFAULT_COLOR);
-  return 0;
+  return FALSE;
 }

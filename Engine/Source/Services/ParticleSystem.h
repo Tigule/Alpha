@@ -24,7 +24,7 @@ class CParticle {
 
   void Init() {
     m_timeToLive = 0.0f;
-    m_hmodel = 0;
+    m_hmodel = NULL;
   }
 
   void Copy(const CParticle &rhs);

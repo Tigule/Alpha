@@ -20,14 +20,14 @@ void CGxDeviceD3d::ISceneBegin(UINT mask) {
   }
 
   if (m_d3dDevice->BeginScene() == 0) {
-    m_inScene = 1;
+    m_inScene = TRUE;
   }
 }
 
 void CGxDeviceD3d::ISceneEnd() {
   if (m_inScene) {
     m_d3dDevice->EndScene();
-    m_inScene = 0;
+    m_inScene = FALSE;
   }
 }
 

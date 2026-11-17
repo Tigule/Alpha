@@ -32,7 +32,7 @@ void SmartScreenRectGridPos(SCREENRECTGRIDS grid, NTempest::CRect &rect);
 
 struct WORLDTEXTSTRING : public CHandleObject {
   WORLDTEXTSTRING()
-      : worldTextType(NUM_WORLDTEXTTYPES), elapsedTime(0), totalTime(0), object(0), hidden(0), m_flags(0), string(0) {
+      : worldTextType(NUM_WORLDTEXTTYPES), elapsedTime(0), totalTime(0), object(0), hidden(0), m_flags(0), string(NULL) {
     params.Defaults();
     savedStringText[0] = 0;
   }
@@ -74,7 +74,7 @@ struct WORLDTEXTSTRING : public CHandleObject {
     if (string) {
       GxuFontDestroyString(string);
     }
-    string = 0;
+    string = NULL;
   }
 };
 
@@ -290,7 +290,7 @@ void WORLDTEXTSTRING::RecreateString() {
   if (string) {
     GxuFontDestroyString(string);
   }
-  string = 0;
+  string = NULL;
 
   if ((m_flags & 0x80) && savedStringText[0] && s_worldTextFontHandles[worldTextType]) {
     CGxFont *font = TextBlockGetFontPtr(s_worldTextFontHandles[worldTextType]);
@@ -457,7 +457,7 @@ void WorldTextShutdown() {
     if (s_worldTextFontHandles[i]) {
       HandleClose(s_worldTextFontHandles[i]);
     }
-    s_worldTextFontHandles[i] = 0;
+    s_worldTextFontHandles[i] = NULL;
   }
 }
 
@@ -467,7 +467,7 @@ void WorldTextClearStrings() {
       GxuFontDestroyString(worldText->string);
     }
 
-    worldText->string = 0;
+    worldText->string = NULL;
   }
 }
 
@@ -521,7 +521,7 @@ BOOL WorldTextIsTextDone(HWORLDTEXT handle) {
   if (text) {
     return text->elapsedTime > text->totalTime && !(text->params.flags & 1);
   }
-  return 1;
+  return TRUE;
 }
 
 void WorldTextShow(HWORLDTEXT text, int show) {

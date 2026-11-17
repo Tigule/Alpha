@@ -168,7 +168,7 @@ CSplineParticleEmitter::CSplineParticleEmitter() {
   m_end = 0.0f;
   m_latitude = 0.0f;
   m_radius = 0.0f;
-  m_emitAtEnd = 0;
+  m_emitAtEnd = FALSE;
   m_requestedEmissionRate = 0.0f;
   m_emitterType = PET_SPLINE_EMITTER;
 }
@@ -193,7 +193,7 @@ void CSplineParticleEmitter::CreateParticle(CParticle2 &p, float elapsedTime, co
   float t;
   if (m_emitAtEnd) {
     t = m_end;
-    m_emitAtEnd = 0;
+    m_emitAtEnd = FALSE;
   } else {
     t = m_start + (m_end - m_start) * NTempest::CRandom::real_(m_randSeed);
   }
@@ -250,7 +250,7 @@ void CSplineParticleEmitter::SetWidth(float start) {
 void CSplineParticleEmitter::SetHeight(float end) {
   end = end < 0.0f ? 0.0f : (end > 1.0f ? 1.0f : end);
   if (NTempest::CMath::fnotequal_(end, m_end)) {
-    m_emitAtEnd = 1;
+    m_emitAtEnd = TRUE;
     m_end = end;
     SetActualEmissionRate();
   }

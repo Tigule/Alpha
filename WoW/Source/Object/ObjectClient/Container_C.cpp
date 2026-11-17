@@ -78,7 +78,7 @@ int CGContainer_C::GetHeight() const {
 
 BOOL CGContainer_C::SetBlock(UINT, DWORD) {
   FATALASSERT(0);
-  return 1;
+  return TRUE;
 }
 
 void CGContainer_C::SetData(LPCVOID data, UINT bytes) {

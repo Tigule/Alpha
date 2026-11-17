@@ -16,7 +16,7 @@ typedef struct HFACE__ *HFACE;
 struct FT_FaceRec_;
 
 struct GLYPHDATA {
-  GLYPHDATA() : data(0) {
+  GLYPHDATA() : data(NULL) {
   }
 
   ~GLYPHDATA() {
@@ -150,7 +150,7 @@ struct CHARCODEDESC : public TSHashObject<CHARCODEDESC, HASHKEY_NONE> {
         rowNumber(-1),
         glyphStartPixel((UINT)-1),
         glyphEndPixel(0),
-        bitmapData(0) {
+        bitmapData(NULL) {
   }
 
   BOOL ValidBlockEndPoints() const {
@@ -213,9 +213,9 @@ struct TEXTURECACHE {
     if (m_texture) {
       GxTexDestroy(m_texture);
     }
-    m_texture = 0;
+    m_texture = NULL;
     FREEIFUSED(m_data);
-    m_data = 0;
+    m_data = NULL;
     m_textureRows.Clear();
   }
 
@@ -441,7 +441,7 @@ struct BATCHEDRENDERFONTDESC : public TSHashObject<BATCHEDRENDERFONTDESC, HASHKE
   CGxFont *face;
   LISTDECLEX(CGxString, m_batchedStringLink, m_strings);
 
-  BATCHEDRENDERFONTDESC() : face(0) {
+  BATCHEDRENDERFONTDESC() : face(NULL) {
   }
   BATCHEDRENDERFONTDESC(const BATCHEDRENDERFONTDESC &);
   ~BATCHEDRENDERFONTDESC();

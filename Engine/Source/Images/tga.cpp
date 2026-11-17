@@ -7,18 +7,18 @@
 void CTgaFile::Close() {
   FREEIFUSED(m_image);
 
-  m_image = 0;
+  m_image = NULL;
 
   if (m_file) {
     SFile::Close(m_file);
   }
 
-  m_file = 0;
+  m_file = NULL;
   RemoveHeaderTrailer();
 
   FREEIFUSED(m_colorMap);
 
-  m_colorMap = 0;
+  m_colorMap = NULL;
 }
 
 BOOL CTgaFile::Open(LPCSTR filename) {
@@ -30,29 +30,29 @@ BOOL CTgaFile::Open(LPCSTR filename) {
   Close();
 
   if (!SFile::Open(filename, &m_file)) {
-    return 0;
+    return FALSE;
   }
 
   if (!SFile::Read(m_file, &m_header, sizeof(m_header), 0, 0, 0)) {
-    return 0;
+    return FALSE;
   }
 
   if (m_header.bIDLength == 0) {
-    m_addlHeaderData = 0;
+    m_addlHeaderData = NULL;
   } else {
     m_addlHeaderData = (BYTE *)ALLOC(m_header.bIDLength);
     if (!SFile::Read(m_file, m_addlHeaderData, m_header.bIDLength, 0, 0, 0)) {
-      return 0;
+      return FALSE;
     }
   }
 
   if (m_header.bColorMapType) {
     m_colorMap = (BYTE *)ALLOC(ColorMapBytes());
     if (!SFile::Read(m_file, m_colorMap, ColorMapBytes(), 0, 0, 0)) {
-      return 0;
+      return FALSE;
     }
   } else {
-    m_colorMap = 0;
+    m_colorMap = NULL;
   }
 
   if (m_header.bPixelDepth == 24 && m_header.Desc.bAlphaChannelBits == 8) {
@@ -60,17 +60,17 @@ BOOL CTgaFile::Open(LPCSTR filename) {
     SErrSetLastError(0x8720012E);
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::ValidateColorDepth() {
   if (m_header.bPixelDepth - m_header.Desc.bAlphaChannelBits == 24) {
-    return 1;
+    return TRUE;
   }
 
   SErrSetLastError(m_header.bPixelDepth == 16 ? 0xF720007C : 0xF720007D);
 
-  return 0;
+  return FALSE;
 }
 
 void CTgaFile::ConvertColorMapped(UINT flags) {
@@ -94,7 +94,7 @@ void CTgaFile::ConvertColorMapped(UINT flags) {
   FREE(m_colorMap);
 
   m_header.bPixelDepth = newPixelDepth;
-  m_colorMap = 0;
+  m_colorMap = NULL;
   m_header.wColorMapEntries = 0;
   m_header.bColorMapType = 0;
   m_header.bImageType = 2;
@@ -200,7 +200,7 @@ BOOL CTgaFile::ReadRawImage(UINT flags) {
   int addAlpha = (flags & 1) && m_header.Desc.bAlphaChannelBits == 0;
 
   if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == (DWORD)-1) {
-    return 0;
+    return FALSE;
   }
 
   UINT sourceBytes = m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8);
@@ -208,18 +208,18 @@ BOOL CTgaFile::ReadRawImage(UINT flags) {
 
   m_image = (BYTE *)ALLOC(sourceBytes + addAlpha * m_header.wWidth * m_header.wHeight);
   if (!m_image) {
-    return 0;
+    return FALSE;
   }
 
   if (!SFile::Read(m_file, m_image + addAlpha * m_header.wWidth * m_header.wHeight, sourceBytes, 0, 0, 0)) {
-    return 0;
+    return FALSE;
   }
 
   if (addAlpha) {
     AddAlphaChannel(m_image, m_image + m_header.wWidth * m_header.wHeight, 0);
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::ReadRleImage(UINT flags) {
@@ -229,38 +229,38 @@ BOOL CTgaFile::ReadRleImage(UINT flags) {
 
   m_image = (BYTE *)ALLOC(imageBytes + addAlpha * m_header.wWidth * m_header.wHeight);
   if (!m_image) {
-    return 0;
+    return FALSE;
   }
 
   imageBytes = SFile::GetFileSize(m_file, 0) - PreImageBytes();
   if (imageBytes == (DWORD)-1) {
-    return 0;
+    return FALSE;
   }
 
   BYTE *rleData = (BYTE *)ALLOC(imageBytes);
   if (!rleData) {
-    return 0;
+    return FALSE;
   }
 
   if (SFile::SetFilePointer(m_file, PreImageBytes(), 0, FILE_BEGIN) == (DWORD)-1) {
-    return 0;
+    return FALSE;
   }
 
   if (!SFile::Read(m_file, rleData, imageBytes, 0, 0, 0)) {
-    return 0;
+    return FALSE;
   }
 
   int result = RLEDecompressImage(rleData, m_image + addAlpha * m_header.wWidth * m_header.wHeight);
   FREE(rleData);
   if (!result) {
-    return 0;
+    return FALSE;
   }
 
   if (addAlpha) {
     AddAlphaChannel(m_image, m_image + m_header.wWidth * m_header.wHeight, 0);
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::RLEDecompressImage(BYTE *pRLEData, BYTE *pData) {
@@ -294,22 +294,22 @@ BOOL CTgaFile::RLEDecompressImage(BYTE *pRLEData, BYTE *pData) {
 
     if (lPixelsLeft < 0) {
       SErrSetLastError(0xF7200077);
-      return 0;
+      return FALSE;
     }
   }
 
   m_header.bImageType -= 8;
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::AddAlphaChannel(LPCVOID pImg) {
   if (!Image()) {
-    return 0;
+    return FALSE;
   }
 
   if (m_header.bImageType >= 9 && m_header.bImageType <= 11) {
     SErrSetLastError(0xF7200083);
-    return 0;
+    return FALSE;
   }
 
   if (m_header.Desc.bAlphaChannelBits) {
@@ -318,23 +318,23 @@ BOOL CTgaFile::AddAlphaChannel(LPCVOID pImg) {
 
   BYTE *newImage = (BYTE *)ALLOC((BytesPerPixel() + 1) * Height() * Width());
   if (!newImage) {
-    return 0;
+    return FALSE;
   }
 
   AddAlphaChannel(newImage, m_image, (const BYTE *)pImg);
   FREE(m_image);
   m_image = newImage;
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::SetTopDown(int set) {
   if ((set && m_header.Desc.bTopBottomOrder) || (!set && !m_header.Desc.bTopBottomOrder)) {
-    return 1;
+    return TRUE;
   }
 
   if (m_header.bImageType >= 9 && m_header.bImageType <= 11) {
     SErrSetLastError(0xF7200083);
-    return 0;
+    return FALSE;
   }
 
   BYTE *inverted = (BYTE *)ALLOC(Bytes());
@@ -350,13 +350,13 @@ BOOL CTgaFile::SetTopDown(int set) {
   FREE(m_image);
   m_image = inverted;
   m_header.Desc.bTopBottomOrder = set != 0;
-  return 1;
+  return TRUE;
 }
 
 BYTE *CTgaFile::Image() {
   if (!m_image) {
     SErrSetLastError(0xF720007F);
-    return 0;
+    return NULL;
   }
 
   return m_image;
@@ -365,7 +365,7 @@ BYTE *CTgaFile::Image() {
 const BYTE *CTgaFile::Image() const {
   if (!m_image) {
     SErrSetLastError(0xF720007F);
-    return 0;
+    return NULL;
   }
 
   return m_image;
@@ -374,12 +374,12 @@ const BYTE *CTgaFile::Image() const {
 TGA32Pixel *CTgaFile::ImageTGA32Pixel() {
   if (!m_image) {
     SErrSetLastError(0xF720007F);
-    return 0;
+    return NULL;
   }
 
   if (m_header.bPixelDepth != 32) {
     SErrSetLastError(0xF720007D);
-    return 0;
+    return NULL;
   }
 
   return (TGA32Pixel *)m_image;
@@ -388,12 +388,12 @@ TGA32Pixel *CTgaFile::ImageTGA32Pixel() {
 const TGA32Pixel *CTgaFile::ImageTGA32Pixel() const {
   if (!m_image) {
     SErrSetLastError(0xF720007F);
-    return 0;
+    return NULL;
   }
 
   if (m_header.bPixelDepth != 32) {
     SErrSetLastError(0xF720007D);
-    return 0;
+    return NULL;
   }
 
   return (const TGA32Pixel *)m_image;
@@ -401,12 +401,12 @@ const TGA32Pixel *CTgaFile::ImageTGA32Pixel() const {
 
 BOOL CTgaFile::RemoveAlphaChannels() {
   if (!Image()) {
-    return 0;
+    return FALSE;
   }
 
   if (!m_header.Desc.bAlphaChannelBits) {
     if (m_header.bPixelDepth == 24) {
-      return 1;
+      return TRUE;
     }
 
     SErrSetLastError(0x8720012D);
@@ -415,7 +415,7 @@ BOOL CTgaFile::RemoveAlphaChannels() {
 
   if (m_header.Desc.bAlphaChannelBits != 8) {
     SErrSetLastError(0xF7200082);
-    return 0;
+    return FALSE;
   }
 
   UINT pixelCount = Size();
@@ -430,19 +430,19 @@ BOOL CTgaFile::RemoveAlphaChannels() {
     src += BytesPerPixel() + 1;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CTgaFile::RemoveHeaderTrailer() {
   FREEIFUSED(m_addlHeaderData);
 
-  m_addlHeaderData = 0;
+  m_addlHeaderData = NULL;
   m_header.bIDLength = 0;
 }
 
 BOOL CTgaFile::SetImage(const CTgaFile &source) {
   if (!source.Image()) {
-    return 0;
+    return FALSE;
   }
 
   return SetImage(
@@ -463,22 +463,22 @@ BOOL CTgaFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth,
   m_header.wHeight = height;
   m_header.bPixelDepth = bPixelDepth;
   m_header.Desc.bAlphaChannelBits = bAlphaBits;
-  m_header.Desc.bLeftRightOrder = bRightToLeft != 0;
-  m_header.Desc.bTopBottomOrder = bTopDown != 0;
+  m_header.Desc.bLeftRightOrder = bRightToLeft != FALSE;
+  m_header.Desc.bTopBottomOrder = bTopDown != FALSE;
   m_imageBytes = Bytes();
 
   FREEIFUSED(m_image);
 
   m_image = (BYTE *)ALLOC(m_imageBytes);
   if (!m_image) {
-    return 0;
+    return FALSE;
   }
 
   memcpy(m_image, pImg, m_imageBytes);
   m_footer.dwExtensionOffset = 0;
   m_footer.dwDeveloperOffset = 0;
   SStrCopy(m_footer.szSigniture, "TRUEVISION-XFILE.", sizeof(m_footer.szSigniture));
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::CountRun(BYTE *pImage, int nMax) {
@@ -511,7 +511,7 @@ BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
   ASSERT(compressed != 0);
   ASSERT(*compressed != 0);
 
-  BYTE *pbCopyLen = 0;
+  BYTE *pbCopyLen = NULL;
   BYTE *pRawImage = *uncompressed;
   BYTE *pRLEData = *compressed;
   int   nLineWid = m_header.wWidth;
@@ -520,9 +520,9 @@ BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
     int nRunLen = CountRun(pRawImage, nLineWid);
     if (nRunLen >= 2) {
       m_imageBytes += (m_header.bPixelDepth + 7) / 8 + 1;
-      pbCopyLen = 0;
+      pbCopyLen = NULL;
       if (m_imageBytes >= m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8)) {
-        return 0;
+        return FALSE;
       }
 
       *pRLEData++ = (nRunLen - 1) | 0x80;
@@ -543,7 +543,7 @@ BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
 
     m_imageBytes += (m_header.bPixelDepth + 7) / 8;
     if (m_imageBytes >= m_header.wWidth * m_header.wHeight * ((m_header.bPixelDepth + 7) / 8)) {
-      return 0;
+      return FALSE;
     }
 
     memcpy(pRLEData, pRawImage, (m_header.bPixelDepth + 7) / 8);
@@ -554,25 +554,25 @@ BOOL CTgaFile::RleCompressLine(BYTE **uncompressed, BYTE **compressed) {
 
   *uncompressed = pRawImage;
   *compressed = pRLEData;
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::Compress() {
   if (!m_image) {
     SErrSetLastError(0xF7200081);
-    return 0;
+    return FALSE;
   }
 
   if (m_header.bImageType >= 9) {
     SErrSetLastError(0xF7200083);
-    return 0;
+    return FALSE;
   }
 
   BYTE *pRawImage = m_image;
   BYTE *compressedImage = (BYTE *)ALLOC(m_imageBytes);
   BYTE *pRLEData = compressedImage;
   if (!compressedImage) {
-    return 0;
+    return FALSE;
   }
 
   int rows = m_header.wHeight;
@@ -584,13 +584,13 @@ BOOL CTgaFile::Compress() {
     }
     FREE(compressedImage);
     m_imageBytes = BytesPerPixel() * m_header.wWidth * m_header.wHeight;
-    return 1;
+    return TRUE;
   }
 
   m_header.bImageType += 8;
   FREE(m_image);
   m_image = compressedImage;
-  return 1;
+  return TRUE;
 }
 
 BOOL CTgaFile::Write(LPCSTR path) {
@@ -602,12 +602,12 @@ BOOL CTgaFile::Write(LPCSTR path) {
 
   if (!m_image) {
     SErrSetLastError(0xF7200081);
-    return 0;
+    return FALSE;
   }
 
   fileHandle = OsCreateFile(path, 0x40000000, 0, 2, 0x80, 0x3F3F3F3F);
   if (fileHandle == HOSFILE_INVALID) {
-    return 0;
+    return FALSE;
   }
 
   success = 0;

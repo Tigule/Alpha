@@ -159,7 +159,7 @@ int CGxVaoManager::AllocBuf(UINT count, EGxVertexBufferFormat format) {
           break;
       }
     } else {
-      desc->m_ptrs[member] = 0;
+      desc->m_ptrs[member] = NULL;
       switch (member) {
         case GxVM_Position:
           ASSERT(0);
@@ -242,8 +242,8 @@ LPVOID CGxVxrRingBuffer::Alloc(UINT bytes) {
 CGxVxrManager::CGxVxrManager(SGxVxrBufferDef *defs, int *success) {
   *success = 0;
   m_totalSize = 0;
-  m_unalignedBuf = 0;
-  m_alignedBuf = 0;
+  m_unalignedBuf = NULL;
+  m_alignedBuf = NULL;
   memset(m_fences, 0, sizeof(m_fences));
   memset(m_bufs, 0, sizeof(m_bufs));
   m_rangeEnabled = 0;
@@ -291,7 +291,7 @@ CGxVxrManager::~CGxVxrManager() {
   if (m_unalignedBuf) {
     FREE(m_unalignedBuf);
   }
-  m_unalignedBuf = 0;
+  m_unalignedBuf = NULL;
   glDeleteFencesAPPLE(kFenceCount, m_fences);
 }
 
@@ -337,14 +337,14 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
   CGxDevice::BufLock(b);
 
   CGxBufOgl *buf = (CGxBufOgl *)b;
-  s_vxrPrim = 0;
+  s_vxrPrim = false;
   ASSERT(m_vxrManager != 0);
   ASSERT(m_vaoManager != 0);
 
   UINT          vtxSize = GxVertexSize(buf->m_vbFormat);
   UINT          vtxBytes = buf->m_numVertices * vtxSize;
-  LPBYTE        vtxPtr = 0;
-  CGxVaoDesc   *desc = 0;
+  LPBYTE        vtxPtr = NULL;
+  CGxVaoDesc   *desc = NULL;
   CGxBufCommand cmd;
   cmd.vertex.op = GxBufOp_Nop;
   cmd.index.op = GxBufOp_Nop;
@@ -479,7 +479,7 @@ void CGxDeviceOpenGl::BufDestroy(CGxBuf *&b) {
     m_vaoManager->FreeBuf(buf->m_vaoToken);
   }
   DEL(buf);
-  b = 0;
+  b = NULL;
 }
 
 void CGxDeviceOpenGl::IPrimSetupNormal(UINT stride, LPCVOID normals) {
@@ -769,7 +769,7 @@ void CGxDeviceOpenGl::PrimLockAndProcessVertexPtrs(
   subVtxPtr += s_vertexCount * sizeof(NTempest::C2Vector);
   ASSERT(subVtxPtr <= (m_vxrVertexSectionBase + m_vxrVertexSectionSize));
 
-  s_vxrPrim = 1;
+  s_vxrPrim = true;
   IPrimSetupPos();
 }
 

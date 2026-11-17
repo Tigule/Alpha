@@ -14,28 +14,28 @@ CGxDevice *CGxDevice::NewOpenGl() {
 
 CGxDeviceOpenGl::CGxDeviceOpenGl() {
   m_api = GxApi_OpenGl;
-  m_hwnd = 0;
+  m_hwnd = NULL;
   m_ownhwnd = 0;
-  m_hdc = 0;
-  m_hglrc = 0;
-  m_hPbuffer = 0;
-  m_hPbufferDC = 0;
-  m_hPbufferRC = 0;
+  m_hdc = NULL;
+  m_hglrc = NULL;
+  m_hPbuffer = NULL;
+  m_hPbufferDC = NULL;
+  m_hPbufferRC = NULL;
   m_primType = GxPrims_Last;
   m_primIndexCount = 0;
-  m_primIndices = 0;
-  m_worldViewChange = 0;
+  m_primIndices = NULL;
+  m_worldViewChange = FALSE;
   m_caps.m_colorFormat = GxCF_rgba;
   memset(m_vertexBuffer, 0, sizeof(m_vertexBuffer));
   memset(m_indexBuffer, 0, sizeof(m_indexBuffer));
-  m_bufRealloc = 1;
-  m_nvvarMem = 0;
+  m_bufRealloc = TRUE;
+  m_nvvarMem = NULL;
   m_nvvarBytes = 0;
   m_nvvarNext = 0;
   DsInit();
   m_lockedArrays = 0;
   m_colorSource = Cs_Material;
-  m_colorSourceDirty = 0;
+  m_colorSourceDirty = FALSE;
 }
 
 CGxDeviceOpenGl::~CGxDeviceOpenGl() {
@@ -147,7 +147,7 @@ void CGxDeviceOpenGl::IAllocVAR() {
 
 void CGxDeviceOpenGl::IFreeVAR() {
   wglFreeMemoryNV(m_nvvarMem);
-  m_nvvarMem = 0;
+  m_nvvarMem = NULL;
   glVertexArrayRangeNV(0, 0);
 }
 
@@ -199,21 +199,21 @@ void CGxDeviceOpenGl::AllocBuffers() {
   if (m_bufRealloc) {
     FreeBuffers();
     IAllocBuffers();
-    m_bufRealloc = 0;
+    m_bufRealloc = FALSE;
   }
 }
 
 void CGxDeviceOpenGl::FreeVertexBuffer(CGxMemBuffer *&b) {
   if (b) {
     delete b;
-    b = 0;
+    b = NULL;
   }
 }
 
 void CGxDeviceOpenGl::FreeIndexBuffer(CGxMemBuffer *&b) {
   if (b) {
     delete b;
-    b = 0;
+    b = NULL;
   }
 }
 
@@ -230,7 +230,7 @@ void CGxDeviceOpenGl::FreeBuffers() {
 
 void CGxDeviceOpenGl::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format, UINT numVertices, UINT numIndices) {
   CGxDevice::BufReserve(freq, format, numVertices, numIndices);
-  m_bufRealloc = 1;
+  m_bufRealloc = TRUE;
 }
 
 void CGxDeviceOpenGl::ISetGlCaps() {

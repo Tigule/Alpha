@@ -22,10 +22,10 @@ class HASHKEY_TEXTUREFILE {
   char       *m_filename;
   CGxTexFlags m_flags;
  public:
-  HASHKEY_TEXTUREFILE() : m_filename(0), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
+  HASHKEY_TEXTUREFILE() : m_filename(NULL), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
   }
 
-  HASHKEY_TEXTUREFILE(const HASHKEY_TEXTUREFILE &source) : m_filename(0), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
+  HASHKEY_TEXTUREFILE(const HASHKEY_TEXTUREFILE &source) : m_filename(NULL), m_flags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
     m_filename = SStrDupA(source.m_filename, __FILE__, __LINE__);
     m_flags = source.m_flags;
   }
@@ -77,7 +77,7 @@ class CTexture : public CHandleObject {
 };
 
 struct CTextureItem {
-  CTextureItem(int p_fromColor = 0) : texture(0), fromColor(p_fromColor), timeStamp(0) {
+  CTextureItem(int p_fromColor = 0) : texture(NULL), fromColor(p_fromColor), timeStamp(0) {
   }
 
   CTextureItem(const CTextureItem &source) : fromColor(source.fromColor), timeStamp(source.timeStamp) {
@@ -112,7 +112,7 @@ class CGxTexCache {
   LINKDECLEX(CGxTexCache, link);
 
   CGxTexCache() {
-    gxTex = 0;
+    gxTex = NULL;
     timeStamp = 0;
   }
 
@@ -199,9 +199,9 @@ CTexture::CTexture() : gxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1) {
   filename[0] = 0;
   flags = 0;
   alphaBits = 0;
-  mipBits = 0;
-  asyncObject = 0;
-  gxTex = 0;
+  mipBits = NULL;
+  asyncObject = NULL;
+  gxTex = NULL;
   gxWidth = 0;
   gxHeight = 0;
   gxTexFormat = GxTex_Unknown;
@@ -237,7 +237,7 @@ CTexture::~CTexture() {
 
     file = asyncObject->file;
     AsyncFileReadDestroyObject(asyncObject);
-    asyncObject = 0;
+    asyncObject = NULL;
     SFile::Close(file);
   }
 }
@@ -316,7 +316,7 @@ UpdateBlpTextureAsync(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT mipLevel, 
       break;
 
     case GxTex_Unlock:
-      texture->mipBits = 0;
+      texture->mipBits = NULL;
       break;
   }
 }
@@ -343,7 +343,7 @@ static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *he
 
   CBLPFile texFile;
   if (!texFile.Open(fileName)) {
-    return 0;
+    return FALSE;
   }
 
   EGxTexFormat gxFormat = GxTex_Argb8888;
@@ -415,10 +415,10 @@ static BOOL LoadBlpMips(LPCSTR fileName, MipBits *&buffer, UINT *width, UINT *he
   }
 
   if (!texFile.LockChain(pixelFormat, buffer, bestMip)) {
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void RequestImageDimensions(UINT *width, UINT *height, UINT *bestMip) {
@@ -489,7 +489,7 @@ void TextureGxCacheFlush() {
       for (z = 0; z < GxTexFormats_Last; ++z) {
         CGxTexCache *gxTexCache;
 
-        while ((gxTexCache = s_gxTexCacheList[x][y][z].Head()) != 0) {
+        while ((gxTexCache = s_gxTexCacheList[x][y][z].Head()) != NULL) {
           if (gxTexCache->gxTex) {
             GxTexDestroy(gxTexCache->gxTex);
           }
@@ -504,7 +504,7 @@ void TextureCacheUpdate(DWORD currentTime, CStatus *status) {
   UINT numTexturesFlushed = 0;
 
   CTextureItem *textureItem;
-  while ((textureItem = s_textureCacheLRU.Head()) != 0 && numTexturesFlushed < 4) {
+  while ((textureItem = s_textureCacheLRU.Head()) != NULL && numTexturesFlushed < 4) {
     long elapsed = currentTime - textureItem->timeStamp;
     if (elapsed < 30000) {
       break;
@@ -517,7 +517,7 @@ void TextureCacheUpdate(DWORD currentTime, CStatus *status) {
       textureItem->timeStamp = currentTime;
     } else {
       HandleClose(textureItem->texture);
-      textureItem->texture = 0;
+      textureItem->texture = NULL;
 
       if (textureItem->fromColor) {
         s_solidTextureCache.DeleteNode((CSolidTextureHash *)textureItem);
@@ -553,7 +553,7 @@ MipBits *TextureLoadImage(LPCSTR filename, UINT *width, UINT *height, UINT *gxTe
   VALIDATE(gxTexFormat);
   VALIDATEEND;
 
-  mipImages = 0;
+  mipImages = NULL;
   format = GxTex_Argb8888;
 
   EImageFormat imageFormat = IdentifyAndStripFileExtension(filename, loadFileName, &ext);
@@ -598,7 +598,7 @@ static MipBits *LoadTgaMips(LPCSTR fileName, UINT *width, UINT *height, EGxTexFo
 
   CTgaFile texFile;
   if (!texFile.Open(fileName)) {
-    return 0;
+    return NULL;
   }
 
   if (isOpaque) {
@@ -606,7 +606,7 @@ static MipBits *LoadTgaMips(LPCSTR fileName, UINT *width, UINT *height, EGxTexFo
   }
 
   if (!texFile.LoadImageData(3)) {
-    return 0;
+    return NULL;
   }
 
   texFile.SetTopDown(1);
@@ -762,14 +762,14 @@ HTEXTURE TextureLoadImage(LPCSTR filename) {
   SStrCopy(ext, s_formatExt[IMAGE_FORMAT_BLP], 0x7FFFFFFF);
 
   if (!SFile::Open(loadFileName, &file)) {
-    return 0;
+    return NULL;
   }
 
   CTexture *texture = NEWHANDLE(HTEXTURE, CTexture);
   ASSERT(texture);
 
   SStrCopy(texture->filename, loadFileName, sizeof(texture->filename));
-  texture->mipBits = 0;
+  texture->mipBits = NULL;
   texture->asyncObject = AsyncFileReadCreateObject();
   ASSERT(texture->asyncObject);
 
@@ -800,9 +800,9 @@ static void AsyncTextureLoadImageCallback(LPVOID arg) {
   ASSERT(texture);
   AsyncTextureLoadImageCreate(texture);
   SFile::Close(texture->asyncObject->file);
-  texture->asyncObject->file = 0;
+  texture->asyncObject->file = NULL;
   AsyncFileReadDestroyObject(texture->asyncObject);
-  texture->asyncObject = 0;
+  texture->asyncObject = NULL;
   --s_asyncPending;
 }
 
@@ -810,7 +810,7 @@ static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
   CBLPFile image;
 
   if (!image.Source(texture->asyncObject->buffer)) {
-    return 0;
+    return FALSE;
   }
 
   texture->alphaBits = image.AlphaBits();
@@ -823,22 +823,22 @@ static BOOL AsyncTextureLoadImageCreate(CTexture *texture) {
   UINT height = image.Height();
   RequestImageDimensions(&width, &height, &bestMip);
 
-  texture->mipBits = 0;
+  texture->mipBits = NULL;
   if (!image.LockChain2(PIXEL_ARGB8888, texture->mipBits, bestMip)) {
-    return 0;
+    return FALSE;
   }
 
   texture->gxWidth = width;
   texture->gxHeight = height;
   texture->gxTexFormat = GxTex_Argb8888;
   texture->dataFormat = GxTex_Argb8888;
-  texture->gxTex = 0;
+  texture->gxTex = NULL;
 
   if (image.HasMips() == MIPS_GENERATED) {
     texture->gxTexFlags.m_generateMipMaps = 1;
   }
 
-  return 1;
+  return TRUE;
 }
 
 MipBits *TextureLoadImage(HTEXTURE texture, UINT *width, UINT *height, UINT *gxTexFormat, CStatus *status, UINT *alphaBits) {
@@ -856,12 +856,12 @@ HTEXTURE TextureAllocImage(EGxTexFormat format, UINT width, UINT height) {
   CTexture *texture = NEWHANDLE(HTEXTURE, CTexture);
   ASSERT(texture);
 
-  texture->gxTex = 0;
+  texture->gxTex = NULL;
   texture->gxTexFormat = format;
   texture->gxWidth = width;
   texture->gxHeight = height;
   texture->pixBitDepth = s_bitDepth[format];
-  texture->asyncObject = 0;
+  texture->asyncObject = NULL;
   texture->mipBits = TextureAllocMippedImg(format, width, height);
   SStrCopy(texture->filename, "TextureAllocImage", sizeof(texture->filename));
 
@@ -884,7 +884,7 @@ HTEXTURE TextureCreate(UINT width, UINT height, EGxTexFormat format, CGxTexFlags
   texture->gxHeight = height;
   texture->gxTexFlags = flags;
   texture->pixBitDepth = s_bitDepth[format];
-  texture->asyncObject = 0;
+  texture->asyncObject = NULL;
   SStrCopy(texture->filename, "unique_texture", sizeof(texture->filename));
 
   return CREATEHANDLE(HTEXTURE, texture);
@@ -952,7 +952,7 @@ static CGxTex *TextureAllocGxTex(
     }
   }
 
-  CGxTex *gxTex = 0;
+  CGxTex *gxTex = NULL;
   int     ret = GxTexCreate(gxTexParmsEx, gxTex);
   ASSERT(ret);
   return gxTex;
@@ -970,7 +970,7 @@ HTEXTURE TextureCreate(LPCSTR name, UINT width, UINT height, EGxTexFormat format
   texture->gxHeight = height;
   texture->gxTexFlags = flags;
   texture->pixBitDepth = s_bitDepth[format];
-  texture->asyncObject = 0;
+  texture->asyncObject = NULL;
   SStrCopy(texture->filename, name, sizeof(texture->filename));
 
   return CREATEHANDLE(HTEXTURE, texture);
@@ -990,7 +990,7 @@ TextureCreate(LPCSTR name, UINT width, UINT height, EGxTexFormat format, EGxTexF
   texture->gxHeight = height;
   texture->gxTexFlags = flags;
   texture->pixBitDepth = s_bitDepth[format];
-  texture->asyncObject = 0;
+  texture->asyncObject = NULL;
   SStrCopy(texture->filename, name, sizeof(texture->filename));
 
   return CREATEHANDLE(HTEXTURE, texture);
@@ -1017,7 +1017,7 @@ HTEXTURE TextureCreate(LPCSTR fileName, CGxTexFlags flags, CStatus *status, int 
     BaseFileRegisterUncachable(fileName);
   }
 
-  HTEXTURE texture = 0;
+  HTEXTURE texture = NULL;
   for (UINT i = 0; i < NUM_IMAGE_FORMATS; ++i) {
     SStrCopy(ext, s_formatExt[imageFormat], 0x7FFFFFFF);
 
@@ -1090,12 +1090,12 @@ static HTEXTURE CreateTgaTexture(LPCSTR file, CGxTexFlags flags, CStatus *status
   CTgaFile image;
 
   if (!image.Open(file)) {
-    return 0;
+    return NULL;
   }
 
   CTexture *texture = NEWHANDLE(HTEXTURE, CTexture);
   if (!texture) {
-    return 0;
+    return NULL;
   }
 
   texture->alphaBits = image.AlphaBits();
@@ -1140,7 +1140,7 @@ static HTEXTURE CreateBlpTexture(LPCSTR filename, CGxTexFlags flags, CStatus *st
   SFile *file;
 
   if (!SFile::Open(filename, &file)) {
-    return 0;
+    return NULL;
   }
 
   CTexture *texture = NEWHANDLE(HTEXTURE, CTexture);
@@ -1181,9 +1181,9 @@ static void AsyncCreateBlpTextureCallback(LPVOID arg) {
   }
 
   SFile::Close(texture->asyncObject->file);
-  texture->asyncObject->file = 0;
+  texture->asyncObject->file = NULL;
   AsyncFileReadDestroyObject(texture->asyncObject);
-  texture->asyncObject = 0;
+  texture->asyncObject = NULL;
   --s_asyncPending;
 }
 
@@ -1192,7 +1192,7 @@ static BOOL PumpBlpTextureAsync(CTexture *texture) {
 
   if (!image.Source(texture->asyncObject->buffer)) {
     texture->loadStatus.Add(STATUS_FATAL, "Texture failure: \"%s\" invalid file version\n", texture->filename);
-    return 0;
+    return FALSE;
   }
 
   texture->alphaBits = image.m_header.alphaSize;
@@ -1213,7 +1213,7 @@ static BOOL PumpBlpTextureAsync(CTexture *texture) {
   texture->mipBits = (MipBits *)g_textureMipBits;
   if (!image.LockChain2(pixFormat, texture->mipBits, bestMip)) {
     texture->loadStatus.Add(STATUS_FATAL, "Texture failure: \"%s\" decompression failed.\n", texture->filename);
-    return 0;
+    return FALSE;
   }
 
   texture->gxWidth = width;
@@ -1228,8 +1228,8 @@ static BOOL PumpBlpTextureAsync(CTexture *texture) {
   texture->gxTex = TextureAllocGxTex(width, height, gxTexFormat, texture->gxTexFlags, texture, UpdateBlpTextureAsync, dataFormat);
   ASSERT(texture->gxTex);
   GxTexUpdate(texture->gxTex, 0, 0, width, height, 1);
-  texture->mipBits = 0;
-  return 1;
+  texture->mipBits = NULL;
+  return TRUE;
 }
 
 static void GetTextureFormats(
@@ -1355,7 +1355,7 @@ HTEXTURE TextureCreate(CGxTex *gxTex) {
 
   CTexture *texture = NEWHANDLE(HTEXTURE, CTexture);
   if (!texture) {
-    return 0;
+    return NULL;
   }
 
   texture->gxTex = gxTex;
@@ -1373,7 +1373,7 @@ HTEXTURE TextureCreateSolid(const NTempest::CImVector &color, CStatus *status) {
   CTexture *textureObject = NEWHANDLE(HTEXTURE, CTexture);
 
   if (!textureObject) {
-    return 0;
+    return NULL;
   }
 
   FillInSolidTexture(color, textureObject);
@@ -1386,7 +1386,7 @@ static HTEXTURE GetTexture(const NTempest::CImVector &color) {
   CSolidTextureHash *textureHash = s_solidTextureCache.Ptr(*color.IV_(), s_hashKeyNone);
 
   if (!textureHash) {
-    return 0;
+    return NULL;
   }
 
   return (HTEXTURE)HandleDuplicate(textureHash->texture);
@@ -1410,7 +1410,7 @@ CGxTex *TextureGetGxTex(HTEXTURE texture, int force, CStatus *status) {
 
   if (!textureptr->gxTex) {
     if (!force) {
-      return 0;
+      return NULL;
     }
 
     AsyncTextureWait(textureptr);
@@ -1437,7 +1437,7 @@ MipBits *TextureGetMips(HTEXTURE texture, int force) {
 
   if (!textureptr->mipBits) {
     if (!force) {
-      return 0;
+      return NULL;
     }
 
     OsOutputDebugString("AsyncTextureWait: %s\n", textureptr->filename);
@@ -1538,12 +1538,12 @@ static UINT CalcLevelOffset(UINT level, UINT width, UINT height, EGxTexFormat fo
 
 MipBits *TextureCopyMippedImage(MipBits *srcData, EGxTexFormat format, UINT width, UINT height) {
   if (!srcData) {
-    return 0;
+    return NULL;
   }
 
   MipBits *destData = TextureAllocMippedImg(format, width, height);
   if (!destData) {
-    return 0;
+    return NULL;
   }
 
   UINT mipCount = TextureCalcMipCount(width, height);
@@ -1623,7 +1623,7 @@ void TextureDestroy() {
   TextureCacheFlush();
   TextureGxCacheFlush();
 
-  while ((gxTexCache = s_gxTexCacheFreeList.Head()) != 0) {
+  while ((gxTexCache = s_gxTexCacheFreeList.Head()) != NULL) {
     if (gxTexCache->gxTex) {
       GxTexDestroy(gxTexCache->gxTex);
     }
@@ -1631,7 +1631,7 @@ void TextureDestroy() {
   }
 
   SMemFree(g_textureMipBits);
-  g_textureMipBits = 0;
+  g_textureMipBits = NULL;
 }
 
 LPCSTR TextureGetFilename(HTEXTURE texture) {
@@ -1647,7 +1647,7 @@ BOOL TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &f
 
   if (!textureObject->mipBits) {
     if (!bForce) {
-      return 0;
+      return FALSE;
     }
 
     OsOutputDebugString("AsyncTextureWait: %s\n", textureObject->filename);
@@ -1659,7 +1659,7 @@ BOOL TextureGetInfo(HTEXTURE texture, UINT &width, UINT &height, EGxTexFormat &f
   format = textureObject->dataFormat;
   opaque = textureObject->flags & 1;
   alphaBits = textureObject->alphaBits;
-  return 1;
+  return TRUE;
 }
 
 void TextureLogGxCache(HSLOG log) {

@@ -56,10 +56,10 @@ FrameScript_Object::~FrameScript_Object() {
 }
 
 LPCSTR FrameScript_Object::GetName() const {
-  return 0;
+  return NULL;
 }
 
-FrameScript_EventObject::FrameScript_EventObject() : name(0) {
+FrameScript_EventObject::FrameScript_EventObject() : name(NULL) {
 }
 
 FrameScript_EventObject::FrameScript_EventObject(const FrameScript_EventObject &eventObject) : name(eventObject.name), list(eventObject.list) {
@@ -146,11 +146,11 @@ BOOL FrameScript_Object::LookupScriptMethod(lua_State *state, LPCSTR name, TSHas
   FrameScriptObject_Variable *entry = methodTable.Ptr(name);
 
   if (!entry) {
-    return 0;
+    return FALSE;
   }
 
   lua_rawgeti(state, LUA_REGISTRYINDEX, entry->reference);
-  return 1;
+  return TRUE;
 }
 
 int FrameScript_Object::LookupScriptMethod(lua_State *state) {
@@ -189,16 +189,16 @@ BOOL FrameScript_Object::RegisterScriptEvent(LPCSTR name) {
 
     ITERATELIST(EVENTLISTENERNODE, eventObject->list, listener) {
       if (listener->object == this) {
-        return 1;
+        return TRUE;
       }
     }
 
     listener = eventObject->list.NewNode(LIST_TAIL, 0, 0);
     listener->object = this;
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void FrameScript_Object::UnregisterScriptEvent(LPCSTR name) {
@@ -352,7 +352,7 @@ static int debuginfo(lua_State *state) {
 
   if (lua_getstack(state, 1, &debugInfo)) {
     index = 1;
-    while ((name = lua_getlocal(state, &debugInfo, index)) != 0) {
+    while ((name = lua_getlocal(state, &debugInfo, index)) != NULL) {
       print_variable(state, name, 0);
       lua_pop(state, 1);
       ++index;
@@ -402,7 +402,7 @@ static void print_variable(lua_State *state, LPCSTR name, int depth) {
       break;
 
     case LUA_TTABLE:
-      object = 0;
+      object = NULL;
       tableName = "<table>";
 
       lua_rawgeti(state, -1, 0);
@@ -457,7 +457,7 @@ static void print_variable(lua_State *state, LPCSTR name, int depth) {
   }
 }
 
-int FrameScript_Initialize() {
+BOOL FrameScript_Initialize() {
   LPVOID buffer;
   DWORD  bytes;
 
@@ -500,7 +500,7 @@ int FrameScript_Initialize() {
 
   lua_getglobal(s_context, "_ERRORMESSAGE");
   s_errorFunction = luaL_ref(s_context, LUA_REGISTRYINDEX);
-  return 1;
+  return TRUE;
 }
 
 void FrameScript_Flush() {
@@ -514,7 +514,7 @@ void FrameScript_Destroy() {
   ASSERT(s_context);
 
   lua_close(s_context);
-  s_context = 0;
+  s_context = NULL;
   s_objectStack.Clear();
   s_objectCount = 0;
 }
@@ -751,7 +751,7 @@ int FrameScript_ExecuteFile(LPCSTR filename) {
   return result;
 }
 
-int FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename) {
+BOOL FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename) {
   lua_State *state = FrameScript_GetContext();
 
   GetErrorFunction(state);
@@ -760,16 +760,16 @@ int FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename) {
       lua_pop(state, 1);
     }
     lua_pop(state, 1);
-    return 0;
+    return FALSE;
   }
 
   if (lua_pcall(state, 0, 0, -2)) {
     lua_pop(state, 2);
-    return 0;
+    return FALSE;
   }
 
   lua_pop(state, 1);
-  return 1;
+  return TRUE;
 }
 
 BOOL FrameScript_CompileFunction(LPCSTR source, LPCSTR description) {

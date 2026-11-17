@@ -24,15 +24,15 @@ static CEvent s_trackEvent;
 
 CSimpleButton::CSimpleButton(CSimpleFrame *parent)
     : CSimpleFrame(parent),
-      m_observer(0),
-      m_trackObserver(0),
+      m_observer(NULL),
+      m_trackObserver(NULL),
       m_state(BUTTONSTATE_DISABLED),
       m_stateLocked(0),
       m_clickAction(0x100),
-      m_disabledText(0),
-      m_text(0),
-      m_highlightText(0),
-      m_activeTexture(0),
+      m_disabledText(NULL),
+      m_text(NULL),
+      m_highlightText(NULL),
+      m_activeTexture(NULL),
       m_onClick(0) {
   m_pressedOffset.x = 0.001f;
   m_pressedOffset.y = -0.001f;
@@ -338,7 +338,7 @@ void CSimpleButton::SetButtonState(CSimpleButtonState state, int stateLocked) {
   if (state != m_state) {
     if (m_activeTexture && m_textures[state]) {
       m_activeTexture->Hide();
-      m_activeTexture = 0;
+      m_activeTexture = NULL;
     }
 
     if (m_textures[state]) {

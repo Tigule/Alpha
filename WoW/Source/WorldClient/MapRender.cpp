@@ -90,7 +90,7 @@ void CMap::CreateAreaLowDetailVertices(CMapAreaLow *areaLow, const CGxBufCommand
 
   ASSERT(areaLow);
 
-  CGxVertexPC *vtxBase = 0;
+  CGxVertexPC *vtxBase = NULL;
   switch (cmd.vertex.op) {
     case GxBufOp_Nop:
       return;
@@ -150,7 +150,7 @@ void CMap::CreateAreaLowDetailIndices(CMapAreaLow *areaLow, const CGxBufCommand 
 
   ASSERT(areaLow);
 
-  WORD *idx = 0;
+  WORD *idx = NULL;
   switch (cmd.index.op) {
     case GxBufOp_Nop:
       return;
@@ -207,7 +207,7 @@ static void Billboard(const NTempest::C3Vector &dir, NTempest::C44Matrix &mat) {
 
 BOOL DNGlare::IsVisible() {
   if (!m_masterEnable || !m_enabled || !m_color.a) {
-    return 0;
+    return FALSE;
   }
 
   DNInfo            *dnInfo = DayNightGetInfo();
@@ -220,10 +220,10 @@ BOOL DNGlare::IsVisible() {
   float              hitDist = 1.0f;
 
   if (CWorld::Intersect(&startPt, &testPt, 0.0f, &hitPt, &hitDist, 0x1112)) {
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void DNGlare::Render() {

@@ -96,13 +96,13 @@ static void IWriteBoneSection(const MDLDATA &data, const MDLBONESECTION &section
 
 BOOL MDL::WriteBones(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (((LPCSTR)data.model.animationFile)[0]) {
-    return 1;
+    return TRUE;
   }
   int needObjIds = data.bones.Count() != data.objects.Count();
   for (UINT i = 0; i < data.bones.Count(); ++i) {
     IWriteBoneSection(data, data.bones[i], needObjIds, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetBinBonesSize(const MDLBONESECTION &section) {
@@ -117,10 +117,10 @@ static void IWriteBinBoneSection(const MDLBONESECTION &section, CMsgBuffer &buf,
 
 BOOL MDL::WriteBinBones(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   if (((LPCSTR)data.model.animationFile)[0]) {
-    return 1;
+    return TRUE;
   }
   if (!data.bones.Count()) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('ENOB');
   UINT totalSize = 4;
@@ -134,7 +134,7 @@ BOOL MDL::WriteBinBones(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status
   for (i = 0; i < numBones; ++i) {
     IWriteBinBoneSection(data.bones[i], buf, status);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinBone(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -147,20 +147,20 @@ BOOL MDL::ReadBinBone(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *s
     pBone = data.bones.New();
     if (!pBone) {
       status->FatalFlunked("Bone", -1);
-      return 0;
+      return FALSE;
     }
     if (!ReadBinGenObject(*pBone, buf, status, totalRead)) {
       status->Add(STATUS_ERROR, "Error reading gen object portion of bone.\n");
-      return 0;
+      return FALSE;
     }
     pBone->geosetId = buf.GetUint();
     pBone->geosetAnimId = buf.GetUint();
     totalRead += 8;
     if (totalRead > length) {
       status->FatalOverran("Bone", -1);
-      return 0;
+      return FALSE;
     }
     ReadBinObjectEnd(data, pBone, data.bones.Count() - 1, 0x30000000);
   }
-  return 1;
+  return TRUE;
 }

@@ -65,9 +65,9 @@ class RangeList {
     if (index >= 0 && index < m_numranges) {
       min = m_ranges[index].m_min;
       max = m_ranges[index].m_max;
-      return 1;
+      return TRUE;
     }
-    return 0;
+    return FALSE;
   }
 
  protected:
@@ -466,8 +466,8 @@ void CameraDestroy() {
 
 CGCamera::CGCamera()
     : CSimpleCamera(s_cameraNearZ->GetFloat(), s_cameraFarZ->GetFloat(), s_cameraFOV->GetFloat() * 0.017453292f),
-      m_model(0),
-      m_modelCamera(0),
+      m_model(NULL),
+      m_modelCamera(NULL),
       m_flags(0x11),
       m_relativeTo(0),
       m_distance(s_cameraDistanceA->GetFloat()),
@@ -501,8 +501,8 @@ BOOL CGCamera::FinishLoadingModel() {
   m_modelCamera = ModelGetCamera(m_model, 0);
   if (!m_modelCamera) {
     HandleClose(m_model);
-    m_model = 0;
-    return 0;
+    m_model = NULL;
+    return FALSE;
   }
 
   ModelAnimateCameras(m_model, m_modelMatrix);
@@ -512,7 +512,7 @@ BOOL CGCamera::FinishLoadingModel() {
   DataMgrGetCoord(m_modelCamera, 8, &target);
   float roll = DataMgrGetFloat(m_modelCamera, 5);
   SetPositionAndTargetWithRoll(position, target, roll);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin, float facing, int (*ModelCameraFinished)(LPVOID), LPVOID param) {
@@ -522,7 +522,7 @@ BOOL CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin
   m_model = ModelCreate(modelFile, 0, &status);
   SysMsgAdd(status, 0x10);
   if (!m_model) {
-    return 0;
+    return FALSE;
   }
 
   ModelSetSeqFinishedHandler(m_model, 0, ModelCameraFinished, param);
@@ -537,11 +537,11 @@ BOOL CGCamera::SetModelCamera(LPCSTR modelFile, const NTempest::C3Vector &origin
   if (!ModelIsLoaded(m_model, 1)) {
     m_flags &= ~0x40u;
   } else if (!FinishLoadingModel()) {
-    return 0;
+    return FALSE;
   }
 
   ResetModelCamera();
-  return 1;
+  return TRUE;
 }
 
 void CGCamera::ResetModelCamera() {
@@ -557,14 +557,14 @@ void CGCamera::ClearModelCamera() {
       HandleClose(m_modelCamera);
     }
     HandleClose(m_model);
-    m_model = 0;
+    m_model = NULL;
   }
 }
 
 BOOL CGCamera::FinishLoadingTarget(CGObject_C *target) {
   HMODEL model = target->m_model;
   if (!model || !ModelIsLoaded(model, 1)) {
-    return 0;
+    return FALSE;
   }
 
   m_flags |= 0x40;
@@ -585,7 +585,7 @@ BOOL CGCamera::FinishLoadingTarget(CGObject_C *target) {
   } else {
     m_targetOffsetZ = 2.0f;
   }
-  return 1;
+  return TRUE;
 }
 
 void CGCamera::SetTarget(CGObject_C *target) {
@@ -875,7 +875,7 @@ BOOL CGCamera::CCommand_CameraClip(LPCSTR command, LPCSTR arguments) {
   } else {
     s_clipCamera = !s_clipCamera;
   }
-  return 1;
+  return TRUE;
 }
 
 float CGCamera::CollideCameraWithWorld(const NTempest::C3Vector &targetPosition) {
@@ -1438,7 +1438,7 @@ BOOL CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
     if (camera->m_model) {
       camera->CalcModelCamera(timestamp);
       camera->CheckUnderwater();
-      return 1;
+      return TRUE;
     }
 
     CGObject_C *target = ClntObjMgrObjectPtr(camera->m_target, __FILE__, __LINE__);
@@ -1451,7 +1451,7 @@ BOOL CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
           if (camera->m_distance > 0.027777778f) {
             camera->RunShakes();
             camera->CheckUnderwater();
-            return 1;
+            return TRUE;
           }
           camera->SetTargetFadeValue(0);
           camera->m_distance = 0.0f;
@@ -1462,7 +1462,7 @@ BOOL CGCamera::UpdateCallback(LPCVOID, LPVOID param) {
       camera->CheckUnderwater();
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGCamera::SetupWorldProjection(const NTempest::CRect &projectionRect) {

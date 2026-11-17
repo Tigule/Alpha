@@ -113,11 +113,11 @@ static int ModelDataToBin(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *s
 static BOOL IWriteFile(LPCSTR path, LPCSTR mode, LPCVOID data, UINT bytes) {
   FILE *file = fopen(path, mode);
   if (!file) {
-    return 0;
+    return FALSE;
   }
   UINT written = fwrite(data, 1, bytes, file);
   if (fclose(file)) {
-    return 0;
+    return FALSE;
   }
   return written == bytes;
 }
@@ -180,25 +180,25 @@ static BOOL IWriteMdlFile(LPCSTR path, const MDLDATA &mdldata, CMDLStatus *statu
   if (DiscoverFileType(path)) {
     CMsgBuffer buffer;
     if (!ModelDataToBin(mdldata, buffer, status)) {
-      return 0;
+      return FALSE;
     }
     int bytes = buffer.Bytes();
     if (IWriteFile(path, "wb", buffer.GetData(bytes), bytes)) {
-      return 1;
+      return TRUE;
     }
   } else {
     TSGrowableArray<char> buffer;
     buffer.SetChunkSize(0x100000);
     buffer.ReserveSpace(0x400000);
     if (!ModelDataToText(mdldata, buffer, status)) {
-      return 0;
+      return FALSE;
     }
     if (IWriteFile(path, "wt", buffer.Ptr(), buffer.Count())) {
-      return 1;
+      return TRUE;
     }
   }
   FileWriteError(path, status);
-  return 0;
+  return FALSE;
 }
 
 void MDLFileSetDefaultWriteFormat(LPCSTR extension) {
@@ -221,7 +221,7 @@ static LPVOID LoadMdlData(char *path, DWORD *bytes) {
   SFile *fileHandle;
 
   if (!SFile::Open(path, &fileHandle)) {
-    return 0;
+    return NULL;
   }
 
   int success = SFile::GetActualFileName(fileHandle, path, MAX_PATH);
@@ -232,7 +232,7 @@ static LPVOID LoadMdlData(char *path, DWORD *bytes) {
 
   if (!SFile::Read(fileHandle, fileData, fileBytes, bytes, 0, 0)) {
     SMemFree(fileData, __FILE__, __LINE__, 0);
-    return 0;
+    return NULL;
   }
 
   SFile::Close(fileHandle);
@@ -243,7 +243,7 @@ static LPVOID LoadMdlData(LPCSTR path, DWORD *bytes) {
   SFile *fileHandle;
 
   if (!SFile::Open(path, &fileHandle)) {
-    return 0;
+    return NULL;
   }
 
   UINT   fileBytes = SFile::GetFileSize(fileHandle, 0);
@@ -251,7 +251,7 @@ static LPVOID LoadMdlData(LPCSTR path, DWORD *bytes) {
 
   if (!SFile::Read(fileHandle, fileData, fileBytes, bytes, 0, 0)) {
     SMemFree(fileData, __FILE__, __LINE__, 0);
-    return 0;
+    return NULL;
   }
 
   SFile::Close(fileHandle);
@@ -307,10 +307,10 @@ BOOL MDLFileRead(LPCSTR path, MDLDATA *mdldata, CStatus *status) {
 
   SStrCopy(mdldata->header.sourceFilename, path, 0x7FFFFFFF);
   if (ReadMdlFile(mdldata->header.sourceFilename, mdldata, (CMDLStatus *)status)) {
-    return 1;
+    return TRUE;
   }
   status->Prepend(status->GetHighestSeverity(), "%s\n", path);
-  return 0;
+  return FALSE;
 }
 
 BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
@@ -323,13 +323,13 @@ BYTE *MDLFileBinaryLoad(char *path, UINT *fileBytes, CStatus *status) {
   BYTE *fileData = (BYTE *)LoadMdlData(path, (DWORD *)fileBytes);
   if (!fileData) {
     FileReadError(path, (CMDLStatus *)status);
-    return 0;
+    return NULL;
   }
 
   if (*(UINT *)fileData != 'XLDM') {
     SFile::Unload(fileData);
     status->Add(STATUS_FATAL, "%s\nFile is not a binary model file.\n", path);
-    return 0;
+    return NULL;
   }
 
   *fileBytes -= sizeof(UINT);
@@ -346,13 +346,13 @@ BYTE *MDLFileBinaryLoad(LPCSTR path, UINT *fileBytes, CStatus *status) {
   BYTE *fileData = (BYTE *)LoadMdlData(path, (DWORD *)fileBytes);
   if (!fileData) {
     FileReadError(path, (CMDLStatus *)status);
-    return 0;
+    return NULL;
   }
 
   if (*(UINT *)fileData != 'XLDM') {
     SFile::Unload(fileData);
     status->Add(STATUS_FATAL, "%s\nFile is not a binary model file.\n", path);
-    return 0;
+    return NULL;
   }
 
   *fileBytes -= sizeof(UINT);
@@ -378,7 +378,7 @@ BYTE *MDLFileBinarySeek(BYTE *fileData, UINT fileBytes, DWORD sectionTag) {
     fileData += sizeof(UINT) + sectionBytes;
   }
 
-  return 0;
+  return NULL;
 }
 
 int MDLFileBinaryWrite(LPCSTR path, const BYTE *fileData, UINT fileBytes) {

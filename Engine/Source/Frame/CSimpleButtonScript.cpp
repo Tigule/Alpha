@@ -20,11 +20,11 @@ static BOOL StringToButtonState(LPCSTR string, CSimpleButtonState &state) {
   for (UINT i = 0; i < 3; ++i) {
     if (!SStrCmpI(array[i].string, string, 0x7FFFFFFF)) {
       state = array[i].state;
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 static LPCSTR ButtonStateToString(CSimpleButtonState state) {
@@ -57,7 +57,7 @@ static int CSimpleButton_Disable(lua_State *L) {
 static int CSimpleButton_IsEnabled(lua_State *L) {
   CSimpleButton *object = (CSimpleButton *)FrameScript_GetObjectThis(L);
 
-  lua_pushnumber(L, object->IsEnabled() != 0);
+  lua_pushnumber(L, object->IsEnabled() != FALSE);
   return 1;
 }
 
@@ -329,7 +329,7 @@ void CSimpleButton::UnregisterScriptMethods() {
 
 BOOL CSimpleButton::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
-    return 1;
+    return TRUE;
   }
 
   return CSimpleFrame::LookupScriptMethod(L, name);

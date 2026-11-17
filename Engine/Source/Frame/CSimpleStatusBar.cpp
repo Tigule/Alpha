@@ -9,7 +9,7 @@
 #include "Tempest/cimvector.h"
 
 CSimpleStatusBar::CSimpleStatusBar(CSimpleFrame *parent)
-    : CSimpleFrame(parent), m_changed(0), m_rangeSet(0), m_valueSet(0), m_barTexture(0), m_onValueChanged(0) {
+    : CSimpleFrame(parent), m_changed(0), m_rangeSet(0), m_valueSet(0), m_barTexture(NULL), m_onValueChanged(0) {
 }
 
 CSimpleStatusBar::~CSimpleStatusBar() {

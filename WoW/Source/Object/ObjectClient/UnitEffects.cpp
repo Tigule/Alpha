@@ -304,7 +304,7 @@ static BOOL OneShotEndHandler(LPVOID param) {
     node->ReleaseDeathHolds();
     DEL(node);
   }
-  return 0;
+  return FALSE;
 }
 
 static HMODEL InitializeModel(LPCSTR fileName, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
@@ -441,7 +441,7 @@ static bool MoveMissile(MISSILENODE *node) {
       node->target = 0;
     }
     s_freeMissiles.Put(node);
-    return 0;
+    return false;
   } else {
     float              ratio = (float)elapsed / (float)node->travelTime;
     NTempest::C3Vector movement = (node->endPosition - node->startPosition) * ratio;
@@ -476,7 +476,7 @@ static bool MoveMissile(MISSILENODE *node) {
       node->sound->SetPosition(node->position, &vel);
     }
     node->facing.x = -atan2(node->endPosition.z - node->startPosition.z, distance);
-    return 1;
+    return true;
   }
 }
 
@@ -488,14 +488,14 @@ NODEBASE::~NODEBASE() {
 
 bool NODEBASE::CheckModelLoadStatus() {
   if ((flags & 4) || !ModelIsLoaded(model, 1)) {
-    return 0;
+    return false;
   }
 
   flags |= 4;
   if (!ModelAnimHasObjectId(model, 0)) {
     flags |= 1;
   }
-  return 1;
+  return true;
 }
 
 static void AddUnitDeathHold(CGUnit_C *unitPtr) {
@@ -565,7 +565,7 @@ void PERSISTENTUNITEFFECT::Clear() {
 
   if (!objectModel && effectModel) {
     HandleClose(effectModel);
-    effectModel = 0;
+    effectModel = NULL;
     return;
   }
 
@@ -574,8 +574,8 @@ void PERSISTENTUNITEFFECT::Clear() {
   ModelRemoveLink(objectModel, linkPoint, effectModel);
   HandleClose(effectModel);
   HandleClose(objectModel);
-  objectModel = 0;
-  effectModel = 0;
+  objectModel = NULL;
+  effectModel = NULL;
 }
 
 static BOOL DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
@@ -584,7 +584,7 @@ static BOOL DeathHoldEventTimerHandler(LPCVOID packetData, LPVOID param) {
   NODEBASE *node = (NODEBASE *)param;
   node->deathHoldTimer = 0;
   node->ReleaseDeathHolds();
-  return 1;
+  return TRUE;
 }
 
 void NODEBASE::ClearDeathHoldTimer() {
@@ -714,7 +714,7 @@ void UnitEffectOneShot(
   FATALASSERT(attachPoint < (sizeof(g_attachmentPoints) / sizeof(g_attachmentPoints[0])));
 
   UNITONESHOTEFFECTDESC *unitEffectDesc;
-  ONESHOTEFFECTNODE     *newEffectNode = 0;
+  ONESHOTEFFECTNODE     *newEffectNode = NULL;
   const DWORDLONG       &guid = object->GetGUID();
   unitEffectDesc = s_oneShotEffects.Ptr(guid, guid);
   if (!unitEffectDesc) {
@@ -723,7 +723,7 @@ void UnitEffectOneShot(
 
   HMODEL objectModel;
   HMODEL model;
-  HMODEL effectModel = 0;
+  HMODEL effectModel = NULL;
   if (object->IsA(TYPE_UNIT)) {
     if (forceEffectOnMount) {
       model = ((CGUnit_C *)object)->GetMountedModel();
@@ -824,7 +824,7 @@ static BOOL PurgeTimerHandler(LPCVOID timerData, LPVOID userData) {
         ((const EVENT_DATA_TIMER *)timerData)->currTime, next - ((const EVENT_DATA_TIMER *)timerData)->currTime
     );
   }
-  return 1;
+  return TRUE;
 }
 
 void UnitEffectOneShot(
@@ -973,7 +973,7 @@ HMODEL UnitEffectCreateAuraModel(UINT effectID) {
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
     SysMsgPrintf(SYSMSG_WARNING, 2, "SPELLEFFECTIDNOTFOUND|%d", effectID);
-    return 0;
+    return NULL;
   }
 
   return InitializeModel(effectRec->m_fileName, SpellAnimEventCallback, 0);
@@ -982,11 +982,11 @@ HMODEL UnitEffectCreateAuraModel(UINT effectID) {
 bool UnitEffectIsAuraWorldObject(UINT effectID, bool &isWorldObj) {
   const SpellVisualEffectNameRec *effectRec = g_spellVisualEffectNameDB.GetRecord(effectID);
   if (!effectRec) {
-    return 0;
+    return false;
   }
 
   isWorldObj = (effectRec->m_VisualEffectNameFlags & 8) != 0;
-  return 1;
+  return true;
 }
 
 DWORD_PTR UnitEffectCreateWorldModelAura(UINT effect, const NTempest::C3Vector &location, float facing) {

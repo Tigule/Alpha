@@ -119,7 +119,7 @@ LPCSTR
 GxuFontStripEscapeCodes(LPCSTR inputString, UINT numBytes, UINT flags, char *buffer, UINT bufferSize);
 BOOL       GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *color);
 BOOL       GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color);
-int        GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
+BOOL       GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor);
 void       GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos);
 void       GxuFontSetCharSpacing(CGxString *string, float spacing);
 void       GxuFontRemoveShadow(CGxString *string);

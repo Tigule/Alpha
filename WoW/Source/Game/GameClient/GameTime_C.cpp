@@ -44,7 +44,7 @@ static BOOL CCommand_ShowLocalGameTime(LPCSTR, LPCSTR) {
 
   SStrPrintf(buffer, sizeof(buffer), "Current game time is %02d:%02d", g_clientGameTime.m_hour, g_clientGameTime.m_minute);
   ConsoleWrite(buffer, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ShowServerGameTime(LPCSTR, LPCSTR) {
@@ -53,7 +53,7 @@ static BOOL CCommand_ShowServerGameTime(LPCSTR, LPCSTR) {
   message.Put(CMSG_SERVERTIME);
   message.Finalize();
   ClientServices_Send(&message);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_GameTime(LPCSTR, LPCSTR time) {
@@ -88,7 +88,7 @@ static BOOL CCommand_GameTime(LPCSTR, LPCSTR time) {
   message.Put(hour);
   message.Finalize();
   ClientServices_Send(&message);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_LocalTime(LPCSTR, LPCSTR time) {
@@ -114,7 +114,7 @@ static BOOL CCommand_LocalTime(LPCSTR, LPCSTR time) {
   int timeBias = newTime.GetHourAndMinutes() - g_clientGameTime.GetHourAndMinutes();
   g_clientGameTime.SetTimeDateBias(timeBias, 0, true);
   UpdateTime();
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SpawnTime(LPCSTR, LPCSTR time) {
@@ -136,7 +136,7 @@ static BOOL CCommand_SpawnTime(LPCSTR, LPCSTR time) {
   msg.Put(hour * 60 + minute);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_GameSpeed(LPCSTR, LPCSTR speed) {
@@ -146,7 +146,7 @@ static BOOL CCommand_GameSpeed(LPCSTR, LPCSTR speed) {
   message.Put(SStrToFloat(speed));
   message.Finalize();
   ClientServices_Send(&message);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveNewGameSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
@@ -155,14 +155,14 @@ static BOOL ReceiveNewGameSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg
 
   if (!msg->IsRead()) {
     ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
-    return 0;
+    return FALSE;
   }
 
   float oldSpeed = g_clientGameTime.GameTimeSetMinutesPerSecond(newSpeed);
   char  buffer[256];
   SStrPrintf(buffer, sizeof(buffer), "Gamespeed set from %.03f to %.03f", oldSpeed, newSpeed);
   ConsoleWrite(buffer, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
@@ -173,7 +173,7 @@ static BOOL ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg
 
   if (!msg->IsRead()) {
     ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
-    return 0;
+    return FALSE;
   }
 
   g_clientGameTime.GameTimeSetTime(WowTime(gameTime));
@@ -182,7 +182,7 @@ static BOOL ReceiveNewTimeSpeed(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg
   char  buffer[256];
   SStrPrintf(buffer, sizeof(buffer), "Gamespeed set from %.03f to %.03f", oldSpeed, newSpeed);
   ConsoleWrite(buffer, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveGameTimeUpdate(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
@@ -191,11 +191,11 @@ static BOOL ReceiveGameTimeUpdate(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *m
 
   if (!msg->IsRead()) {
     ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
-    return 0;
+    return FALSE;
   }
 
   g_clientGameTime.GameTimeSync(WowTime(gameTime), false);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
@@ -204,7 +204,7 @@ static BOOL ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) 
 
   if (!msg->IsRead()) {
     ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
-    return 0;
+    return FALSE;
   }
 
   WowTime time(gameTime);
@@ -213,7 +213,7 @@ static BOOL ReceiveServerTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) 
   char buffer[256];
   SStrPrintf(buffer, sizeof(buffer), "Server game time is %s", WowTime::WowGetTimeString(&time, string, sizeof(string)));
   ConsoleWrite(buffer, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg) {
@@ -222,19 +222,19 @@ static BOOL ReceiveNewGameTime(LPVOID, NETMESSAGE msgId, DWORD, CDataStore *msg)
 
   if (!msg->IsRead()) {
     ConsoleWriteA("Malformed message recieved: Id = %d, Len = %d, Read = %d\n", DEFAULT_COLOR, msgId, msg->Size(), msg->Tell());
-    return 0;
+    return FALSE;
   }
 
   g_clientGameTime.GameTimeSetTime(WowTime(gameTime));
   UpdateTime();
-  return 1;
+  return TRUE;
 }
 
 BOOL ClientGameTimeTickHandler(LPCVOID data, LPVOID) {
   FATALASSERT(data);
   float elapsedSec = *(const float *)data;
   g_clientGameTime.GameTimeUpdate(elapsedSec);
-  return 1;
+  return TRUE;
 }
 
 void ClientInitializeGameTime() {
@@ -278,7 +278,7 @@ void SetGameTimeForcedChangeCallback(int set, void (*callback)(UINT oldTime, UIN
       return;
     }
     if (s_forcedChangeCallbacks[index] == callback && !set) {
-      s_forcedChangeCallbacks[index] = 0;
+      s_forcedChangeCallbacks[index] = NULL;
       return;
     }
   }

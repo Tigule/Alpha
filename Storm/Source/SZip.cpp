@@ -194,7 +194,7 @@ struct ZipFileFCB {
       flags.Clear(4);
     }
     flags.Set(1);
-    return 0;
+    return FALSE;
   }
 };
 
@@ -233,20 +233,20 @@ BOOL ZipFileArchive::Open(LPCSTR archivename) {
   FATALASSERT(archivename);
   file = fopen(archivename, "rb");
   if (!file) {
-    return 0;
+    return FALSE;
   }
   SStrCopy(filename, archivename, sizeof(filename));
-  return 1;
+  return TRUE;
 }
 
 BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeader) {
   if (fseek(file, 0, SEEK_END)) {
-    return 0;
+    return FALSE;
   }
 
   UINT fileSize = ftell(file);
   if (fileSize == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
 
   UINT offset;
@@ -256,7 +256,7 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
     offset = 0;
   }
   if (fseek(file, offset, SEEK_SET)) {
-    return 0;
+    return FALSE;
   }
 
   UINT signatureOffset = 0;
@@ -271,23 +271,23 @@ BOOL ZipFileArchive::GetCentralDirectoryHeader(CentralDirectoryHeader &cdirHeade
     }
   }
   if (signatureOffset < sizeof(centralDirectoryHeaderSignature)) {
-    return 0;
+    return FALSE;
   }
 
   UINT headerOffset = ftell(file);
   if (headerOffset == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
   if (fseek(file, headerOffset - sizeof(cdirHeader.signature), SEEK_SET)) {
-    return 0;
+    return FALSE;
   }
   if (fread(&cdirHeader, sizeof(cdirHeader), 1, file) != 1) {
-    return 0;
+    return FALSE;
   }
 
   cdirHeader.EndianCorrect();
   if (cdirHeader.thisDiskNumber != cdirHeader.directoryStartDiskNumber) {
-    return 0;
+    return FALSE;
   }
   return cdirHeader.directoryEntriesThisDisk == cdirHeader.directoryEntriesTotal;
 }
@@ -296,15 +296,15 @@ BOOL ZipFileArchive::ProcessCentralDirectory(CentralDirectoryHeader &cdirHeader)
   DWORD i;
 
   if (fseek(file, cdirHeader.centralDirectoryOffset, SEEK_SET) != 0) {
-    return 0;
+    return FALSE;
   }
 
   for (i = 0; i < cdirHeader.directoryEntriesTotal; ++i) {
     if (!ReadCentralDirectoryFileHeader()) {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 void ConvertFromZip(char *str) {
   if (*str) {
@@ -326,16 +326,16 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
   UINT                       saveOffset;
   ZipFileDirEntry           *entry;
   if (fread(&cdirFileHeader, sizeof(cdirFileHeader), 1, file) != 1) {
-    return 0;
+    return FALSE;
   }
   cdirFileHeader.EndianCorrect();
   if (*(DWORD *)cdirFileHeader.signature != *(DWORD *)centralDirectoryFileSignature) {
-    return 0;
+    return FALSE;
   }
 
   FATALASSERT(cdirFileHeader.filenameSize < ZIPFILE_MAX_PATH);
   if (fread(cdirFilename, cdirFileHeader.filenameSize, 1, file) != 1) {
-    return 0;
+    return FALSE;
   }
   cdirFilename[cdirFileHeader.filenameSize] = 0;
   ConvertFromZip(cdirFilename);
@@ -347,36 +347,36 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
     case 8:
       break;
     default:
-      return 0;
+      return FALSE;
   }
   if (s_directory.Ptr(filename)) {
-    return 0;
+    return FALSE;
   }
 
   saveOffset = ftell(file);
   fseek(file, cdirFileHeader.localHeaderOffset, SEEK_SET);
   if (fread(&localFileHeader, sizeof(localFileHeader), 1, file) != 1) {
-    return 0;
+    return FALSE;
   }
   localFileHeader.EndianCorrect();
   if (*(DWORD *)localFileHeader.signature != *(DWORD *)localFileSignature) {
-    return 0;
+    return FALSE;
   }
 
   FATALASSERT(localFileHeader.filenameSize < ZIPFILE_MAX_PATH);
   if (fread(localFilename, localFileHeader.filenameSize, 1, file) != 1) {
-    return 0;
+    return FALSE;
   }
   localFilename[localFileHeader.filenameSize] = 0;
   ConvertFromZip(localFilename);
   if (SStrCmp(cdirFilename, localFilename, 0x7FFFFFFF) != 0) {
-    return 0;
+    return FALSE;
   }
 
   fseek(file, localFileHeader.extraFieldSize, SEEK_CUR);
   if (localFileHeader.generalFlags & 8) {
     if (fread(&trailer, sizeof(trailer), 1, file) != 1) {
-      return 0;
+      return FALSE;
     }
     trailer.EndianCorrect();
     localFileHeader.z_crc32 = trailer.z_crc32;
@@ -395,7 +395,7 @@ BOOL ZipFileArchive::ReadCentralDirectoryFileHeader() {
   s_directory.Insert(entry, entry->filename);
 
   fseek(file, saveOffset, SEEK_SET);
-  return 1;
+  return TRUE;
 }
 
 ZipFileDirEntry::ZipFileDirEntry() {
@@ -406,12 +406,12 @@ static BOOL GetDirEntry(LPCSTR filename, ZipFileDirEntry **dirEntry) {
   ZipFileDirEntry *found = s_directory.Ptr(filename);
 
   if (!found) {
-    return 0;
+    return FALSE;
   }
   if (dirEntry) {
     *dirEntry = found;
   }
-  return 1;
+  return TRUE;
 }
 
 ZipFileDirEntry::~ZipFileDirEntry() {
@@ -452,7 +452,7 @@ BOOL ZipFileCloseArchive(DWORD_PTR handle) {
   ZipFileArchive *archive = (ZipFileArchive *)handle;
   FATALASSERT(archive->openFileCount == 0);
   s_archives.DeleteNode(archive);
-  return 1;
+  return TRUE;
 }
 
 int ZipFileFileExists(LPCSTR filename) {
@@ -501,7 +501,7 @@ ZipFileFCB *ZipFileOpenFile(LPCSTR filename, DWORD_PTR archive) {
 BOOL ZipFileCloseFile(ZipFileFCB *fcb) {
   --fcb->dirEntry->archive->openFileCount;
   delete fcb;
-  return 1;
+  return TRUE;
 }
 
 int ZipFileSetFilePointer(ZipFileFCB *fcb, int offset, int origin) {
@@ -667,11 +667,11 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
 
   dirEntry = NULL;
   if (!GetDirEntry(filename, &dirEntry)) {
-    return 0;
+    return FALSE;
   }
   archive = dirEntry->archive;
   if (fseek(archive->file, dirEntry->startOffset, SEEK_SET)) {
-    return 0;
+    return FALSE;
   }
 
   stream.zalloc = zalloc;
@@ -682,7 +682,7 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   stream.avail_in = dirEntry->compressedSize;
   if (fread(compressedData, dirEntry->compressedSize, 1, archive->file) != 1) {
     SMemFree(stream.next_in, __FILE__, __LINE__, 0);
-    return 0;
+    return FALSE;
   }
 
   uncompressedData = (BYTE *)SMemAlloc(dirEntry->uncompressedSize, __FILE__, __LINE__, 0);
@@ -692,7 +692,7 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
   if (inflateInit2(&stream, -15)) {
     SMemFree(uncompressedData, __FILE__, __LINE__, 0);
     SMemFree(compressedData, __FILE__, __LINE__, 0);
-    return 0;
+    return FALSE;
   }
 
   err = inflate(&stream, Z_FINISH);
@@ -700,7 +700,7 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
     inflateEnd(&stream);
     SMemFree(compressedData, __FILE__, __LINE__, 0);
     SMemFree(uncompressedData, __FILE__, __LINE__, 0);
-    return 0;
+    return FALSE;
   }
 
   err = inflateEnd(&stream);
@@ -710,11 +710,11 @@ BOOL ZipFileLoadFile(LPCSTR filename, LPVOID *buffer, UINT *bytes) {
     if (bytes) {
       *bytes = dirEntry->uncompressedSize;
     }
-    return 1;
+    return TRUE;
   }
 
   SMemFree(uncompressedData, __FILE__, __LINE__, 0);
-  return 0;
+  return FALSE;
 }
 
 void ZipFileUnloadFile(LPVOID buffer) {
@@ -729,7 +729,7 @@ BOOL ZipFileList(DWORD_PTR archive, int (*cb)(LPCSTR, LPVOID), LPVOID param) {
       break;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 WowFile *TestFileSystemProvider::Open(LPCSTR filename) {

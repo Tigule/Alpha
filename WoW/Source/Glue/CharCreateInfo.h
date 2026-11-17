@@ -48,9 +48,9 @@ struct CHARCREATEINFO {
     memset(currentGeosets, 0, sizeof(currentGeosets));
 
     for (UINT sex = 0; sex < 2; ++sex) {
-      characterModel[sex] = 0;
-      geosetHandle[sex] = 0;
-      characterComponent[sex] = 0;
+      characterModel[sex] = NULL;
+      geosetHandle[sex] = NULL;
+      characterComponent[sex] = NULL;
     }
   }
 

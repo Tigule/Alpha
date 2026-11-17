@@ -161,17 +161,17 @@ BOOL ReadBinC3VectorSection(
   DWORD found = buf.GetDword();
   if (found != title) {
     status->Add(STATUS_ERROR, "Invalid %s section in Geoset.\n", name);
-    return 0;
+    return FALSE;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 8;
   if (!count) {
-    return 1;
+    return TRUE;
   }
   section->SetCount(count);
   *localBytesRead += count * sizeof(NTempest::C3Vector);
   buf.GetFloatArray(&section->Ptr()->x, 3 * count);
-  return 1;
+  return TRUE;
 }
 
 void SetVertexGroupIndices(const TSGrowableArray<UINT> &groupVertexCounts, MDLGEOSETSECTION *geoset) {
@@ -210,8 +210,8 @@ static UINT IPrimitives(Parser &parse, MDLPRIMITIVES *primitives, long *entries,
   return primsAdded;
 }
 
-static int NeverInvalid(UINT) {
-  return 0;
+static BOOL NeverInvalid(UINT) {
+  return FALSE;
 }
 
 static int InvalidLines(UINT numVerts) {
@@ -513,34 +513,34 @@ static BOOL ValidateVertexCounts(const MDLGEOSETSECTION &geoset, Parser &parse, 
   UINT numVertices = geoset.vertices.Count();
   if (numVertices != geoset.normals.Count() || numVertices != geoset.vertGroupIndices.Count()) {
     status->Add(STATUS_FATAL, "Error (line %d): Vertex count doesn't match normals and group indices\n", parse.GetLineNumber());
-    return 0;
+    return FALSE;
   }
   UINT numTexLayers = geoset.texCoords.Count();
   for (UINT i = 0; i < numTexLayers; ++i) {
     if (geoset.texCoords[i].Count() != numVertices) {
       status->Add(STATUS_FATAL, "Error (line %d): Vertex count doesn't match texture coordinates\n", parse.GetLineNumber());
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadAlpha(Parser &parse, int expectanimation, MDLGEOSETANIMSECTION *geoset) {
   if (!expectanimation) {
     geoset->staticAlpha = parse.ExpectFloat();
-    return 0;
+    return FALSE;
   }
   ReadObjectFloatKeyframes(parse, &geoset->alphaKeys);
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadColor(Parser &parse, int expectanimation, MDLGEOSETANIMSECTION *geoset) {
   if (!expectanimation) {
     ReadFloatKeyData(parse, &geoset->staticColor.b, 3);
-    return 0;
+    return FALSE;
   }
   ReadObjectFloatKeyframes(parse, &geoset->colorKeys);
-  return 1;
+  return TRUE;
 }
 
 static BOOL IllegalStaticToken(UINT token) {
@@ -548,9 +548,9 @@ static BOOL IllegalStaticToken(UINT token) {
     case MDLTOK_ALPHA:
     case MDLTOK_COLOR:
     case MDLTOK_OPACITY:
-      return 0;
+      return FALSE;
     default:
-      return 1;
+      return TRUE;
   }
 }
 
@@ -566,26 +566,26 @@ static BOOL IReadGeosetAnim(Parser &parse, UINT savedtoken, LPCSTR tokentext, TS
     parse.FatalDuplicate(tokentext);
   }
   if (!geoAnim) {
-    return 0;
+    return FALSE;
   }
   switch (savedtoken) {
     case MDLTOK_ALPHA:
     case MDLTOK_OPACITY:
       if (IReadAlpha(parse, expectanimation, geoAnim)) {
-        return 1;
+        return TRUE;
       }
       break;
     case MDLTOK_COLOR:
       geoAnim->flags |= 1;
       if (IReadColor(parse, expectanimation, geoAnim)) {
-        return 1;
+        return TRUE;
       }
       break;
     default:
-      return 0;
+      return FALSE;
   }
   parse.Expect(',');
-  return 1;
+  return TRUE;
 }
 
 static void IWriteGeosetTexCoords(const TSGrowableArray<NTempest::C2Vector> &texcoords, TSGrowableArray<char> &buffer) {
@@ -735,7 +735,7 @@ BOOL MDL::ReadGeoset(Parser &parse, MDLDATA &data, CMDLStatus *status) {
   LPCSTR                tokentext;
   MDLGEOSETSECTION     *geoset = data.geosets.New();
   TSet                  errors;
-  MDLGEOSETANIMSECTION *geoAnim = 0;
+  MDLGEOSETANIMSECTION *geoAnim = NULL;
   if (data.version < 600) {
     geoAnim = data.geosetAnims.New();
     IGeosetAnimAddErrors(errors);
@@ -815,7 +815,7 @@ BOOL MDL::WriteGeosets(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLS
   for (UINT i = 0; i < data.geosets.Count(); ++i) {
     IWriteGeosetSection(data.geosets[i], writeMaterialId, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadGeosetAnim(Parser &parse, MDLDATA &data, CMDLStatus *status) {
@@ -859,12 +859,12 @@ static void IWriteGeosetAnimSection(const MDLGEOSETANIMSECTION &section, TSGrowa
 
 BOOL MDL::WriteGeosetAnims(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (((LPCSTR)data.model.animationFile)[0]) {
-    return 1;
+    return TRUE;
   }
   for (UINT i = 0; i < data.geosetAnims.Count(); ++i) {
     IWriteGeosetAnimSection(data.geosetAnims[i], buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadBinGeosetAnim(CMsgBuffer &buf, MDLGEOSETANIMSECTION *geoAnim, UINT &totalRead, CMDLStatus *status) {
@@ -895,11 +895,11 @@ static BOOL IReadBinGeosetAnim(CMsgBuffer &buf, MDLGEOSETANIMSECTION *geoAnim, U
     }
     if (localBytesRead > sectionLength) {
       status->FatalOverran("GeosetAnim keys", -1);
-      return 0;
+      return FALSE;
     }
   }
   totalRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinGeosetAnim(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -910,18 +910,18 @@ BOOL MDL::ReadBinGeosetAnim(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLSta
     MDLGEOSETANIMSECTION *section = data.geosetAnims.New();
     if (!section) {
       status->FatalFlunked("GeosetAnim", -1);
-      return 0;
+      return FALSE;
     }
     if (!IReadBinGeosetAnim(buf, section, totalRead, status)) {
       status->Add(STATUS_ERROR, "Error reading Geoset anim section.\n");
-      return 0;
+      return FALSE;
     }
     if (totalRead > length) {
       status->FatalOverran("GeosetAnim", -1);
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT IGetBinGeosetAnimSectionSize(const MDLGEOSETANIMSECTION &section) {
@@ -976,7 +976,7 @@ static void IWriteBinGeosetAnimSection(const MDLGEOSETANIMSECTION &section, CMsg
 BOOL MDL::WriteBinGeosetAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numGeosetAnims = data.geosetAnims.Count();
   if (((LPCSTR)data.model.animationFile)[0] || !numGeosetAnims) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('AOEG');
   UINT totalSize = 4;
@@ -989,23 +989,23 @@ BOOL MDL::WriteBinGeosetAnims(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *
   for (i = 0; i < numGeosetAnims; ++i) {
     IWriteBinGeosetAnimSection(data.geosetAnims[i], buf);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadBinPrimitiveTypes(DWORD magic, CMsgBuffer &buf, TSGrowableArray<BYTE> *section, UINT *localBytesRead, CMDLStatus *status) {
   if (magic != 'PYTP') {
     status->Add(STATUS_ERROR, "Invalid primitives type section in Geoset.\n");
-    return 0;
+    return FALSE;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 4;
   if (!count) {
-    return 1;
+    return TRUE;
   }
   section->SetCount(count);
   buf.GetData(section->Ptr(), count);
   *localBytesRead += section->Count();
-  return 1;
+  return TRUE;
 }
 
 static void IReadBinAnimBounds(CMsgBuffer &buf, MDLGEOSETSECTION *section, UINT *bytesRead) {
@@ -1024,10 +1024,10 @@ static void IReadBinAnimBounds(CMsgBuffer &buf, MDLGEOSETSECTION *section, UINT 
 
 static BOOL ReadBinGeosetTags(CMsgBuffer &buf, MDLGEOSETSECTION *pGeoset, CMDLStatus *status, UINT *localBytesRead) {
   if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &pGeoset->vertices, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
   if (!ReadBinC3VectorSection(buf, 'SMRN', "normal", &pGeoset->normals, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
 
   UINT  count;
@@ -1050,36 +1050,36 @@ static BOOL ReadBinGeosetTags(CMsgBuffer &buf, MDLGEOSETSECTION *pGeoset, CMDLSt
   }
 
   if (!IReadBinPrimitiveTypes(magic, buf, &pGeoset->primitives.types, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
 
   if (!IReadBinUintSection(buf, 'TNCP', "primitives count", &pGeoset->primitives.counts, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
 
   if (!IReadBinUintSection(buf, 'XTVP', "primitives vertices", &pGeoset->primitives.vertices, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
   if (!IReadBinUintSection(buf, 'XDNG', "vertex group indices", &pGeoset->vertGroupIndices, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
   if (!IReadBinUintSection(buf, 'CGTM', "group matrix counts", &pGeoset->groupMatrixCounts, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
   if (!IReadBinUintSection(buf, 'STAM', "matrices", &pGeoset->matrices, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
   if (!IReadBinUintSection(buf, 'XDIB', "bone indices", &pGeoset->boneIndices, localBytesRead, status)) {
-    return 0;
+    return FALSE;
   }
-  return IReadBinUintSection(buf, 'TGWB', "bone weights", &pGeoset->boneWeights, localBytesRead, status) != 0;
+  return IReadBinUintSection(buf, 'TGWB', "bone weights", &pGeoset->boneWeights, localBytesRead, status) != FALSE;
 }
 
 static BOOL ReadBinGeoset(CMsgBuffer &buffer, MDLGEOSETSECTION *geoset, CMDLStatus *status, UINT &totalLength) {
   UINT sectionLength = buffer.GetUint();
   UINT localBytesRead = 4;
   if (!ReadBinGeosetTags(buffer, geoset, status, &localBytesRead)) {
-    return 0;
+    return FALSE;
   }
   geoset->materialId = buffer.GetUint();
   geoset->selectionGroup = buffer.GetUint();
@@ -1092,7 +1092,7 @@ static BOOL ReadBinGeoset(CMsgBuffer &buffer, MDLGEOSETSECTION *geoset, CMDLStat
   IReadBinAnimBounds(buffer, geoset, &localBytesRead);
   FATALASSERT(sectionLength == localBytesRead);
   totalLength += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinGeosets(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -1105,14 +1105,14 @@ BOOL MDL::ReadBinGeosets(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus
     MDLGEOSETSECTION *section = data.geosets.New();
     if (!ReadBinGeoset(buf, section, status, totalRead)) {
       status->Add(STATUS_ERROR, "Error reading Geoset.\n");
-      return 0;
+      return FALSE;
     }
     if (totalRead > length) {
       status->FatalOverran("Geoset", -1);
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetBinGeosetSize(const MDLGEOSETSECTION &section) {
@@ -1202,7 +1202,7 @@ static void WriteBinGeoset(CMsgBuffer &buf, const MDLGEOSETSECTION &section) {
 BOOL MDL::WriteBinGeosets(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numGeosets = data.geosets.Count();
   if (!numGeosets) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('SOEG');
   UINT totalSize = 4;
@@ -1215,5 +1215,5 @@ BOOL MDL::WriteBinGeosets(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   for (i = 0; i < numGeosets; ++i) {
     WriteBinGeoset(buf, data.geosets[i]);
   }
-  return 1;
+  return TRUE;
 }

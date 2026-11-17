@@ -89,7 +89,7 @@ void CHARINFO::ChangeSkinTexture() {
 
   if (m_characterComponent) {
     HandleClose(m_characterComponent);
-    m_characterComponent = 0;
+    m_characterComponent = NULL;
   }
 
   HTEXTURE skinTexture = CharCustomizationSetSkin(m_characterModel, m_characterInfo.raceID, m_characterInfo.sexID, m_characterInfo.skinID, 0);
@@ -153,7 +153,7 @@ void CHARINFO::ChangeSkinTexture() {
 
     if (!i) {
       UINT        preferredGeosets[NUM_CHARGEOSETS];
-      const UINT *geosets = 0;
+      const UINT *geosets = NULL;
       UINT        numGeosets = 0;
       if (hasFacialInfo) {
         memset(preferredGeosets, 0, sizeof(preferredGeosets));
@@ -208,9 +208,9 @@ void CHARINFO::UpdateCharacterInfo(LPCSTR modelName, HMODEL backgroundModel) {
     HandleClose(m_characterComponent);
   }
 
-  m_characterModel = 0;
-  m_petModel = 0;
-  m_characterComponent = 0;
+  m_characterModel = NULL;
+  m_petModel = NULL;
+  m_characterComponent = NULL;
 
   m_characterModel = ObjectModelCreate(modelName, HIER_TYPE_PLAYER, 0x100800);
 
@@ -280,7 +280,7 @@ void CCharSelectInfo::ClearPetModel() {
 
 CHARACTER_INFO *CCharSelectInfo::GetSelectedCharacterInfo() {
   if (m_selectionIndex < 0 || m_selectionIndex >= (int)s_charList.Count()) {
-    return 0;
+    return NULL;
   }
 
   return &s_charList[m_selectionIndex].m_characterInfo;

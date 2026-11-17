@@ -49,11 +49,11 @@ void SDBItemSubclassDestroy() {
 
 const ItemSubClassRec *SDBItemSubclassGetSubClassRec(UINT classID, UINT subClassID) {
   if (classID >= NUM_ITEMCLASSES) {
-    return 0;
+    return NULL;
   }
 
   if (subClassID >= s_itemSubClassList[classID].Count()) {
-    return 0;
+    return NULL;
   }
 
   return s_itemSubClassList[classID][subClassID];

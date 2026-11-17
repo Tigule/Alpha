@@ -188,10 +188,10 @@ class CGTradeSkillInfo {
 struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
   char *textureName;
 
-  INVENTORYART() : textureName(0) {
+  INVENTORYART() : textureName(NULL) {
   }
 
-  INVENTORYART(const INVENTORYART &other) : textureName(0) {
+  INVENTORYART(const INVENTORYART &other) : textureName(NULL) {
     SetArt(other.textureName);
   }
 
@@ -208,7 +208,7 @@ struct INVENTORYART : public TSHashObject<INVENTORYART, HASHKEY_NONE> {
     if (textureName) {
       SMemFree(textureName, __FILE__, __LINE__, 0);
     }
-    textureName = 0;
+    textureName = NULL;
   }
 
   void SetArt(LPCSTR art) {
@@ -242,7 +242,7 @@ static BOOL OnUpdateOwner(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
     CGCraftInfo::RefreshList();
     CGQuestLog::Update(0);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnUpdateStackCount(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -258,7 +258,7 @@ static BOOL OnUpdateStackCount(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID 
     CGContainerInfo::UpdateItem(item->GetGUID());
     CGCharacterInfo::UpdateItem(item->GetGUID());
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnUpdateEnchantments(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
@@ -266,7 +266,7 @@ static BOOL OnUpdateEnchantments(DWORDLONG guid, UINT, UINT, LPCVOID, LPVOID) {
   if (item) {
     item->UpdateEnchantments();
   }
-  return 1;
+  return TRUE;
 }
 
 static void ItemIDChangedCacheCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
@@ -285,7 +285,7 @@ static BOOL OnUpdateItemID(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prev
       CGContainerInfo::UpdateContents(item->GetContainedIn());
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static void AddInventoryArtHash(UINT displayID, LPCSTR fileName) {
@@ -306,7 +306,7 @@ void CGItem_C::SetStorage(DWORD *storage) {
 }
 
 CGItem_C::CGItem_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGItem(storage + CGObject::TotalFields()), m_flags(0), m_expirationTime(0), m_soundsRec(0) {
+    : CGObject_C(storage, eventTime, init), CGItem(storage + CGObject::TotalFields()), m_flags(0), m_expirationTime(0), m_soundsRec(NULL) {
   if (m_item->m_owner) {
     ClntObjMgrHideObject(GetGUID());
   } else {
@@ -377,7 +377,7 @@ void CGItem_C::PostInitWithStats() {
   if (displayInfo) {
     m_soundsRec = g_itemGroupSoundsDB.GetRecord(displayInfo->m_groupSoundIndex);
   } else {
-    m_soundsRec = 0;
+    m_soundsRec = NULL;
   }
 
   if (GetOwner() == ClntObjMgrGetActivePlayer()) {
@@ -486,13 +486,13 @@ LPCSTR CGItem_C::GetInventoryArt() const {
 }
 
 LPCSTR CGItem_C::GetModelFileName() const {
-  return 0;
+  return NULL;
 }
 
 BOOL CGItem_C::CanBeUsed() {
   const ItemStats_C *stats = g_itemDBCache.GetRecord(GetEntryID(), ClntObjMgrGetActivePlayer(), 0, 0);
   if (!stats) {
-    return 0;
+    return FALSE;
   }
   UINT index;
   for (index = 0; index < 5; ++index) {
@@ -589,7 +589,7 @@ BOOL CGItem_C::SetBlock(UINT i, DWORD data) {
   i -= CGObject::TotalFields();
   FATALASSERT(i < (CGItem::GetDataSize()/sizeof(DWORD)));
   ((DWORD *)&m_item)[i] = data;
-  return 1;
+  return TRUE;
 }
 
 void CGItem_C::SetData(LPCVOID data, UINT bytes) {
@@ -692,7 +692,7 @@ int CGItem_C::GetEnchantmentTimeLeft(int slot) {
 BOOL CGItem_C::GetSelectionHighlightColor(NTempest::CImVector *outPtr) const {
   FATALASSERT(outPtr);
   *outPtr = NTempest::CImVector(0xFFFFFFFF);
-  return 1;
+  return TRUE;
 }
 
 void CGItem_C::OnRightClick() {
@@ -744,7 +744,7 @@ int CGItem_C::GetDisplayID() const {
 }
 
 bool CGItem_C::IsExotic() const {
-  return GetItemStaticFlag(ITEM_FLAG_EXOTIC) != 0;
+  return GetItemStaticFlag(ITEM_FLAG_EXOTIC) != FALSE;
 }
 
 BOOL CGItem_C::GetItemStaticFlag(ITEM_STATIC_FLAGS flags) const {

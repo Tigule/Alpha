@@ -1064,7 +1064,7 @@ mdl_scan::mdl_scan(const char *in, int sz)
 		mdlerror("No space for scanner!");
 		exit(1);
 	}
-	mustfree = 1;
+	mustfree = TRUE;
 	mdl_end = 0;
 	mdl_start = 0;
 	mdl_lastc = YYNEWLINE;
@@ -1077,7 +1077,7 @@ mdl_scan::mdl_scan(const char *in, int sz)
 mdl_scan::~mdl_scan()
 {
 	if (mustfree) {
-		mustfree = 0;
+		mustfree = FALSE;
 		delete[] mdltext;
 		delete[] state;
 	}

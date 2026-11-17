@@ -32,7 +32,7 @@ static NTempest::CImVector    s_uglyGreen(0xFF00FF00);
 
 static BOOL OnPickNextFidget(LPVOID param) {
   ModelSetRandomSequenceFidget((HMODEL)param, 0, 0);
-  return 1;
+  return TRUE;
 }
 
 static void DoodadEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
@@ -73,9 +73,9 @@ void CMap::Load(LPCSTR fileName) {
   CMapObjDef *mapObjDef = mapObjDefHash.Head();
   FATALASSERT(mapObjDef == 0);
   CMapObj::ClearCache(1);
-  bActive = 1;
-  bDungeon = 0;
-  bPreload = 1;
+  bActive = TRUE;
+  bDungeon = FALSE;
+  bPreload = TRUE;
 
   LoadWdl();
 
@@ -90,7 +90,7 @@ void CMap::Load(LPCSTR fileName) {
 
   SStrPrintf(lightPath, 255, "%s\\%s", mapPath, "lights.lit");
   DayNightInitialize(lightPath);
-  bPreload = 0;
+  bPreload = FALSE;
 }
 
 void CMap::LoadWdl() {
@@ -192,9 +192,9 @@ void CMap::LoadWdt() {
     NTempest::C3Vector pos(0.0f, 0.0f, 0.0f);
     CMapObjDef        *mapObjDef = CreateMapObjDef(smMapObjDef, pos);
     CMapBaseObjLink   *link = AllocBaseObjLink(mapObjDef);
-    link->ref = 0;
+    link->ref = NULL;
     mapObjDefLinkList.LinkNode(link, LIST_TAIL, 0);
-    bDungeon = 1;
+    bDungeon = TRUE;
   }
 }
 
@@ -203,10 +203,10 @@ void CMap::Preload() {
   CMapObj::ClearCache(0);
   ModelCacheFlush();
   TextureCacheFlush();
-  bPreload = 1;
+  bPreload = TRUE;
   PrepareUpdate();
   AsyncFileReadWaitAll();
-  bPreload = 0;
+  bPreload = FALSE;
 }
 
 void CMap::Open() {
@@ -289,9 +289,9 @@ CMapDoodadDef *CMap::CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, f
 
   doodadDef->modelName = fileName;
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
-  doodadDef->model = 0;
+  doodadDef->model = NULL;
   LoadDoodadModel(doodadDef, bWait);
-  doodadDef->modelName = 0;
+  doodadDef->modelName = NULL;
   return doodadDef;
 }
 
@@ -315,7 +315,7 @@ CMapDoodadDef *CMap::CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vecto
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
 
   doodadDef->modelName = &doodadNames.Ptr()[doodadNamesIndex[smDoodadDef.nameId]];
-  doodadDef->model = 0;
+  doodadDef->model = NULL;
 
   NTempest::C3Vector rot(smDoodadDef.rot.z * 0.017453292f, smDoodadDef.rot.x * 0.017453292f, smDoodadDef.rot.y * 0.017453292f + PI);
   doodadDef->mat.Identity();
@@ -350,7 +350,7 @@ CMap::CreateDoodadDef(UINT doodadRef, SMODoodadDef &smoDoodadDef, LPCSTR fileNam
   doodadDef->aaBox.t = doodadDef->pos;
   doodadDef->aaSphere.r = 0.0f;
   doodadDef->flags = CMapBaseObj::Flag_LightUpdate;
-  doodadDef->model = 0;
+  doodadDef->model = NULL;
   doodadDef->modelName = fileName;
 
   doodadDef->mat.Identity();
@@ -380,7 +380,7 @@ void CMap::InitializeDoodadBounds(CMapDoodadDef *doodadDef) {
   CWorldMath::TransformAABox(doodadDef->mat, localCollExtents, doodadDef->collideExt);
 }
 
-int CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait) {
+BOOL CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait) {
   FATALASSERT(doodadDef);
 
   CStatus      status;
@@ -417,11 +417,11 @@ int CMap::LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait) {
     InitializeDoodadBounds(doodadDef);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CMap::ReloadDoodadModels() {
-  bPreload = 1;
+  bPreload = TRUE;
 
   {
     ITERATELIST(CMapDoodadDef, doodadDefHash, doodadDef) {
@@ -434,12 +434,12 @@ void CMap::ReloadDoodadModels() {
       if (doodadDef->model) {
         HandleClose(doodadDef->model);
       }
-      doodadDef->model = 0;
+      doodadDef->model = NULL;
       LoadDoodadModel(doodadDef, 0);
     }
   }
 
-  bPreload = 0;
+  bPreload = FALSE;
 }
 
 void CMap::EnableDoodadFullAlpha(int enable) {

@@ -85,7 +85,7 @@ static BOOL DrownAnimCallback(LPVOID param) {
   if (object) {
     ((CGCorpse_C *)object)->OnDeathAnimEnd();
   }
-  return 1;
+  return TRUE;
 }
 
 void CGCorpse_C::SetStorage(DWORD *storage) {
@@ -94,7 +94,7 @@ void CGCorpse_C::SetStorage(DWORD *storage) {
 }
 
 CGCorpse_C::CGCorpse_C(DWORD *storage, DWORD eventTime, CClientObjCreate *init)
-    : CGObject_C(storage, eventTime, init), CGCorpse(storage + CGObject::TotalFields()), m_animData(0) {
+    : CGObject_C(storage, eventTime, init), CGCorpse(storage + CGObject::TotalFields()), m_animData(NULL) {
   m_corpse->m_position = init->move.status.worldPosition;
   m_corpse->m_facing = init->move.status.worldFacing;
   InitComponents();
@@ -104,12 +104,12 @@ CGCorpse_C::~CGCorpse_C() {
   if (m_geosetHandle) {
     HandleClose(m_geosetHandle);
   }
-  m_geosetHandle = 0;
+  m_geosetHandle = NULL;
 
   if (m_texComponent) {
     HandleClose(m_texComponent);
   }
-  m_texComponent = 0;
+  m_texComponent = NULL;
 
   if (m_animData) {
     s_freeAnimData.Put(m_animData);
@@ -160,7 +160,7 @@ BOOL CGCorpse_C::SetBlock(UINT i, DWORD data) {
   i -= CGObject::TotalFields();
   FATALASSERT(i < (CGCorpse::GetDataSize()/sizeof(DWORD)));
   ((DWORD *)&m_corpse)[i] = data;
-  return 1;
+  return TRUE;
 }
 
 void CGCorpse_C::SetData(LPCVOID data, UINT bytes) {

@@ -28,28 +28,28 @@ BOOL CInputObserver::OnChar(const EVENT_DATA_CHAR *pCharEvtData, LPVOID param) {
   CCharEvent charEvent(*pCharEvtData);
   charEvent.SetId(0x40060067);
   ((CInputObserver *)param)->DispatchEvent(charEvent);
-  return 1;
+  return TRUE;
 }
 
 BOOL CInputObserver::OnKeyDown(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CKeyEvent keyEvent(*pKeyData);
   keyEvent.SetId(0x40060064);
   ((CInputObserver *)param)->DispatchEvent(keyEvent);
-  return 1;
+  return TRUE;
 }
 
 BOOL CInputObserver::OnKeyRepeat(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CKeyEvent keyEvent(*pKeyData);
   keyEvent.SetId(0x40060065);
   ((CInputObserver *)param)->DispatchEvent(keyEvent);
-  return 1;
+  return TRUE;
 }
 
 BOOL CInputObserver::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
   CKeyEvent keyEvent(*pKeyData);
   keyEvent.SetId(0x40060066);
   ((CInputObserver *)param)->DispatchEvent(keyEvent);
-  return 1;
+  return TRUE;
 }
 
 #define INPUT_OBSERVER_MOUSE_HANDLER(name, eventId)                             \
@@ -57,7 +57,7 @@ BOOL CInputObserver::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
     CMouseEvent mouseEvent(*pMouseData);                                        \
     mouseEvent.SetId(eventId);                                                  \
     ((CInputObserver *)param)->DispatchEvent(mouseEvent);            \
-    return 1;                                                                   \
+    return TRUE;                                                                \
   }
 
 INPUT_OBSERVER_MOUSE_HANDLER(OnMouseDown, 0x400500C8)
@@ -73,21 +73,21 @@ BOOL CInputObserver::OnIme(const EVENT_DATA_IME *pImeData, LPVOID param) {
   CImeEvent imeEvent(*pImeData);
   imeEvent.SetId(0x40060068);
   ((CInputObserver *)param)->DispatchEvent(imeEvent);
-  return 1;
+  return TRUE;
 }
 
 BOOL CInputObserver::OnWindowSize(const EVENT_DATA_SIZE *pSizeData, LPVOID param) {
   CSizeEvent sizeEvent(*pSizeData);
   sizeEvent.SetId(0x40040064);
   ((CInputObserver *)param)->DispatchEvent(sizeEvent);
-  return 1;
+  return TRUE;
 }
 
 BOOL CInputObserver::OnWindowFocus(const EVENT_DATA_FOCUS *pFocusData, LPVOID param) {
   CFocusEvent focusEvent(*pFocusData);
   focusEvent.SetId(0x40040065);
   ((CInputObserver *)param)->DispatchEvent(focusEvent);
-  return 1;
+  return TRUE;
 }
 
 #define INPUT_OBSERVER_REGISTRATION(name, eventId, handler, inputEventId, priority)                         \

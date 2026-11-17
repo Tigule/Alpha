@@ -47,7 +47,7 @@ static bool QuestParserGenderConditional(char *buf, UINT size, const DWORDLONG &
   }
 
   if (unit && !unit->IsA(ID_PLAYER)) {
-    nc = 0;
+    nc = NULL;
   }
 
   while (*token && *token == ' ') {
@@ -105,7 +105,7 @@ static bool QuestParserReplaceText(char *buf, UINT size, const DWORDLONG &target
     return false;
   }
   if (unit && !unit->IsA(ID_PLAYER)) {
-    nc = 0;
+    nc = NULL;
   }
 
   switch (*token) {

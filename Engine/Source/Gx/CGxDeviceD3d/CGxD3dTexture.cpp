@@ -23,7 +23,7 @@ void CGxDeviceD3d::ITexForceRecreation(int freeTextures) {
     if (texture && texture->m_apiSpecificData && (freeTextures || texture->m_flags.m_renderTarget)) {
       static NTempest::CiRect emptyRect;
       ((IUnknown *)texture->m_apiSpecificData)->Release();
-      texture->m_apiSpecificData = 0;
+      texture->m_apiSpecificData = NULL;
       texture->m_needsCreation = 1;
       TexMarkForUpdate(texture, emptyRect, 0);
     }

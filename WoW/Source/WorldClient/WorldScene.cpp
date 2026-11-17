@@ -109,7 +109,7 @@ void CSortTable::Clear() {
 }
 
 void CWorldScene::Initialize() {
-  camTargEntity = 0;
+  camTargEntity = NULL;
   camLiquid = 15;
 
   vpPlanes[0].n = NTempest::C3Vector(1.0f, 0.0f, 1.0f);
@@ -499,7 +499,7 @@ void CWorldScene::CalcFrustumCorners(NTempest::C3Vector corners[]) {
 }
 
 void CWorldScene::LocateViewer() {
-  viewerMapObjDef = 0;
+  viewerMapObjDef = NULL;
   viewerMapObjGroups.SetCount(0);
   currentChunkName[0] = 0;
 
@@ -526,12 +526,12 @@ void CWorldScene::AddViewerGroup2(UINT groupNum) {
 }
 
 void CWorldScene::LocateViewer3() {
-  viewerMapObjDef = 0;
+  viewerMapObjDef = NULL;
   viewerMapObjGroups.SetCount(0);
   currentChunkName[0] = 0;
-  camMapObj = 0;
-  camMapObjGroup = 0;
-  camMapObjDef = 0;
+  camMapObj = NULL;
+  camMapObjGroup = NULL;
+  camMapObjDef = NULL;
 
   if (!(CWorld::enables & CWorld::Enable_MapObjs)) {
     return;
@@ -544,7 +544,7 @@ void CWorldScene::LocateViewer3() {
   CMapChunk  *chunk;
   float       chunkT = 1.0f;
   float       mapObjT = 1.0f;
-  CMapObjDef *mapObjDef = 0;
+  CMapObjDef *mapObjDef = NULL;
   UINT        mapObjDefGroupIDs[2];
   bool        hitChunk = CMap::VectorIntersectTerrain(&lCen, &lEnd, &chunkT, 0, &chunk);
   bool        hitMapObj = CMap::LocateViewerMapObjs(lCen, lEnd, mapObjT, mapObjDef, mapObjDefGroupIDs);
@@ -1177,7 +1177,7 @@ void CWorldScene::CullMapObjDefGroup(const UINT groupNum, LPCVOID userParam, con
   CMapObjDef *mapObjDef = (CMapObjDef *)userParam;
   FATALASSERT(mapObjDef);
 
-  CMapObjDefGroup *mapObjDefGroup = 0;
+  CMapObjDefGroup *mapObjDefGroup = NULL;
   {
     ITERATELIST(CMapBaseObjLink, mapObjDef->groupLinkList, groupLink) {
       mapObjDefGroup = (CMapObjDefGroup *)groupLink->owner;
@@ -1229,12 +1229,12 @@ void CWorldScene::ClipBufferClear() {
   }
 }
 
-int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags) {
+BOOL CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags) {
   if (!(CWorld::enables & CWorld::Enable_Culling)) {
-    return 0;
+    return FALSE;
   }
   if (NTempest::CMath::fabs_(radius) < 2.38418579e-7f) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C4Vector v(center);
@@ -1242,7 +1242,7 @@ int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, 
   v = v * mvp;
   vr = vr * mp;
   if (!(cullFlags & 8) && v.w < 50.0f) {
-    return 0;
+    return FALSE;
   }
 
   float ooW = 1.0f / v.w;
@@ -1259,12 +1259,12 @@ int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, 
 
   if (cullFlags & 4) {
     if (v.w - radius > cullDistance) {
-      return 1;
+      return TRUE;
     }
   }
   if (cullFlags & 1) {
     if (vr.x < cullSmallThreshold && vr.y < cullSmallThreshold) {
-      return 1;
+      return TRUE;
     }
   }
 
@@ -1280,15 +1280,15 @@ int CWorldScene::ClipBufferCull(const NTempest::C3Vector &center, float radius, 
 
   for (; first <= last; ++first) {
     if (clipBuffer[first] < v.y) {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
-int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
+BOOL CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
   if (!(CWorld::enables & CWorld::Enable_Culling)) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C3Vector aaBoxMin(3.4028235e38f);
@@ -1298,7 +1298,7 @@ int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
     NTempest::C4Vector v(aaBoxMinMax[s_boxCornerIndicesX[i]]->x, aaBoxMinMax[s_boxCornerIndicesY[i]]->y, aaBoxMinMax[s_boxCornerIndicesZ[i]]->z, 1.0f);
     v = v * mvp;
     if (!(cullFlags & 8) && v.w < 50.0f) {
-      return 0;
+      return FALSE;
     }
     float ooW = 1.0f / v.w;
     v.x *= ooW;
@@ -1322,7 +1322,7 @@ int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
   }
 
   if ((cullFlags & 4) && aaBoxMin.z > cullDistance) {
-    return 1;
+    return TRUE;
   }
 
   int first = Fast_ftol(CBSCALE * aaBoxMin.x);
@@ -1337,10 +1337,10 @@ int CWorldScene::ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags) {
 
   for (; first <= last; ++first) {
     if (clipBuffer[first] < aaBoxMax.y) {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 CWFrustum::CWFrustum(
@@ -1548,12 +1548,12 @@ BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3
   }
 
   if (andMask) {
-    return 0;
+    return FALSE;
   }
   if (!orMask) {
     p_outVerts = inPointPtrs;
     p_outCount = p_inCount;
-    return 1;
+    return TRUE;
   }
 
   ClipFrame  inFrame(inPointPtrs, inInfoPtrs, p_inCount);
@@ -1595,7 +1595,7 @@ BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3
     }
 
     if (!oframe->count) {
-      return 0;
+      return FALSE;
     }
 
     ClipFrame *temp = in;
@@ -1605,7 +1605,7 @@ BOOL CWorld::NDCClip(NTempest::C3Vector *p_inVerts, UINT p_inCount, NTempest::C3
 
   p_outVerts = in->points;
   p_outCount = in->count;
-  return 1;
+  return TRUE;
 }
 
 bool CWorld::NDCXform(const CWFrustum &frustum, NTempest::C44Matrix &xf, bool translate) {

@@ -9,7 +9,7 @@
 DECLARE_DERIVED_HANDLE(HFACE, HOBJECT);
 
 struct FACEDATA : public TSHashObject<FACEDATA, HASHKEY_STRI>, public CHandleObject {
-  FACEDATA() : data(0), face(0) {
+  FACEDATA() : data(NULL), face(NULL) {
   }
 
   ~FACEDATA() {
@@ -40,7 +40,7 @@ HFACE FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
   LPVOID    storage;
 
   if (!library || !fileName || !*fileName) {
-    return 0;
+    return NULL;
   }
 
   faceData = s_faceHash.Ptr(fileName);
@@ -49,8 +49,8 @@ HFACE FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
     return (HFACE)HandleDuplicate(faceData->selfReference);
   }
 
-  data   = 0;
-  handle = 0;
+  data   = NULL;
+  handle = NULL;
   if (!SFile::Load(0, fileName, &data, &size, 0, 3, 0)) {
     goto finallylabel;
   }
@@ -79,8 +79,8 @@ HFACE FontFaceGetHandle(LPCSTR fileName, FT_LibraryRec_ *library) {
   faceData->face = theFace;
   s_faceHash.Insert(faceData, fileName);
 
-  data = 0;
-  theFace = 0;
+  data = NULL;
+  theFace = NULL;
   faceData->selfReference = CREATEHANDLE(HFACE, faceData);
   handle = (HFACE)HandleDuplicate(faceData->selfReference);
 
@@ -118,7 +118,7 @@ void FontFaceCloseHandle(HFACE handle) {
   if (refCount <= 1) {
     HFACE selfReference = dataPtr->selfReference;
 
-    dataPtr->selfReference = 0;
+    dataPtr->selfReference = NULL;
     HandleClose(selfReference);
   }
 }

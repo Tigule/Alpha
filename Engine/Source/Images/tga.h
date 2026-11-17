@@ -59,7 +59,7 @@ struct TGA32Pixel {
 
 class CTgaFile {
  public:
-  CTgaFile() : m_file(0), m_image(0), m_addlHeaderData(0), m_imageBytes(0), m_colorMap(0) {
+  CTgaFile() : m_file(NULL), m_image(NULL), m_addlHeaderData(NULL), m_imageBytes(0), m_colorMap(NULL) {
   }
 
   CTgaFile(const CTgaFile &source);

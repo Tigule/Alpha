@@ -87,7 +87,7 @@ static BOOL ReceiveObjectRotation(LPVOID, NETMESSAGE msgId, DWORD time, CDataSto
   msg->Get(facing);
   msg->Get(anchorfacing);
   ConsoleWriteA("facing: %g degrees, anchor: %g degrees", DEFAULT_COLOR, facing * 57.29578f, anchorfacing * 57.29578f);
-  return 1;
+  return TRUE;
 }
 
 void               OsIMEInitialize();
@@ -102,7 +102,7 @@ void               ClientDBInitialize();
 void               ClientDBShutdown();
 void               ComponentInitialize();
 void               ComponentShutdown();
-int                FrameXML_RegisterDefault();
+BOOL               FrameXML_RegisterDefault();
 void               FrameXML_ClearFactories();
 void               GlueScriptEventsInitialize();
 void               ScriptEventsInitialize();
@@ -245,7 +245,7 @@ static BOOL ClientChatHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataSt
 
 static BOOL ChannelNotifyHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGChat::ChannelNotify(msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ClientTextEmoteHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
@@ -254,7 +254,7 @@ static BOOL ClientTextEmoteHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CD
 
 static BOOL ClientChannelListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGChat::ChannelList(msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
@@ -262,7 +262,7 @@ static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CData
   DWORDLONG  unit;
   msg->Get(unit);
   if (tooltip && tooltip->GetDebugUnit() != unit) {
-    tooltip = 0;
+    tooltip = NULL;
   }
 
   int numStrings;
@@ -279,7 +279,7 @@ static BOOL DebugAIStateHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CData
     tooltip->CalculateSize();
     tooltip->SetDebugUnit(0);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
@@ -299,7 +299,7 @@ static BOOL MovementFallLoggingHandler(LPVOID param, NETMESSAGE msgId, DWORD tim
     SysMsgAdd("MOVEMENT|Movement fall logging stopped", SYSMSG_INFO, 1);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL MovementLoggingHandler(LPVOID param, NETMESSAGE msgID, DWORD time, CDataStore *msg) {
@@ -312,7 +312,7 @@ static BOOL MovementLoggingHandler(LPVOID param, NETMESSAGE msgID, DWORD time, C
     SysMsgAdd("MOVEMENT|Movement logging stopped", SYSMSG_INFO, 1);
   }
 
-  return 1;
+  return TRUE;
 }
 
 struct LOOKUPRESULT {
@@ -327,7 +327,7 @@ static BOOL LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDat
   msg->Get(numResults);
   if (!numResults) {
     ConsoleWrite("No results", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   LPVOID data;
@@ -340,7 +340,7 @@ static BOOL LookupResultsHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDat
     OsOutputDebugString("[%.04d] \"%s\" \"%s\" %s\n", results[i].id, results[i].strings[0], results[i].strings[1], results[i].strings[2]);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveObjectPosition(LPVOID, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
@@ -350,7 +350,7 @@ static BOOL ReceiveObjectPosition(LPVOID, NETMESSAGE msgId, DWORD time, CDataSto
   msg->Get(position.y);
   msg->Get(position.z);
   ConsoleWriteA("%g, %g, %g", DEFAULT_COLOR, position.x, position.y, position.z);
-  return 1;
+  return TRUE;
 }
 
 static void FormatTime(char *buf, int len, int secs) {
@@ -373,20 +373,20 @@ static BOOL PlayedTimeHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   FormatTime(buf, sizeof(buf), levelTime);
   ConsolePrintf("Level: %s", buf);
   FrameScript_SignalEvent(0xF3u, "%d%d", totalTime, levelTime);
-  return 1;
+  return TRUE;
 }
 
 static BOOL TransferPendingHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGGameUI::ClearClientControls();
   ConsolePrintf("World transfer pending...");
   EnableLoadingScreen();
-  return 1;
+  return TRUE;
 }
 
 static BOOL TransferAbortedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   ConsolePrintf("World transfer aborted...");
   DisableLoadingScreen();
-  return 1;
+  return TRUE;
 }
 
 static void MovementInit() {
@@ -429,7 +429,7 @@ static BOOL LoadNewWorld(LPCVOID eventData, LPVOID param) {
   msg.Finalize();
   ClientServices_Send(&msg);
   LoadingScreenRegisterWorldLoaded();
-  return 1;
+  return TRUE;
 }
 
 static BOOL NewWorldHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
@@ -444,19 +444,19 @@ static BOOL NewWorldHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStor
   if (!msg->IsRead()) {
     ConsoleWrite("Bad SMSG_NEW_WORLD\n", DEFAULT_COLOR);
     msg->Reset();
-    return 1;
+    return TRUE;
   }
 
   const MapRec *map = g_mapDB.GetRecord(s_newZoneID);
   if (!map) {
     ConsoleWrite("Bad SMSG_NEW_WORLD zoneID\n", DEFAULT_COLOR);
-    return 0;
+    return FALSE;
   }
 
   s_newMapname = map->m_Directory;
   EnableLoadingScreen();
   EventSetTimer(0u, LoadNewWorld, 0);
-  return 1;
+  return TRUE;
 }
 
 static bool ErrorDisplayCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
@@ -684,14 +684,14 @@ static BOOL SetFilterMask(LPCSTR filterString) {
   }
 
   SysMsgSetFilter(categoryFilter);
-  return 1;
+  return TRUE;
 
 unknownFilter:
   ConsolePrintf("Unknown filter %s", filter);
   ConsoleWrite("Filters: general world ui animation models objects all", DEFAULT_COLOR);
   ConsoleWrite("         use \"except\" to invert mask", DEFAULT_COLOR);
   ConsoleWrite("         i.e.: all except objects", DEFAULT_COLOR);
-  return 0;
+  return FALSE;
 }
 
 static bool ErrorDisplayFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg) {
@@ -785,7 +785,7 @@ static bool ProfanityFilterCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, L
 static BOOL CCommand_ReloadUI(LPCSTR command, LPCSTR arguments) {
   CGlueMgr::Reload();
   CGGameUI::Reload();
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ToggleLighting(LPCSTR command, LPCSTR arguments) {
@@ -793,7 +793,7 @@ static BOOL CCommand_ToggleLighting(LPCSTR command, LPCSTR arguments) {
 
   GxMasterEnableSet(GxMasterEnable_Lighting, enabled);
   ConsoleWrite(enabled ? "Lighting enabled" : "Lighting disabled", DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ToggleFog(LPCSTR command, LPCSTR arguments) {
@@ -801,7 +801,7 @@ static BOOL CCommand_ToggleFog(LPCSTR command, LPCSTR arguments) {
 
   GxMasterEnableSet(GxMasterEnable_Fog, enabled);
   ConsoleWrite(enabled ? "Fog enabled" : "Fog disabled", DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ToggleDepthTesting(LPCSTR command, LPCSTR arguments) {
@@ -809,7 +809,7 @@ static BOOL CCommand_ToggleDepthTesting(LPCSTR command, LPCSTR arguments) {
 
   GxMasterEnableSet(GxMasterEnable_DepthTest, enabled);
   ConsoleWrite(enabled ? "Depth Testing enabled" : "Depth Testing disabled", DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ToggleDepthSetting(LPCSTR command, LPCSTR arguments) {
@@ -817,7 +817,7 @@ static BOOL CCommand_ToggleDepthSetting(LPCSTR command, LPCSTR arguments) {
 
   GxMasterEnableSet(GxMasterEnable_DepthWrite, enabled);
   ConsoleWrite(enabled ? "Depth Writing enabled" : "Depth Writing disabled", DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ToggleCulling(LPCSTR command, LPCSTR arguments) {
@@ -825,7 +825,7 @@ static BOOL CCommand_ToggleCulling(LPCSTR command, LPCSTR arguments) {
 
   GxMasterEnableSet(GxMasterEnable_Culling, enabled);
   ConsoleWrite(enabled ? "Back Face Culling enabled" : "Back Face Culling disabled", DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ToggleDblBuffer(LPCSTR command, LPCSTR arguments) {
@@ -833,23 +833,23 @@ static BOOL CCommand_ToggleDblBuffer(LPCSTR command, LPCSTR arguments) {
 
   GxMasterEnableSet(GxMasterEnable_DoubleBuffering, enabled);
   ConsoleWrite(enabled ? "Double Buffering enabled" : "DoubleBuffering disabled", DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetResolutionXY(LPCSTR command, LPCSTR arguments) {
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetResolutionMode(LPCSTR command, LPCSTR arguments) {
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetColorDepth(LPCSTR command, LPCSTR arguments) {
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetAPI(LPCSTR command, LPCSTR arguments) {
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Bug(LPCSTR command, LPCSTR args) {
@@ -862,7 +862,7 @@ static BOOL CCommand_Bug(LPCSTR command, LPCSTR args) {
   } else if (!SStrCmpI(command, "note", 0x7FFFFFFF)) {
     reportType = 2;
   } else {
-    return 1;
+    return TRUE;
   }
 
   if (ClientServices_Report(reportType, args, "")) {
@@ -870,7 +870,7 @@ static BOOL CCommand_Bug(LPCSTR command, LPCSTR args) {
   } else {
     ConsolePrintf("%s submission failed", command);
   }
-  return 1;
+  return TRUE;
 }
 
 static void ClientRegisterConsoleCommands() {
@@ -945,7 +945,7 @@ static BOOL CacheUpdateHandler(LPCVOID eventData, LPVOID arg) {
   TextureCacheUpdate(time, &status);
   SysMsgAdd(status, 1);
   s_cacheUpdateTimerHandle = EventSetTimer(250u, CacheUpdateHandler, 0);
-  return 1;
+  return TRUE;
 }
 
 static void CacheUpdateInitialize() {
@@ -960,7 +960,7 @@ static void CacheUpdateShutdown() {
 
 static BOOL PollNet(LPCVOID, LPVOID) {
   ClientServices_PollEventQueue();
-  return 1;
+  return TRUE;
 }
 
 static void WowClientInit() {
@@ -1008,7 +1008,7 @@ static BOOL InitializeHandlerPlayer(LPCVOID, LPVOID) {
 #endif
   WowClientInit();
   ConsoleCommandExecute("run autoexec.wtf", 1);
-  return 1;
+  return TRUE;
 }
 
 static void WowClientDestroy() {
@@ -1046,7 +1046,7 @@ static BOOL DestroyHandlerPlayer(LPCVOID, LPVOID) {
   ConsoleScreenDestroy();
   ScrnDestroy();
   BaseDestroyContext();
-  return 1;
+  return TRUE;
 }
 
 static BOOL NotifyHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore *msg) {
@@ -1054,7 +1054,7 @@ static BOOL NotifyHandler(LPVOID, NETMESSAGE msgID, DWORD timestamp, CDataStore 
 
   msg->GetString(text, sizeof(text));
   ConsoleWriteA("Notification received: %s", ERROR_COLOR, text);
-  return 1;
+  return TRUE;
 }
 
 static void SetPaths() {
@@ -1080,7 +1080,7 @@ static void OpenArchives() {
 
   for (i = 0; i < 8; ++i) {
     if (!SFile::OpenArchive(s_archiveNames[i], 0, 0, &s_archive[i])) {
-      s_archive[i] = 0;
+      s_archive[i] = NULL;
     }
   }
 }
@@ -1164,12 +1164,12 @@ static BOOL ClientIdle(LPCVOID data, LPVOID) {
   ClientGameTimeTickHandler(data, 0);
   Player_C_ZoneUpdateHandler(data, 0);
   CGPlayer_C::GMIdle();
-  return 1;
+  return TRUE;
 }
 
 static BOOL ClientFocus(LPCVOID packetData, LPVOID) {
   Player_C_AppFocusMovementHandler(*(const int *)packetData);
-  return 1;
+  return TRUE;
 }
 
 void ClientKillTimer(UINT timerId, CLIENTTIMERHANDLER handlerAddress, LPCSTR handlerName) {
@@ -1310,12 +1310,12 @@ UINT Bot_QueryAreaId(float x, float y) {
   return CWorld::QueryAreaId(x, y);
 }
 
-int Bot_GeneratePath(const NTempest::C3Vector &, const NTempest::C3Vector &, TSStackArray<NTempest::C3Vector> &) {
-  return 0;
+BOOL Bot_GeneratePath(const NTempest::C3Vector &, const NTempest::C3Vector &, TSStackArray<NTempest::C3Vector> &) {
+  return FALSE;
 }
 
-int Bot_GetWanderPoint(const NTempest::C3Vector &, float, const NTempest::C3Vector &, const NTempest::C3Vector &, float, NTempest::C3Vector &) {
-  return 0;
+BOOL Bot_GetWanderPoint(const NTempest::C3Vector &, float, const NTempest::C3Vector &, const NTempest::C3Vector &, float, NTempest::C3Vector &) {
+  return FALSE;
 }
 
 void BotClientSetAccount(LPCSTR, LPCSTR) {
@@ -1340,7 +1340,7 @@ static void LogZoneInfo(CGPlayer_C *player, char *log, DWORD size) {
 }
 
 static BOOL ClientIsValidPointer(LPCVOID address, DWORD size, int forWriting) {
-  return SMemIsValidPointer(address, size, forWriting) != 0;
+  return SMemIsValidPointer(address, size, forWriting) != FALSE;
 }
 
 static void LogObjectInfo(LPCSTR label, CGObject_C *object, char *log, DWORD size) {
@@ -1358,7 +1358,7 @@ static void LogObjectInfo(LPCSTR label, CGObject_C *object, char *log, DWORD siz
   SStrPack(log, text, size);
 }
 
-static int APIENTRY WowLogHeader(char *log, DWORD size) {
+static BOOL APIENTRY WowLogHeader(char *log, DWORD size) {
   CGPlayer_C *player;
   CGObject_C *object;
   DWORDLONG   guid;
@@ -1366,13 +1366,13 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
   SStrPrintf(log, size, "WoWBuild: %d\r\n", BUILD_VERSION);
 
   if (!ClntObjMgrIsValid(0)) {
-    return 1;
+    return TRUE;
   }
 
   guid = ClntObjMgrGetActivePlayer();
   player = (CGPlayer_C *)ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!player || !ClientIsValidPointer(player, 0x1860, FALSE)) {
-    return 1;
+    return TRUE;
   }
 
   LogZoneInfo(player, log, size);
@@ -1408,7 +1408,7 @@ static int APIENTRY WowLogHeader(char *log, DWORD size) {
     LogObjectInfo("Cursor Item", object, log, size);
   }
 
-  return 1;
+  return TRUE;
 }
 
 #ifndef __linux__
@@ -1503,7 +1503,7 @@ int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
   return CommonMain();
 }
 #elif defined(__linux__)
-int OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
+BOOL OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
 
 int main(int argc, char **argv) {
   OsSetArgs(argv, true, false);

@@ -406,7 +406,7 @@ BOOL CRibbonEmitter::Render() {
   ASSERT(m_initialized);
 
   if (m_readPos == m_writePos) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C44Matrix worldToCamera;
@@ -446,7 +446,7 @@ BOOL CRibbonEmitter::Render() {
   GxPrimUnlockIndexPtr();
   GxPrimUnlockVertexPtrs();
   GxXformPop(GxXform_World);
-  return 1;
+  return TRUE;
 }
 
 BOOL CRibbonEmitter::IsDead() {

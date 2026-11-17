@@ -40,14 +40,14 @@ void OsFileConvertSlashes(char *path) {
     }
   }
 
-  while ((curr = SStrStr(path, "./")) != 0) {
+  while ((curr = SStrStr(path, "./")) != NULL) {
     while (*curr) {
       *curr = curr[2];
       ++curr;
     }
   }
 
-  while ((curr = SStrStr(path, "//")) != 0) {
+  while ((curr = SStrStr(path, "//")) != NULL) {
     while (*curr) {
       *curr = curr[1];
       ++curr;
@@ -80,7 +80,7 @@ static char *build_native_path(LPCSTR path, LPCSTR mode, char *buffer, int buffe
   return buffer;
 }
 
-int OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath) {
+BOOL OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath) {
   LPCSTR      command = argv[0];
   CFBundleRef bundle;
   CFURLRef    bundleUrl;
@@ -177,7 +177,7 @@ int OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 LPCSTR OsGetCommandLine() {
@@ -191,19 +191,19 @@ void OsGetExePath(char *buffer, DWORD chars) {
 
 HOSFILE
 OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD createDisposition, DWORD flagsAndAttributes, DWORD extendedFileType) {
-  LPCSTR      mode = 0;
+  LPCSTR      mode = NULL;
   struct stat stats;
   char        nativePath[0x400];
   FILE       *file;
 
   ASSERT(fileName);
   if (!fileName) {
-    return 0;
+    return NULL;
   }
 
   ASSERT(desiredAccess);
   if (!desiredAccess) {
-    return 0;
+    return NULL;
   }
 
   (void)shareMode;
@@ -213,7 +213,7 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
   if (createDisposition == OS_CREATE_NEW) {
     build_native_path(fileName, "r", nativePath, sizeof(nativePath));
     if (!stat(nativePath, &stats)) {
-      return 0;
+      return NULL;
     }
     createDisposition = OS_CREATE_ALWAYS;
   }
@@ -226,7 +226,7 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
   if (createDisposition == OS_TRUNCATE_EXISTING) {
     build_native_path(fileName, "r", nativePath, sizeof(nativePath));
     if (stat(nativePath, &stats)) {
-      return 0;
+      return NULL;
     }
     createDisposition = OS_CREATE_ALWAYS;
   }
@@ -237,7 +237,7 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
     if (desiredAccess & GENERIC_WRITE) {
       build_native_path(fileName, "w", nativePath, sizeof(nativePath));
       if (stat(nativePath, &stats)) {
-        return 0;
+        return NULL;
       }
       mode = "rb+";
     } else {
@@ -249,13 +249,13 @@ OsCreateFile(LPCSTR fileName, DWORD desiredAccess, DWORD shareMode, DWORD create
 
   if (!mode) {
     ASSERT(mode);
-    return 0;
+    return NULL;
   }
 
   build_native_path(fileName, mode, nativePath, sizeof(nativePath));
   file = fopen(nativePath, mode);
   if (!file) {
-    return 0;
+    return NULL;
   }
 
   return (HOSFILE)file;
@@ -271,7 +271,7 @@ BOOL OsFileExists(LPCSTR path) {
   DWORD attributes;
 
   if (!path || !path[0]) {
-    return 0;
+    return FALSE;
   }
 
   attributes = OsGetFileAttributes(path);
@@ -282,7 +282,7 @@ BOOL OsDirectoryExists(LPCSTR dirName) {
   DWORD attributes;
 
   if (!dirName || !dirName[0]) {
-    return 0;
+    return FALSE;
   }
 
   attributes = OsGetFileAttributes(dirName);
@@ -296,7 +296,7 @@ BOOL OsReadFile(HOSFILE fileHandle, LPVOID buffer, DWORD bytesToRead, DWORD *byt
   VALIDATE2(bytesRead);
 
   if (!fileHandle) {
-    return 0;
+    return FALSE;
   }
 
   read = fread(buffer, 1, bytesToRead, (FILE *)fileHandle);
@@ -311,7 +311,7 @@ BOOL OsWriteFile(HOSFILE fileHandle, LPCVOID buffer, DWORD bytesToWrite, DWORD *
   VALIDATE2(bytesWritten);
 
   if (!fileHandle) {
-    return 0;
+    return FALSE;
   }
 
   written = fwrite(buffer, 1, bytesToWrite, (FILE *)fileHandle);
@@ -372,7 +372,7 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
   build_native_path(pathName, "w", nativePath, sizeof(nativePath));
 
   if (!stat(nativePath, &stats) && (stats.st_mode & S_IFMT) == S_IFDIR) {
-    return 1;
+    return TRUE;
   }
 
   if (recursive) {
@@ -382,10 +382,10 @@ BOOL OsCreateDirectory(LPCSTR pathName, int recursive) {
       cursor = nativePath + SStrLen(s_dataPath);
     }
 
-    while ((cursor = SStrChr(cursor + 1, '/')) != 0) {
+    while ((cursor = SStrChr(cursor + 1, '/')) != NULL) {
       *cursor = 0;
       if ((stat(nativePath, &stats) || (stats.st_mode & S_IFMT) != S_IFDIR) && mkdir(nativePath, 0755) < 0) {
-        return 0;
+        return FALSE;
       }
       *cursor = '/';
     }
@@ -411,7 +411,7 @@ BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
   VALIDATE2(pathName);
 
   if (!getcwd(pathName, pathLen)) {
-    return 0;
+    return FALSE;
   }
 
   for (curr = pathName; *curr && (DWORD)(curr - pathName) < pathLen - 1; ++curr) {
@@ -420,7 +420,7 @@ BOOL OsGetCurrentDirectory(DWORD pathLen, char *pathName) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OsFileListRaw(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVOID), LPVOID inCBParam, int returnHidden) {
@@ -434,7 +434,7 @@ static BOOL OsFileListRaw(LPCSTR pattern, int (*inCallback)(OS_FILE_DATA &, LPVO
   build_native_path(pattern, "w", nativePath, sizeof(nativePath));
 
   if (glob(nativePath, 0, 0, &results)) {
-    return 0;
+    return FALSE;
   }
 
   for (index = 0; index < results.gl_pathc; ++index) {

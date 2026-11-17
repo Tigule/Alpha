@@ -16,69 +16,69 @@ BOOL CAnimData::Animates() {
   CAnimGeoset *geoset = geo.Ptr();
   for (index = geo.Count(); index--; ++geoset) {
     if (geoset->visibility.TotalKeys() || geoset->color.TotalKeys()) {
-      return 1;
+      return TRUE;
     }
   }
   CAnimTransform *texAnim = tex.Ptr();
   for (index = tex.Count(); index--; ++texAnim) {
     if (texAnim->Animates()) {
-      return 1;
+      return TRUE;
     }
   }
   CAnimObj *object = baseObjs.Ptr();
   for (index = baseObjs.Count(); index--; ++object) {
     if (object->Animates()) {
-      return 1;
+      return TRUE;
     }
   }
   CAnimBoneObj *bone = boneObjs.Ptr();
   for (index = boneObjs.Count(); index--; ++bone) {
     if (bone->Animates()) {
-      return 1;
+      return TRUE;
     }
   }
   if (lightObjs.Count()) {
-    return 1;
+    return TRUE;
   }
   if (modelObjs.Count()) {
-    return 1;
+    return TRUE;
   }
   if (emitter2Objs.Count()) {
-    return 1;
+    return TRUE;
   }
   if (ribbonObjs.Count()) {
-    return 1;
+    return TRUE;
   }
   CAnimCameraObj *camera = cameraObjs.Ptr();
   for (index = cameraObjs.Count(); index--; ++camera) {
     if (camera->visibility.TotalKeys() || camera->translation.TotalKeys() || camera->roll.TotalKeys() || camera->targetTranslation.TotalKeys()) {
-      return 1;
+      return TRUE;
     }
   }
   UINT numEventEmitters = eventObjs.Count();
   for (index = 0; index < numEventEmitters; ++index) {
     CAnimEventObj &eventObject = eventObjs[index];
     if (eventObject.CAnimObj::Animates() || eventObject.events.TotalKeys()) {
-      return 1;
+      return TRUE;
     }
   }
   CAnimMaterialLayer *layer = layers.Ptr();
   for (index = layers.Count(); index--; ++layer) {
     if (layer->visibility.TotalKeys() || layer->flip.TotalKeys()) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CAnimData::Moves() {
   CAnimBoneObj *bone = boneObjs.Ptr();
   for (UINT i = boneObjs.Count(); i--; ++bone) {
     if (bone->Animates()) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static void HashNameList(LPCSTR *names, UINT numNames, CAnimNameHashTable *table) {
@@ -192,14 +192,14 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
   VALIDATE2(objectId < unique->status.Count());
 
   CAnimObjStatus *status = unique->status[objectId];
   if (status->base.flags & lookAtTypeFlag) {
     unique->lookAtTarget[status->lookAtId] = target;
-    return 1;
+    return TRUE;
   }
 
   if (status->base.flags & 0x42) {
@@ -215,7 +215,7 @@ static BOOL ApplyObjectLookAtType(HANIM anim, UINT objectId, const NTempest::C3V
   if ((unique->flags & 0x10) && (lookAtTypeFlag & 2)) {
     unique->blendStatus[objectId].blendTimer = shared->seq[status->base.currSeq].blendTime;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
@@ -228,7 +228,7 @@ static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFla
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
   VALIDATE2(objectId < unique->status.Count());
 
@@ -254,7 +254,7 @@ static BOOL RemoveObjectLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFla
       unique->blendStatus[objectId].blendTimer = shared->seq[status->base.currSeq].blendTime;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static int AnimObjectUsingLookAtType(HANIM anim, UINT objectId, UINT lookAtTypeFlag) {
@@ -348,16 +348,16 @@ BOOL AnimGetSequenceDuration(HANIM anim, UINT seqIndex, UINT *duration) {
   ASSERT(shared);
 
   if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
-    return 0;
+    return FALSE;
   }
 
   UINT sequence = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
   if (sequence == 0xFF) {
-    return 0;
+    return FALSE;
   }
 
   *duration = shared->seq[sequence].time.Magnitude();
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLength) {
@@ -370,16 +370,16 @@ BOOL AnimGetSequenceName(HANIM anim, UINT seqIndex, char *buffer, UINT buffLengt
   ASSERT(shared);
 
   if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
-    return 0;
+    return FALSE;
   }
 
   UINT sequence = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
   if (sequence == 0xFF) {
-    return 0;
+    return FALSE;
   }
 
   SStrCopy(buffer, shared->seq[sequence].name, buffLength);
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
@@ -391,16 +391,16 @@ BOOL AnimGetSequenceMoveSpeed(HANIM anim, UINT seqIndex, float *moveSpeed) {
   ASSERT(shared);
 
   if (seqIndex >= shared->seqOrder[unique->seqMapIndex].order.Count()) {
-    return 0;
+    return FALSE;
   }
 
   UINT sequence = shared->seqOrder[unique->seqMapIndex].order[seqIndex].primary;
   if (sequence == 0xFF) {
-    return 0;
+    return FALSE;
   }
 
   *moveSpeed = shared->seq[sequence].moveSpeed;
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimHasSequenceId(HANIM anim, UINT seqIndex) {
@@ -476,7 +476,7 @@ void AnimSetSequenceOrderingDefault(HANIM anim) {
 
   CSeqOrdering *sequenceOrder = shared->seqOrder.New();
   sequenceOrder->order.SetCount(shared->seq.Count());
-  sequenceOrder->nameListUsed = 0;
+  sequenceOrder->nameListUsed = NULL;
 
   for (UINT index = 0; index < shared->seq.Count(); ++index) {
     sequenceOrder->order[index].primary = index;
@@ -629,10 +629,10 @@ BOOL AnimIsAttachmentEnabled(HANIM anim, UINT index) {
   UINT geosetId = shared->modelObjs[index].geosetId;
 
   if (unique->modelStatus[index].IsVisible() && (geosetId == 0xFF || unique->geosetStatus[geosetId].IsVisible())) {
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 int AnimIsCameraEnabled(HANIM anim, UINT index) {
@@ -683,11 +683,11 @@ BOOL AnimGetPrimarySequence(HANIM anim, UINT *sequence) {
   ASSERT(shared);
 
   if (!shared->seq.Count()) {
-    return 0;
+    return FALSE;
   }
 
   *sequence = unique->primarySeq;
-  return 1;
+  return TRUE;
 }
 
 float AnimGetPrimarySequenceCompletion(HANIM anim) {
@@ -726,10 +726,10 @@ BOOL AnimNeedsSequenceBounds(HANIM anim) {
   ASSERT(shared);
 
   if (((shared->flags & 8) && shared->seq.Count() > 1) || ((shared->flags & 2) && shared->seq.Count() > 1)) {
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void AnimSetEventCallback(HANIM anim, void (*callback)(LPCSTR, const NTempest::C3Vector &, LPVOID), LPVOID param) {
@@ -796,11 +796,11 @@ BOOL AnimMarkFootstepSequence(HANIM anim, UINT index) {
 
   index = shared->seqOrder[unique->seqMapIndex].order[index].primary;
   if (index == 0xFF) {
-    return 0;
+    return FALSE;
   }
   ASSERT(index < shared->seq.Count());
   shared->seq[index].flags |= 2;
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
@@ -812,7 +812,7 @@ BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
   ASSERT(objectId < shared->obj.Count());
   CAnimObjStatus *status = unique->status[objectId];
@@ -821,7 +821,7 @@ BOOL AnimLockObjectSequence(HANIM anim, UINT objectId, int set) {
   } else {
     status->base.flags &= ~0x20;
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimHasObjectId(HANIM anim, UINT objectId) {
@@ -845,7 +845,7 @@ BOOL AnimEventEmitterHasKeysThisSeq(HANIM anim, UINT objectId) {
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
   CAnimEventObj  *eventObject = ConvertToEvent(shared->obj[objectId]);
   CAnimObjStatus *status = unique->status[objectId];
@@ -863,12 +863,12 @@ BOOL AnimGetObjectPosition(HANIM anim, UINT objectId, const TSFixedArray<NTempes
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
 
   VALIDATE2(objectId < positions.Count());
   *position = positions[objectId];
-  return 1;
+  return TRUE;
 }
 
 BOOL AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *position) {
@@ -881,10 +881,10 @@ BOOL AnimGetEventObjectPosition(HANIM anim, UINT objectId, NTempest::C3Vector *p
 
   objectId = shared->objectOrder[objectId];
   if (objectId == (UINT)-1) {
-    return 0;
+    return FALSE;
   }
 
   ASSERT(shared->obj[objectId]->type == OBJ_TYPE_EVENT);
   *position = ((CAnimEventObjStatus *)unique->status[objectId])->position;
-  return 1;
+  return TRUE;
 }

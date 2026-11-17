@@ -50,9 +50,9 @@ void WDataStore::StaticDestroy() {
 }
 
 void WDataStore::InternalInitialize(BYTE *&data, UINT &base, UINT &alloc) {
-  m_bufferObj = 0;
+  m_bufferObj = NULL;
   alloc = 0;
-  data = 0;
+  data = NULL;
   base = 0;
 }
 
@@ -69,7 +69,7 @@ void WDataStore::InternalDestroy(BYTE *&data, UINT &base, UINT &alloc) {
     Free(data, 0, 0);
   }
 
-  data = 0;
+  data = NULL;
   base = 0;
   alloc = 0;
 }
@@ -84,7 +84,7 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
   UINT newAlloc = (pos + bytes + 0xFF) & 0xFFFFFF00;
   UINT oldAlloc = alloc;
   if (newAlloc < oldAlloc) {
-    return 1;
+    return TRUE;
   }
 
   LPVOID oldBufferObj = m_bufferObj;
@@ -114,7 +114,7 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
       BYTE *newData = Alloc(newAlloc, fileName, lineNumber);
       memcpy(newData, data, alloc);
       data = newData;
-      m_bufferObj = 0;
+      m_bufferObj = NULL;
     }
 
     alloc = newAlloc;
@@ -130,7 +130,7 @@ BOOL WDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &bas
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 LPVOID WDataStore::AllocBuffer(UINT size) {

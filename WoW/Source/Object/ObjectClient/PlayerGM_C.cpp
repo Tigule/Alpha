@@ -118,7 +118,7 @@ static BOOL OnGMEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::InstallGMHandlers() {

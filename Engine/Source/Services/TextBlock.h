@@ -15,7 +15,7 @@ DECLARE_DERIVED_HANDLE(HTEXTBLOCK, HOBJECT);
 struct TEXTBLOCK : public CHandleObject {
   CGxString *string;
 
-  TEXTBLOCK() : string(0) {
+  TEXTBLOCK() : string(NULL) {
   }
 
   virtual ~TEXTBLOCK() {

@@ -153,7 +153,7 @@ static void IWriteRibbonEmitter(const MDLDATA &data, const MDLRIBBONEMITTER &emi
 
 BOOL MDL::WriteRibbonEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.model.animationFile[0]) {
-    return 1;
+    return TRUE;
   }
   UINT numEmitters = data.ribbonEmitters.Count();
   int needObjIds = numEmitters != data.objects.Count();
@@ -161,7 +161,7 @@ BOOL MDL::WriteRibbonEmitters(const MDLDATA &data, TSGrowableArray<char> &buffer
   for (UINT i = numEmitters; i; --i, ++ribbon) {
     IWriteRibbonEmitter(data, *ribbon, needObjIds, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetRibbonFixedDataSize() {
@@ -208,7 +208,7 @@ static void IWriteBinRibbonEmitter(const MDLRIBBONEMITTER &section, CMsgBuffer &
 BOOL MDL::WriteBinRibbonEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   UINT numEmitters = data.ribbonEmitters.Count();
   if (data.model.animationFile[0] || !numEmitters) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('BBIR');
   UINT totalSize = 4;
@@ -221,7 +221,7 @@ BOOL MDL::WriteBinRibbonEmitters(const MDLDATA &data, CMsgBuffer &buf, CMDLStatu
   for (i = 0; i < numEmitters; ++i) {
     IWriteBinRibbonEmitter(data.ribbonEmitters[i], buf, status);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReadBinRibbonEmitter(CMsgBuffer &buf, MDLRIBBONEMITTER *ribbon, CMDLStatus *status, UINT &totalRead) {
@@ -229,7 +229,7 @@ static BOOL ReadBinRibbonEmitter(CMsgBuffer &buf, MDLRIBBONEMITTER *ribbon, CMDL
   UINT localBytesRead = 4;
   if (!ReadBinGenObject(*ribbon, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of RibbonEmitter.\n");
-    return 0;
+    return FALSE;
   }
   buf.GetUint();
   localBytesRead += 4;
@@ -266,37 +266,37 @@ static BOOL ReadBinRibbonEmitter(CMsgBuffer &buf, MDLRIBBONEMITTER *ribbon, CMDL
       case 'AHRK':
         if (!ReadBinFloatKeyFrames(ribbon->heightAbove, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading height above portion of RibbonEmitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'BHRK':
         if (!ReadBinFloatKeyFrames(ribbon->heightBelow, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading height below of RibbonEmitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'LARK':
         if (!ReadBinFloatKeyFrames(ribbon->alphaKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading alpha portion of RibbonEmitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'OCRK':
         if (!ReadBinFloatKeyFrames(ribbon->colorKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading color portion of RibbonEmitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'XTRK':
         if (!ReadBinUintKeyFrames(ribbon->textureSlot, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading texture slot keys portion of RibbonEmitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'SIVK':
         if (!ReadBinFloatKeyFrames(ribbon->visibilityKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading visibility keys portion of RibbonEmitter.\n");
-          return 0;
+          return FALSE;
         }
         break;
       default:
@@ -305,11 +305,11 @@ static BOOL ReadBinRibbonEmitter(CMsgBuffer &buf, MDLRIBBONEMITTER *ribbon, CMDL
     }
     if (localBytesRead > sectionLength) {
       status->FatalOverran("RibbonEmitters", -1);
-      return 0;
+      return FALSE;
     }
   }
   totalRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinRibbonEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -321,17 +321,17 @@ BOOL MDL::ReadBinRibbonEmitters(CMsgBuffer &buf, UINT length, MDLDATA &data, CMD
     MDLRIBBONEMITTER *ribbon = data.ribbonEmitters.New();
     if (!ribbon) {
       status->FatalFlunked("RibbonEmitter", -1);
-      return 0;
+      return FALSE;
     }
     if (!ReadBinRibbonEmitter(buf, ribbon, status, totalRead)) {
       status->Add(STATUS_ERROR, "Error reading RibbonEmitter.\n");
-      return 0;
+      return FALSE;
     }
     if (totalRead > length) {
       status->FatalOverran("RibbonEmitter Section", -1);
-      return 0;
+      return FALSE;
     }
     ReadBinObjectEnd(data, ribbon, data.ribbonEmitters.Count() - 1, 0x90000000);
   }
-  return 1;
+  return TRUE;
 }

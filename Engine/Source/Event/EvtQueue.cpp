@@ -87,11 +87,11 @@ void IEvtQueueDestroy() {
 BOOL IEvtQueueCheckSyncKeyState(EvtContext *context, KEY key) {
   VALIDATE2(context);
 
-  BOOL found = 0;
+  BOOL found = FALSE;
   LISTEX(EvtKeyDown, link) &keyDownList = context->QueueLockSyncKeyDownList();
   ITERATELIST(EvtKeyDown, keyDownList, entry) {
     if (entry->key == key) {
-      found = 1;
+      found = TRUE;
       break;
     }
   }
@@ -167,7 +167,7 @@ void IEvtQueueDispatch(EvtContext *context, EVENTID id, LPCVOID data) {
 
   handlerList.LinkNode(&marker, LIST_HEAD, 0);
   EvtHandler *handler;
-  while ((handler = handlerList.Next(&marker)) != 0) {
+  while ((handler = handlerList.Next(&marker)) != NULL) {
     handlerList.LinkNode(&marker, LIST_LINK_AFTER, handler);
     if (!handler->marker && !handler->func(data, handler->param)) {
       break;
@@ -186,7 +186,7 @@ BOOL IEvtQueueHasMessages(EvtContext *context) {
   VALIDATE2(context);
 
   LISTEX(EvtMessage, link) &messageList = context->QueueLockMessageList();
-  BOOL hasMessages = messageList.Head() != 0;
+  BOOL hasMessages = messageList.Head() != NULL;
   context->QueueUnlockMessageList();
   return hasMessages;
 }
@@ -199,11 +199,11 @@ BOOL IEvtQueueDispatchNext(EvtContext *context) {
   if (message) {
     messageList.UnlinkNode(message);
   }
-  BOOL hasMore = messageList.Head() != 0;
+  BOOL hasMore = messageList.Head() != NULL;
   context->QueueUnlockMessageList();
 
   if (!message) {
-    return 0;
+    return FALSE;
   }
 
   IEvtQueueDispatch(context, message->id, message->data);
@@ -221,7 +221,7 @@ void IEvtQueueDispatchAll(EvtContext *context) {
   context->QueueUnlockMessageList();
 
   EvtMessage *message;
-  while ((message = localMessageList.Head()) != 0) {
+  while ((message = localMessageList.Head()) != NULL) {
     IEvtQueueDispatch(context, message->id, message->data);
     MessageFree(message);
   }

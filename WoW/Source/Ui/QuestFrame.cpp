@@ -270,19 +270,19 @@ void CGQuestInfo::QuestGiverFinished() {
 
 BOOL CGQuestInfo::IsCompletable() {
   if (!m_completable) {
-    return 0;
+    return FALSE;
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
   UINT index;
   for (index = 0; index < 6 && m_questItems[index].requiredItemID; ++index) {
     if (player->CGPlayer_C::GetBag()->GetItemTypeCount(m_questItems[index].requiredItemID, 8) < m_questItems[index].requiredAmount) {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGQuestInfo::QueryQuest(UINT index) {
@@ -350,14 +350,14 @@ BOOL CGQuestInfo::GetReward(int choice) {
       int numChoices = GetNumQuestChoices();
       if (numChoices > 0) {
         if (choice >= numChoices || choice < 0) {
-          return 0;
+          return FALSE;
         }
         m_lastChosenItem = m_questItems[choice].choiceItemID;
       }
       player->GetQuestReward(m_npc, m_currentQuest, choice > 0 ? choice : 0);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 UINT CGQuestInfo::GetNumQuestRewards() {
@@ -381,7 +381,7 @@ UINT CGQuestInfo::GetNumQuestItems() {
   return index;
 }
 
-int CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nameSize, char texture[], UINT textureSize, UINT &amount, int &quality, int &usable) {
+BOOL CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nameSize, char texture[], UINT textureSize, UINT &amount, int &quality, int &usable) {
   static char buffer[MAX_PATH];
 
   name[0] = 0;
@@ -390,7 +390,7 @@ int CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nam
   quality = 0;
   usable = 1;
   if (index > 6) {
-    return 0;
+    return FALSE;
   }
   int itemID;
   int displayID;
@@ -407,7 +407,7 @@ int CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nam
     displayID = m_questItems[index].requiredDisplayID;
     amount = m_questItems[index].requiredAmount;
   } else {
-    return 0;
+    return FALSE;
   }
   const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, m_npc, QuestItemStatsCallback, 0);
   if (stats) {
@@ -423,7 +423,7 @@ int CGQuestInfo::GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nam
   if (player && stats && !player->CanUseItem(stats, reason)) {
     usable = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 int CGQuestInfo::GetQuestItemID(LPCSTR type, UINT index) {

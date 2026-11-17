@@ -256,7 +256,7 @@ void CGxDeviceOpenGl::IStateSync() {
 
 void CGxDeviceOpenGl::IStateSetColorSource(EColorSource source) {
   if (m_colorSource != source) {
-    m_colorSourceDirty = 1;
+    m_colorSourceDirty = TRUE;
     m_colorSource = source;
   }
 }
@@ -292,7 +292,7 @@ void CGxDeviceOpenGl::IStateSyncColorSource() {
         FATALASSERT(0);
     }
 
-    m_colorSourceDirty = 0;
+    m_colorSourceDirty = FALSE;
     m_colorSourceColor[m_colorSource].m_dirty = 0;
   }
 }
@@ -307,7 +307,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
   BOOL haveSetView;
   int  updateNeeded;
 
-  haveSetView = 0;
+  haveSetView = FALSE;
   m_worldViewChange |= m_xforms[GxXform_World].m_dirty | m_xforms[GxXform_View].m_dirty;
 
   for (UINT which = 0; which != 8; ++which) {
@@ -321,7 +321,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
       if (m_worldViewChange || hw.m_isOmni != app.m_isOmni || hw.m_dir != app.m_dir) {
         if (!haveSetView) {
           IXformSetModelView(m_xforms[GxXform_View].TopConst());
-          haveSetView = 1;
+          haveSetView = TRUE;
         }
 
         if (app.m_enabled) {
@@ -373,7 +373,7 @@ void CGxDeviceOpenGl::IStateSyncLights() {
   if (m_worldViewChange || haveSetView) {
     NTempest::C44Matrix mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
     IXformSetModelView(mwv);
-    m_worldViewChange = 0;
+    m_worldViewChange = FALSE;
     m_xforms[GxXform_World].m_dirty = 0;
     m_xforms[GxXform_View].m_dirty = 0;
   }
@@ -490,7 +490,7 @@ void CGxDeviceOpenGl::IStateSetContextDefaults() {
 
   NTempest::C44Matrix mwv = m_xforms[GxXform_World].TopConst() * m_xforms[GxXform_View].TopConst();
   IXformSetModelView(mwv);
-  m_worldViewChange = 0;
+  m_worldViewChange = FALSE;
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnable(GL_COLOR_MATERIAL);
   glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);

@@ -93,7 +93,7 @@ BYTE *AnimObjectSetRibbonColor(BYTE *, UINT, CAnimData *, CAnimRibbonObj *, MDLT
 BYTE *AnimObjectSetRibbonAlpha(BYTE *, UINT, CAnimData *, CAnimRibbonObj *, MDLTRACKTYPE);
 
 struct ANIMHASH : public TSHashObject<ANIMHASH, HASHKEY_STRI> {
-  ANIMHASH() : anim(0) {
+  ANIMHASH() : anim(NULL) {
   }
   ANIMHASH(const ANIMHASH &);
   ~ANIMHASH() {
@@ -116,7 +116,7 @@ static HANIM GetAnim(LPCSTR modelFName) {
   FATALASSERT(modelFName);
   ANIMHASH *entry = s_animCache.Ptr(modelFName);
   if (!entry) {
-    return 0;
+    return NULL;
   }
   if (AnimGetReferenceCount(entry->anim) <= 1) {
     return (HANIM)HandleDuplicate(entry->anim);
@@ -768,7 +768,7 @@ static void IAnimCreateObjects(BYTE *fileData, UINT fileBytes, CAnimData *shared
 }
 static BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags) {
   if (!unique) {
-    return 0;
+    return FALSE;
   }
 
   if (flags & 8) {
@@ -793,7 +793,7 @@ static BOOL AnimBuild(BYTE *fileData, UINT fileBytes, CAnim *unique, UINT flags)
   IAnimCreateObjects(fileData, fileBytes, shared, flags, idConversion, parentIds);
   BuildHierarchy(shared, parentIds, idConversion, numObjects);
   AnimInit(unique, shared);
-  return 1;
+  return TRUE;
 }
 
 void IAnimInitializeTime();
@@ -839,12 +839,12 @@ HANIM AnimCreate(BYTE *fileData, UINT fileBytes, UINT flags) {
     }
     delete unique;
   }
-  return 0;
+  return NULL;
 }
 
 static BOOL AnimBuild(const MDLDATA &data, CAnim *unique, UINT flags) {
   if (!unique) {
-    return 0;
+    return FALSE;
   }
   if (flags & 8) {
     unique->flags |= 0x10;
@@ -867,7 +867,7 @@ static BOOL AnimBuild(const MDLDATA &data, CAnim *unique, UINT flags) {
   IAnimCreateObjects(shared, data, flags, idConversion);
   BuildHierarchy(shared, data, idConversion);
   AnimInit(unique, shared);
-  return 1;
+  return TRUE;
 }
 
 HANIM AnimCreate(const MDLDATA &data, UINT flags, CStatus *status) {
@@ -906,7 +906,7 @@ HANIM AnimCreate(const MDLDATA &data, UINT flags, CStatus *status) {
     }
     delete unique;
   }
-  return 0;
+  return NULL;
 }
 
 HANIM AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status) {
@@ -919,16 +919,16 @@ HANIM AnimCreate(LPCSTR sourcefile, UINT flags, CStatus *status) {
 
   MDLDATA mdlData;
   if (!MDLFileRead(sourcefile, &mdlData, status)) {
-    return 0;
+    return NULL;
   }
 
   anim = AnimCreate(mdlData, flags, status);
   if (!anim) {
-    return 0;
+    return NULL;
   }
   if (AnimGetFlags(anim) & 4) {
     HandleClose(anim);
-    anim = 0;
+    anim = NULL;
   }
   HashNewAnim(sourcefile, anim);
   return anim;

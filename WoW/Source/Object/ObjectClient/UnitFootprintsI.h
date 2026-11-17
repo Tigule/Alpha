@@ -32,7 +32,7 @@ struct SPLATDATA {
 };
 
 struct LISTBASE {
-  LISTBASE(int m, int f) : m_texture(0), m_currentCount(-1), m_maxCount(m), m_flags(f) {
+  LISTBASE(int m, int f) : m_texture(NULL), m_currentCount(-1), m_maxCount(m), m_flags(f) {
     FATALASSERT(m > 0);
   }
   ~LISTBASE() {

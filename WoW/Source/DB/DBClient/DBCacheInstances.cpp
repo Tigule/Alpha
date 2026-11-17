@@ -47,27 +47,27 @@ static void LoadDBCaches() {
 
 static BOOL ReceiveCreature(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_creatureDBCache.AddItems(msg, true);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveGameObject(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_gameObjectDBCache.AddItems(msg, true);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveSingleItem(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_itemDBCache.AddItems(msg, true);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveMultipleItems(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_itemDBCache.AddItems(msg, false);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveNPCText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_npcTextDBCache.AddItems(msg, true);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -88,7 +88,7 @@ static BOOL ReceiveName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     g_nameDBCache.DenyItem(nc.m_guid);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveGuildInfo(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -101,7 +101,7 @@ static BOOL ReceiveGuildInfo(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     g_guildInfoCache.DenyItem(guildStats.m_guildID);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceiveQuest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -114,12 +114,12 @@ static BOOL ReceiveQuest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     g_questDBCache.DenyItem(qc.m_questId);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceivePageText(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_pageTextCache.AddItems(msg, true);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceivePetName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -135,7 +135,7 @@ static BOOL ReceivePetName(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     g_petNameCache.DenyItem(pnc.m_ID);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReceivePetition(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -148,7 +148,7 @@ static BOOL ReceivePetition(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     g_petitionCache.DenyItem(-pc.m_petitionID);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void DBCache_Initialize() {

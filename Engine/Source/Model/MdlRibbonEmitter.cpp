@@ -120,7 +120,7 @@ BOOL MdlReadLoadRibbonEmitters(const MDLDATA &data, CModelComplex *modelptr, CMo
     ribbon->SetEnabled(0);
     ribbon->SetGravity(data.ribbonEmitters[i].gravity);
   }
-  return 1;
+  return TRUE;
 }
 
 void MdxReadRibbonEmitters(BYTE *data, UINT fileBytes, CModelComplex *modelptr, CModelShared *shared) {

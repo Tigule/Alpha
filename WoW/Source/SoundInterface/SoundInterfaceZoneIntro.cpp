@@ -20,7 +20,7 @@ void SndInterfaceZoneIntroIdler() {
 
 static BOOL CCommand_ZoneIntroReset(LPCSTR command, LPCSTR arguments) {
   s_lastPlayTime = -1;
-  return 1;
+  return TRUE;
 }
 
 void SndInterfaceZoneIntroInitialize() {

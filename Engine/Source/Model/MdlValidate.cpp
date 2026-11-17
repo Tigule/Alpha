@@ -8,5 +8,5 @@ BOOL MdlReadValidate(const MDLDATA &data, CStatus *status) {
     status->Add(STATUS_WARNING, "File contains no geosets, lights, sound emitters, attachments, cameras, particle emitters, or ribbon emitters.\n");
   }
 
-  return 1;
+  return TRUE;
 }

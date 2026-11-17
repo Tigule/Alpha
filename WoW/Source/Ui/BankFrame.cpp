@@ -254,7 +254,7 @@ static int Script_PickupBagFromBankSlot(lua_State *L) {
 
 static BOOL BankUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   SignalBankSlotsChanged();
-  return 1;
+  return TRUE;
 }
 
 void CGBankInfo::PickupItem(int slot, BOOL isBag, int slotIsButtonID) {

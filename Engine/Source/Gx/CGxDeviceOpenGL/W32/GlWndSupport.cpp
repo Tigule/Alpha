@@ -87,7 +87,7 @@ static BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
   int pixelFormat = ChoosePixelFormat(hdc, &pfd);
   if (!pixelFormat) {
     CGxDevice::Log("ChoosePixelFormat failed, color = %d, alpha = %d, depth = %d\n", colorBits, alphaBits, depthBits);
-    return 0;
+    return FALSE;
   }
 
   DescribePixelFormat(hdc, pixelFormat, sizeof(pfd), &pfd);
@@ -105,15 +105,15 @@ static BOOL SetupPixelFormat(HDC hdc, const CGxFormat &format) {
 
   if (!matches) {
     CGxDevice::Log("SetupPixelFormat(): pfd does not match requested");
-    return 0;
+    return FALSE;
   }
 
   if (!SetPixelFormat(hdc, pixelFormat, &pfd)) {
     CGxDevice::Log("SetPixelFormat failed, color = %d, alpha = %d, depth = %d, fmt = %d\n", colorBits, alphaBits, depthBits, pixelFormat);
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
@@ -121,7 +121,7 @@ HGLRC AttachGlContext(HWND hwnd, HDC hdc, const CGxFormat &format) {
   if (hdc && SetupPixelFormat(hdc, format)) {
     return wglCreateContext(hdc);
   }
-  return 0;
+  return NULL;
 }
 
 void RemoveGlContext(HGLRC hglrc) {

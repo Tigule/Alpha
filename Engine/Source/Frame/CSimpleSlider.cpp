@@ -17,7 +17,7 @@ CSimpleSlider::CSimpleSlider(CSimpleFrame *parent)
       m_valueSet(0),
       m_buttonDown(0),
       m_valueStep(0.0f),
-      m_thumbTexture(0),
+      m_thumbTexture(NULL),
       m_orientation(SLIDER_VERTICAL),
       m_onValueChanged(0) {
   EnableEvent(SIMPLE_EVENT_MOUSE, UINT_MAX);

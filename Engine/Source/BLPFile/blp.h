@@ -107,12 +107,12 @@ class CBLPFile {
     m_header.magic = m_versionMagic;
     m_header.formatVersion = 1;
     m_header.preferredFormat = PIXEL_ARGB8888;
-    m_inMemoryImage = 0;
+    m_inMemoryImage = NULL;
     m_mipMapAlgorithm = MMA_BOX;
   }
 
  public:
-  CBLPFile() : m_images(0), m_quality(100) {
+  CBLPFile() : m_images(NULL), m_quality(100) {
     SharedInit();
   }
 

@@ -37,7 +37,7 @@ enum CURSORANIMATIONS {
 
 class CGCursor {
  public:
-  CGCursor() : m_model(0), m_heldItem(CURSOR_EMPTY), m_cursorMode(POINT_CURSOR), m_mouseOver(NO_CURSOR) {
+  CGCursor() : m_model(NULL), m_heldItem(CURSOR_EMPTY), m_cursorMode(POINT_CURSOR), m_mouseOver(NO_CURSOR) {
   }
 
   CGCursor(const CGCursor &);

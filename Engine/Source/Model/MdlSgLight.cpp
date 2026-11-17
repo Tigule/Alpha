@@ -19,7 +19,7 @@ BOOL MdlReadLoadLights(const MDLDATA &data, CModelComplex *modelptr) {
   for (i = 0; i < numLights; ++i) {
     modelptr->m_lights[i] = CreateGxLight(data.lights[i]);
   }
-  return 1;
+  return TRUE;
 }
 
 static DWORD_PTR CreateGxLight(const MDLLIGHTSECTION &data) {

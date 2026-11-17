@@ -15,7 +15,7 @@ static int CSimpleFrame_GetParent(lua_State *L) {
   CSimpleFrame *parent = object->m_parent;
   LPCSTR        name;
 
-  if (parent && (name = parent->GetName()) != 0 && *name) {
+  if (parent && (name = parent->GetName()) != NULL && *name) {
     lua_getglobal(L, name);
   } else {
     lua_pushnil(L);

@@ -15,13 +15,13 @@ BOOL TSet::Check(UINT token) {
   for (int i = 0; i < count; ++i) {
     if (set[i].token == token) {
       if (set[i].seen && !set[i].dupsOk) {
-        return 0;
+        return FALSE;
       }
       set[i].seen = 1;
       break;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 int TSet::Found(UINT token) {
@@ -34,14 +34,14 @@ int TSet::Found(UINT token) {
   return 1;
 }
 
-int TSet::NotFound(UINT token) {
+BOOL TSet::NotFound(UINT token) {
   for (int i = 0; i < count; ++i) {
     if (set[i].token == token) {
       return !set[i].seen;
     }
   }
   FATALERROR(("TSet::NotFound: found unregistered token 0x%x", token));
-  return 1;
+  return TRUE;
 }
 
 void TSet::Complete(CMDLStatus *status) {

@@ -15,12 +15,12 @@ static const float DEFAULT_TIME_VISIBLE = 10.0f;
 CSimpleMessageScrollFrame::CSimpleMessageScrollFrame(CSimpleFrame *parent, int maxLines) : CSimpleHyperlinkedFrame(parent) {
   ASSERT(maxLines > 0);
 
-  m_atBottom = 1;
-  m_fading = 1;
+  m_atBottom = TRUE;
+  m_fading = TRUE;
   m_numMessages = 0;
   m_maxMessages = maxLines;
   m_numDisplayed = 0;
-  m_atTop = 0;
+  m_atTop = FALSE;
   m_textMaxSize = 0;
   m_fadeDuration = DEFAULT_FADE_DURATION;
   m_timeVisible = DEFAULT_TIME_VISIBLE;
@@ -96,8 +96,8 @@ void CSimpleMessageScrollFrame::SetMaxLines(int maxLines) {
   m_numMessages = 0;
   m_maxMessages = maxLines;
   m_numDisplayed = 0;
-  m_atBottom = 1;
-  m_atTop = 0;
+  m_atBottom = TRUE;
+  m_atTop = FALSE;
   m_lines.SetCount(maxLines);
   m_currentLine = -1;
   m_currentScroll = 0;
@@ -149,7 +149,7 @@ void CSimpleMessageScrollFrame::AddMessage(LPCSTR text, const CSimpleFontStringA
   CSimpleMessageScrollFrameLine &line = m_lines[m_currentLine];
   FREEIFUSED(line.string);
   line.string = SStrDupA(text, __FILE__, __LINE__);
-  line.isVisible = 1;
+  line.isVisible = TRUE;
   line.timeLeft = m_timeVisible;
   line.fadeLeft = m_fadeDuration;
   if (attrib) {
@@ -203,7 +203,7 @@ void CSimpleMessageScrollFrame::Clear() {
   m_currentLine = 0;
   m_currentScroll = 0;
   ScrollMessages(0);
-  m_atTop = 0;
+  m_atTop = FALSE;
   m_currentLine = -1;
 }
 
@@ -241,7 +241,7 @@ void CSimpleMessageScrollFrame::OnLayerUpdate(float elapsedSec) {
             if (line->fadeLeft != 0.0f) {
               line->timeLeft = 0.0f;
             } else {
-              line->isVisible = 0;
+              line->isVisible = FALSE;
               node.string->Hide();
               updateHyperlinks = true;
             }
@@ -250,7 +250,7 @@ void CSimpleMessageScrollFrame::OnLayerUpdate(float elapsedSec) {
           float fadeLeft = line->fadeLeft - elapsedSec;
 
           if (fadeLeft < 0.0f) {
-            line->isVisible = 0;
+            line->isVisible = FALSE;
             node.string->Hide();
             updateHyperlinks = true;
           } else {
@@ -300,36 +300,36 @@ void CSimpleMessageScrollFrame::PageDown() {
 
 BOOL CSimpleMessageScrollFrame::ScrollUp() {
   if (m_currentLine == -1) {
-    return 0;
+    return FALSE;
   }
 
   if (m_atTop) {
     RefreshMessages();
-    return 0;
+    return FALSE;
   }
 
   if (--m_currentScroll < 0) {
     m_currentScroll += m_maxMessages;
   }
   ScrollMessages(m_currentScroll);
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleMessageScrollFrame::ScrollDown() {
   if (m_currentLine == -1) {
-    return 0;
+    return FALSE;
   }
 
   if (m_atBottom) {
     RefreshMessages();
-    return 0;
+    return FALSE;
   }
 
   if (++m_currentScroll >= m_maxMessages) {
     m_currentScroll -= m_maxMessages;
   }
   ScrollMessages(m_currentScroll);
-  return 1;
+  return TRUE;
 }
 
 void CSimpleMessageScrollFrame::ScrollToTop() {
@@ -379,9 +379,9 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
     if (!m_atBottom) {
       resetTimers = 1;
     }
-    m_atBottom = 1;
+    m_atBottom = TRUE;
   } else {
-    m_atBottom = 0;
+    m_atBottom = FALSE;
   }
 
   sizeAvailable = (m_messageFrameArea.b - m_messageFrameArea.t) / GetLayoutScale();
@@ -439,9 +439,9 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
   }
 
   if (i == maxMessages) {
-    m_atTop = 1;
+    m_atTop = TRUE;
   } else {
-    m_atTop = 0;
+    m_atTop = FALSE;
   }
 
   while (i < m_displayNodes.Count()) {
@@ -454,7 +454,7 @@ void CSimpleMessageScrollFrame::ScrollMessages(int start) {
 void CSimpleMessageScrollFrame::UpdateNode(CSimpleMessageScrollFrameDisplayNode *node, CSimpleMessageScrollFrameLine *line, int resetTimers) {
   if (resetTimers || !m_atBottom) {
     line->attrib.SetAlpha(0xFF);
-    line->isVisible = 1;
+    line->isVisible = TRUE;
     line->timeLeft = m_timeVisible;
     line->fadeLeft = m_fadeDuration;
   }
@@ -477,7 +477,7 @@ void CSimpleMessageScrollFrame::RefreshMessages() {
     CSimpleMessageScrollFrameDisplayNode &node = m_displayNodes[--index];
     CSimpleMessageScrollFrameLine        *line = node.line;
     line->attrib.SetAlpha(0xFF);
-    line->isVisible = 1;
+    line->isVisible = TRUE;
     line->timeLeft = m_timeVisible;
     line->fadeLeft = m_fadeDuration;
     node.string->SetVertexColor(line->attrib.GetColor());
@@ -517,7 +517,7 @@ void CSimpleMessageScrollFrame::RefreshHyperlinks() {
 }
 
 CSimpleMessageScrollFrameDisplayNode::CSimpleMessageScrollFrameDisplayNode() {
-  line = 0;
+  line = NULL;
   string = NEW(CSimpleFontStringRecord)(0, 1, 1);
   string->IncrRef();
   string->SetIgnoreNewlines(1);

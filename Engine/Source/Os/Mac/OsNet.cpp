@@ -66,7 +66,7 @@ class NetConnection {
     m_user = user;
     m_state = state;
     m_readBytes = 0;
-    m_thread = 0;
+    m_thread = NULL;
     m_closeRequested = 0;
     memset(&m_addr, 0, sizeof(m_addr));
     memcpy(&m_addr.peerAddr, &peer, sizeof(peer));
@@ -162,7 +162,7 @@ class NetThread {
   BYTE                                           m_done;
 
   NetThread() {
-    m_thread = 0;
+    m_thread = NULL;
     m_stop = 0;
     m_done = 0;
   }
@@ -264,7 +264,7 @@ BOOL OsNetInitialize(DWORD hints, DWORD parts) {
     s_ioThreads[i].m_thread = SCreateThread(IOThreadProc, &s_ioThreads[i], &s_ioThreads[i].m_threadId, 0, name);
   }
 
-  return 1;
+  return TRUE;
 }
 
 HNETCONN OsNetConnCopyHandle(HNETCONN conn) {
@@ -329,7 +329,7 @@ BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC ho
   }
 
   hostAddrProc(addrs.Ptr(), addrs.Count(), user);
-  return 1;
+  return TRUE;
 }
 
 void OsTcpConnSend(HNETCONN conn, LPCVOID data, DWORD bytes) {
@@ -346,7 +346,7 @@ void OsTcpConnSend(HNETCONN conn, LPCVOID data, DWORD bytes) {
     block->m_size = bytes;
     block->m_data = (LPBYTE)ALLOC(bytes);
     block->m_offset = 0;
-    block->m_event = 0;
+    block->m_event = NULL;
     memcpy(block->m_data, data, bytes);
   }
 
@@ -569,13 +569,13 @@ UINT NetThread::Run() {
     m_pendingLock.Enter();
 
     NetListener *listener;
-    while ((listener = m_pendingListeners.Head()) != 0) {
+    while ((listener = m_pendingListeners.Head()) != NULL) {
       m_pendingListeners.UnlinkNode(listener);
       m_listeners.LinkNode(listener, LIST_TAIL, 0);
     }
 
     NetConnection *conn;
-    while ((conn = m_pendingConnections.Head()) != 0) {
+    while ((conn = m_pendingConnections.Head()) != NULL) {
       m_pendingConnections.UnlinkNode(conn);
       m_connections.LinkNode(conn, LIST_TAIL, 0);
     }
@@ -608,7 +608,7 @@ UINT NetThread::Run() {
         }
 
         conn->m_lock.Enter();
-        BOOL wantWrite = conn->m_writeList.Head() != 0;
+        BOOL wantWrite = conn->m_writeList.Head() != NULL;
         conn->m_lock.Leave();
 
         if (wantWrite) {

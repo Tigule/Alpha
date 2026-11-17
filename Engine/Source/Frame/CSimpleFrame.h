@@ -67,7 +67,7 @@ enum {
 
 class CSimpleTitleRegion : public CLayoutFrame {
  public:
-  CSimpleTitleRegion() : m_parent(0) {
+  CSimpleTitleRegion() : m_parent(NULL) {
   }
 
   virtual CLayoutFrame *GetLayoutParent() {
@@ -243,7 +243,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   void ClearFromSimpleRegistry();
 
   virtual BOOL FrameDefPostInitialize(UINT createContext, LPVOID context) {
-    return 1;
+    return TRUE;
   }
 
   void SetParent(CSimpleFrame *parent);
@@ -263,7 +263,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
       }
     }
 
-    return 0;
+    return NULL;
   }
 
   BOOL IsAncestor(CSimpleFrame *frame) const {
@@ -271,13 +271,13 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
 
     while (parent) {
       if (parent == frame) {
-        return 1;
+        return TRUE;
       }
 
       parent = parent->m_parent;
     }
 
-    return 0;
+    return FALSE;
   }
 
   LIST(REGIONNODE) & GetRegions() {
@@ -296,12 +296,12 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void          SetLayoutScale(float scale, bool resize);
 
   BOOL Hide() {
-    m_shown = 0;
+    m_shown = FALSE;
     return HideThis();
   }
 
   BOOL Show() {
-    m_shown = 1;
+    m_shown = TRUE;
     return ShowThis();
   }
 
@@ -334,11 +334,11 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual void OnLayerCursorExit();
 
   virtual BOOL OnLayerIme(CImeEvent &evt) {
-    return 0;
+    return FALSE;
   }
 
   virtual BOOL OnLayerKeyDownRepeat(CKeyEvent &evt) {
-    return 0;
+    return FALSE;
   }
 
   virtual BOOL OnLayerChar(CCharEvent &evt);
@@ -349,7 +349,7 @@ class CSimpleFrame : public FrameScript_Object, public CLayoutFrame {
   virtual BOOL OnLayerMouseWheel(CMouseEvent &evt);
 
   virtual BOOL OnLayerMouseMoveRelative(CMouseEvent &evt) {
-    return 0;
+    return FALSE;
   }
 
   virtual void OnDragStart(CMouseEvent &evt);

@@ -24,7 +24,7 @@ void CMap::Purge() {
 
     CMapBaseObjLink *next = areaLinkList.RawNext(link);
     CMapArea        *area = (CMapArea *)link->owner;
-    areaTable[area->infoIndex] = 0;
+    areaTable[area->infoIndex] = NULL;
     areaInfo[area->infoIndex].flags &= ~1u;
     areaInfo[area->infoIndex].asyncId = 0;
     FreeBaseObjLink(link);
@@ -32,9 +32,9 @@ void CMap::Purge() {
     link = next;
   }
 
-  CWorldScene::camMapObj = 0;
-  CWorldScene::camMapObjDef = 0;
-  CWorldScene::camMapObjGroup = 0;
+  CWorldScene::camMapObj = NULL;
+  CWorldScene::camMapObjDef = NULL;
+  CWorldScene::camMapObjGroup = NULL;
 }
 
 void CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
@@ -48,7 +48,7 @@ void CMap::PurgeDoodadDef(CMapDoodadDef *doodadDef) {
     if (doodadDef->model) {
       HandleClose(doodadDef->model);
     }
-    doodadDef->model = 0;
+    doodadDef->model = NULL;
 
     FreeDoodadDef(doodadDef);
   }
@@ -72,7 +72,7 @@ void CMap::PurgeMapObjDef(CMapObjDef *mapObjDef) {
     mapObjDef->lightList.SetCount(0);
 
     CMapObj::Delete(mapObjDef->mapObj);
-    mapObjDef->mapObj = 0;
+    mapObjDef->mapObj = NULL;
     FreeMapObjDef(mapObjDef);
   }
 }
@@ -113,7 +113,7 @@ void CMapArea::Purge() {
   if (asyncObject) {
     BYTE *buffer = (BYTE *)asyncObject->buffer;
     AsyncFileReadDestroyObject(asyncObject);
-    asyncObject = 0;
+    asyncObject = NULL;
     if (buffer) {
       FreeAsyncLoadBuffer(buffer);
     }
@@ -121,7 +121,7 @@ void CMapArea::Purge() {
 
   SAFEITERATELIST(CMapBaseObjLink, chunkLinkList, link) {
     CMapChunk *chunk = (CMapChunk *)link->owner;
-    chunkTable[chunk->infoIndex] = 0;
+    chunkTable[chunk->infoIndex] = NULL;
     chunkInfo[chunk->infoIndex].flags &= ~1u;
     chunkInfo[chunk->infoIndex].asyncId = 0;
     CMap::FreeBaseObjLink(link);
@@ -131,7 +131,7 @@ void CMapArea::Purge() {
   for (UINT i = 0; i < texIdTable.Count(); ++i) {
     if (texIdTable[i]) {
       HandleClose(texIdTable[i]);
-      texIdTable[i] = 0;
+      texIdTable[i] = NULL;
     }
   }
   texIdTable.SetCount(0);
@@ -143,7 +143,7 @@ void CMapArea::PurgeChunks() {
     CMapChunk *chunk = (CMapChunk *)chunkLink->owner;
     NTempest::C2iVector chunkIndex(mIndex.x * 16 + chunk->aIndex.x, mIndex.y * 16 + chunk->aIndex.y);
     if (!gbChunkRect.Contains(chunkIndex)) {
-      chunkTable[chunk->infoIndex] = 0;
+      chunkTable[chunk->infoIndex] = NULL;
       chunkInfo[chunk->infoIndex].flags &= ~1u;
       chunkInfo[chunk->infoIndex].asyncId = 0;
       CMap::FreeBaseObjLink(chunkLink);
@@ -156,7 +156,7 @@ void CMapChunk::Purge() {
   if (asyncObject) {
     BYTE *buffer = (BYTE *)asyncObject->buffer;
     AsyncFileReadDestroyObject(asyncObject);
-    asyncObject = 0;
+    asyncObject = NULL;
     if (buffer) {
       FreeAsyncLoadBuffer(buffer);
     }
@@ -165,35 +165,35 @@ void CMapChunk::Purge() {
   UINT i;
   for (i = 0; i < nLayers; ++i) {
     PurgeLayer(layerList[i]);
-    layerList[i] = 0;
+    layerList[i] = NULL;
   }
   nLayers = 0;
 
   if (detailDoodadInst) {
     CDetailDoodad::FreeInst(detailDoodadInst);
-    detailDoodadInst = 0;
+    detailDoodadInst = NULL;
   }
   if (gxBuf) {
     FreeGxBuf(gxBuf);
-    gxBuf = 0;
+    gxBuf = NULL;
   }
   if (shadowGxTexture) {
     FreeShadowGxTex(shadowGxTexture);
-    shadowGxTexture = 0;
+    shadowGxTexture = NULL;
   }
   if (shaderGxTexture) {
     FreeShadowGxTex(shaderGxTexture);
-    shaderGxTexture = 0;
+    shaderGxTexture = NULL;
   }
   if (shadowTexture) {
     CMap::FreeTex(shadowTexture);
-    shadowTexture = 0;
+    shadowTexture = NULL;
   }
 
   for (i = 0; i < 4; ++i) {
     if (liquids[i]) {
       CMap::FreeChunkLiquid(liquids[i]);
-      liquids[i] = 0;
+      liquids[i] = NULL;
     }
   }
 
@@ -228,17 +228,17 @@ void CMapChunk::Purge() {
 void CMapChunk::PurgeLayer(CChunkLayer *layer) {
   FATALASSERT(layer);
 
-  layer->texId = 0;
+  layer->texId = NULL;
   layer->props = 0;
 
   if (layer->gxTexture) {
     FreeAlphaGxTex(layer->gxTexture);
-    layer->gxTexture = 0;
+    layer->gxTexture = NULL;
   }
 
   if (layer->tex) {
     CMap::FreeTex(layer->tex);
-    layer->tex = 0;
+    layer->tex = NULL;
   }
 
   CMap::FreeLayer(layer);

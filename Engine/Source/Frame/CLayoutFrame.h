@@ -43,7 +43,7 @@ class CLayoutFrame {
     UINT          dep;
 
     virtual ~FRAMENODE() {
-      frame = 0;
+      frame = NULL;
     }
   };
 
@@ -76,7 +76,7 @@ class CLayoutFrame {
   virtual ~CLayoutFrame();
   virtual void          LoadXML(const XMLNode *node, CStatus *status);
   virtual CLayoutFrame *GetLayoutParent() {
-    return 0;
+    return NULL;
   }
 
   float Left();
@@ -110,11 +110,11 @@ class CLayoutFrame {
 
     while (count) {
       if (m_points[--count]) {
-        return 1;
+        return TRUE;
       }
     }
 
-    return 0;
+    return FALSE;
   }
 
   void RegisterResize(CLayoutFrame *frame, UINT dependency);
@@ -146,7 +146,7 @@ class CLayoutFrame {
   BOOL                  PtInFrameRect(const NTempest::C2Vector &pt);
   void                  CageMouseInFrame(int enable);
   virtual BOOL          IsAttachmentOrigin() {
-    return 0;
+    return FALSE;
   }
   static UINT           ResizePending();
   static void           ClearResizePendingList();

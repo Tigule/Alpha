@@ -1,6 +1,6 @@
 #include "CPdfFile.h"
 
-CPdfFile::CPdfFile() : m_imageRef(0), m_width(0), m_height(0) {
+CPdfFile::CPdfFile() : m_imageRef(NULL), m_width(0), m_height(0) {
 }
 
 CPdfFile::~CPdfFile() {
@@ -11,8 +11,8 @@ CPdfFile::~CPdfFile() {
 
 BOOL CPdfFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth, BYTE bAlphaBits) {
   CGColorSpaceRef   colorSpace;
-  CGDataProviderRef provider = 0;
-  CGImageRef        image = 0;
+  CGDataProviderRef provider = NULL;
+  CGImageRef        image = NULL;
   BOOL              result = FALSE;
   UINT              bytesPerPixel;
 
@@ -65,8 +65,8 @@ BOOL CPdfFile::SetImage(LPCVOID pImg, UINT width, UINT height, BYTE bPixelDepth,
 
 int CPdfFile::Write(LPCSTR filename, float pageWidth, float pageHeight) {
   CFStringRef  path;
-  CFURLRef     url = 0;
-  CGContextRef context = 0;
+  CFURLRef     url = NULL;
+  CGContextRef context = NULL;
   CGRect       rect;
   int          result = 1;
 

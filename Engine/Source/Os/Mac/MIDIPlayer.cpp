@@ -26,7 +26,7 @@ static void Console(const char *format, ...) {
 static CFURLRef CreateTemporaryFromMPQ(const char *name) {
   HSFILE file;
   if (!SFileOpenFile(name, &file)) {
-    return 0;
+    return NULL;
   }
 
   DWORD hash = SStrHash(name, 0, 0);
@@ -41,7 +41,7 @@ static CFURLRef CreateTemporaryFromMPQ(const char *name) {
   char path[1024];
   if (!GetTemporaryFSSpec(tempName, path, sizeof(path))) {
     SFileCloseFile(file);
-    return 0;
+    return NULL;
   }
 
   struct stat info;
@@ -51,14 +51,14 @@ static CFURLRef CreateTemporaryFromMPQ(const char *name) {
     if (!SFileReadFile(file, data, size, &actualRead, 0) || actualRead != size) {
       SMemFree(data, __FILE__, __LINE__, 0);
       SFileCloseFile(file);
-      return 0;
+      return NULL;
     }
 
     FILE *out = fopen(path, "wb");
     if (!out) {
       SMemFree(data, __FILE__, __LINE__, 0);
       SFileCloseFile(file);
-      return 0;
+      return NULL;
     }
     fwrite(data, 1, size, out);
     fclose(out);

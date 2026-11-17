@@ -25,7 +25,7 @@ CSimpleEditBox *CSimpleEditBox::s_currentFocus;
 CSimpleEditBox::CSimpleEditBox(CSimpleFrame *parent)
     : CSimpleFrame(parent),
       m_dirtyFlags(DIRTY_NONE),
-      m_textHidden(0),
+      m_textHidden(NULL),
       m_textLength(0),
       m_textLengthMax(0),
       m_textLettersMax(0),
@@ -33,8 +33,8 @@ CSimpleEditBox::CSimpleEditBox(CSimpleFrame *parent)
       m_visibleLen(0),
       m_highlightLeft(0),
       m_highlightRight(0),
-      m_highlightDrag(0),
-      m_cursor(0),
+      m_highlightDrag(FALSE),
+      m_cursor(NULL),
       m_cursorPos(0),
       m_cursorBlinkSpeed(0.5f),
       m_blinkElapsedTime(0.0f),
@@ -43,10 +43,10 @@ CSimpleEditBox::CSimpleEditBox(CSimpleFrame *parent)
       m_autoFocus(1),
       m_numHistory(0),
       m_curHistory(0),
-      m_imeInputMode(0),
-      m_clauseHighlight(0),
-      m_candidatesFrame(0),
-      m_candidatesHighlight(0),
+      m_imeInputMode(FALSE),
+      m_clauseHighlight(NULL),
+      m_candidatesFrame(NULL),
+      m_candidatesHighlight(NULL),
       m_onEnterPressed(0),
       m_onEscapePressed(0),
       m_onSpacePressed(0),
@@ -79,7 +79,7 @@ CSimpleEditBox::CSimpleEditBox(CSimpleFrame *parent)
   m_cursor->Hide();
 
   for (i = 0; i < 6; ++i) {
-    m_actions[i].obj = 0;
+    m_actions[i].obj = NULL;
   }
 
   EnableEvent(SIMPLE_EVENT_CHAR, UINT_MAX);
@@ -283,10 +283,10 @@ BOOL CSimpleEditBox::OnLayerTrackUpdate(const CMouseEvent &evt) {
       SetCursorPosition(position);
     }
 
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void CSimpleEditBox::OnFrameSizeChanged(const NTempest::CRect &rect) {
@@ -299,13 +299,13 @@ void CSimpleEditBox::OnFrameSizeChanged(const NTempest::CRect &rect) {
 
 BOOL CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
   if (!m_visible) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_currentFocus && m_autoFocus) {
     SetKeyboardFocus(this);
   } else if (this != s_currentFocus) {
-    return 0;
+    return FALSE;
   }
 
   ASSERT(!m_imeInputMode);
@@ -315,7 +315,7 @@ BOOL CSimpleEditBox::OnLayerChar(CCharEvent &evt) {
     RunOnSpacePressedScript();
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CSimpleEditBox::CreateClauseHighlight() {
@@ -377,7 +377,7 @@ BOOL CSimpleEditBox::PopulateCandidates(DWORD which) {
   UINT                            selection;
 
   if (!OsIMEGetCandidates(which, pagesize, count, selection, candidates)) {
-    return 0;
+    return FALSE;
   }
 
   CreateCandidatesFrame();
@@ -405,22 +405,22 @@ BOOL CSimpleEditBox::PopulateCandidates(DWORD which) {
 
   m_candidatesFrame->Resize(1);
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
   if (!m_visible) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_currentFocus && m_autoFocus) {
     SetKeyboardFocus(this);
   } else if (this != s_currentFocus) {
-    return 0;
+    return FALSE;
   }
 
   if (m_password) {
-    return 1;
+    return TRUE;
   }
 
   char string[512];
@@ -458,28 +458,28 @@ BOOL CSimpleEditBox::OnLayerIme(CImeEvent &evt) {
       break;
 
     case 1:
-      m_imeInputMode = 1;
-      m_highlightDrag = 0;
+      m_imeInputMode = TRUE;
+      m_highlightDrag = FALSE;
       break;
 
     case 6:
       HideCandidates();
-      m_imeInputMode = 0;
+      m_imeInputMode = FALSE;
       break;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
   if (!m_visible) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_currentFocus && m_autoFocus) {
     SetKeyboardFocus(this);
   } else if (this != s_currentFocus) {
-    return 0;
+    return FALSE;
   }
 
   switch (evt.key) {
@@ -657,18 +657,18 @@ BOOL CSimpleEditBox::OnLayerKeyDown(CKeyEvent &evt) {
       break;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleEditBox::OnLayerKeyDownRepeat(CKeyEvent &evt) {
   if (!m_visible) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_currentFocus && m_autoFocus) {
     SetKeyboardFocus(this);
   } else if (this != s_currentFocus) {
-    return 0;
+    return FALSE;
   }
 
   return OnLayerKeyDown(evt);
@@ -676,16 +676,16 @@ BOOL CSimpleEditBox::OnLayerKeyDownRepeat(CKeyEvent &evt) {
 
 BOOL CSimpleEditBox::OnLayerKeyUp(CKeyEvent &evt) {
   if (!m_visible) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_currentFocus && m_autoFocus) {
     SetKeyboardFocus(this);
   } else if (this != s_currentFocus) {
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleEditBox::OnLayerMouseDown(CMouseEvent &evt) {
@@ -704,7 +704,7 @@ BOOL CSimpleEditBox::OnLayerMouseDown(CMouseEvent &evt) {
 
         SetCursorPosition(position);
         StartHighlight();
-        m_highlightDrag = 1;
+        m_highlightDrag = TRUE;
         handled = 1;
       }
     }
@@ -719,8 +719,8 @@ BOOL CSimpleEditBox::OnLayerMouseUp(CMouseEvent &evt) {
   int handled = CSimpleFrame::OnLayerMouseUp(evt);
 
   if (!handled && m_highlightDrag) {
-    m_highlightDrag = 0;
-    return 1;
+    m_highlightDrag = FALSE;
+    return TRUE;
   }
 
   return handled;
@@ -1350,7 +1350,7 @@ void CSimpleEditBox::BackwardHistory() {
 BOOL CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
   NTempest::CRect stringRect;
   if (!m_string->GetRect(&stringRect)) {
-    return 0;
+    return FALSE;
   }
 
   UINT  line = 0;
@@ -1368,7 +1368,7 @@ BOOL CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
   x -= stringRect.l;
   if (x < 0.0f) {
     position = 0;
-    return 1;
+    return TRUE;
   }
 
   if (x > stringRect.r) {
@@ -1383,7 +1383,7 @@ BOOL CSimpleEditBox::ConvertCoordinateToIndex(float x, float y, int &position) {
   }
 
   position = m_visibleLines[line] + offset;
-  return 1;
+  return TRUE;
 }
 
 void CSimpleEditBox::MakeTextVisible(int position, float offset, float stringWidth) {
@@ -1657,6 +1657,6 @@ void CSimpleEditBox::SetKeyboardFocus(CSimpleEditBox *focus) {
 void CSimpleEditBox::ClearKeyboardFocus(CSimpleEditBox *focus) {
   if (s_currentFocus == focus) {
     s_currentFocus->m_cursor->Hide();
-    s_currentFocus = 0;
+    s_currentFocus = NULL;
   }
 }

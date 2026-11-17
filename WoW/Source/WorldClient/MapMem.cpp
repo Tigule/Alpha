@@ -143,7 +143,7 @@ CMapBaseObjLink *CMap::AllocBaseObjLink(CMapBaseObj *owner) {
   link->ownerLink.Unlink();
   ++owner->refCount;
   link->owner = owner;
-  link->ref = 0;
+  link->ref = NULL;
   owner->parentLinkList.LinkNode(link, LIST_TAIL, 0);
 
   --freeCounts[Cnt_BaseObjLink];
@@ -161,8 +161,8 @@ void CMap::FreeBaseObjLink(CMapBaseObjLink *link) {
   ASSERT(owner);
   --owner->refCount;
 
-  link->ref = 0;
-  link->owner = 0;
+  link->ref = NULL;
+  link->owner = NULL;
   baseObjLinkFreeList.LinkNode(link, LIST_TAIL, 0);
 
   --counts[Cnt_BaseObjLink];
@@ -241,8 +241,8 @@ CMapDoodadDef *CMap::AllocDoodadDef() {
   }
 
   doodadDef->lameAssLink.Unlink();
-  doodadDef->RenderCB = 0;
-  doodadDef->model = 0;
+  doodadDef->RenderCB = NULL;
+  doodadDef->model = NULL;
 
   --freeCounts[Cnt_DoodadDef];
   ++counts[Cnt_DoodadDef];
@@ -420,7 +420,7 @@ void CMap::FreeChunkLiquid(CChunkLiquid *&cl) {
 
   cl->lameAssLink.Unlink();
   chunkLiquidFreeList.LinkNode(cl, LIST_TAIL, 0);
-  cl = 0;
+  cl = NULL;
 }
 
 CMapSoundEmitter *CMap::AllocSoundEmitter() {

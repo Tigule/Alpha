@@ -65,7 +65,7 @@ static void ReleaseTransformListIndex(UINT numAttached) {
 
 static NTempest::C34Matrix *GetTransformPtr(UINT index) {
   if (!s_transforms.Count()) {
-    return 0;
+    return NULL;
   }
 
   return &s_transforms[index];
@@ -93,7 +93,7 @@ static void ReleaseLayerIndex(UINT numLayers) {
 
 static UINT *GetLayerPtr(UINT index) {
   if (!s_layers.Count()) {
-    return 0;
+    return NULL;
   }
 
   return &s_layers[index];
@@ -345,9 +345,9 @@ IModelAnimate(CModelSimple *unique, CModelShared *shared, const NTempest::C3Vect
   animData.numTexBones = shared->numTexBones;
   animData.positions = &shared->positions;
   animData.lights = 0;
-  animData.emitters2 = 0;
-  animData.ribbons = 0;
-  animData.attached = 0;
+  animData.emitters2 = NULL;
+  animData.ribbons = NULL;
+  animData.attached = NULL;
   animData.numAttached = 0;
   animData.geosetColor = unique->m_geosetColor.Ptr();
   animData.cameraWorldPos = &cameraWorldPos;
@@ -616,8 +616,8 @@ void ModelAnimateLogStart(LPCSTR fileName) {
 void ModelAnimateLogStop() {
 }
 
-int ModelAnimateLogToggle(LPCSTR fileName) {
-  return 0;
+BOOL ModelAnimateLogToggle(LPCSTR fileName) {
+  return FALSE;
 }
 
 void ModelAnimateCameras(HMODEL model, const NTempest::C34Matrix &orientation) {
@@ -743,16 +743,16 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_SEQUENCE1, seqIndex, flags);
-    return 1;
+    return TRUE;
   }
 
   if (!unique->m_anim) {
     SErrSetLastError(ERROR_PATH_NOT_FOUND);
-    return 0;
+    return FALSE;
   }
 
   if (!AnimSetSequence(unique->m_anim, seqIndex, flags)) {
-    return 0;
+    return FALSE;
   }
 
   if (unique->m_boundsModel) {
@@ -763,7 +763,7 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT flags) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
@@ -773,7 +773,7 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_SEQUENCE2, seqIndex, objectId, flags);
-    return 1;
+    return TRUE;
   }
 
   if (unique->m_anim) {
@@ -781,7 +781,7 @@ BOOL ModelSetSequence(HMODEL model, UINT seqIndex, UINT objectId, UINT flags) {
   }
 
   SErrSetLastError(ERROR_PATH_NOT_FOUND);
-  return 0;
+  return FALSE;
 }
 
 int ModelMatchSequence(HMODEL model, UINT objectId, UINT sameAsObjectId, UINT flags) {
@@ -917,7 +917,7 @@ BOOL ModelGetSequenceDuration(HMODEL model, UINT seqIndex, UINT *duration) {
     return AnimGetSequenceDuration(unique->m_anim, seqIndex, duration);
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
@@ -929,7 +929,7 @@ BOOL ModelGetSequenceMoveSpeed(HMODEL model, UINT seqIndex, float *moveSpeed) {
     return AnimGetSequenceMoveSpeed(unique->m_anim, seqIndex, moveSpeed);
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLength) {
@@ -943,7 +943,7 @@ BOOL ModelGetSequenceName(HMODEL model, UINT seqIndex, char *buffer, UINT buffLe
     return AnimGetSequenceName(unique->m_anim, seqIndex, buffer, buffLength);
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelHasSequenceId(HMODEL model, UINT seqIndex) {
@@ -953,7 +953,7 @@ BOOL ModelHasSequenceId(HMODEL model, UINT seqIndex) {
     return AnimHasSequenceId(unique->m_anim, seqIndex);
   }
 
-  return 0;
+  return FALSE;
 }
 
 UINT ModelGetTotalKeys(HMODEL model) {
@@ -1033,15 +1033,15 @@ BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int d
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_SET_OBJECT_TIME_SCALE, objectId, timeScale, doLinkedModels);
-    return 1;
+    return TRUE;
   }
 
   if (unique->m_anim && !AnimSetObjectTimeScale(unique->m_anim, objectId, timeScale)) {
-    return 0;
+    return FALSE;
   }
 
   if (!doLinkedModels || !(unique->m_flags & 0x20)) {
-    return 1;
+    return TRUE;
   }
 
   CModelComplex *complex = (CModelComplex *)unique;
@@ -1050,13 +1050,13 @@ BOOL ModelSetObjectTimeScale(HMODEL model, UINT objectId, float timeScale, int d
     if (AttachmentIsEnabled(complex, index)) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[index], link) {
         if (!ModelSetObjectTimeScale(link->child, objectId, timeScale, 1)) {
-          return 0;
+          return FALSE;
         }
       }
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 float ModelGetTimeScale(HMODEL model) {
@@ -1084,11 +1084,11 @@ BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMod
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_FORCE_CURRENT_SEQUENCE_TIME, timeOffset, doLinkedModels);
-    return 1;
+    return TRUE;
   }
 
   if (!unique->m_anim || !AnimForceCurrentSequenceTime(unique->m_anim, timeOffset)) {
-    return 0;
+    return FALSE;
   }
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
@@ -1103,7 +1103,7 @@ BOOL ModelForceCurrentSequenceTime(HMODEL model, int timeOffset, int doLinkedMod
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doLinkedModels) {
@@ -1113,11 +1113,11 @@ BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doL
   CModelBase *unique;
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_FORCE_SEQUENCE_TIME, seqIndex, timeOffset, doLinkedModels);
-    return 1;
+    return TRUE;
   }
 
   if (!unique->m_anim || !AnimForceSequenceTime(unique->m_anim, seqIndex, timeOffset)) {
-    return 0;
+    return FALSE;
   }
 
   if (doLinkedModels && (unique->m_flags & 0x20)) {
@@ -1132,22 +1132,22 @@ BOOL ModelForceSequenceTime(HMODEL model, UINT seqIndex, int timeOffset, int doL
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelAdvanceTime(HMODEL model) {
   CModelBase *unique;
   if (!IModelDerefHandle((CModel *)model, &unique)) {
-    return 0;
+    return FALSE;
   }
 
   if (unique->m_anim && !AnimAdvanceTime(unique->m_anim, GxPerfCounter(GxPerf_FrameNum))) {
-    return 0;
+    return FALSE;
   }
 
   ASSERT(((CModel *)((CHandleObject*)(model))));
   if (!(unique->m_flags & 0x20)) {
-    return 1;
+    return TRUE;
   }
 
   CModelComplex *complex = (CModelComplex *)unique;
@@ -1160,22 +1160,22 @@ BOOL ModelAdvanceTime(HMODEL model) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelAdvanceTime(HMODEL model, int timeChange) {
   CModelBase *unique;
   if (!IModelDerefHandle((CModel *)model, &unique)) {
-    return 0;
+    return FALSE;
   }
 
   if (unique->m_anim && !AnimManualAdvanceTime(unique->m_anim, timeChange)) {
-    return 0;
+    return FALSE;
   }
 
   FATALASSERT(((CModel *)((CHandleObject*)(model))));
   if (!(unique->m_flags & 0x20)) {
-    return 1;
+    return TRUE;
   }
 
   CModelComplex *complex = (CModelComplex *)unique;
@@ -1188,7 +1188,7 @@ BOOL ModelAdvanceTime(HMODEL model, int timeChange) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ModelPauseTime(HMODEL model, int pause, int doLinkedModels) {
@@ -1310,7 +1310,7 @@ BOOL ModelObjectUsingLookAt(HMODEL model, UINT objectId) {
     return AnimObjectUsingLookAt(unique->m_anim, objectId);
   }
 
-  return 0;
+  return FALSE;
 }
 
 int ModelApplyObjectFaceDir(HMODEL model, UINT objectId, const NTempest::C3Vector &direction) {
@@ -1358,7 +1358,7 @@ BOOL ModelObjectUsingFaceDir(HMODEL model, UINT objectId) {
     return AnimObjectUsingFaceDir(unique->m_anim, objectId);
   }
 
-  return 0;
+  return FALSE;
 }
 
 int ModelMarkFootstepSequence(HMODEL model, UINT seqIndex) {
@@ -1457,7 +1457,7 @@ BOOL ModelEventEmitterHasKeysThisSeq(HMODEL model, UINT objectId) {
     return AnimEventEmitterHasKeysThisSeq(unique->m_anim, objectId);
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pivot) {
@@ -1468,7 +1468,7 @@ BOOL ModelGetModelSpacePivot(HMODEL model, UINT objectId, NTempest::C3Vector *pi
     return AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, pivot);
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *position) {
@@ -1478,11 +1478,11 @@ BOOL ModelGetObjectPosition(HMODEL model, UINT objectId, NTempest::C3Vector *pos
   if (!IModelDerefHandle((CModel *)model, &unique, &shared) || !unique->m_anim ||
       !AnimGetObjectPosition(unique->m_anim, objectId, shared->positions, position))
   {
-    return 0;
+    return FALSE;
   }
 
   *position *= unique->m_modelToWorld;
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NTempest::C3Vector *position) {
@@ -1491,11 +1491,11 @@ BOOL ModelGetEventObjectPosition(HMODEL model, UINT objectId, int modelSpace, NT
   if (!IModelDerefHandle((CModel *)model, &unique) || !unique->m_anim ||
       !AnimGetEventObjectPosition(unique->m_anim, objectId, position))
   {
-    return 0;
+    return FALSE;
   }
 
   if (!modelSpace) {
     *position *= unique->m_modelToWorld;
   }
-  return 1;
+  return TRUE;
 }

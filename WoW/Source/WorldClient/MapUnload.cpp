@@ -20,7 +20,7 @@ void CMap::Unload() {
   for (UINT i = 0; i < 4096; ++i) {
     if (areaLowTable[i]) {
       DEL(areaLowTable[i]);
-      areaLowTable[i] = 0;
+      areaLowTable[i] = NULL;
     }
   }
 
@@ -50,11 +50,11 @@ void CMap::Unload() {
   if (wdtFile) {
     SFile::Close(wdtFile);
   }
-  wdtFile = 0;
+  wdtFile = NULL;
   DayNightDestroy();
   DestroyLight(sunLight);
-  bActive = 0;
-  bDungeon = 0;
+  bActive = FALSE;
+  bDungeon = FALSE;
 }
 
 void DNGlare::Destroy() {

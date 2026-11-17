@@ -144,7 +144,7 @@ NODEDECL(Sound) {
   static LPCSTR GetDriverName(int index);
   static int    GetNumMixers();
   static LPCSTR GetMixerName(int index);
-  static int  MIDI_Initialize();
+  static BOOL MIDI_Initialize();
   static void MIDI_Shutdown();
   static void MIDI_Play(LPCSTR midiFilename, LPCSTR dlsFilename);
   static void MIDI_Stop();

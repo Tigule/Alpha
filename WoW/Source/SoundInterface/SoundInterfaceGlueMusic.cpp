@@ -75,6 +75,6 @@ void SndInterfaceSetGlueMusic(LPCSTR musicFile) {
 void SndInterfaceStopGlueMusic(float fadeTime) {
   if (s_glueMusic) {
     s_glueMusic->Stop(fadeTime);
-    s_glueMusic = 0;
+    s_glueMusic = NULL;
   }
 }

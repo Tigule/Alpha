@@ -125,7 +125,7 @@ static BOOL ConsoleCommand_Logout(LPCSTR command, LPCSTR arguments) {
     ClientServices_CharacterLogout(true);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ClientServices_MessageHandler(LPVOID param, NETMESSAGE msgId, DWORD time, CDataStore *msg) {
@@ -153,19 +153,19 @@ static BOOL ClientServices_MessageHandler(LPVOID param, NETMESSAGE msgId, DWORD 
       return connection->HandleCharacterDelete(msgId, time, msg);
   }
 
-  return 0;
+  return FALSE;
 }
 ClientConnection::ClientConnection() {
   m_initialized = 0;
   m_connected = 0;
   m_playing = 0;
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_statusResult = 1;
-  m_inGame = 0;
+  m_inGame = FALSE;
   m_statusCop = COP_NONE;
   m_errorCode = 0;
   m_cleanup = 0;
-  m_isBot = 0;
+  m_isBot = FALSE;
   m_exitAfterLogout = 0;
   m_loggingOut = 0;
 }
@@ -183,11 +183,11 @@ BOOL ClientConnection::Initialize(LoginData *loginData) {
   if (!m_initialized) {
     if (!NetClient::Initialize()) {
       m_statusCop = COP_NONE;
-      return 0;
+      return FALSE;
     }
   }
 
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_statusResult = 1;
   m_errorCode = 0;
   m_initialized = 1;
@@ -203,7 +203,7 @@ BOOL ClientConnection::Initialize(LoginData *loginData) {
   SetMessageHandler(SMSG_CHAR_DELETE, ClientServices_MessageHandler, this);
 
   m_loginData = *loginData;
-  return 1;
+  return TRUE;
 }
 
 void ClientServices_Initialize(LoginData *loginData) {
@@ -264,7 +264,7 @@ void ClientServices_Destroy() {
 
   if (g_clientConnection) {
     DEL(g_clientConnection);
-    g_clientConnection = 0;
+    g_clientConnection = NULL;
   }
 }
 int ClientConnection::PollStatus(WOWCS_OPS &op, int &errorCode, int &result) {
@@ -279,7 +279,7 @@ int ClientServices_PollStatus(WOWCS_OPS &op, LPCSTR &msg, int &result, int &erro
 
   int status = s_currentConnection->PollStatus(op, errorCode, result);
   if (status) {
-    LPCSTR localized = 0;
+    LPCSTR localized = NULL;
     if (errorCode >= 0 && errorCode < 0x42) {
       localized = FrameScript_GetText(s_errorCodeTokens[errorCode], -1, GENDER_NOT_APPLICABLE);
     }
@@ -324,7 +324,7 @@ void ClientConnection::Cancel(int errorCode) {
   Cleanup();
   m_statusResult = 0;
   m_errorCode = errorCode;
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
 }
 
 void ClientServices_Cancel() {
@@ -352,14 +352,14 @@ BOOL ClientConnection::HandleConnect() {
   Cleanup();
   m_statusResult = 1;
   m_errorCode = 5;
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_connected = 1;
   return NetClient::HandleConnect();
 }
 
 BOOL ClientConnection::HandleDisconnect() {
   Cleanup();
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_connected = 0;
   return NetClient::HandleDisconnect();
 }
@@ -368,7 +368,7 @@ BOOL ClientConnection::HandleCantConnect() {
   Cleanup();
   m_statusResult = 0;
   m_errorCode = 4;
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_connected = 0;
   return NetClient::HandleCantConnect();
 }
@@ -379,12 +379,12 @@ void ClientConnection::Connect() {
   m_cleanup = 0;
   m_statusCop = COP_CONNECT;
   m_errorCode = 7;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
 
   if (m_connected) {
     Cleanup();
     m_statusResult = 1;
-    m_statusComplete = 1;
+    m_statusComplete = TRUE;
     m_errorCode = 5;
   } else {
     m_realmList.SetCount(0);
@@ -407,7 +407,7 @@ BOOL ClientServices_IsConnected() {
 void ClientConnection::AccountLogin_Finish(int reason) {
   Cleanup();
   m_errorCode = reason;
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_statusResult = reason == 12;
 }
 
@@ -447,7 +447,7 @@ BOOL ClientConnection::HandleAuthChallenge(NETMESSAGE msgId, DWORD, CDataStore *
   resp.PutData(localDigest, sizeof(localDigest));
   resp.Finalize();
   NetClient::Send(&resp);
-  return 1;
+  return TRUE;
 }
 
 BOOL ClientConnection::HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *msg) {
@@ -460,13 +460,13 @@ BOOL ClientConnection::HandleAuthResponse(NETMESSAGE msgId, DWORD, CDataStore *m
     msg->Get(m_waitCount);
     m_errorCode = result;
     m_statusCop = COP_WAIT_QUEUE;
-    m_statusComplete = 0;
+    m_statusComplete = FALSE;
     CGlueMgr::UpdateWaitQueue(m_waitCount);
   } else {
     AccountLogin_Finish(result);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::AccountLogin(LPCSTR name, LPCSTR password, int region, WOW_LOCALE locale) {
@@ -478,7 +478,7 @@ void ClientConnection::AccountLogin(LPCSTR name, LPCSTR password, int region, WO
   m_cleanup = 0;
   m_statusCop = COP_AUTHENTICATE;
   m_errorCode = 11;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
 
   if (!m_connected) {
     Cancel(4);
@@ -552,7 +552,7 @@ BOOL ClientConnection::HandleCharEnum(NETMESSAGE msgId, DWORD time, CDataStore *
     Complete(0, 38);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::GetCharacterList() {
@@ -560,7 +560,7 @@ void ClientConnection::GetCharacterList() {
   m_cleanup = 0;
   m_statusCop = COP_GET_CHARACTERS;
   m_errorCode = 36;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
 
   if (!m_connected) {
     Cancel(4);
@@ -613,14 +613,14 @@ BOOL ClientConnection::HandleCharacterCreate(NETMESSAGE msgId, DWORD time, CData
   }
 
   Complete(result == 40, result);
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::CharacterCreate(const CHARACTER_CREATE_INFO &info) {
   m_cleanup = 0;
   m_statusCop = COP_CREATE_CHARACTER;
   m_errorCode = 39;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
 
   if (!m_connected) {
     Cancel(4);
@@ -680,14 +680,14 @@ BOOL ClientConnection::HandleCharacterLoginFailed(NETMESSAGE msgId, DWORD time, 
       break;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::CharacterLogin(DWORDLONG id) {
   m_cleanup = 0;
   m_statusCop = COP_LOGIN_CHARACTER;
   m_errorCode = 48;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
 
   if (!m_connected) {
     Cancel(4);
@@ -710,7 +710,7 @@ void ClientServices_CharacterLogin(DWORDLONG id, UINT continentID, NTempest::C3V
 void ClientConnection::CharacterSetInGame(int state) {
   Cleanup();
   m_statusResult = 1;
-  m_statusComplete = 1;
+  m_statusComplete = TRUE;
   m_errorCode = 49;
   m_inGame = state;
 }
@@ -739,7 +739,7 @@ BOOL ClientConnection::HandleLogoutComplete(NETMESSAGE msgId, DWORD time, CDataS
     ClientPostClose();
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataStore *msg) {
@@ -755,7 +755,7 @@ BOOL ClientConnection::HandleLogoutResponse(NETMESSAGE msgId, DWORD time, CDataS
     m_loggingOut = 0;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::CharacterRemoveFromGame() {
@@ -777,7 +777,7 @@ BOOL ClientConnection::HandleLogoutAbortAck(NETMESSAGE msgId, DWORD time, CDataS
   ASSERT(msg->IsRead());
 
   m_loggingOut = 0;
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::CharacterAbortLogout() {
@@ -854,22 +854,22 @@ BOOL ClientConnection::HandleCharacterDelete(NETMESSAGE msgId, DWORD time, CData
     Cleanup();
     m_statusResult = 1;
     m_errorCode = 46;
-    m_statusComplete = 1;
+    m_statusComplete = TRUE;
   } else {
     Cleanup();
     m_statusResult = 0;
     m_errorCode = 47;
-    m_statusComplete = 1;
+    m_statusComplete = TRUE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ClientConnection::CharacterDelete(DWORDLONG guid) {
   m_cleanup = 0;
   m_statusCop = COP_DELETE_CHARACTER;
   m_errorCode = 45;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
 
   if (!m_connected) {
     Cancel(4);
@@ -890,12 +890,12 @@ void ClientServices_CharacterDelete(DWORDLONG guid) {
 
 BOOL ClientConnection::Disconnect() {
   if (!m_connected) {
-    return 0;
+    return FALSE;
   }
 
   NetClient::Disconnect();
   m_connected = 0;
-  return 1;
+  return TRUE;
 }
 
 BOOL ClientServices_Disconnect() {
@@ -973,7 +973,7 @@ void ClientConnection::GetRealmList() {
   m_cleanup = 0;
   m_statusCop = COP_GET_REALMS;
   m_errorCode = 28;
-  m_statusComplete = 0;
+  m_statusComplete = FALSE;
   ClientNetGetRealms(s_realmListVar->GetString(), RealmEnum_InternalCallback, this);
 }
 
@@ -1009,7 +1009,7 @@ int ClientServices_EnumerateRealms(void (*fcn)(REALM_INFO &info, LPVOID param), 
 
 const REALM_INFO *ClientConnection::GetRealmInfoByIndex(int index) {
   if (index >= m_realmList.Count()) {
-    return 0;
+    return NULL;
   }
 
   return &m_realmList[index];
@@ -1058,11 +1058,11 @@ CHAR_NAME_RESULT ClientServices_CharacterValidateName(LPCSTR name) {
 BOOL ClientServices_AccountValidateName(LPCSTR name) {
   for (int c = *name++; c; c = *name++) {
     if (!isalnum(c) && c != '.' && c != '-') {
-      return 0;
+      return FALSE;
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 LPCSTR ClientServices_GetAccountName() {

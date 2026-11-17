@@ -32,7 +32,7 @@ void IStockDestroy() {
       HandleClose(s_stockObjects[i]);
     }
 
-    s_stockObjects[i] = 0;
+    s_stockObjects[i] = NULL;
   }
 
   GxuFontShutdown();

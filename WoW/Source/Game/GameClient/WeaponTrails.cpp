@@ -216,11 +216,11 @@ static BOOL DiscontinueTimerHandler(LPCVOID data, LPVOID userArg) {
 
   trail->m_flags |= 2;
   trail->m_timer = 0;
-  return 1;
+  return TRUE;
 }
 
 WTOBJECT::WTOBJECT()
-    : m_model(0), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0ul), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
+    : m_model(NULL), m_geosetID(-1), m_bottomCoord(0.0f), m_topCoord(0.0f), m_color(0ul), m_fadeOutRate(-1), m_flags(0), m_timer(0), m_currentAlpha(0) {
 }
 
 void WTOBJECT::Recycle() {
@@ -235,7 +235,7 @@ void WTOBJECT::Recycle() {
   if (m_model) {
     HandleClose(m_model);
   }
-  m_model = 0;
+  m_model = NULL;
 }
 
 void WTOBJECT::RenderVerts(const NTempest::C3Vector &cameraPos) {

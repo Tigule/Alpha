@@ -25,7 +25,7 @@ struct NoPaqCompHdr {
 };
 
 struct FILEMAP : TSHashObject<FILEMAP, HASHKEY_STRI> {
-  FILEMAP() : realname(0) {
+  FILEMAP() : realname(NULL) {
   }
 
   ~FILEMAP() {
@@ -65,7 +65,7 @@ static void convert_slashes(char *path) {
     }
   }
 
-  while ((curr = SStrStr(path, "./")) != 0) {
+  while ((curr = SStrStr(path, "./")) != NULL) {
     while (*curr) {
       *curr = curr[2];
       if (!*curr) {
@@ -75,7 +75,7 @@ static void convert_slashes(char *path) {
     }
   }
 
-  while ((curr = SStrStr(path, "//")) != 0) {
+  while ((curr = SStrStr(path, "//")) != NULL) {
     while (*curr) {
       *curr = curr[1];
       ++curr;
@@ -104,7 +104,7 @@ static void convert_case(char *path, char *name) {
       dir = opendir(".");
     }
     if (dir) {
-      while ((entry = readdir(dir)) != 0) {
+      while ((entry = readdir(dir)) != NULL) {
         if (!SStrCmpI(entry->d_name, name, 0x7FFFFFFF)) {
           SStrCopy(name, entry->d_name, 0x7FFFFFFF);
           break;

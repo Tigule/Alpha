@@ -285,7 +285,7 @@ static void  ComputePageSize();
 static void  FillBlockHeaderAndSignatures(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD blockSize, DWORD padding, BYTE flags);
 static void  FreeHeap(HEAPPTR *nextptr);
 static void  FreeHeapBlock(HEAPPTR heapptr, BLOCKPTR block);
-static int   GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize);
+static BOOL  GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize);
 static BOOL  GrowHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
 static void  ShrinkHeapBlock(HEAPPTR heapptr, BLOCKPTR blockptr, DWORD sourceBytes, DWORD bytes);
 static void  SubdivideBlock(HEAPPTR heapptr, BLOCKPTR blockptr, LPDWORD blocksize, LPDWORD padding);
@@ -786,7 +786,7 @@ static void GetBlockSize(BLOCKPTR blockptr, LPVOID ptr, LPDWORD bytes, LPDWORD o
   *bytes = blockptr->bytes - *overhead;
 }
 
-static int GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize) {
+static BOOL GrowCommitSize(HEAPPTR heapptr, DWORD newheapsize) {
   DWORD bytes = newheapsize - heapptr->committedbytes;
   if (bytes & (heapptr->chunksize - 1))
     bytes += heapptr->chunksize - (bytes & (heapptr->chunksize - 1));
@@ -1687,7 +1687,7 @@ void APIENTRY SMemInitialize() {
 }
 
 BOOL APIENTRY SMemIsValidPointer(LPCVOID address, DWORD size, BOOL forWriting) {
-  return (forWriting ? IsBadWritePtr((LPVOID)address, size) : IsBadReadPtr(address, size)) == 0;
+  return (forWriting ? IsBadWritePtr((LPVOID)address, size) : IsBadReadPtr(address, size)) == FALSE;
 }
 
 LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename, int linenumber, DWORD flags) {

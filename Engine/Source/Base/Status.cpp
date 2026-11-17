@@ -31,7 +31,7 @@ static char *FormatStatusMessage(LPCSTR format, va_list argptr) {
 }
 
 void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
-  STATUSENTRY *entry = 0;
+  STATUSENTRY *entry = NULL;
   LPCSTR       text;
   va_list      args;
 
@@ -49,7 +49,7 @@ void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
   entry->text = SStrDupA(text, __FILE__, __LINE__);
   entry->severity = severity;
 
-  STATUSENTRY *pnextstatus = 0;
+  STATUSENTRY *pnextstatus = NULL;
   {
     ITERATELIST(STATUSENTRY, statusList, cursor) {
       if (severity >= cursor->severity) {
@@ -63,7 +63,7 @@ void CStatus::Prepend(STATUS_TYPE severity, LPCSTR format, ...) {
 }
 
 void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
-  STATUSENTRY *entry = 0;
+  STATUSENTRY *entry = NULL;
   LPCSTR       text;
   va_list      args;
 
@@ -81,7 +81,7 @@ void CStatus::Add(STATUS_TYPE severity, LPCSTR format, ...) {
   entry->text = SStrDupA(text, __FILE__, __LINE__);
   entry->severity = severity;
 
-  STATUSENTRY *pnextstatus = 0;
+  STATUSENTRY *pnextstatus = NULL;
   {
     ITERATELIST(STATUSENTRY, statusList, cursor) {
       if (severity > cursor->severity) {

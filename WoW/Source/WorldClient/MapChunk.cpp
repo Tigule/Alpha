@@ -167,7 +167,7 @@ BYTE *CMapChunk::AllocAsyncLoadBuffer() {
   }
 
   if (!s_freeAsyncBuffer) {
-    return 0;
+    return NULL;
   }
 
   BYTE *buffer = s_freeAsyncBuffer;
@@ -187,11 +187,11 @@ CChunkTex::~CChunkTex() {
 
 CChunkLayer::CChunkLayer() {
   props = 0;
-  texId = 0;
-  offsAlpha = 0;
-  tex = 0;
-  gxTexture = 0;
-  chunk = 0;
+  texId = NULL;
+  offsAlpha = NULL;
+  tex = NULL;
+  gxTexture = NULL;
+  chunk = NULL;
   effectId = 0;
 }
 
@@ -209,8 +209,8 @@ void CMapChunk::Initialize() {
   gxBufDyn = GxBufCreate(GxBWF_Dynamic, GxVBF_PN, 145, 768, GxBufDynFillCallback, 0);
   ASSERT(gxBufDyn);
 
-  soundEmitterCreateHandler = 0;
-  soundEmitterDestroyHandler = 0;
+  soundEmitterCreateHandler = NULL;
+  soundEmitterDestroyHandler = NULL;
   AsyncFileReadAddHandler(AsyncPollHandler);
 }
 
@@ -451,22 +451,22 @@ void CMapChunk::AsyncCallback(LPVOID userArg) {
 
   chunk->Create((BYTE *)chunk->asyncObject->buffer);
   FreeAsyncLoadBuffer((BYTE *)chunk->asyncObject->buffer);
-  chunk->asyncObject->buffer = 0;
+  chunk->asyncObject->buffer = NULL;
   AsyncFileReadDestroyObject(chunk->asyncObject);
-  chunk->asyncObject = 0;
+  chunk->asyncObject = NULL;
 }
 
 CMapChunk::CMapChunk() {
-  shadowTexture = 0;
-  shadowGxTexture = 0;
-  shaderTexture = 0;
-  shaderGxTexture = 0;
-  detailDoodadInst = 0;
+  shadowTexture = NULL;
+  shadowGxTexture = NULL;
+  shaderTexture = NULL;
+  shaderGxTexture = NULL;
+  detailDoodadInst = NULL;
   memset(liquids, 0, sizeof(liquids));
   type |= Type_Chunk;
   nLayers = 0;
-  gxBuf = 0;
-  asyncObject = 0;
+  gxBuf = NULL;
+  asyncObject = NULL;
 }
 
 CMapChunk::~CMapChunk() {
@@ -487,12 +487,12 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
   FATALASSERT(chunkInfo->size < 15000);
 
   nLayers = 0;
-  asyncObject = 0;
-  bLoaded = 0;
+  asyncObject = NULL;
+  bLoaded = FALSE;
   lod = -1;
   remapLod = -1;
-  detailDoodadInst = 0;
-  gxBuf = 0;
+  detailDoodadInst = NULL;
+  gxBuf = NULL;
   freeTime = 0.0f;
   flags = 0;
   fileOffset = chunkInfo->offset;
@@ -532,10 +532,10 @@ void CMapChunk::Load(SMChunkInfo *chunkInfo) {
 }
 
 void CMapChunk::SyncLoadLayer(CChunkLayer *layer) {
-  SMChunk *mChunk = 0;
-  SMLayer *mLayer = 0;
-  BYTE    *shadowTex = 0;
-  BYTE    *alphaTex = 0;
+  SMChunk *mChunk = NULL;
+  SMLayer *mLayer = NULL;
+  BYTE    *shadowTex = NULL;
+  BYTE    *alphaTex = NULL;
 
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
@@ -554,10 +554,10 @@ void CMapChunk::SyncLoadLayer(CChunkLayer *layer) {
 }
 
 void CMapChunk::SyncLoadShadow() {
-  SMChunk *mChunk = 0;
-  SMLayer *mLayer = 0;
-  BYTE    *shadowTex = 0;
-  BYTE    *alphaTex = 0;
+  SMChunk *mChunk = NULL;
+  SMLayer *mLayer = NULL;
+  BYTE    *shadowTex = NULL;
+  BYTE    *alphaTex = NULL;
 
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
@@ -568,10 +568,10 @@ void CMapChunk::SyncLoadShadow() {
 }
 
 void CMapChunk::SyncLoadShader() {
-  SMChunk *mChunk = 0;
-  SMLayer *mLayer = 0;
-  BYTE    *shadowTex = 0;
-  BYTE    *alphaTex = 0;
+  SMChunk *mChunk = NULL;
+  SMLayer *mLayer = NULL;
+  BYTE    *shadowTex = NULL;
+  BYTE    *alphaTex = NULL;
 
   s_fileCritSect.Enter();
   SyncLoad(mChunk, mLayer, shadowTex, alphaTex);
@@ -723,7 +723,7 @@ void CMapChunk::Create(BYTE *data) {
     CreateShadow(shadowTex);
   } else {
     shadowSize = 0;
-    shadowOffs = 0;
+    shadowOffs = NULL;
   }
 
   if (CMap::EnableTerrainShader() || CMap::EnableSpecularTerrain()) {
@@ -778,7 +778,7 @@ void CMapChunk::Update() {
   if (freeTime > 5.0f) {
     if (gxBuf) {
       FreeGxBuf(gxBuf);
-      gxBuf = 0;
+      gxBuf = NULL;
     }
 
     if (detailDoodadInst && detailDoodadInst->HasBufs()) {
@@ -788,7 +788,7 @@ void CMapChunk::Update() {
 
   if (detailDoodadInst && freeTime > 10.0f) {
     CDetailDoodad::FreeInst(detailDoodadInst);
-    detailDoodadInst = 0;
+    detailDoodadInst = NULL;
   }
 
   if (CWorldScene::camFrustumBounds.Intersects(aaBox)) {
@@ -1051,7 +1051,7 @@ void CMapChunk::CreateChunkShaderTex() {
   NTempest::CImVector *texels = (NTempest::CImVector *)shaderTexture->pixels;
   const BYTE          *alpha[4];
   for (UINT i = 0; i < 4; ++i) {
-    alpha[i] = 0;
+    alpha[i] = NULL;
     if (i < nLayers && (layerList[i]->props & 0x100)) {
       alpha[i] = layerList[i]->offsAlpha;
     }
@@ -1216,7 +1216,7 @@ void CMapChunk::UpdateLayerGxTexture(
 
     case GxTex_Unlock:
       CMap::FreeTex(layer->tex);
-      layer->tex = 0;
+      layer->tex = NULL;
       return;
   }
 }
@@ -1248,7 +1248,7 @@ void CMapChunk::UpdateShadowGxTexture(
 
     case GxTex_Unlock:
       CMap::FreeTex(chunk->shadowTexture);
-      chunk->shadowTexture = 0;
+      chunk->shadowTexture = NULL;
       return;
   }
 }
@@ -1280,7 +1280,7 @@ void CMapChunk::UpdateShaderGxTexture(
 
     case GxTex_Unlock:
       CMap::FreeTex(chunk->shaderTexture);
-      chunk->shaderTexture = 0;
+      chunk->shaderTexture = NULL;
       return;
   }
 }

@@ -20,7 +20,7 @@ NODEDECL(MSGBUFFER) {
   SYSMSG_TYPE severity;
   UINT        categoryMask;
 
-  MSGBUFFER() : string(0), timeVisible(0.0f), severity(SYSMSG_INFO), categoryMask(0) {
+  MSGBUFFER() : string(NULL), timeVisible(0.0f), severity(SYSMSG_INFO), categoryMask(0) {
   }
 
   ~MSGBUFFER() {
@@ -91,7 +91,7 @@ BOOL SysMsgAdd(LPCSTR msg, SYSMSG_TYPE severity, UINT categoryMask) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void GenerateMaskString(char *buffer, UINT size, UINT maskString) {
@@ -116,7 +116,7 @@ BOOL SysMsgAdd(const CStatus &status, UINT categoryMask) {
   int   result;
 
   if (status.IsEmpty()) {
-    return 1;
+    return TRUE;
   }
 
   msg = status.GetErrorStrAlloc(STATUS_INFO);
@@ -231,7 +231,7 @@ void SysMsgEnableFileLog(LPCSTR baseDir) {
   }
 
   if (s_osFile == HOSFILE_INVALID) {
-    s_osFile = 0;
+    s_osFile = NULL;
   }
 }
 
@@ -243,18 +243,18 @@ static BOOL DetermineFileName(LPCSTR curDir, char *buffer, UINT size) {
 
     SStrPrintf(buffer, size, "%sSysMsgLog%03d.txt", curDir, index);
     if (!OsFileExists(buffer)) {
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 void SysMsgDisableFileLog() {
   if (s_osFile) {
     OsCloseFile(s_osFile);
   }
-  s_osFile = 0;
+  s_osFile = NULL;
 }
 
 void SysMsgSetCallback(SYSMSGCALLBACK callback) {

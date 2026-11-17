@@ -421,7 +421,7 @@ BOOL SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *s
 
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
-    return 0;
+    return FALSE;
   }
 
   int category = spell->m_category;
@@ -495,7 +495,7 @@ BOOL SpellHistory::GetCooldown(int spellID, int itemID, UINT *duration, DWORD *s
 BOOL SpellHistory::IsOnHold(int spellID, int itemID) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   if (!spell) {
-    return 0;
+    return FALSE;
   }
 
   int category = spell->m_category;
@@ -514,10 +514,10 @@ BOOL SpellHistory::IsOnHold(int spellID, int itemID) {
     if ((history->spellID == spellID && history->itemID == itemID && history->recoveryTime && history->onHold) ||
         (history->category == category && history->categoryRecoveryTime && history->onHold))
     {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void SpellHistory::RemoveHold(int spellID, DWORD startTime, bool clear) {
@@ -575,7 +575,7 @@ void SpellHistory::GarbageCollect(DWORD timestamp) {
 void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2) {
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
   GAME_ERROR_TYPE error = GERR_SPELL_FAILED_S;
-  BOOL            isPet = 0;
+  BOOL            isPet = FALSE;
 
   FrameScript_SignalEvent(370);
   if (spell) {
@@ -615,7 +615,7 @@ void Spell_C_SpellFailed(int spellID, BYTE reason, int arg1, int arg2) {
     }
 
     if (spell->m_effect[0] == 57 || (spell->m_effect[0] == 36 && spell->m_implicitTargetA[0] == 5)) {
-      isPet = 1;
+      isPet = TRUE;
     }
   }
 
@@ -749,7 +749,7 @@ static const ItemSubClassRec *FindAnyItemSubclassRec(int classID, UINT subclassM
       return record;
     }
   }
-  return 0;
+  return NULL;
 }
 
 static LPCSTR GetStringReason(BYTE reason) {
@@ -812,7 +812,7 @@ void Spell_C_SetCooldownLeft(
     return;
   }
 
-  const ItemStats *stats = 0;
+  const ItemStats *stats = NULL;
   if (itemID) {
     stats = g_itemDBCache.GetRecord(itemID, 0, 0, 0);
     if (stats) {
@@ -1121,15 +1121,15 @@ static BOOL FindAmmoCallback(const CGItem_C *item, LPVOID param) {
   if (item->GetClassID() == 6 && item->GetSubtypeID() == data->ammoType) {
     if (data->exoticAmmo) {
       if (item->IsExotic()) {
-        return 1;
+        return TRUE;
       }
     } else {
       if (!item->IsExotic()) {
-        return 1;
+        return TRUE;
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 bool Spell_C_IsTargeting() {
@@ -1329,13 +1329,13 @@ bool Spell_C_CastSpell(int spellID, const CGItem_C *item) {
     CursorSetCursorMode(CAST_CURSOR);
     CursorModelSetSequence(CAST_ERROR_CURSOR);
     FATALASSERT(!s_spellWorldModel);
-    s_spellWorldModelHousing = 0;
+    s_spellWorldModelHousing = false;
     s_spellWorldModelFacing = 0.0f;
 
     for (UINT effectIndex = 0; effectIndex < 3; ++effectIndex) {
       if (spell->m_effect[effectIndex] == 50 || spell->m_effect[effectIndex] == 76 || spell->m_effect[effectIndex] == 81) {
         if (spell->m_effect[effectIndex] == 81) {
-          s_spellWorldModelHousing = 1;
+          s_spellWorldModelHousing = true;
         }
 
         const GameObjectStats_C *stats = g_gameObjectDBCache.GetRecord(
@@ -1782,7 +1782,7 @@ bool Spell_C_CanTargetItems() {
 
 bool Spell_C_HandleTerrainClick(const CTerrainClickEvent &evt) {
   if (!s_needTargets) {
-    return 0;
+    return false;
   }
 
   bool handled = false;
@@ -1922,7 +1922,7 @@ bool Spell_C_WaitingForStringInput() {
 
 BOOL Spell_C_TargetTradeItem(int tradeIndex) {
   if (!(s_needTargets & 0x4010) || tradeIndex < 0 || tradeIndex >= 8 || !CGTradeInfo::GetTargetTradeItem(tradeIndex)) {
-    return 0;
+    return FALSE;
   }
   s_spellCast.targets |= 0x1000;
   s_needTargets &= ~0x4010;
@@ -1932,7 +1932,7 @@ BOOL Spell_C_TargetTradeItem(int tradeIndex) {
   if (!s_needTargets) {
     SendCast(&s_spellCast);
   }
-  return 1;
+  return TRUE;
 }
 
 UINT_PTR Spell_C_WorldObjectCursor() {
@@ -2116,7 +2116,7 @@ void Spell_C_Initialize() {
 
 static BOOL CCommand_Cast(LPCSTR, LPCSTR arguments) {
   Spell_C_CastSpell(arguments);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CastResultHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2157,7 +2157,7 @@ static BOOL CastResultHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   } else if (!Spell_C_IsModal() && status != 2) {
     FrameScript_SignalEvent(0x13C);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL SpellDelayed(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2172,7 +2172,7 @@ static BOOL SpellDelayed(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (caster == ClntObjMgrGetActivePlayer()) {
     FrameScript_SignalEvent(0x13F, "%d", delay);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL SpellChannelStart(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2186,14 +2186,14 @@ static BOOL SpellChannelStart(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
                                                                          : FrameScript_GetText("CHANNELING", -1, GENDER_NOT_APPLICABLE);
     FrameScript_SignalEvent(0x140, "%d%s", time, text);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL SpellChannelUpdate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORD time;
   msg->Get(time);
   FrameScript_SignalEvent(0x141, "%d", time);
-  return 1;
+  return TRUE;
 }
 
 static BOOL SpellAddDynamicTarget(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2203,7 +2203,7 @@ static BOOL SpellAddDynamicTarget(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   msg->Get(targetGUID);
   ClntObjMgrObjectPtr(dynObjGUID, __FILE__, __LINE__);
   ClntObjMgrObjectPtr(targetGUID, __FILE__, __LINE__);
-  return 1;
+  return TRUE;
 }
 
 static BOOL SpellStartHandler(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
@@ -2218,7 +2218,7 @@ static BOOL SpellStartHandler(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) 
   } else {
     SpellGo(casterGUID, casterUnit, spellID, msg);
   }
-  return 1;
+  return TRUE;
 }
 
 inline void CGGameUI::TargetIfNone(const DWORDLONG &target) {
@@ -2487,7 +2487,7 @@ static BOOL SpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     SndInterfacePlaySpellFizzleSound(spellID, caster);
     SpellVisualsHandleCastStop(spellID, caster, 2, reason);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL PetSpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2518,7 +2518,7 @@ static BOOL PetSpellFailedHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
         break;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
@@ -2531,11 +2531,11 @@ static BOOL SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore
 
   BOOL isPet;
   if (guid == ClntObjMgrGetActivePlayer()) {
-    isPet = 0;
+    isPet = FALSE;
   } else if (guid == CGPetInfo::GetPet()) {
-    isPet = 1;
+    isPet = TRUE;
   } else {
-    return 1;
+    return TRUE;
   }
 
   const SpellRec *spell = g_spellDB.GetRecord(spellID);
@@ -2553,7 +2553,7 @@ static BOOL SpellCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore
     CGActionBar::UpdateCooldowns();
     CGSpellBook::UpdateCooldowns();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL ItemCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore *msg) {
@@ -2572,7 +2572,7 @@ static BOOL ItemCooldownHandler(LPVOID, NETMESSAGE, DWORD eventTime, CDataStore 
   CGActionBar::UpdateCooldowns();
   CGSpellBook::UpdateCooldowns();
   CGContainerInfo::UpdateCooldowns();
-  return 1;
+  return TRUE;
 }
 
 static BOOL CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataStore *msg) {
@@ -2583,11 +2583,11 @@ static BOOL CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataSto
 
   BOOL isPet;
   if (guid == ClntObjMgrGetActivePlayer()) {
-    isPet = 0;
+    isPet = FALSE;
   } else if (guid == CGPetInfo::GetPet()) {
-    isPet = 1;
+    isPet = TRUE;
   } else {
-    return 1;
+    return TRUE;
   }
 
   if (msgID == SMSG_COOLDOWN_CHEAT) {
@@ -2595,7 +2595,7 @@ static BOOL CooldownEvent(LPVOID, NETMESSAGE msgID, DWORD timeReceived, CDataSto
   } else {
     Spell_C_CooldownEventTriggered(spellID, timeReceived, isPet, msgID == SMSG_CLEAR_COOLDOWN);
   }
-  return 1;
+  return TRUE;
 }
 
 static void Spell_C_CooldownEventTriggered(int spellID, DWORD receivedTime, BOOL isPet, int clear) {
@@ -2628,7 +2628,7 @@ static BOOL CooldownCheat(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   } else if (guid == CGPetInfo::GetPet()) {
     Spell_C_ClearCooldowns(1);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL PetTameFailure(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2673,7 +2673,7 @@ static BOOL PetTameFailure(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   LPCSTR text = FrameScript_GetText(token, -1, GENDER_NOT_APPLICABLE);
   SStrCopy(message, text, sizeof(message));
   CGGameUI::DisplayError(GERR_TAME_FAILED, message);
-  return 1;
+  return TRUE;
 }
 
 static BOOL PlaySpellVisualKit(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2685,7 +2685,7 @@ static BOOL PlaySpellVisualKit(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (object) {
     SpellVisualsPlayKit((CGUnit_C *)object, id);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Learn(LPCSTR command, LPCSTR arguments) {
@@ -2693,12 +2693,12 @@ static BOOL CCommand_Learn(LPCSTR command, LPCSTR arguments) {
   if (isdigit(*arguments)) {
     spellID = SStrToInt(arguments);
     if (spellID <= 0) {
-      return 1;
+      return TRUE;
     }
   } else {
     if (!SStrCmpI(arguments, "all", 0x7FFFFFFF)) {
       ConsolePrintf("meh.");
-      return 1;
+      return TRUE;
     }
     spellID = Spell_C_GetSpellByName(arguments);
   }
@@ -2709,7 +2709,7 @@ static BOOL CCommand_Learn(LPCSTR command, LPCSTR arguments) {
     msg.Finalize();
     ClientServices_Send(&msg);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Cooldown(LPCSTR command, LPCSTR arguments) {
@@ -2718,7 +2718,7 @@ static BOOL CCommand_Cooldown(LPCSTR command, LPCSTR arguments) {
   msg.Put(ClntObjMgrGetActivePlayer());
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_CooldownPet(LPCSTR command, LPCSTR arguments) {
@@ -2727,7 +2727,7 @@ static BOOL CCommand_CooldownPet(LPCSTR command, LPCSTR arguments) {
   msg.Put(CGPetInfo::GetPet());
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_UseSkill(LPCSTR command, LPCSTR arguments) {
@@ -2762,7 +2762,7 @@ static BOOL CCommand_UseSkill(LPCSTR command, LPCSTR arguments) {
     msg.Finalize();
     ClientServices_Send(&msg);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetSkill(LPCSTR command, LPCSTR arguments) {
@@ -2788,12 +2788,12 @@ static BOOL CCommand_SetSkill(LPCSTR command, LPCSTR arguments) {
       msg.Put(level);
       msg.Finalize();
       ClientServices_Send(&msg);
-      return 1;
+      return TRUE;
     }
   }
 
   ConsolePrintf("Unknown skill line (usage: setskill <level> <skill line name>)");
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_CancelAura(LPCSTR, LPCSTR arguments) {
@@ -2803,7 +2803,7 @@ static BOOL CCommand_CancelAura(LPCSTR, LPCSTR arguments) {
   msg.Put(spellID);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SpellString(LPCSTR, LPCSTR arguments) {
@@ -2823,7 +2823,7 @@ static BOOL CCommand_SpellString(LPCSTR, LPCSTR arguments) {
       }
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void Spell_C_Destroy() {
@@ -2862,8 +2862,8 @@ void Spell_C_Destroy() {
 bool IsSpellAura(const SpellRec *rec) {
   for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 6 || rec->m_effect[effect] == 35) {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }

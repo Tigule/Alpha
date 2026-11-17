@@ -8,7 +8,7 @@
 
 #include <limits.h>
 
-CSimpleCheckbox::CSimpleCheckbox(CSimpleFrame *parent) : CSimpleButton(parent), m_checked(0), m_checkedTexture(0), m_disabledTexture(0) {
+CSimpleCheckbox::CSimpleCheckbox(CSimpleFrame *parent) : CSimpleButton(parent), m_checked(0), m_checkedTexture(NULL), m_disabledTexture(NULL) {
 }
 
 CSimpleCheckbox::~CSimpleCheckbox() {

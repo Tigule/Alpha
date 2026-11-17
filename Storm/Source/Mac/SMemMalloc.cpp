@@ -37,7 +37,7 @@ extern "C" LPVOID APIENTRY SMemReAlloc(LPVOID ptr, DWORD bytes, LPCSTR filename,
   oldBytes = (DWORD)(((SMEMPREFIX *)ptr)[-1]);
 
   if (flags & SMEM_REALLOC_NOCOPY) {
-    return 0;
+    return NULL;
   }
 
   newPtr = SMemAlloc(bytes, filename, linenumber, flags);

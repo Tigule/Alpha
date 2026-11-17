@@ -125,14 +125,14 @@ static void ItemQueryCallback(int id, const DWORDLONG &guid, LPVOID arg, bool gr
 
 static BOOL QuestLogUpdateHandler(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
   CGQuestLog::Update(1);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnQueryTimeResponse(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   int currentServerTime;
   msg->Get(currentServerTime);
   CGQuestLog::UpdateServerTime(currentServerTime);
-  return 1;
+  return TRUE;
 }
 
 
@@ -295,7 +295,7 @@ void CGQuestLog::Update(int resetFilters) {
   for (i = 0; i < 32; ++i) {
     m_quests[i].questID = 0;
     m_quests[i].logIndex = 0;
-    m_quests[i].isHeader = 0;
+    m_quests[i].isHeader = FALSE;
   }
   memset(m_sortTypes, 0, sizeof(m_sortTypes));
   int offset = m_serverTimeOffset;
@@ -330,7 +330,7 @@ void CGQuestLog::Update(int resetFilters) {
         m_sortTypes[j] = quest->m_questSortID;
         ++m_numSortTypes;
         m_quests[m_numQuests].questID = quest->m_questSortID;
-        m_quests[m_numQuests].isHeader = 1;
+        m_quests[m_numQuests].isHeader = TRUE;
         ++m_numQuests;
       }
     }
@@ -456,7 +456,7 @@ LPCSTR CGQuestLog::GetAbandonQuestName() {
   if (quest) {
     return quest->m_logTitle;
   }
-  return 0;
+  return NULL;
 }
 
 void CGQuestLog::AbandonSelectedQuest() {
@@ -516,7 +516,7 @@ LPCSTR CGQuestLog::GetQuestName(int index) {
       }
     }
   }
-  return 0;
+  return NULL;
 }
 
 LPCSTR CGQuestLog::GetQuestTag(int index) {
@@ -529,7 +529,7 @@ LPCSTR CGQuestLog::GetQuestTag(int index) {
       }
     }
   }
-  return 0;
+  return NULL;
 }
 
 int CGQuestLog::GetQuestLevel(int index) {
@@ -564,14 +564,14 @@ BOOL CGQuestLog::IsSelectedQuestExpired() {
   if (index >= 0) {
     return (m_expiredQuests & (1 << index)) != 0;
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGQuestLog::IsQuestExpired(UINT index) {
   if (index < m_numQuests) {
     return (m_expiredQuests & (1 << index)) != 0;
   }
-  return 0;
+  return FALSE;
 }
 
 void CGQuestLog::SetQuestExpired(UINT index) {

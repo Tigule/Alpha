@@ -27,7 +27,7 @@ void CGxDeviceD3d::IPixelShaderCreate(CGxPixelShader *ps) {
 
   if (D3DAssemble(ps->code.Ptr(), ps->code.Count(), 0, 0, 0, 0, &buffer, 0) == 0) {
 #else
-  ID3DXBuffer *buffer = 0;
+  ID3DXBuffer *buffer = NULL;
 
   if (D3DXAssembleShader((LPCSTR)ps->code.Ptr(), ps->code.Count(), 0, 0, 0, &buffer, 0) == 0) {
 #endif

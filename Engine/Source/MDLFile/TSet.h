@@ -13,7 +13,7 @@ class TSet {
   void Add(UINT token, int needed, BOOL allowDuplicates);
   BOOL Check(UINT token);
   int  Found(UINT token);
-  int  NotFound(UINT token);
+  BOOL NotFound(UINT token);
   void Complete(CMDLStatus *status);
 
  private:

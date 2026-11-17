@@ -108,11 +108,11 @@ static NTempest::CImVector        s_reflectivity[256];
 const float WaterRadWave::PERTURB = 40.0f;
 
 BOOL WaterRadWave::Update(float deltat) {
-  BOOL alive = 1;
+  BOOL alive = TRUE;
 
   curTime += deltat;
   if (curTime > timeLength) {
-    alive = 0;
+    alive = FALSE;
   } else {
     rb = curTime * velocity;
     ra = rb - length;
@@ -326,7 +326,7 @@ void CMap::WaterDiffTexCallback(EGxTexCommand cmd, UINT w, UINT h, UINT d, UINT 
     }
 
     case GxTex_Unlock:
-      pixels = 0;
+      pixels = NULL;
       break;
   }
 }
@@ -375,7 +375,7 @@ void CMap::UnloadLiquidTexture(UINT liquid) {
   for (UINT texture = 0; texture < LIQUID_TEXTURE_COUNT; ++texture) {
     if (liquidTex[liquid][texture]) {
       HandleClose(liquidTex[liquid][texture]);
-      liquidTex[liquid][texture] = 0;
+      liquidTex[liquid][texture] = NULL;
     }
   }
 
@@ -829,7 +829,7 @@ BOOL WaveTrain::Phase(const NTempest::C2Vector &worldPos, float &phase) {
   );
 
   if (-halfSize.x > localPos.x || localPos.x > halfSize.x || -halfSize.y > localPos.y || localPos.y > halfSize.y) {
-    return 0;
+    return FALSE;
   }
 
   localPos += halfSize;
@@ -847,7 +847,7 @@ BOOL WaveTrain::Phase(const NTempest::C2Vector &worldPos, float &phase) {
   float x1 = x10 + (phaseGrid[(ipos.y + 1) * phaseSize.x + ipos.x + 1] - x10) * localPos.x;
 
   phase = x0 + (x1 - x0) * localPos.y;
-  return 1;
+  return TRUE;
 }
 
 void WaveTrain::Init(const NTempest::C2Vector &pPos, const NTempest::C2Vector &pSize, const float radAngle, const float pSpeed) {
@@ -878,9 +878,9 @@ BOOL WaveTrain::Contains(const NTempest::C2Vector &worldPos) {
 }
 
 void CMap::WaterInitialize() {
-  skyTexid = 0;
-  riverDiffTexid = 0;
-  oceanDiffTexid = 0;
+  skyTexid = NULL;
+  riverDiffTexid = NULL;
+  oceanDiffTexid = NULL;
 
   {
     for (UINT i = 0; i < NUM_RIPPLES; ++i) {
@@ -954,17 +954,17 @@ void CMap::WaterDestroy() {
   if (skyTexid) {
     GxTexDestroy(skyTexid);
   }
-  skyTexid = 0;
+  skyTexid = NULL;
 
   if (riverDiffTexid) {
     GxTexDestroy(riverDiffTexid);
   }
-  riverDiffTexid = 0;
+  riverDiffTexid = NULL;
 
   if (oceanDiffTexid) {
     GxTexDestroy(oceanDiffTexid);
   }
-  oceanDiffTexid = 0;
+  oceanDiffTexid = NULL;
 
   for (UINT liquid = 0; liquid < LIQUID_COUNT; ++liquid) {
     UnloadLiquidTexture(liquid);
@@ -1331,7 +1331,7 @@ Particulate::Particulate(float particleScale, float boxSize, LPCSTR particulateT
   SetScale(particleScale);
   SetSize(boxSize);
 
-  texture = 0;
+  texture = NULL;
   SetTexture(particulateTexture);
   InitParticles(1);
   InitMovement();

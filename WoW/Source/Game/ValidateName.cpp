@@ -195,7 +195,7 @@ static bool IsAlpha(WOW_LOCALE locale, WORD ch) {
       }
       break;
   }
-  return 0;
+  return false;
 }
 
 static bool IsLatin1(WORD ch) {
@@ -215,14 +215,14 @@ static bool IsKorean(WORD ch) {
 
 static bool IsAlphaKorean(WORD ch) {
   if (ch < 0xAC00 || ch > 0xD7A3) {
-    return 0;
+    return false;
   }
 
   for (UINT i = 0; i < 0x92E; ++i) {
     if (ch == Valid_Korean[i]) {
-      return 1;
+      return true;
     }
   }
 
-  return 0;
+  return false;
 }

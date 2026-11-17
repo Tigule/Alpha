@@ -86,7 +86,7 @@ BOOL UnitHealthUpdateHandler(DWORDLONG unit, UINT offset, UINT bytes, LPCVOID ol
 void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
 BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
 BOOL OnUnitCombatEvent(LPVOID param, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
-int  Player_C_AppFocusMovementHandler(int focus);
+BOOL Player_C_AppFocusMovementHandler(int focus);
 BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param);
 
 enum UNITEFFECTSPECIALS {
@@ -360,7 +360,7 @@ NODEDECL(IMPACTEFFECTDESC) {
   const SpellVisualKitRec *impactKit;
   int                      spellID;
 
-  IMPACTEFFECTDESC() : victim(0), impactKit(0), spellID(0) {
+  IMPACTEFFECTDESC() : victim(0), impactKit(NULL), spellID(0) {
   }
   IMPACTEFFECTDESC(const IMPACTEFFECTDESC &);
   ~IMPACTEFFECTDESC();
@@ -446,7 +446,7 @@ struct ATTACHMENTMODELINFO {
   int    attachmentPoint;
   int    currentLink;
 
-  ATTACHMENTMODELINFO() : model(0), attachmentPoint(0), currentLink(-1) {
+  ATTACHMENTMODELINFO() : model(NULL), attachmentPoint(0), currentLink(-1) {
   }
   ~ATTACHMENTMODELINFO() {
     FATALASSERT(!model);
@@ -467,7 +467,7 @@ struct ACTIVEATTACHMENTINFO {
   ~ACTIVEATTACHMENTINFO() {
     Clear();
   }
-  ACTIVEATTACHMENTINFO() : inventoryType(0), flags(0), invSlot(-1), sheathAttachmentSlot(-1), displayInfo(0), enchantmentVisual(0) {
+  ACTIVEATTACHMENTINFO() : inventoryType(0), flags(0), invSlot(-1), sheathAttachmentSlot(-1), displayInfo(NULL), enchantmentVisual(NULL) {
   }
   void Hide(CGUnit_C *unitPtr, HMODEL charModel, HMODEL paperDollModel, bool hide);
   void ClearAttachmentFromModel(HMODEL charModel, HMODEL paperDollModel);
@@ -575,7 +575,7 @@ struct AuraVisual {
     effectID = visual.effectID;
     theModel = visual.theModel;
     visual.flags &= ~1;
-    visual.theModel = 0;
+    visual.theModel = NULL;
   }
   void SetModel(HMODEL model);
   void SetWorldObject(DWORD_PTR object);
@@ -630,10 +630,10 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   virtual void PostReenable();
   void         UpdateUnitCollisionBox(HMODEL model, LPCSTR modelFileName);
   virtual BOOL IsSolidSelectable() const {
-    return 1;
+    return TRUE;
   }
   virtual BOOL IsSolidCollidable() const {
-    return 0;
+    return FALSE;
   }
   virtual BOOL CanHighlight() const;
   virtual BOOL CanBeTargetted() const {
@@ -858,8 +858,8 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void                           NPCAnimEndHandler();
   void                           RangedWeaponAnimEndHandler();
   void                           ThrowAnimEndHandler();
-  int                            JumpTakeOffFinishedHandler();
-  int                            JumpLandFinishedHandler();
+  BOOL                           JumpTakeOffFinishedHandler();
+  BOOL                           JumpLandFinishedHandler();
   void                           GenericAnimEndHandler(ANIMENUMERATION animID, LPVOID param);
   void                           InstallSeqEndHandler(HMODEL model, UINT animID);
   virtual void                   RestoreUnit();
@@ -898,7 +898,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   void                 SetBaseAnim(UINT newAnim);
   void                 SetTorsoAnim(UINT newAnim);
   int                  SetTorsoAnimation(UINT state, DWORD duration, UINT flags);
-  int                  ClearTorsoAnimation(UINT flags);
+  BOOL                 ClearTorsoAnimation(UINT flags);
   BOOL                 IsPreemptableWoundAnimState(UINT state);
   BOOL                 IsAttackAnimState(UINT state);
   BOOL                 ShouldDelayLevelupAnim();
@@ -971,7 +971,7 @@ class CGUnit_C : public CGObject_C, public CGUnit {
   QUEST_GIVER_STATUS GetQuestGiverStatus();
   void               SetQuestGiverStatus(QUEST_GIVER_STATUS status);
   void               EnableWeaponTrail(const NTempest::CImVector &color, int fadeOutRate, UINT duration);
-  int                GetDebugStateInfo(ATTACKROUNDINFO *attackInfo);
+  BOOL               GetDebugStateInfo(ATTACKROUNDINFO *attackInfo);
   void               SetDebugHitRolls(const ATTACKROUNDINFO &info);
   void               ClearDebugFlags();
   void               SetUnitBadFacing();

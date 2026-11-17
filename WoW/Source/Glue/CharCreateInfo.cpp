@@ -84,9 +84,9 @@ void CHARCREATEINFO::Shutdown() {
       HandleClose(characterComponent[sex]);
     }
 
-    characterModel[sex] = 0;
-    geosetHandle[sex] = 0;
-    characterComponent[sex] = 0;
+    characterModel[sex] = NULL;
+    geosetHandle[sex] = NULL;
+    characterComponent[sex] = NULL;
   }
 }
 
@@ -194,9 +194,9 @@ void CHARCREATEINFO::UpdateCharacterInfo(UINT race, UINT sex) {
       HandleClose(characterComponent[sex]);
     }
 
-    characterModel[sex] = 0;
-    characterComponent[sex] = 0;
-    geosetHandle[sex] = 0;
+    characterModel[sex] = NULL;
+    characterComponent[sex] = NULL;
+    geosetHandle[sex] = NULL;
 
     characterModel[sex] = ObjectModelCreate(modelInfo->m_ModelName, HIER_TYPE_PLAYER, 0x100800);
     geosetHandle[sex] = CharCustomizationCreateGeosetHandle(characterModel[sex]);
@@ -313,7 +313,7 @@ void CHARCREATEINFO::ChangeSkinTexture(int doNotCommitGeosets, UINT race, UINT s
 
   if (characterComponent[sex]) {
     HandleClose(characterComponent[sex]);
-    characterComponent[sex] = 0;
+    characterComponent[sex] = NULL;
   }
 
   HTEXTURE skinTexture = CharCustomizationSetSkin(characterModel[sex], race, sex, selections[sex].skinColor, 0);
@@ -468,7 +468,7 @@ const CharStartOutfitRec *CCharCreateInfo::GetOutfit(UINT raceID, UINT classID, 
       return outfit;
     }
   }
-  return 0;
+  return NULL;
 }
 
 void CCharCreateInfo::ResetCharCustomizeInfo() {
@@ -496,7 +496,7 @@ void CCharCreateInfo::SetCharFacing(float facing) {
 
 LPCSTR CCharCreateInfo::GetRaceNameByIndex(UINT index) {
   if (index >= m_raceIndex.Count()) {
-    return 0;
+    return NULL;
   }
 
   const ChrRacesRec *race = g_chrRacesDB.GetRecord(m_raceIndex[index]);
@@ -524,7 +524,7 @@ void CCharCreateInfo::UpdateAvailableClasses() {
 
 LPCSTR CCharCreateInfo::GetClassNameByIndex(UINT index) {
   if (index >= m_classIndex.Count()) {
-    return 0;
+    return NULL;
   }
 
   const ChrClassesRec *classInfo = g_chrClassesDB.GetRecord(m_classIndex[index]);

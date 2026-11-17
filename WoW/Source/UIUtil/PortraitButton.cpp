@@ -44,7 +44,7 @@ static BOOL CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments);
 static BOOL CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments);
 
 struct PortraitData {
-  PortraitData() : texture(0) {
+  PortraitData() : texture(NULL) {
   }
 
   ~PortraitData() {
@@ -94,7 +94,7 @@ static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
 
     int      loaded = 0;
     CTgaFile alpha;
-    LPCSTR   alphaFile = 0;
+    LPCSTR   alphaFile = NULL;
     if (size == 128) {
       alphaFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.tga";
     } else if (size == 64) {
@@ -114,7 +114,7 @@ static const TSFixedArray<BYTE> &GetAlphaMask(UINT size) {
 
     if (!loaded) {
       CBLPFile image;
-      LPCSTR   imageFile = 0;
+      LPCSTR   imageFile = NULL;
       if (size == 128) {
         imageFile = "Interface\\CharacterFrame\\TempPortraitAlphaMask.blp";
       } else if (size == 64) {
@@ -178,7 +178,7 @@ static BOOL CCommand_PLightInfo(LPCSTR command, LPCSTR arguments) {
 
   if (index > 2) {
     ConsoleWriteA("Invalid index", ERROR_COLOR);
-    return 1;
+    return TRUE;
   }
 
   LPCSTR enabled = s_lightInfo[index].enable ? "on" : "off";
@@ -196,7 +196,7 @@ static BOOL CCommand_PLightInfo(LPCSTR command, LPCSTR arguments) {
       "Directional intensity: %.2f, RGB: (%.2f, %.2f, %.2f)", DEFAULT_COLOR, s_lightInfo[index].dirIntens, s_lightInfo[index].dirColorr,
       s_lightInfo[index].dirColorg, s_lightInfo[index].dirColorb
   );
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightEnable(LPCSTR command, LPCSTR arguments) {
@@ -205,11 +205,11 @@ static BOOL CCommand_PLightEnable(LPCSTR command, LPCSTR arguments) {
 
   if (sscanf(arguments, "%d %d", &index, &enable) && index < 2) {
     s_lightInfo[index].enable = enable != 0;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightOmni(LPCSTR command, LPCSTR arguments) {
@@ -218,11 +218,11 @@ static BOOL CCommand_PLightOmni(LPCSTR command, LPCSTR arguments) {
 
   if (sscanf(arguments, "%d %d", &index, &omni) && index < 2) {
     s_lightInfo[index].omni = omni != 0;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightDir(LPCSTR command, LPCSTR arguments) {
@@ -235,11 +235,11 @@ static BOOL CCommand_PLightDir(LPCSTR command, LPCSTR arguments) {
     s_lightInfo[index].dirx = x;
     s_lightInfo[index].diry = y;
     s_lightInfo[index].dirz = z;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments) {
@@ -252,11 +252,11 @@ static BOOL CCommand_PLightAmbColor(LPCSTR command, LPCSTR arguments) {
     s_lightInfo[index].ambColorr = r;
     s_lightInfo[index].ambColorg = g;
     s_lightInfo[index].ambColorb = b;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments) {
@@ -269,11 +269,11 @@ static BOOL CCommand_PLightDirColor(LPCSTR command, LPCSTR arguments) {
     s_lightInfo[index].dirColorr = r;
     s_lightInfo[index].dirColorg = g;
     s_lightInfo[index].dirColorb = b;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments) {
@@ -282,11 +282,11 @@ static BOOL CCommand_PLightAmbIntens(LPCSTR command, LPCSTR arguments) {
 
   if (sscanf(arguments, "%d %f", &index, &intens) && index < 2) {
     s_lightInfo[index].ambIntens = intens;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments) {
@@ -295,11 +295,11 @@ static BOOL CCommand_PLightDirIntens(LPCSTR command, LPCSTR arguments) {
 
   if (sscanf(arguments, "%d %f", &index, &intens) && index < 2) {
     s_lightInfo[index].dirIntens = intens;
-    return 1;
+    return TRUE;
   }
 
   ConsoleWriteA("Invalid syntax", ERROR_COLOR);
-  return 1;
+  return TRUE;
 }
 
 void PortraitInitialize() {
@@ -384,8 +384,8 @@ void SetPortraitTexture(CSimpleTexture *texture, const CGUnit_C *unit) {
   viewRect.t = 0.6f - 38.400002f / screenRect.Height();
   viewRect.r = 51.200001f / screenRect.Width();
 
-  HMODEL  model = 0;
-  HCAMERA camera = 0;
+  HMODEL  model = NULL;
+  HCAMERA camera = NULL;
   if (unit->IsObjectModelLoaded() && (unit->m_flags & 0x100)) {
     model = unit->DuplicateCharacterModel(0);
     camera = ModelGetCamera(model, 0);

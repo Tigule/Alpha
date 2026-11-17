@@ -37,7 +37,7 @@ static DWORD s_vtxBufFmtConversion[GxVertexBufferFormats_Last] = {
     D3DFVF_XYZ | D3DFVF_TEX2
 };
 
-CGxBufD3d::CGxBufD3d() : m_vbl(0), m_vb(0), m_ib(0) {
+CGxBufD3d::CGxBufD3d() : m_vbl(NULL), m_vb(NULL), m_ib(NULL) {
 }
 
 CGxBufD3d::~CGxBufD3d() {
@@ -66,7 +66,7 @@ void CGxBufD3d::SetIB(CGxIndexBuffer_D3d *ib) {
 void CGxBufD3d::UnsetVB() {
   if (m_vb) {
     m_vb->RemoveBuf(this);
-    m_vb = 0;
+    m_vb = NULL;
   }
 
   Invalidate(S_INVALID_DISCARD, S_VALID);
@@ -75,7 +75,7 @@ void CGxBufD3d::UnsetVB() {
 void CGxBufD3d::UnsetIB() {
   if (m_ib) {
     m_ib->RemoveBuf(this);
-    m_ib = 0;
+    m_ib = NULL;
   }
 
   Invalidate(S_VALID, S_INVALID_DISCARD);
@@ -118,7 +118,7 @@ void CGxBufD3d::LockIB(LPVOID &mem) {
 
 BOOL CGxBufD3d::VBLValid() {
   if (!m_vbl) {
-    return 0;
+    return FALSE;
   }
 
   return m_numVertices <= m_vbl->MaxContiguousVertices();
@@ -126,7 +126,7 @@ BOOL CGxBufD3d::VBLValid() {
 
 BOOL CGxBufD3d::IBValid() {
   if (!m_ib) {
-    return 0;
+    return FALSE;
   }
 
   return m_numIndices <= m_ib->GetCount();
@@ -221,7 +221,7 @@ void CGxVertexBuffer_D3d::Lock(LPVOID &mem, UINT numVertices, UINT base) {
     if (m_discard) {
       m_next = 0;
       lockFlags = D3DLOCK_DISCARD | D3DLOCK_NOSYSLOCK;
-      m_discard = 0;
+      m_discard = FALSE;
     } else {
       ASSERT(m_next + numVertices <= m_count);
       lockFlags = D3DLOCK_NOOVERWRITE | D3DLOCK_NOSYSLOCK;
@@ -297,7 +297,7 @@ void CGxDeviceD3d::BufReserve(EGxBufWriteFreq freq, EGxVertexBufferFormat format
     m_VBL[freq][format].Release();
     if (m_IB[freq][format]) {
       DEL(m_IB[freq][format]);
-      m_IB[freq][format] = 0;
+      m_IB[freq][format] = NULL;
     }
     ICreateBuffers(format, numVertices, m_VBL[freq][format], numIndices, m_IB[freq][format]);
   }
@@ -364,8 +364,8 @@ void CGxDeviceD3d::BufLock(CGxBuf *b) {
 
   LPVOID        vmember[GxVertexMembers_Last];
   CGxBufCommand cmd;
-  LPVOID        imem = 0;
-  LPVOID        vmem = 0;
+  LPVOID        imem = NULL;
+  LPVOID        vmem = NULL;
 
   cmd.vertex.op = GxBufOp_Nop;
   cmd.index.op = GxBufOp_Nop;
@@ -455,7 +455,7 @@ void CGxDeviceD3d::BufDestroy(CGxBuf *&b) {
   d3dBuf->UnsetIB();
   m_bufList.UnlinkNode(b);
   DEL(d3dBuf);
-  b = 0;
+  b = NULL;
 }
 
 #if !BUILD_PORTABLE
@@ -699,10 +699,10 @@ void CGxDeviceD3d::ICreateD3dVB(EGxVertexBufferFormat format, UINT &numVertices,
 
   DWORD bufFlags = m_d3dIsHwDevice ? D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY : D3DUSAGE_DYNAMIC | D3DUSAGE_SOFTWAREPROCESSING;
 
-  vb = 0;
+  vb = NULL;
   while (numVertices > MinD3dBufVertices && !vb) {
     if (m_d3dDevice->CreateVertexBuffer(numVertices * GxVertexSize(format), bufFlags, s_vtxBufFmtConversion[format], D3DPOOL_DEFAULT, &vb, 0) < 0) {
-      vb = 0;
+      vb = NULL;
       numVertices >>= 1;
     }
   }
@@ -713,10 +713,10 @@ void CGxDeviceD3d::ICreateD3dIB(UINT &numIndices, IDirect3DIndexBuffer9 *&ib) {
 
   DWORD bufFlags = m_d3dIsHwDevice ? D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY : D3DUSAGE_DYNAMIC | D3DUSAGE_SOFTWAREPROCESSING;
 
-  ib = 0;
+  ib = NULL;
   while (numIndices > MinD3dBufIndices && !ib) {
     if (m_d3dDevice->CreateIndexBuffer(2 * numIndices, bufFlags, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ib, 0) < 0) {
-      ib = 0;
+      ib = NULL;
       numIndices >>= 1;
     }
   }
@@ -743,14 +743,14 @@ void CGxDeviceD3d::ICreateBuffers(
 void CGxDeviceD3d::IReleaseD3dVB(IDirect3DVertexBuffer9 *&vb) {
   if (vb) {
     vb->Release();
-    vb = 0;
+    vb = NULL;
   }
 }
 
 void CGxDeviceD3d::IReleaseD3dIB(IDirect3DIndexBuffer9 *&ib) {
   if (ib) {
     ib->Release();
-    ib = 0;
+    ib = NULL;
   }
 }
 
@@ -786,7 +786,7 @@ void CGxDeviceD3d::PrimLockAndProcessVertexPtrs(
   s_boneStride = boneStride;
   s_tex[0] = tex0;
   s_texStride[0] = tex0Stride;
-  m_processedVertexPtrs = 0;
+  m_processedVertexPtrs = FALSE;
 }
 
 void CGxDeviceD3d::IPrimProcessVertexPtrs() {
@@ -831,7 +831,7 @@ void CGxDeviceD3d::IPrimProcessVertexPtrs() {
   res = m_d3dDevice->SetStreamSource(0, m_vertexBuffer->GetD3dBuffer(), 0, GxVertexSize(m_vertexBufferFormat));
   ASSERT(res == ((HRESULT)0x00000000L));
 
-  m_processedVertexPtrs = 1;
+  m_processedVertexPtrs = TRUE;
 }
 
 void CGxDeviceD3d::IPrimProcessIndexPtrs() {
@@ -844,7 +844,7 @@ void CGxDeviceD3d::IPrimProcessIndexPtrs() {
   memcpy(dst, s_indices, 2 * s_indexCount);
   m_IB[GxBWF_Dynamic][0]->Unlock();
   m_d3dDevice->SetIndices(m_IB[GxBWF_Dynamic][0]->m_d3dib);
-  m_processedIndexPtrs = 1;
+  m_processedIndexPtrs = TRUE;
 }
 
 void CGxDeviceD3d::PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices) {
@@ -853,7 +853,7 @@ void CGxDeviceD3d::PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WOR
   s_indexCount = indexCount;
   m_primIndexCount = indexCount;
   m_primType = primType;
-  m_processedIndexPtrs = 0;
+  m_processedIndexPtrs = FALSE;
 }
 
 void CGxDeviceD3d::PrimDrawElements() {

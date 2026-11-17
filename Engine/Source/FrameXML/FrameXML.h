@@ -13,6 +13,6 @@ CSimpleFrame  *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, C
 BOOL           FrameXML_CreateFrames(LPCSTR path, CStatus *status);
 const XMLNode *FrameXML_FindHashNode(LPCSTR name);
 BOOL           FrameXML_RegisterFactory(LPCSTR type, FRAMEFACTORY factory);
-int            FrameXML_RegisterDefault();
+BOOL           FrameXML_RegisterDefault();
 void           FrameXML_RegisterLoadProgressCallback(FRAMELOADPROGRESSCALLBACK callback);
 void           FrameXML_ClearFactories();

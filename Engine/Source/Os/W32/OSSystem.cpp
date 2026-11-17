@@ -69,7 +69,7 @@ static int   s_processorVendor;
 int   s_sleepInBackground = 1;
 DWORD s_backgroundSleepMs;
 
-static int __cdecl IOsGetProcessorFeatures(BYTE vendor[12], DWORD *featuresStd, DWORD *featuresExt) {
+static BOOL __cdecl IOsGetProcessorFeatures(BYTE vendor[12], DWORD *featuresStd, DWORD *featuresExt) {
   ((DWORD *)vendor)[0] = 0;
   ((DWORD *)vendor)[1] = 0;
   ((DWORD *)vendor)[2] = 0;
@@ -355,7 +355,7 @@ BOOL OsSystemObjectExists(LPCSTR inName) {
 
   handle = CreateEventA(NULL, TRUE, FALSE, inName);
   if (!handle) {
-    return 0;
+    return FALSE;
   }
 
   exists = GetLastError() == ERROR_ALREADY_EXISTS;
@@ -373,12 +373,12 @@ BOOL OsLaunchURL(LPCSTR url) {
   HINSTANCE launchResult;
 
   if (!url || !*url) {
-    return 0;
+    return FALSE;
   }
 
   activeWindow = GetActiveWindow();
   if (!activeWindow) {
-    return 0;
+    return FALSE;
   }
 
   VALIDATE2(SStrLen(url) < (sizeof(fixedURL) / sizeof(fixedURL[0])));
@@ -410,7 +410,7 @@ BOOL OsLaunchURL(LPCSTR url) {
   *fixedURLPos = 0;
   launchResult = ShellExecuteA(activeWindow, "open", fixedURL, 0, 0, SW_SHOWNORMAL);
   if ((DWORD)launchResult > 32) {
-    return 1;
+    return TRUE;
   }
 
   FILE *file = fopen("8BLZ2112.HTM", "wb");

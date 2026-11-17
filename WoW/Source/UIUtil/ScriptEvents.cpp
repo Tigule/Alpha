@@ -99,7 +99,7 @@ inline int CGPlayer::GetCharacterPoints(int index) const {
 CGUnit_C *Script_GetUnitFromName(LPCSTR name) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || !name || !*name) {
-    return 0;
+    return NULL;
   }
 
   if (!SStrCmpI(name, "player", 0x7FFFFFFF)) {
@@ -126,13 +126,13 @@ CGUnit_C *Script_GetUnitFromName(LPCSTR name) {
   }
 
   FrameScript_DisplayError("Unknown unit name: %s", name);
-  return 0;
+  return NULL;
 }
 
 CGObject_C *Script_GetObjectFromName(LPCSTR name) {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player || !name || !*name) {
-    return 0;
+    return NULL;
   }
 
   if (!SStrCmpI(name, "player", 0x7FFFFFFF)) {
@@ -156,7 +156,7 @@ CGObject_C *Script_GetObjectFromName(LPCSTR name) {
   }
 
   FrameScript_DisplayError("Unknown object name: %s", name);
-  return 0;
+  return NULL;
 }
 
 DWORDLONG Script_GetGUIDFromName(LPCSTR name) {
@@ -196,12 +196,12 @@ DWORDLONG Script_GetGUIDFromName(LPCSTR name) {
 char **Script_GetNamesFromGUID(const DWORDLONG &guid, int &numnames) {
   numnames = 0;
   if (!guid) {
-    return 0;
+    return NULL;
   }
 
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return NULL;
   }
 
   if (guid == player->GetGUID()) {
@@ -286,7 +286,7 @@ static FrameScript_Method s_UnitFunctions[38] = {
 
 static BOOL UnitUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   Script_SendUnitSignal(guid, offset >> 2);
-  return 1;
+  return TRUE;
 }
 
 static BOOL UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -301,12 +301,12 @@ static BOOL UnitInventoryUpdate(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID
     }
     Script_SendUnitSignal(guid, 183);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL PlayerXPUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   FrameScript_SignalEvent(185);
-  return 1;
+  return TRUE;
 }
 
 static int Script_GetTime(lua_State *L) {

@@ -94,17 +94,17 @@ namespace NTempest {
   }
 
   float CMath::atanoid_(float x, const float _pi_2) {
-    BOOL negative = 0;
-    BOOL reciprocal = 0;
+    BOOL negative = FALSE;
+    BOOL reciprocal = FALSE;
 
     if (x < -x) {
-      negative = 1;
+      negative = TRUE;
       x = -x;
     }
 
     if (x > 1.0f) {
       x = 1.0f / x;
-      reciprocal = 1;
+      reciprocal = TRUE;
     }
 
     float x2 = x * x;

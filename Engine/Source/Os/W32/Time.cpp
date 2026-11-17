@@ -371,7 +371,7 @@ void OsTimeManager::Calibrate() {
   SSyncObject  *waitObjectPtrs[1];
 
   if (QueryPerformanceFrequency(&qPerfFreq) && qPerfFreq.QuadPart) {
-    hasQPF = 1;
+    hasQPF = TRUE;
   }
 
   Snapshot(&baseTime);

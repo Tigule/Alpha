@@ -116,7 +116,7 @@ extern "C" DWORD SSignatureVerifyStream_GetSignatureLength(SSignatureData *token
 extern "C" void  SSignatureVerifyStream_ProvideData(SSignatureData *token, const BYTE *data, DWORD size);
 extern "C" int   SSignatureVerifyStream_Finish(SSignatureData *token, const BYTE *modulus, const BYTE *pubExponent);
 extern "C" int SSignatureVerify(const BYTE *data, DWORD size, const BYTE *modulus, DWORD modulusSize, const BYTE *pubExponent, DWORD pubExponentSize);
-extern "C" int SSignatureGenerate(
+extern "C" BOOL SSignatureGenerate(
     BYTE       *data,
     DWORD      &size,
     const BYTE *modulus,

@@ -16,7 +16,7 @@ class CFaceQuery {
   UINT  count;
   BYTE  faceBits[8192];
 
-  CFaceQuery() : indices(0), maxCount(0), count(0) {
+  CFaceQuery() : indices(NULL), maxCount(0), count(0) {
     memset(faceBits, 0, sizeof(faceBits));
   }
 
@@ -83,7 +83,7 @@ void CAaBsp::Create(NTempest::C3Vector *vertices, UINT nVertices, WORD *faceVert
   FATALASSERT(faceVertexIndices);
   FATALASSERT(nFaceVertexIndices < 0x40000);
 
-  bFree = 1;
+  bFree = TRUE;
   this->vertices = vertices;
   this->nVertices = nVertices;
   this->faceVertexIndices = faceVertexIndices;
@@ -132,7 +132,7 @@ void CAaBsp::Set(CAaBspNode *nodeList, UINT nNodes, WORD *faceIndices, UINT nFac
   nodes = nodeList;
   rootNode = nodeList;
   nodeFaceIndices = faceIndices;
-  bFree = 0;
+  bFree = FALSE;
   this->nNodes = nNodes;
   this->nNodeFaceIndices = nFaceIndices;
   aaBox = box;
@@ -157,24 +157,24 @@ UINT CAaBsp::GetFaceIndices(NTempest::CAaBox &aaBox, WORD *indices, UINT maxCoun
 }
 
 void CAaBsp::Init() {
-  rootNode = 0;
-  nodes = 0;
-  nodeFaceIndices = 0;
+  rootNode = NULL;
+  nodes = NULL;
+  nodeFaceIndices = NULL;
   nNodes = 0;
   nNodeFaceIndices = 0;
-  faceVertexIndices = 0;
+  faceVertexIndices = NULL;
   nFaceVertexIndices = 0;
-  vertices = 0;
+  vertices = NULL;
   nVertices = 0;
   nodeSize = 0;
   nodeNext = 0;
   nodeFaceIndicesSize = 0;
   nodeFaceIndicesNext = 0;
-  buildFaceIndices = 0;
+  buildFaceIndices = NULL;
   buildFaceIndicesNext = 0;
   buildFaceIndicesSize = 0;
   treeDepth = 0;
-  bFree = 1;
+  bFree = TRUE;
   avgNodeFaces = 0;
 }
 

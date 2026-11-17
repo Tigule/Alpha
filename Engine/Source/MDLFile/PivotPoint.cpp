@@ -57,7 +57,7 @@ BOOL MDL::WritePivotPoints(const MDLDATA &data, TSGrowableArray<char> &buffer, C
       MDL::WriteLine(buffer, "\t{ %g, %g, %g },\n", pivot->x, pivot->y, pivot->z);
     MDL::WriteLine(buffer, "}\n");
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
@@ -67,7 +67,7 @@ BOOL MDL::WriteBinPivotPoints(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *
     buf.AddUint(12 * count);
     buf.AddFloatArray(&data.pivotPoints.Ptr()->x, 3 * count);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinPivotPoints(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -78,14 +78,14 @@ BOOL MDL::ReadBinPivotPoints(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLSt
     NTempest::C3Vector *pivot = data.pivotPoints.New();
     if (!pivot) {
       status->FatalFlunked("Pivot", -1);
-      return 0;
+      return FALSE;
     }
     buf.GetFloatArray(&pivot->x, 3);
     totalRead += 12;
     if (totalRead > length) {
       status->FatalOverran("Pivot", -1);
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }

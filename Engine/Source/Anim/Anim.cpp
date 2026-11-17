@@ -486,7 +486,7 @@ static BOOL ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
   CAnimObjStatus *status = animInfo.unique->status[currobj->animObjId];
   status->base.flags &= ~4;
   if (!(status->base.flags & 2)) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C4Quaternion transform;
@@ -501,7 +501,7 @@ static BOOL ApplyLookAt(const AnimInfo &animInfo, CAnimObj *currobj, const NTemp
   }
 
   WorldMatrixRotate(transform);
-  return 1;
+  return TRUE;
 }
 
 static void TransformObjectView(const AnimInfo &animInfo, CAnimObj *currobj, const NTempest::C3Vector &currPos, const NTempest::C3Vector &parentPos) {
@@ -566,7 +566,7 @@ static void PrepareObjectHierarchyViews(const AnimInfo &animInfo, CAnimObj *curr
   ASSERT(animInfo.shared);
   ASSERT(currobj);
 
-  BOOL hidden = 0;
+  BOOL hidden = FALSE;
   if (currobj->type == OBJ_TYPE_BONE) {
     hidden = !((CAnimBoneObj *)currobj)->IsVisible(*animInfo.unique);
   }

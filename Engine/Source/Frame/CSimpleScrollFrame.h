@@ -31,7 +31,7 @@ class CSimpleScrollFrame : public CSimpleFrame {
   }
 
   void UpdateScrollChildRect() {
-    m_updateScrollChild = 1;
+    m_updateScrollChild = TRUE;
   }
 
   virtual void OnLayerUpdate(float elapsedSec);

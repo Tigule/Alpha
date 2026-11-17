@@ -45,15 +45,15 @@ class CLightning {
   ~CLightning();
   void SetSrcPos(const NTempest::C3Vector &position) {
     mSrcPos = position;
-    mRebuildPoints = 1;
+    mRebuildPoints = TRUE;
   }
   void SetDstPos(const NTempest::C3Vector &position) {
     mDstPos = position;
-    mRebuildPoints = 1;
+    mRebuildPoints = TRUE;
   }
   void SetAvgSegLen(float length) {
     mAvgSegLen = length;
-    mRebuildPoints = 1;
+    mRebuildPoints = TRUE;
   }
   void SetWidth(float width) {
     mWidth = width;

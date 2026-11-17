@@ -28,11 +28,11 @@ BOOL StringToFramePoint(LPCSTR string, FRAMEPOINT &point) {
   for (index = 0; index < FRAMEPOINT_NUMPOINTS; ++index) {
     if (!SStrCmpI(framePointNames[index].name, string, 0x7FFFFFFF)) {
       point = framePointNames[index].point;
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL StringToDrawLayer(LPCSTR string, UINT &drawLayer) {
@@ -53,11 +53,11 @@ BOOL StringToDrawLayer(LPCSTR string, UINT &drawLayer) {
   for (index = 0; index < 5; ++index) {
     if (!SStrCmpI(drawLayerNames[index].name, string, 0x7FFFFFFF)) {
       drawLayer = drawLayerNames[index].drawLayer;
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL StringToBlendMode(LPCSTR string, EGxBlend &blendMode) {
@@ -77,11 +77,11 @@ BOOL StringToBlendMode(LPCSTR string, EGxBlend &blendMode) {
   for (index = 0; index < 4; ++index) {
     if (!SStrCmpI(blendModeNames[index].name, string, 0x7FFFFFFF)) {
       blendMode = blendModeNames[index].blendMode;
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL StringToJustify(LPCSTR string, UINT &justify) {
@@ -103,23 +103,23 @@ BOOL StringToJustify(LPCSTR string, UINT &justify) {
   for (index = 0; index < 6; ++index) {
     if (!SStrCmpI(justifyNames[index].name, string, 0x7FFFFFFF)) {
       justify = justifyNames[index].justify;
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL StringToBOOL(LPCSTR string) {
   if (string && !SStrCmpI(string, "true", 0x7FFFFFFF)) {
-    return 1;
+    return TRUE;
   }
 
   if (SStrToInt(string)) {
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
@@ -131,7 +131,7 @@ BOOL LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
   child = node->GetChild();
   if (!child) {
     status->Add(STATUS_WARNING, "No child node in element: %s", node->GetName());
-    return 0;
+    return FALSE;
   }
 
   if (!SStrCmpI(child->GetName(), "AbsValue", 0x7FFFFFFF)) {
@@ -140,7 +140,7 @@ BOOL LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
       value = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
-    return 1;
+    return TRUE;
   }
 
   if (!SStrCmpI(child->GetName(), "RelValue", 0x7FFFFFFF)) {
@@ -149,11 +149,11 @@ BOOL LoadXML_Value(const XMLNode *node, float &value, CStatus *status) {
       value = SStrToFloat(attribute);
     }
 
-    return 1;
+    return TRUE;
   }
 
   status->Add(STATUS_WARNING, "Unknown child node in %s element: %s", node->GetName(), child->GetName());
-  return 0;
+  return FALSE;
 }
 
 BOOL LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status) {
@@ -166,7 +166,7 @@ BOOL LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatu
   child = node->GetChild();
   if (!child) {
     status->Add(STATUS_WARNING, "No child node in element: %s", node->GetName());
-    return 0;
+    return FALSE;
   }
 
   if (!SStrCmpI(child->GetName(), "AbsDimension", 0x7FFFFFFF)) {
@@ -180,7 +180,7 @@ BOOL LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatu
       height = (SStrToFloat(value) / 1024.0f) * 0.8f;
     }
 
-    return 1;
+    return TRUE;
   }
 
   if (!SStrCmpI(child->GetName(), "RelDimension", 0x7FFFFFFF)) {
@@ -194,11 +194,11 @@ BOOL LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatu
       height = SStrToFloat(value);
     }
 
-    return 1;
+    return TRUE;
   }
 
   status->Add(STATUS_WARNING, "Unknown child node in %s element: %s", node->GetName(), child->GetName());
-  return 0;
+  return FALSE;
 }
 
 BOOL LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status) {
@@ -213,7 +213,7 @@ BOOL LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, 
   child = node->GetChild();
   if (!child) {
     status->Add(STATUS_WARNING, "No child node in element: %s", node->GetName());
-    return 0;
+    return FALSE;
   }
 
   if (!SStrCmpI(child->GetName(), "AbsInset", 0x7FFFFFFF)) {
@@ -237,7 +237,7 @@ BOOL LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, 
       bottom = (SStrToFloat(attribute) / 1024.0f) * 0.8f;
     }
 
-    return 1;
+    return TRUE;
   }
 
   if (!SStrCmpI(child->GetName(), "RelInset", 0x7FFFFFFF)) {
@@ -261,14 +261,14 @@ BOOL LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, 
       bottom = SStrToFloat(attribute);
     }
 
-    return 1;
+    return TRUE;
   }
 
   status->Add(STATUS_WARNING, "Unknown child node in %s element: %s", node->GetName(), child->GetName());
-  return 0;
+  return FALSE;
 }
 
-int LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status) {
+BOOL LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status) {
   LPCSTR attribute;
   float  alpha = 1.0f;
   float  red = 0.0f;
@@ -296,7 +296,7 @@ int LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *stat
   }
 
   color.Set(alpha, red, green, blue);
-  return 1;
+  return TRUE;
 }
 
 CSimpleTexture *LoadXML_Texture(const XMLNode *node, CSimpleFrame *frame, CStatus *status) {

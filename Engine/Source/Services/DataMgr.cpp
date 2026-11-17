@@ -205,8 +205,8 @@ void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const NTempest::CImVector &colo
   VALIDATE2VOID(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
   VALIDATE2VOID(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  managed->m_updateFcn = 0;
-  managed->m_updateData = 0;
+  managed->m_updateFcn = NULL;
+  managed->m_updateData = NULL;
   managed->m_updatePriority = 0.0f;
   ((TManaged<NTempest::CImVector> *)managed)->Set_(color);
 }
@@ -221,8 +221,8 @@ void DataMgrSetColor(HDATAMGR mgr, UINT fieldId, const C3Color &color) {
   VALIDATE2VOID(typeId == mgrPtr->m_managedArray[fieldId]->m_dataTypeId);
   VALIDATE2VOID(!(mgrPtr->m_managedArray[fieldId]->m_flags & CBaseManaged::READONLY));
   CBaseManaged *managed = mgrPtr->m_managedArray[fieldId];
-  managed->m_updateFcn = 0;
-  managed->m_updateData = 0;
+  managed->m_updateFcn = NULL;
+  managed->m_updateData = NULL;
   managed->m_updatePriority = 0.0f;
   ((TManaged<C3Color> *)managed)->Set_(color);
 }

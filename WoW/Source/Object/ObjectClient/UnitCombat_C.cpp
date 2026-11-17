@@ -358,7 +358,7 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       ENVIRONMENTALDAMAGE log;
       log.UI(*msg);
       UnitCombatLog(log);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_MIRRORTIMERDAMAGELOG: {
@@ -368,21 +368,21 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       if (unit) {
         unit->HandleMirrorTimerDamage(log);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ENCHANTMENTLOG: {
       ENCHANTMENTLOG log;
       log.UI(*msg);
       UnitCombatLogEnchantment(log);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_RESISTLOG: {
       RESISTLOG log;
       log.UI(*msg);
       UnitCombatLogHeartbeatResist(log);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_LOG_XPGAIN: {
@@ -391,14 +391,14 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       msg->Get(guid);
       msg->Get(count);
       UnitCombatLogXPGain(guid, msg, count);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFO: {
       ATTACKROUNDINFO attackInfo;
       attackInfo.UI(*msg);
       UnitCombatLog(attackInfo);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELL: {
@@ -406,21 +406,21 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       log.UI(*msg);
       UnitCombatLog(log);
       CGGameUI::ShowCombatFeedback(log);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_PARTYKILLLOG: {
       PARTYKILLLOG log;
       log.UI(*msg);
       UnitCombatLogPartyKill(log);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ATTACKERSTATEUPDATEDEBUGINFOSPELLMISS: {
       SPELLMISSLOG log(0, 0, 0);
       log.UI(*msg);
       UnitCombatLog(log);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ATTACKSTART: {
@@ -435,7 +435,7 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
 
       unit->ClearAttackSent();
       unit->OnAttackStart(victim);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ATTACKSTOP: {
@@ -450,7 +450,7 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       if (unit) {
         unit->OnAttackStop(victim, nowDead);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ATTACKERSTATEUPDATE: {
@@ -503,7 +503,7 @@ static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       break;
   }
 
-  return 0;
+  return FALSE;
 }
 
 static BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -525,7 +525,7 @@ static BOOL OnUnitDamageDone(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSto
   if (attackerPtr) {
     attackerPtr->AddDamageDone(damage, normalCombatDamage, flags, attacker, spellID);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnUnitCombatEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg);
@@ -545,7 +545,7 @@ static BOOL OnUnitDamageTaken(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
   if (damage > 0) {
     CGGameUI::ShowCombatFeedback(guid, damage, damageClass, flags);
   }
-  return 1;
+  return TRUE;
 }
 
 void CGUnit_C::SetDebugHitRolls(const ATTACKROUNDINFO &info) {
@@ -579,7 +579,7 @@ bool CGUnit_C::QueueVictimAnim(VICTIMSTATES newState, int unitDead, int critical
   }
 
   if (m_currentTorsoAnimState == ANIM_STATE_SPELLPRECAST || m_currentTorsoAnimState == ANIM_STATE_SPELLCAST) {
-    return 0;
+    return false;
   }
 
   if (ObjectIsRendering()) {
@@ -594,7 +594,7 @@ bool CGUnit_C::QueueVictimAnim(VICTIMSTATES newState, int unitDead, int critical
     dummy.victimRoundDuration = victimRoundDuration;
     QueueAnim(ANIMQUEUE_WOUND, &dummy);
   }
-  return 1;
+  return true;
 }
 
 void CGUnit_C::SetVictimAnimation(VICTIMSTATES newState, int unitDead, int criticalHit, UINT victimRoundDuration, int processNow) {
@@ -666,7 +666,7 @@ BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int proces
   COMBATHAND hand = COMBAT_MAINHAND;
   if (roundInfo->flags & 0x200) {
     if (!roundInfo->dmg.totalDamage) {
-      return 0;
+      return FALSE;
     }
     hand = COMBAT_OFFHAND;
   }
@@ -716,7 +716,7 @@ BOOL CGUnit_C::SetAttackerAnimation(const ATTACKROUNDINFO *roundInfo, int proces
       ModelSetObjectTimeScale(GetObjectModel(), 4, (float)seqDuration / (float)scaledDuration, 0);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 UINT CGUnit_C::GetAttackerAnimEx(COMBATHAND hand, const VirtualItemInfo *itemInfo) const {
@@ -862,7 +862,7 @@ void CGUnit_C::DetermineReadySequence(bool forceNormal) {
     weaponMode = WEAPONMODE_NORMALMODE;
   }
 
-  const VirtualItemInfo *itemInfo = 0;
+  const VirtualItemInfo *itemInfo = NULL;
 
   switch (weaponMode) {
     case WEAPONMODE_NORMALMODE:
@@ -874,7 +874,7 @@ void CGUnit_C::DetermineReadySequence(bool forceNormal) {
       break;
 
     case WEAPONMODE_SHEATHEDMODE:
-      itemInfo = 0;
+      itemInfo = NULL;
       break;
   }
 
@@ -912,12 +912,12 @@ UINT CGUnit_C::DetermineWoundSequence() const {
 
 void CGUnit_C::HandleCombatAnimEvent(LPCSTR eventName, DWORD value, const NTempest::C3Vector &position) {
   static const UINT PREANIMSTATES = (1 << VS_DODGE) | (1 << VS_PARRY) | (1 << VS_EVADE) | (1 << VS_DEFLECT);
-  CGUnit_C         *victimPtr = 0;
+  CGUnit_C         *victimPtr = NULL;
   if (m_currentDamageInfo) {
     victimPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(m_currentDamageInfo->roundInfo.victim, __FILE__, __LINE__));
   }
 
-  ATTACKROUNDINFO *roundInfo = 0;
+  ATTACKROUNDINFO *roundInfo = NULL;
   switch (value) {
     case '0HA$':
     case '1HA$':
@@ -1297,7 +1297,7 @@ void CGUnit_C::ClearResEffectModel() {
   if (m_resEffectModel) {
     HandleClose(m_resEffectModel);
   }
-  m_resEffectModel = 0;
+  m_resEffectModel = NULL;
 }
 
 void CGUnit_C::AttachResEffectModel() {
@@ -1336,13 +1336,13 @@ const VirtualItemInfo *CGUnit_C::GetParryingItem(bool ignoreMainHand) const {
 
   item = GetVirtualItem(VIRTUAL_MONSTER_SLOT_OFFHAND, 0);
   if (item && item->m_classID != 2 && item->m_classID != 4) {
-    return 0;
+    return NULL;
   }
   return item;
 }
 
 const VirtualItemInfo *CGUnit_C::GetDefendingItem() const {
-  return 0;
+  return NULL;
 }
 
 const VirtualItemInfo *CGUnit_C::GetAttackingWeapon(COMBATHAND hand) const {
@@ -1386,7 +1386,7 @@ void CGUnit_C::CheckPendingVictimFeedback() {
   FATALASSERT(victimPtr != this);
 
   ANIMQUEUENODE *node = m_currentDamageInfo;
-  m_currentDamageInfo = 0;
+  m_currentDamageInfo = NULL;
   if (victimPtr) {
     victimPtr->DoVictimFeedback(&node->roundInfo, 1);
   }

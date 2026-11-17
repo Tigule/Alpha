@@ -8,7 +8,7 @@ class CMouseEvent;
 class CStatus;
 
 struct KEYBINDING : public TSHashObject<KEYBINDING, HASHKEY_STRI> {
-  KEYBINDING() : command(0) {
+  KEYBINDING() : command(NULL) {
   }
   ~KEYBINDING() {
     FREEIFUSED(command);

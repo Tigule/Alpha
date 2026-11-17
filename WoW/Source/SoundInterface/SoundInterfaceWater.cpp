@@ -41,7 +41,7 @@ struct LIQUIDINFO {
   void UpdateVolume();
   void Tick();
 
-  LIQUIDINFO() : m_sound(0), m_currentRecord(0) {
+  LIQUIDINFO() : m_sound(NULL), m_currentRecord(NULL) {
     ClearSubTypes();
     ClearSoundRecords();
   }
@@ -55,7 +55,7 @@ struct LIQUIDINFO {
   }
   void ClearSoundRecords() {
     for (UINT i = 0; i < 3; ++i) {
-      m_soundRecords[i] = 0;
+      m_soundRecords[i] = NULL;
     }
   }
   void RegisterSubType(UINT subType, const NTempest::C3Vector &pos) {
@@ -83,7 +83,7 @@ static CVar      *s_cvar;
 void LIQUIDINFO::StopSound(int immediate) {
   if (m_sound) {
     m_sound->Stop(immediate ? 0.0f : FADEOUTTIME);
-    m_sound = 0;
+    m_sound = NULL;
   }
 }
 
@@ -97,7 +97,7 @@ static bool ToggleCallback(CVar *h, LPCSTR oldValue, LPCSTR newValue, LPVOID arg
   if (!SStrToInt(newValue)) {
     ClearAllSounds(1);
   }
-  return 1;
+  return true;
 }
 
 static void HandleWaterAmbiences() {
@@ -138,7 +138,7 @@ static void HandleWaterAmbiences() {
 
 static BOOL WaterHandler(LPCVOID dataPtr, LPVOID param) {
   HandleWaterAmbiences();
-  return 1;
+  return TRUE;
 }
 
 BOOL LIQUIDINFO::Update(const NTempest::C3Vector &listenerPos) {
@@ -147,14 +147,14 @@ BOOL LIQUIDINFO::Update(const NTempest::C3Vector &listenerPos) {
   }
   if (subType >= 3) {
     StopSound(0);
-    return 0;
+    return FALSE;
   }
   if (m_sound && m_currentPlayingSound != subType) {
     StopSound(0);
   }
   StartSound(subType, listenerPos);
   Tick();
-  return 1;
+  return TRUE;
 }
 
 void LIQUIDINFO::UpdateVolume() {
@@ -252,7 +252,7 @@ void SndInterfaceWaterSetPaused(bool p) {
       if (s_liquidInfo[i].m_sound) {
         Sound::KillSound(s_liquidInfo[i].m_sound);
       }
-      s_liquidInfo[i].m_sound = 0;
+      s_liquidInfo[i].m_sound = NULL;
     }
   }
   s_paused = paused;

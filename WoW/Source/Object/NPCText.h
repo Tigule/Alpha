@@ -7,7 +7,7 @@ class CDataStore;
 
 class NPCText {
  public:
-  NPCText() : m_text(0) {
+  NPCText() : m_text(NULL) {
   }
 
   ~NPCText() {

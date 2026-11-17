@@ -114,7 +114,7 @@ BOOL CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
 
   buffer[0] = 0;
   if (!string || !*string) {
-    return 0;
+    return FALSE;
   }
 
   SStrCopy(buffer, string, size);
@@ -142,12 +142,12 @@ BOOL CompDecorateUndecorateObjName(LPCSTR string, char *buffer, UINT size) {
       cursor[1] = 0;
       SStrPack(buffer, fileNameBuffer, size);
       SStrPack(buffer, extensionBuffer, size);
-      return 1;
+      return TRUE;
     }
   }
 
   SStrCopy(buffer, string, size);
-  return 0;
+  return FALSE;
 }
 
 void CompDecorateTexName(LPCSTR string, TEXCOMPONENT_SECTIONS section, char *buffer, UINT size, UINT sex, int includeSex) {
@@ -187,7 +187,7 @@ BOOL CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
 
   buffer[0] = 0;
   if (!string || !*string) {
-    return 0;
+    return FALSE;
   }
 
   SStrCopy(buffer, string, size);
@@ -202,12 +202,12 @@ BOOL CompDecorateUndecorateTexName(LPCSTR string, char *buffer, UINT size) {
       *cursor = 0;
       FATALASSERT(extension[0]);
       SStrPack(buffer, extension, size);
-      return 1;
+      return TRUE;
     }
   }
 
   SStrCopy(buffer, string, size);
-  return 0;
+  return FALSE;
 }
 
 int ComponentUtilImageFileExists(LPCSTR fileName) {

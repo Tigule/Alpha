@@ -130,8 +130,8 @@ void IEvtTimerKill(EvtContext *context, UINT id, EVENTHANDLER handlerFunctionPtr
       FATALERROR(("Error, attempt to kill eventID %d with mismatching handler (%s)!", id, functionName ? functionName : ""));
     }
 
-    timer->handler = 0;
-    timer->guidHandler = 0;
+    timer->handler = NULL;
+    timer->guidHandler = NULL;
 
     while (queue->Count()) {
       timer = (*queue)[0];

@@ -378,7 +378,7 @@ static int Script_GetSelectedFriend(lua_State *L) {
 
 static BOOL CCommand_AddFriend(LPCSTR command, LPCSTR arguments) {
   g_friendList->AddFriend(arguments);
-  return 1;
+  return TRUE;
 }
 
 static int Script_AddFriend(lua_State *L) {
@@ -408,7 +408,7 @@ static BOOL CCommand_Friends(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_FRIEND_LIST);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static int Script_ShowFriends(lua_State *L) {
@@ -664,35 +664,35 @@ static BOOL FriendListStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) 
   if (g_friendList) {
     g_friendList->HandleStatus((FRIEND_RESULT)res, guid, msg);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL FriendListHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   g_friendList->AddFriends(msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_RemoveFriend(LPCSTR command, LPCSTR arguments) {
   g_friendList->RemoveFriend(arguments);
-  return 1;
+  return TRUE;
 }
 
 static BOOL WhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   char name[256];
   msg->GetString(name, 0x7FFFFFFF);
   ConsoleWrite(name, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   UINT numAccounts = msg->GetUint();
   if (numAccounts == (UINT)-1) {
     ConsoleWriteA("RWhoIs failed\n", ERROR_COLOR);
-    return 1;
+    return TRUE;
   }
   if (!numAccounts) {
     ConsoleWriteA("Not found\n", WARNING_COLOR);
-    return 1;
+    return TRUE;
   }
 
   for (int account = 0; account < (int)numAccounts; ++account) {
@@ -708,7 +708,7 @@ static BOOL ReverseWhoisResponseHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *m
       ConsoleWriteA("  %s\n", character == selected ? WARNING_COLOR : DEFAULT_COLOR, characterName);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Whois(LPCSTR, LPCSTR args) {
@@ -717,7 +717,7 @@ static BOOL CCommand_Whois(LPCSTR, LPCSTR args) {
   msg.PutString(args);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_RWhois(LPCSTR, LPCSTR args) {
@@ -726,7 +726,7 @@ static BOOL CCommand_RWhois(LPCSTR, LPCSTR args) {
   msg.PutString(args);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static void PrintWho(LPCSTR name, LPCSTR guild, int level, int classID, int raceID, int areaID) {
@@ -793,14 +793,14 @@ static BOOL OnWhoList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg
   } else {
     FrameScript_SignalEvent(371);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnIgnoreList(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (g_friendList) {
     g_friendList->IgnoreList(msg);
   }
-  return 1;
+  return TRUE;
 }
 
 void FriendList::Initialize() {
@@ -845,14 +845,14 @@ void FriendList::Destroy() {
     ConsoleCommandUnregister("removefriend");
 
     delete g_friendList;
-    g_friendList = 0;
+    g_friendList = NULL;
   }
 }
 
 void FriendList::AddFriends(CDataStore *msg) {
   for (UINT i = 0; i < 50; ++i) {
     FREEIFUSED(m_friends[i].m_name);
-    m_friends[i].m_name = 0;
+    m_friends[i].m_name = NULL;
   }
 
   BYTE count;
@@ -895,7 +895,7 @@ UINT FriendList::GetNumFriends() {
 
 const FriendList::Friend *FriendList::GetFriend(UINT index) {
   if (index > 50) {
-    return 0;
+    return NULL;
   }
   return &m_friends[index];
 }
@@ -1074,7 +1074,7 @@ void FriendList::Removed(DWORDLONG guid) {
     if (m_friends[i].guid == guid) {
       m_friends[i].guid = 0;
       FREEIFUSED(m_friends[i].m_name);
-      m_friends[i].m_name = 0;
+      m_friends[i].m_name = NULL;
       return;
     }
   }
@@ -1134,7 +1134,7 @@ void FriendList::DecrementPendingIgnoreName() {
 
 static char *StripQuotes(char *string) {
   if (!string) {
-    return 0;
+    return NULL;
   }
 
   int length = SStrLen(string);
@@ -1260,7 +1260,7 @@ void FriendList::SendWho(LPCSTR str) {
                 --w;
               } else {
                 bool matchedLevel = false;
-                word = 0;
+                word = NULL;
                 if (isdigit(words[w][0])) {
                   minLevel = SStrToInt(words[w]);
                   maxLevel = minLevel;

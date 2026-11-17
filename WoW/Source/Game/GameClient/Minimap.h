@@ -67,7 +67,7 @@ struct PARTYMEMBERINFO {
   float              rotation;
 };
 
-int  MinimapInitialize(int continentID);
+BOOL MinimapInitialize(int continentID);
 void MinimapShutdown();
 BOOL MinimapUpdate(
     DWORD_PTR                 hWorldObject,

@@ -67,7 +67,7 @@ class WowClientDB {
     for (i = 0; i < m_numRecords; ++i) {
       m_recordsById[m_records[i].GetID()] = &m_records[i];
     }
-    m_loaded = 1;
+    m_loaded = TRUE;
   }
 
   void Reload() {
@@ -83,7 +83,7 @@ class WowClientDB {
 
   const RECORD *GetRecord(int id) const {
     if (id < 0 || id > m_maxID) {
-      return 0;
+      return NULL;
     }
 
     return m_recordsById[id];
@@ -114,11 +114,11 @@ class WowClientDB {
   }
 
   void Init() {
-    m_records = 0;
-    m_recordsById = 0;
+    m_records = NULL;
+    m_recordsById = NULL;
     m_numRecords = 0;
     m_maxID = -1;
-    m_loaded = 0;
+    m_loaded = FALSE;
   }
 
   RECORD  *m_records;

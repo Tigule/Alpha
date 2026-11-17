@@ -128,7 +128,7 @@ class ClientConnection : public NetClient {
     Cleanup();
     m_statusResult = result;
     m_errorCode = errorCode;
-    m_statusComplete = 1;
+    m_statusComplete = TRUE;
   }
   void              Abort();
   void (ClientConnection::*m_cleanup)();

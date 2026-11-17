@@ -46,7 +46,7 @@ static CGxTex *s_textureHandle;
 static void FadingScreenPaint(LPVOID param, const RECTF *rect, const RECTF *visibleRect, float alpha);
 
 static BOOL EatEvent(LPCVOID data, LPVOID param) {
-  return 0;
+  return FALSE;
 }
 
 static void RegisterHandlers() {

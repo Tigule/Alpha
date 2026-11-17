@@ -375,7 +375,7 @@ class CSimpleFontString : public FrameScript_Object, public CSimpleRegion {
   virtual void OnFrameSizeChanged(const NTempest::CRect &rect);
 
   CGxString *GetString() {
-    CGxString *string = 0;
+    CGxString *string = NULL;
 
     if (m_string) {
       string = TextBlockGetStringPtr(m_string);

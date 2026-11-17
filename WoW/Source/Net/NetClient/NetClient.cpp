@@ -55,14 +55,14 @@ class NetClientRedirect : public WowConnectionResponse {
  public:
   NetClientRedirect(NetClient *owner) {
     m_owner = owner;
-    m_conn = 0;
+    m_conn = NULL;
   }
   NetClientRedirect(const NetClientRedirect &redirect);
   virtual ~NetClientRedirect() {
     if (m_conn) {
       m_conn->SetResponse(0);
       m_conn->Release();
-      m_conn = 0;
+      m_conn = NULL;
     }
   }
 
@@ -147,8 +147,8 @@ int NetClient::s_clientCount;
 
 NetClient::NetClient() {
   m_netState = NS_UNINITIALIZED;
-  m_netEventQueue = 0;
-  m_serverConnection = 0;
+  m_netEventQueue = NULL;
+  m_serverConnection = NULL;
   m_refCount = 0;
   m_deleteMe = 0;
   m_pingSent = 0;
@@ -156,9 +156,9 @@ NetClient::NetClient() {
   m_bytesSent = 0;
   m_bytesReceived = 0;
   m_connectedTimestamp = 0;
-  m_objMgr = 0;
-  m_saveObjMgr = 0;
-  m_redirect = 0;
+  m_objMgr = NULL;
+  m_saveObjMgr = NULL;
+  m_redirect = NULL;
 
   NETCLIENTNODE *node = s_clientList.NewNode(LIST_TAIL, 0, 0);
   node->client = this;
@@ -186,7 +186,7 @@ BOOL NetClient::Initialize() {
   if (!s_clientCount) {
     s_propContext = PropGetSelectedContext();
     if (!WowConnection::InitOsNet(0, InitializePropContext, 1, true)) {
-      return 0;
+      return FALSE;
     }
   }
 
@@ -203,7 +203,7 @@ BOOL NetClient::Initialize() {
 
   m_netState = NS_INITIALIZED;
   s_stats.logTimestamp = OsGetAsyncTimeMs();
-  return 1;
+  return TRUE;
 }
 
 void NetClient::Destroy() {
@@ -212,13 +212,13 @@ void NetClient::Destroy() {
 
     m_serverConnection->SetResponse(0);
     m_serverConnection->Release();
-    m_serverConnection = 0;
+    m_serverConnection = NULL;
 
     memset(m_handlers, 0, sizeof(m_handlers));
     memset(m_handlerParams, 0, sizeof(m_handlerParams));
 
     DEL(m_netEventQueue);
-    m_netEventQueue = 0;
+    m_netEventQueue = NULL;
 
     DELIFUSED(m_redirect);
 
@@ -236,11 +236,11 @@ void NetClient::Destroy() {
 }
 
 BOOL NetClient::DelayedDelete() {
-  BOOL result = 0;
+  BOOL result = FALSE;
   if (m_netState != NS_UNINITIALIZED) {
     Disconnect();
     m_netEventQueue->AddEvent(EVENT_ID_NET_DESTROY, 0, this, 0, 0);
-    result = 1;
+    result = TRUE;
   }
 
   return result;
@@ -248,7 +248,7 @@ BOOL NetClient::DelayedDelete() {
 
 void NetClient::CancelRedirect() {
   if (m_netState == NS_REDIRECT_CONNECTING) {
-    *m_redirectHandle = 0;
+    *m_redirectHandle = NULL;
     m_netState = NS_INITIALIZED;
   }
 }
@@ -280,12 +280,12 @@ void NetClient::Connect(LPCSTR hostName) {
   m_redirect->Connect(hostport, port);
 }
 
-int NetClient::Connect(LPCSTR hostName, WORD port) {
+BOOL NetClient::Connect(LPCSTR hostName, WORD port) {
   ASSERT(m_netState == NS_INITIALIZED);
 
   m_netState = NS_CONNECTING;
   m_serverConnection->Connect(hostName, port, -1);
-  return 1;
+  return TRUE;
 }
 
 void NetClient::Disconnect() {
@@ -321,8 +321,8 @@ void NetClient::SetMessageHandler(NETMESSAGE msgId, BOOL (*handler)(LPVOID, NETM
 void NetClient::ClearMessageHandler(NETMESSAGE msgId) {
   ASSERT(msgId < NUM_MSG_TYPES);
 
-  m_handlers[msgId] = 0;
-  m_handlerParams[msgId] = 0;
+  m_handlers[msgId] = NULL;
+  m_handlerParams[msgId] = NULL;
 }
 
 void NetClient::ProcessMessage(DWORD timeStamp, CDataStore *msg) {
@@ -413,7 +413,7 @@ BOOL NetClient::HandleData(DWORD timeReceived, LPVOID data, int size) {
   }
 
   PopObjMgr();
-  return 1;
+  return TRUE;
 }
 
 BOOL NetClient::HandleConnect() {
@@ -423,7 +423,7 @@ BOOL NetClient::HandleConnect() {
   m_netState = NS_CONNECTED;
 
   PopObjMgr();
-  return 1;
+  return TRUE;
 }
 
 BOOL NetClient::HandleDisconnect() {
@@ -434,7 +434,7 @@ BOOL NetClient::HandleDisconnect() {
   CGlueMgr::NetDisconnectHandler(this, 0);
 
   PopObjMgr();
-  return 1;
+  return TRUE;
 }
 
 BOOL NetClient::HandleCantConnect() {
@@ -444,10 +444,10 @@ BOOL NetClient::HandleCantConnect() {
   m_netState = NS_INITIALIZED;
 
   PopObjMgr();
-  return 1;
+  return TRUE;
 }
 
-static int WINAPI GetRealmsEventHandler(HNETCONN conn, const NETCONNADDR *connAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
+static BOOL WINAPI GetRealmsEventHandler(HNETCONN conn, const NETCONNADDR *connAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
   if (bytesProcessed) {
     *bytesProcessed = bytes;
   }
@@ -456,25 +456,25 @@ static int WINAPI GetRealmsEventHandler(HNETCONN conn, const NETCONNADDR *connAd
 
   switch (note) {
     case NETNOTE_CONNECT:
-      return 1;
+      return TRUE;
 
     case NETNOTE_DATA:
       connectionData.data.PutData(data, bytes);
-      return 1;
+      return TRUE;
 
     case NETNOTE_DISCONNECT:
       connectionData.data.Finalize();
       connectionData.fcn(&connectionData.data, connectionData.userData);
       DEL(&connectionData);
-      return 1;
+      return TRUE;
 
     case NETNOTE_CANTCONNECT:
       connectionData.fcn(0, connectionData.userData);
       DEL(&connectionData);
-      return 1;
+      return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void ClientNetGetRealms(LPCSTR serverAddress, void (*fcn)(CDataStore *, LPVOID), LPVOID userData) {
@@ -589,7 +589,7 @@ void NetClient::PopObjMgr() {
   if (m_objMgr) {
     ClntObjMgrSetCurrent(m_saveObjMgr);
   }
-  m_saveObjMgr = 0;
+  m_saveObjMgr = NULL;
 }
 
 void NetClient::PollEventQueue() {

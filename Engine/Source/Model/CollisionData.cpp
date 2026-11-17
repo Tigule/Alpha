@@ -17,24 +17,24 @@ static WORD vertIndices[36] = {4, 6, 0, 0, 6, 2, 4, 0, 5, 5, 0, 1, 0, 2, 1, 1, 2
 
 static BOOL TriangleIsClippedOut(const NTempest::CAaBox &bounds, const NTempest::C3Vector *triVerts) {
   if (triVerts[0].x < bounds.b.x && triVerts[1].x < bounds.b.x && triVerts[2].x < bounds.b.x) {
-    return 1;
+    return TRUE;
   }
   if (triVerts[0].x > bounds.t.x && triVerts[1].x > bounds.t.x && triVerts[2].x > bounds.t.x) {
-    return 1;
+    return TRUE;
   }
   if (triVerts[0].y < bounds.b.y && triVerts[1].y < bounds.b.y && triVerts[2].y < bounds.b.y) {
-    return 1;
+    return TRUE;
   }
   if (triVerts[0].y > bounds.t.y && triVerts[1].y > bounds.t.y && triVerts[2].y > bounds.t.y) {
-    return 1;
+    return TRUE;
   }
   if (triVerts[0].z < bounds.b.z && triVerts[1].z < bounds.b.z && triVerts[2].z < bounds.b.z) {
-    return 1;
+    return TRUE;
   }
   if (triVerts[0].z > bounds.t.z && triVerts[1].z > bounds.t.z && triVerts[2].z > bounds.t.z) {
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 static void CollisionDataAddFacets(
@@ -103,7 +103,7 @@ static BOOL CollisionDataVectorIntersect(
   }
 
   if (t >= FLT_MAX) {
-    return 0;
+    return FALSE;
   }
 
   t *= ooMag;
@@ -123,7 +123,7 @@ static void ComputeSurfaceNormals(CCollisionData *collide, UINT numSurfaces) {
 HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds) {
   CCollisionData *collision = NEWHANDLE(HCOLLISIONDATA, CCollisionData);
   if (!collision) {
-    return 0;
+    return NULL;
   }
 
   collision->vertices.SetCount(8);
@@ -146,12 +146,12 @@ HCOLLISIONDATA CollisionDataCreate(const NTempest::CAaBox &bounds) {
 
 HCOLLISIONDATA CollisionDataCreate(const MDLDATA &data) {
   if (!data.collision.vertices.Count()) {
-    return 0;
+    return NULL;
   }
 
   CCollisionData *collision = NEWHANDLE(HCOLLISIONDATA, CCollisionData);
   if (!collision) {
-    return 0;
+    return NULL;
   }
 
   collision->vertices = data.collision.vertices;
@@ -174,12 +174,12 @@ void ModelCustGeosetRemove(HMODEL model, UINT custGeosetId);
 HCOLLISIONDATA CollisionDataCreate(BYTE *fileData, UINT fileBytes) {
   fileData = MDLFileBinarySeek(fileData, fileBytes, 'DILC');
   if (!fileData) {
-    return 0;
+    return NULL;
   }
 
   CCollisionData *collision = NEWHANDLE(HCOLLISIONDATA, CCollisionData);
   if (!collision) {
-    return 0;
+    return NULL;
   }
 
   UINT sectionBytes = *(UINT *)fileData;
@@ -266,7 +266,7 @@ void ModelShowCollision(HMODEL model, int show) {
     }
   } else if (unique->m_collideModel) {
     HandleClose(unique->m_collideModel);
-    unique->m_collideModel = 0;
+    unique->m_collideModel = NULL;
   }
 }
 

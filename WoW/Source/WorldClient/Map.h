@@ -996,7 +996,7 @@ class CMap {
   static void           Open();
   static void           ReloadDoodadModels();
   static void           EnableDoodadFullAlpha(int enable);
-  static int            LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait);
+  static BOOL           LoadDoodadModel(CMapDoodadDef *doodadDef, BOOL bWait);
   static CMapDoodadDef *CreateDoodadDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait);
   static CMapDoodadDef *CreateDoodadDef(SMDoodadDef &smDoodadDef, NTempest::C3Vector &pos);
   static CMapObjDef *CreateMapObjDef(LPCSTR fileName, NTempest::C3Vector &pos, float angle, BOOL bWait);
@@ -1293,8 +1293,8 @@ class CWorldScene {
   static void RenderWater();
   static void RenderMagma();
   static void ClipBufferClear();
-  static int  ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags);
-  static int  ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags);
+  static BOOL ClipBufferCull(const NTempest::C3Vector &center, float radius, UINT cullFlags);
+  static BOOL ClipBufferCull(const NTempest::CAaBox &aaBox, UINT cullFlags);
 };
 
 #endif

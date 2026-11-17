@@ -97,7 +97,7 @@ static DWORD s_tlsIndex;
 static DWORD s_initCount;
 static int   s_enable = 1;
 
-int __cdecl   OsCallEnter(DWORD funcAddr, DWORD retAddr);
+BOOL __cdecl   OsCallEnter(DWORD funcAddr, DWORD retAddr);
 DWORD __cdecl OsCallExit();
 
 #if !BUILD_PORTABLE
@@ -177,7 +177,7 @@ void OsCallDestroy() {
       OsTlsSetValue(s_tlsIndex, 0);
 
       if (threadData->m_contextData) {
-        threadData->m_contextData->m_threadData = 0;
+        threadData->m_contextData->m_threadData = NULL;
       }
 
       CloseHandle(threadData->m_threadHandle);
@@ -228,7 +228,7 @@ void OsCallDestroyContext(LPVOID contextDataPtr) {
   s_critsect.Enter();
 
   if (contextData->m_threadData) {
-    contextData->m_threadData->m_contextData = 0;
+    contextData->m_threadData->m_contextData = NULL;
   }
 
   DEL(contextData);
@@ -280,8 +280,8 @@ void OsCallResetContext(LPVOID contextDataPtr) {
   ASSERT(contextData->m_threadData == threadData);
 
   s_critsect.Enter();
-  threadData->m_contextData = 0;
-  contextData->m_threadData = 0;
+  threadData->m_contextData = NULL;
+  contextData->m_threadData = NULL;
   s_critsect.Leave();
 }
 
@@ -353,13 +353,13 @@ static void OsCallDumpContextData(_iobuf *file, const ContextData *contextData) 
   fprintf(file, "; Context: %s\r\n", contextData->m_title);
 
   DWORD              turnOffset;
-  const ContextTurn *turn = 0;
+  const ContextTurn *turn = NULL;
   for (turnOffset = contextData->m_turnBufferHead; turnOffset != contextData->m_turnBufferTail; ++turnOffset) {
     turn = &contextData->m_turnBuffer[turnOffset & 0x3FF];
     if ((int)(turn->m_callBufferHead - contextData->m_callBufferHead) >= 0) {
       break;
     }
-    turn = 0;
+    turn = NULL;
   }
 
   for (DWORD callOffset = contextData->m_callBufferHead; callOffset != contextData->m_callBufferTail; ++callOffset) {
@@ -424,18 +424,18 @@ void OsCallDump(LPCSTR fileName) {
   s_critsect.Leave();
 }
 
-int __cdecl OsCallEnter(DWORD funcAddr, DWORD retAddr) {
+BOOL __cdecl OsCallEnter(DWORD funcAddr, DWORD retAddr) {
   if (!s_initCount) {
-    return 0;
+    return FALSE;
   }
 
   ThreadData *threadData = (ThreadData *)OsTlsGetValue(s_tlsIndex);
   if (!threadData) {
-    return 0;
+    return FALSE;
   }
 
   if (threadData->m_funcStackIndex >= 0x200) {
-    return 0;
+    return FALSE;
   }
 
   DWORD        stackIndex = threadData->m_funcStackIndex++;
@@ -456,7 +456,7 @@ int __cdecl OsCallEnter(DWORD funcAddr, DWORD retAddr) {
       }
     }
   }
-  return 1;
+  return TRUE;
 }
 
 DWORD __cdecl OsCallExit() {

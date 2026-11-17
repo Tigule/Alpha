@@ -298,12 +298,12 @@ static int GetSkillLineFromService(int serviceSpell) {
   int             effectIndex = -1;
   const SpellRec *spell = g_spellDB.GetRecord(serviceSpell);
   if (spell) {
-    BOOL petSpell = 0;
+    BOOL petSpell = FALSE;
     for (int i = 0; i < 3; ++i) {
       if (spell->m_effect[i] == 36 || spell->m_effect[i] == 57) {
         effectIndex = i;
         if (spell->m_effect[i] == 57) {
-          petSpell = 1;
+          petSpell = TRUE;
         }
         break;
       }
@@ -493,7 +493,7 @@ void CGClassTrainer::RefreshList() {
 
     m_services[i]->usable = TRAINER_SERVICE_AVAILABLE;
 
-    CGUnit_C *pet = 0;
+    CGUnit_C *pet = NULL;
     int       learnSpell = 0;
     int       numToLearn = 0;
     int       numLearned = 0;
@@ -586,18 +586,18 @@ void CGClassTrainer::RefreshList() {
       continue;
     }
 
-    BOOL ok = 1;
+    BOOL ok = TRUE;
     if (pet) {
       for (j = 0; j < 3; ++j) {
         if (m_services[i]->reqAbility[j] && !pet->IsSpellKnown(m_services[i]->reqAbility[j]) && !pet->IsSpellSuperceded(m_services[i]->reqAbility[j])) {
-          ok = 0;
+          ok = FALSE;
           break;
         }
       }
     } else {
       for (j = 0; j < 3; ++j) {
         if (m_services[i]->reqAbility[j] && !player->IsSpellKnown(m_services[i]->reqAbility[j]) && !player->IsSpellSuperceded(m_services[i]->reqAbility[j])) {
-          ok = 0;
+          ok = FALSE;
           break;
         }
       }
@@ -648,10 +648,10 @@ void CGClassTrainer::FilterAndSortServices() {
   UINT j;
   m_filteredServices = m_numServices;
   for (i = 0; i < m_numSkillLines; ++i) {
-    BOOL hasService = 0;
+    BOOL hasService = FALSE;
     for (j = 0; j < NUM_TRAINER_SERVICE_TYPES; ++j) {
       if ((m_serviceTypeFilter & (1 << j)) && m_skillLines[i]->numSkills[j] > 0) {
-        hasService = 1;
+        hasService = TRUE;
         break;
       }
     }
@@ -696,7 +696,7 @@ void CGClassTrainer::FilterAndSortServices() {
 
 const TrainerServiceInfo *CGClassTrainer::GetService(UINT index) {
   if (index >= m_numServices) {
-    return 0;
+    return NULL;
   }
   return m_services[index];
 }
@@ -719,26 +719,26 @@ LPCSTR CGClassTrainer::GetServiceName(UINT index) {
       }
     }
   }
-  return 0;
+  return NULL;
 }
 
 LPCSTR CGClassTrainer::GetServiceSubtext(UINT index) {
   if (index >= m_numServices) {
-    return 0;
+    return NULL;
   }
   if (m_services[index]->spellID >= 0) {
     const SpellRec *spell = g_spellDB.GetRecord(m_services[index]->spellID);
     if (spell) {
       return spell->m_nameSubtext_lang[CURRENT_LANGUAGE];
     }
-    return 0;
+    return NULL;
   }
   return "";
 }
 
 LPCSTR CGClassTrainer::GetServiceType(UINT index) {
   if (index >= m_numServices) {
-    return 0;
+    return NULL;
   }
   if (m_services[index]->spellID >= 0) {
     switch (m_services[index]->usable) {
@@ -774,7 +774,7 @@ BOOL CGClassTrainer::IsCollpasedHeader(UINT index) {
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void CGClassTrainer::SetServiceTypeFilter(int filter) {
@@ -935,7 +935,7 @@ static int Script_GetTrainerServiceSkillLine(lua_State *L) {
       }
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (player) {
-        const SkillLineRec *line = 0;
+        const SkillLineRec *line = NULL;
         if (effectIndex == -1) {
           const SkillLineAbilityRec *ability = SpellTableLookupAbility(player->GetRace(), player->GetClass(), spell->m_ID);
           line = ability ? g_skillLineDB.GetRecord(ability->m_skillLine) : 0;
@@ -1009,7 +1009,7 @@ static int Script_GetTrainerServiceSkillReq(lua_State *L) {
   int                       rank = 0;
   CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
-  const SkillLineRec       *line = 0;
+  const SkillLineRec       *line = NULL;
   if (player && info && info->reqSkillLine && info->reqSkillRank) {
     line = g_skillLineDB.GetRecord(info->reqSkillLine);
     if (line) {
@@ -1115,7 +1115,7 @@ static int Script_GetTrainerServiceStepReq(lua_State *L) {
   int                       met = 1;
   CGPlayer_C               *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   const TrainerServiceInfo *info = CGClassTrainer::GetService(index);
-  const SpellRec           *spell = 0;
+  const SpellRec           *spell = NULL;
   if (player && info && info->reqSkillStep) {
     spell = g_spellDB.GetRecord(info->reqSkillStep);
     if (spell) {
@@ -1706,7 +1706,7 @@ static int Script_GetTrainerServiceItemStats(lua_State *L) {
               ++count;
             }
 
-            subClass = 0;
+            subClass = NULL;
             for (i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
               const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
               if (rec && rec->m_classID == stats->m_class && rec->m_subClassID == stats->m_subclass) {

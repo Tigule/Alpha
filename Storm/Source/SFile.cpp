@@ -131,7 +131,7 @@ namespace Storm {
       DWORD       crcstate;
       DWORD       crcexpected;
 
-      FILEREC() : actualName(0), handle(INVALID_HANDLE_VALUE), archive(0), sectoroffsettable(0), readaheadbuffer(0) {
+      FILEREC() : actualName(NULL), handle(INVALID_HANDLE_VALUE), archive(NULL), sectoroffsettable(NULL), readaheadbuffer(NULL) {
       }
 
       ~FILEREC();
@@ -218,11 +218,11 @@ namespace Storm {
     };
 
     ARCHIVEREC *GetArchivePtr(HSARCHIVE hArchive);
-    int         ReleaseArchivePtr(ARCHIVEREC *archive);
+    BOOL        ReleaseArchivePtr(ARCHIVEREC *archive);
     BOOL        IsSubArchive(HSARCHIVE archive);
     BOOL        IsReopenedArchive(HSARCHIVE archive);
     FILEREC    *GetFilePtr(HSFILE hFile);
-    int         ReleaseFilePtr(FILEREC *file);
+    BOOL        ReleaseFilePtr(FILEREC *file);
     inline void AddArchiveRef(ARCHIVEREC *archive);
     inline void AddFileRef(FILEREC *file);
     inline void AddStreamRef(AUDIOSTREAM *stream);
@@ -246,7 +246,7 @@ namespace Storm {
   }  // namespace SFile
 }  // namespace Storm
 
-static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename);
+static BOOL ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename);
 static int CheckFileExistsOnDisk(LPCSTR filename, DWORD flags, char *localfilename);
 
 NODEDECL(REQUEST) {
@@ -277,15 +277,15 @@ namespace Storm {
   namespace SFile {
 
     StormGlobals  s_g = {2, 0, 0, 0, 0x20000, 1, 0, 0, 0, "", 0, 0};
-    DWORD        *s_hashsource = 0;
+    DWORD        *s_hashsource = NULL;
     DWORD         s_cdthreadid = 0;
-    IDirectSound *s_directsound = 0;
-    LPVOID        s_cdthread = 0;
-    LPVOID        s_explodebuffer = 0;
-    LPVOID        s_soundreadbuffer = 0;
-    LPVOID        s_cdevent = 0;
+    IDirectSound *s_directsound = NULL;
+    LPVOID        s_cdthread = NULL;
+    LPVOID        s_explodebuffer = NULL;
+    LPVOID        s_soundreadbuffer = NULL;
+    LPVOID        s_cdevent = NULL;
     int           s_cdshutdown = 0;
-    REQUEST      *s_cdrequest = 0;
+    REQUEST      *s_cdrequest = NULL;
     int           s_closingDirectSound = 0;
 
     CCritSect s_cdlock;
@@ -556,7 +556,7 @@ Storm::SFile::ARCHIVEREC *Storm::SFile::GetArchivePtr(HSARCHIVE hArchive) {
   return found;
 }
 
-int Storm::SFile::ReleaseArchivePtr(ARCHIVEREC *archive) {
+BOOL Storm::SFile::ReleaseArchivePtr(ARCHIVEREC *archive) {
   if (!archive) {
     return FALSE;
   }
@@ -602,7 +602,7 @@ Storm::SFile::FILEREC *Storm::SFile::GetFilePtr(HSFILE hFile) {
   return found;
 }
 
-int Storm::SFile::ReleaseFilePtr(FILEREC *file) {
+BOOL Storm::SFile::ReleaseFilePtr(FILEREC *file) {
   if (!file) {
     return FALSE;
   }
@@ -631,7 +631,7 @@ static void __cdecl DecompressLzw_BufferWrite(char *buffer, UINT *size, LPVOID p
   info->destoffset += *size;
 }
 
-static int DecompressLzw(BYTE *dest, BYTE *source, DWORD sourcebytes) {
+static BOOL DecompressLzw(BYTE *dest, BYTE *source, DWORD sourcebytes) {
   Storm::SFile::s_lzwcrit.Enter();
   if (!Storm::SFile::s_explodebuffer) {
     Storm::SFile::s_explodebuffer = ALLOC(EXP_BUFFER_SIZE);
@@ -933,7 +933,7 @@ static DWORD InternalReadUnaligned(SFileRecData *file, DWORD location, LPVOID bu
   return firstbytesread + middlebytesread + lastbytesread;
 }
 
-static int ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename) {
+static BOOL ReadFileChecked(DWORD position, DWORD *currentposition, HANDLE file, LPVOID buffer, DWORD bytestoread, DWORD *bytesread, LPCSTR filename) {
   SFileIoErrorProc retryProc;
   DWORD            mode;
   DWORD            numcalls;
@@ -1857,7 +1857,7 @@ static int CheckFileExists(LPCSTR filename) {
 }
 #ifdef _WIN32
 
-static int CheckForCdRom(LPCSTR path) {
+static BOOL CheckForCdRom(LPCSTR path) {
   char  fsname[MAX_PATH];
   DWORD fsflags;
   DWORD sectorspercluster;
@@ -1942,7 +1942,7 @@ done:
   return result;
 }
 
-static int FindChunk(HSFILE handle, DWORD ckid, CKINFO *pck) {
+static BOOL FindChunk(HSFILE handle, DWORD ckid, CKINFO *pck) {
   struct {
     DWORD ckid;
     DWORD size;

@@ -92,7 +92,7 @@ void CGPetitionInfo::EnterWorld() {
   m_petitionID = 0;
   m_numSignatures = 0;
   m_pendingNames = 0;
-  m_petition = 0;
+  m_petition = NULL;
   m_signatures.SetCount(10);
 }
 
@@ -120,7 +120,7 @@ void CGPetitionInfo::SetPetition(DWORDLONG petition, int petitionID) {
   if (petition) {
     m_petition = g_petitionCache.GetRecord(petitionID, petition, PetitionQueryCallback, 0);
   } else {
-    m_petition = 0;
+    m_petition = NULL;
   }
 }
 
@@ -222,24 +222,24 @@ static int Script_GetPetitionNameInfo(lua_State *L) {
 }
 
 static int Script_CanSignPetition(lua_State *L) {
-  BOOL              canSign = 1;
+  BOOL              canSign = TRUE;
   const CGPetition *petition = CGPetitionInfo::GetPetitionStats();
   if (petition) {
     if (petition->m_flags & 1) {
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if ((player && player->GetGuildID()) || (int)CGPetitionInfo::GetNumSignatures() >= petition->m_maxSignatures) {
-        canSign = 0;
+        canSign = FALSE;
       }
     }
     if (petition->m_petitioner == ClntObjMgrGetActivePlayer()) {
-      canSign = 0;
+      canSign = FALSE;
     }
   }
   if (canSign) {
     for (UINT i = 0; i < CGPetitionInfo::GetNumSignatures(); ++i) {
       const PetitionSignerInfo *signer = CGPetitionInfo::GetSignature(i);
       if (signer && signer->guid == ClntObjMgrGetActivePlayer()) {
-        canSign = 0;
+        canSign = FALSE;
         break;
       }
     }

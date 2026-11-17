@@ -54,5 +54,5 @@ void CGxDeviceOpenGl::XformSetProjection(const NTempest::C44Matrix &matrix) {
 
 void CGxDeviceOpenGl::XformSetView(const NTempest::C44Matrix &matrix) {
   CGxDevice::XformSetView(matrix);
-  m_worldViewChange = 1;
+  m_worldViewChange = TRUE;
 }

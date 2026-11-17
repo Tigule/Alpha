@@ -11,11 +11,11 @@ int OsIMEGetCompositionResult(char *string, UINT maxlen) {
 }
 
 BOOL OsIMEGetClauseInfo(UINT &clauseLeft, UINT &clauseRight, UINT &cursorPos) {
-  return 0;
+  return FALSE;
 }
 
 BOOL OsIMEGetCandidates(DWORD which, UINT &pageSize, UINT &count, UINT &selection, TSGrowableArray<OsIMECandidate> &candidates) {
-  return 0;
+  return FALSE;
 }
 
 void OsIMEEnable(int enabled) {

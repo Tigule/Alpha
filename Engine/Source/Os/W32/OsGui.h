@@ -287,27 +287,27 @@ class COsControl {
   void SetTooltip(LPCSTR inText);
 
   virtual BOOL OnDraw(LPVOID, UINT, NTempest::CiRect &) {
-    return 0;
+    return FALSE;
   }
 
   virtual LPVOID OnSetColors(LPVOID) {
-    return 0;
+    return NULL;
   }
 
   virtual BOOL OnReturn() {
-    return 0;
+    return FALSE;
   }
 
   virtual BOOL OnEscape() {
-    return 0;
+    return FALSE;
   }
 
   virtual BOOL OnMouseDown() {
-    return 0;
+    return FALSE;
   }
 
   virtual BOOL OnMouseUp() {
-    return 0;
+    return FALSE;
   }
 
   virtual void OnMouseMove(int, int) {
@@ -324,7 +324,7 @@ class COsControl {
   virtual int OnScroll(int inParam);
 
   virtual BOOL OnMouseWheel(int) {
-    return 0;
+    return FALSE;
   }
 
   void SetContextMenu(COsMenu *inMenu);
@@ -341,11 +341,11 @@ class COsControl {
   virtual BOOL IsHandleFromControl(LPVOID inHandle);
 
   virtual BOOL CanDoClipboardAction(int) {
-    return 0;
+    return FALSE;
   }
 
   virtual BOOL DoClipboardAction(int) {
-    return 0;
+    return FALSE;
   }
 
   virtual void SetValue(int inVal) {

@@ -15,12 +15,12 @@ BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   D3DDISPLAYMODE dm;
   UINT           nModes;
   _D3DFORMAT     format;
-  HINSTANCE      d3dLib = 0;
+  HINSTANCE      d3dLib = NULL;
   UINT           mode;
-  IDirect3D9    *d3d = 0;
+  IDirect3D9    *d3d = NULL;
 
   if (!CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
-    return 0;
+    return FALSE;
   }
 
   for (UINT i = 0; i < 4; ++i) {
@@ -83,8 +83,8 @@ BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, DWORD &driverVersionHi
   }
 
   if (!retVal) {
-    d3dLib = 0;
-    d3d = 0;
+    d3dLib = NULL;
+    d3d = NULL;
     if (CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
       if (d3d->GetAdapterIdentifier(D3DADAPTER_DEFAULT, 0, &adapterId) >= 0) {
         vendorID = adapterId.VendorId;
@@ -130,10 +130,10 @@ BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
   int         retVal = 0;
 
   deviceID = 0;
-  d3dLib = 0;
-  d3d = 0;
+  d3dLib = NULL;
+  d3d = NULL;
   if (!CGxDeviceD3d::ILoadD3dLib(d3dLib, d3d)) {
-    return 0;
+    return FALSE;
   }
 
   if (d3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps) >= 0) {
@@ -162,7 +162,7 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   dd.cb = sizeof(dd);
   EnumDisplayDevicesA(0, 0, &dd, 0);
   if (!(dd.StateFlags & 1)) {
-    return 0;
+    return FALSE;
   }
 
   modeIndex = 0;
@@ -188,7 +188,7 @@ BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   dd.cb = sizeof(dd);
   EnumDisplayDevicesA(0, 0, &dd, 0);
   if (!(dd.StateFlags & 1)) {
-    return 0;
+    return FALSE;
   }
 
   dm.dmSize = sizeof(dm);

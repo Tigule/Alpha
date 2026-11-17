@@ -840,7 +840,7 @@ void Trade_C_InitiateTrade(DWORDLONG target, int useCursorItem);
 
 static BOOL CCommand_Script(LPCSTR, LPCSTR arguments) {
   FrameScript_Execute(arguments, arguments);
-  return 1;
+  return TRUE;
 }
 
 void EnableFadingScreen(float fadeTime, void (*fadedCallback)(LPVOID), LPVOID param);
@@ -851,7 +851,7 @@ static BOOL CCommand_ScaleUI(LPCSTR, LPCSTR arguments) {
   if (scale > 0.0f) {
     CGGameUI::ScaleUI(scale, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 static int Script_FrameXML_Debug(lua_State *L) {
@@ -2325,17 +2325,17 @@ static BOOL PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
   DWORD  count;
   LPCSTR name = frame->GetName();
   if (!name || !*name || !frame->IsUserPlaced() || (!frame->IsMovable() && !frame->IsResizable())) {
-    return 1;
+    return TRUE;
   }
 
   NTempest::CRect rect;
   NTempest::CRect toprect;
   if (!frame->GetRect(&rect)) {
-    return 1;
+    return TRUE;
   }
 
   if (!frame->GetTop()->GetRect(&toprect)) {
-    return 1;
+    return TRUE;
   }
 
   SStrPrintf(line, sizeof(line), "Frame: %s\n", name);
@@ -2357,22 +2357,22 @@ static BOOL PlacedFrameCallback(CSimpleFrame *frame, LPVOID param) {
     OsWriteFile((HOSFILE)param, line, SStrLen(line), &count);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL SavePlacedFrames(CSimpleTop *top) {
   if (!top) {
-    return 0;
+    return FALSE;
   }
 
   HOSFILE file = OsCreateFile("PlacedFrames.txt", GENERIC_WRITE, 0, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0x3F3F3F3F);
   if (file == HOSFILE_INVALID) {
-    return 0;
+    return FALSE;
   }
 
   top->EnumerateFrames(PlacedFrameCallback, file);
   OsCloseFile(file);
-  return 1;
+  return TRUE;
 }
 
 static void PlaceFrame(CSimpleFrame *frame, int framelevel, int x, int y, int w, int h) {
@@ -2411,7 +2411,7 @@ static void LoadPlacedFrames() {
   }
 
   readCursor = (LPCSTR)buffer;
-  CSimpleFrame *frame = 0;
+  CSimpleFrame *frame = NULL;
   int           framelevel = -1;
   int           x = 0;
   int           y = 0;
@@ -2616,7 +2616,7 @@ static bool GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vec
   CStatus status;
   HMODEL  m_model = ModelCreate(modelFile, 0, &status);
   if (!m_model) {
-    return 0;
+    return false;
   }
 
   NTempest::C34Matrix m_modelMatrix;
@@ -2632,7 +2632,7 @@ static bool GetCinematicStartingCameraPosition(LPCSTR modelFile, NTempest::C3Vec
   DataMgrGetCoord(camera, 7, &position);
   HandleClose(camera);
   HandleClose(m_model);
-  return 1;
+  return true;
 }
 
 BOOL CGGameUI::StartCinematicCamera() {
@@ -2643,7 +2643,7 @@ BOOL CGGameUI::StartCinematicCamera() {
 
   const CinematicCameraRec *cinematicCamera = m_cinematic.camera;
   if (!cinematicCamera) {
-    return 0;
+    return FALSE;
   }
 
   LPCSTR             cameraModel = cinematicCamera->m_model;
@@ -2657,7 +2657,7 @@ BOOL CGGameUI::StartCinematicCamera() {
   }
 
   if (!camera->SetModelCamera(cameraModel, cameraOrigin, cameraFacing, NextCinematic, 0)) {
-    return 0;
+    return FALSE;
   }
 
   ScrnPaint();
@@ -2668,16 +2668,16 @@ BOOL CGGameUI::StartCinematicCamera() {
   FATALASSERT(!m_cinematic.cameraMusic);
   m_cinematic.cameraMusic = SndInterfacePlayLoopedSound(cinematicCamera->m_soundID, 1);
   DisableFadingScreen(CinematicFadeTime, 0, 0);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGGameUI::NextCinematic(LPVOID) {
   EnableFadingScreen(CinematicFadeTime, NextCinematicInternal, 0);
-  return 1;
+  return TRUE;
 }
 
 void CGGameUI::NextCinematicInternal(LPVOID) {
-  m_cinematic.camera = 0;
+  m_cinematic.camera = NULL;
   Sound::KillSound(m_cinematic.cameraMusic);
 
   if (m_cinematic.sequence && ++m_cinematic.sequenceIndex < 8u && m_cinematic.sequence->m_camera[m_cinematic.sequenceIndex]) {
@@ -2696,7 +2696,7 @@ void CGGameUI::NextCinematicInternal(LPVOID) {
 BOOL CGGameUI::StopCinematic(LPVOID) {
   Sound::KillSound(m_cinematic.cameraMusic);
   EnableFadingScreen(CinematicFadeTime, StopCinematicInternal, 0);
-  return 1;
+  return TRUE;
 }
 
 void CGGameUI::StopCinematicInternal(LPVOID) {
@@ -2982,7 +2982,7 @@ void CGGameUI::Shutdown() {
 
   if (m_simpleTop) {
     DEL(m_simpleTop);
-    m_simpleTop = 0;
+    m_simpleTop = NULL;
   }
 
   CursorDestroy();
@@ -3018,11 +3018,11 @@ void CGGameUI::ShutdownGame() {
   FrameScript_Flush();
 
   FREEIFUSED(m_zoneText);
-  m_zoneText = 0;
+  m_zoneText = NULL;
   FREEIFUSED(m_subZoneText);
-  m_subZoneText = 0;
+  m_subZoneText = NULL;
   FREEIFUSED(m_minimapZoneText);
-  m_minimapZoneText = 0;
+  m_minimapZoneText = NULL;
 }
 
 void CGGameUI::Reload() {
@@ -3152,17 +3152,17 @@ int CGGameUI::OnTerrainClick(const CTerrainClickEvent &evt) {
 BOOL CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
   if (!objectPtr) {
-    return 0;
+    return FALSE;
   }
 
   if (Spell_C_IsTargeting()) {
     Spell_C_HandleSpriteClick(objectPtr);
-    return 1;
+    return TRUE;
   }
 
   if (objectPtr->CanBeTargetted()) {
@@ -3173,14 +3173,14 @@ BOOL CGGameUI::OnSpriteLeftClick(DWORDLONG object, float x, float y) {
   if (objectPtr->IsA(ID_PLAYER) && m_cursorItem && m_cursorItemContainer) {
     Trade_C_InitiateTrade(object, 1);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGGameUI::OnSpriteRightClick(DWORDLONG object, float x, float y) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
     if (!objectPtr) {
-      return 0;
+      return FALSE;
     }
 
     if (objectPtr->CanBeTargetted()) {
@@ -3188,7 +3188,7 @@ BOOL CGGameUI::OnSpriteRightClick(DWORDLONG object, float x, float y) {
     }
     objectPtr->OnRightClick();
   }
-  return 1;
+  return TRUE;
 }
 
 void CGGameUI::OnTargetContextAction() {
@@ -3279,9 +3279,9 @@ BOOL CGGameUI::FilterMouseDown(const CMouseEvent &evt) {
       (m_cursorItem || m_cursorVirtualID || m_cursorMoney || m_cursorSpell > 0 || m_cursorPetAction || CGPlayer_C::IsGiftWrapping()))
   {
     ClearCursor(1);
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
@@ -3297,11 +3297,11 @@ BOOL CGGameUI::HandleMouseDown(const CMouseEvent &evt) {
       ClearCursor(1);
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGGameUI::HandleMouseUp(const CMouseEvent &evt) {
-  return 0;
+  return FALSE;
 }
 
 BOOL CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
@@ -3312,7 +3312,7 @@ BOOL CGGameUI::HandleTerrainClick(const CTerrainClickEvent &evt) {
   if (!OnTerrainClick(evt)) {
     Target(0, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
@@ -3322,10 +3322,10 @@ BOOL CGGameUI::HandleSpriteClick(const CSpriteClickEvent &evt) {
 
   if (evt.button == MOUSE_BUTTON_LEFT) {
     OnSpriteLeftClick(evt.objectGUID, evt.pos.x, evt.pos.y);
-    return 1;
+    return TRUE;
   }
   OnSpriteRightClick(evt.objectGUID, evt.pos.x, evt.pos.y);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
@@ -3337,13 +3337,13 @@ BOOL CGGameUI::HandleWorldClick(const CWorldClickEvent &evt) {
   if (evt.button == MOUSE_BUTTON_LEFT) {
     if (m_cursorItem && m_cursorItemContainer) {
       DeleteCursorItem();
-      return 1;
+      return TRUE;
     }
     if (cursorWasEmpty) {
       Target(0, 0);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGGameUI::HandleSpriteTrack(const CObjectTrackEvent &evt) {
@@ -3364,7 +3364,7 @@ BOOL CGGameUI::HandleDisplaySizeChanged(const CSizeEvent &evt) {
       ScaleUI(1.0f, 1);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGGameUI::HandleScreenshot(int success) {
@@ -3584,7 +3584,7 @@ static BOOL ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
   ClosestObjectMatchData *data = (ClosestObjectMatchData *)param;
   CGObject_C             *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object || !(data->type & object->GetType())) {
-    return 1;
+    return TRUE;
   }
 
   LPCSTR name = object->GetObjectName();
@@ -3604,7 +3604,7 @@ static BOOL ClosestObjectMatchProc(DWORDLONG guid, LPVOID param) {
       }
     }
   }
-  return 1;
+  return TRUE;
 }
 
 DWORDLONG CGGameUI::ClosestObjectMatch(LPCSTR match, OBJECT_TYPE type) {
@@ -3617,7 +3617,7 @@ DWORDLONG CGGameUI::ClosestObjectMatch(LPCSTR match, OBJECT_TYPE type) {
   data.type = type;
   data.match = match;
   data.source = source;
-  data.object = 0;
+  data.object = NULL;
   data.best_match = 1;
   data.best_distance = FLT_MAX;
   ClntObjMgrEnumVisibleObjects(ClosestObjectMatchProc, &data);
@@ -3680,14 +3680,14 @@ static BOOL TargetUpdateProc(DWORDLONG guid, LPVOID) {
     {
       float distSq = (unit->GetPosition() - player->GetPosition()).SquaredMag();
       if (distSq > TARGET_NEAREST_MAX_DISTANCE_SQUARED) {
-        return 1;
+        return TRUE;
       }
       NearestEnemyData *entry = s_nearestList.New();
       entry->guid = guid;
       entry->distSq = distSq;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static int __cdecl QSortCompareNearestEnemy(LPCVOID a, LPCVOID b) {
@@ -4015,7 +4015,7 @@ void CGGameUI::SetCursorMoney(UINT money) {
 void CGGameUI::SetCursorSpell(int spellId, int pet) {
   if ((m_hasControl || !pet) && spellId >= 0) {
     const SpellRec *spell = g_spellDB.GetRecord(spellId);
-    LPCSTR          texture = 0;
+    LPCSTR          texture = NULL;
     if (spell && spell->m_effect[0] == 78) {
       texture = CGActionBar::GetAttackTexture();
     } else if (spell) {
@@ -4053,7 +4053,7 @@ void CGGameUI::SetCursorPetAction(const PetAction &action) {
     return;
   }
 
-  LPCSTR texture = 0;
+  LPCSTR texture = NULL;
   switch (action.GetActionType()) {
     case 1:
     case 2:
@@ -4262,7 +4262,7 @@ BOOL CGGameUI::Idle(LPCVOID, LPVOID) {
     Shutdown();
     Initialize();
   }
-  return 1;
+  return TRUE;
 }
 
 void CGGameUI::UpdateActivePlayer() {

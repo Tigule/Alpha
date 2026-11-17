@@ -19,7 +19,7 @@ static BOOL          s_CreatePathDirectories(LPCSTR szPath) {
   LPCSTR separator;
 
   if (!szPath || !szPath[0]) {
-    return 0;
+    return FALSE;
   }
 
   separator = SStrChr(szPath + 1, '\\');
@@ -72,7 +72,7 @@ static BOOL CvarCommandHandler(LPCSTR command, LPCSTR arguments) {
     cvar->Set(arguments, true, true, false);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL SetCommandHandler(LPCSTR command, LPCSTR arguments) {
@@ -89,7 +89,7 @@ static BOOL SetCommandHandler(LPCSTR command, LPCSTR arguments) {
     CVar::Register(cvarName, "", 0, cvarValue, 0, DEFAULT, true, 0);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
@@ -104,7 +104,7 @@ static BOOL CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
     } else {
       cvar->Reset();
     }
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("Resetting all cvars\n", DEFAULT_COLOR);
@@ -112,7 +112,7 @@ static BOOL CvarResetCommandHandler(LPCSTR command, LPCSTR arguments) {
     cvar->Reset();
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
@@ -127,7 +127,7 @@ static BOOL CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
     } else {
       cvar->Default();
     }
-    return 1;
+    return TRUE;
   }
 
   ConsoleWrite("Restoring all cvars\n", DEFAULT_COLOR);
@@ -135,7 +135,7 @@ static BOOL CvarDefaultCommandHandler(LPCSTR command, LPCSTR arguments) {
     cvar->Default();
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL CvarListCommandHandler(LPCSTR command, LPCSTR arguments) {
@@ -157,21 +157,21 @@ static BOOL CvarListCommandHandler(LPCSTR command, LPCSTR arguments) {
     ConsoleWrite(text, DEFAULT_COLOR);
   }
 
-  return 1;
+  return TRUE;
 }
 
-static int CVarLoadFile() {
+static BOOL CVarLoadFile() {
   char command[MAX_PATH];
   SStrPrintf(command, sizeof(command), "run %s", s_filename);
   ConsoleCommandExecute(command, 1);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CVarSaveFile() {
   char  buffer[MAX_PATH];
   char  fileName[MAX_PATH];
   DWORD count;
-  BOOL  result = 0;
+  BOOL  result = FALSE;
 
   SStrCopy(fileName, "WTF\\", sizeof(fileName));
   SStrPack(fileName, s_filename, sizeof(fileName));
@@ -183,13 +183,13 @@ static BOOL CVarSaveFile() {
         count = 0;
         OsWriteFile(file, buffer, SStrLen(buffer), &count);
         if (!count) {
-          result = 0;
+          result = FALSE;
           goto finallylabel;
         }
       }
     }
 
-    result = 1;
+    result = TRUE;
   finallylabel:
     OsCloseFile(file);
   }
@@ -231,8 +231,8 @@ CVar *CVar::Register(LPCSTR name, LPCSTR help, UINT flags, LPCSTR value, CVar::C
   if (cvar) {
     ASSERT(!setCommand);
 
-    bool setReset = cvar->m_resetValue == 0;
-    bool setDefault = cvar->m_defaultValue == 0;
+    bool setReset = cvar->m_resetValue == NULL;
+    bool setDefault = cvar->m_defaultValue == NULL;
     cvar->m_flags |= flags;
     cvar->m_callback = fcn;
     cvar->m_arg = arg;
@@ -245,7 +245,7 @@ CVar *CVar::Register(LPCSTR name, LPCSTR help, UINT flags, LPCSTR value, CVar::C
 
   cvar = s_registeredCVars.New(name, 0, 0);
 
-  cvar->m_stringValue = 0;
+  cvar->m_stringValue = NULL;
   cvar->m_floatValue = 0.0f;
   cvar->m_intValue = 0;
   cvar->m_modified = 0;
@@ -253,9 +253,9 @@ CVar *CVar::Register(LPCSTR name, LPCSTR help, UINT flags, LPCSTR value, CVar::C
   cvar->m_callback = fcn;
   cvar->m_arg = arg;
   cvar->m_category = category;
-  cvar->m_defaultValue = 0;
-  cvar->m_resetValue = 0;
-  cvar->m_latchedValue = 0;
+  cvar->m_defaultValue = NULL;
+  cvar->m_resetValue = NULL;
+  cvar->m_latchedValue = NULL;
   cvar->m_flags = 0;
 
   if (setCommand) {
@@ -317,7 +317,7 @@ bool CVar::Update() {
 
   InternalSet(m_latchedValue, true, false, false);
   FREE(m_latchedValue);
-  m_latchedValue = 0;
+  m_latchedValue = NULL;
   return true;
 }
 

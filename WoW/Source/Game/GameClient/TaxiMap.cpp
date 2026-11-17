@@ -184,7 +184,7 @@ void TaxiMapInitialize() {
   if (s_texture) {
     HandleClose(s_texture);
   }
-  s_texture = 0;
+  s_texture = NULL;
 
   CGxTexParmsEx params;
   params.target = GxTex_2d;
@@ -194,7 +194,7 @@ void TaxiMapInitialize() {
   params.dataFormat = GxTex_Argb8888;
   params.format = GxTex_Rgb565;
   params.flags = CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1);
-  params.userArg = 0;
+  params.userArg = NULL;
   params.userFunc = TextureUpdateFunc;
 
   CGxTex *tex;
@@ -230,7 +230,7 @@ void TaxiMapShutdown() {
   if (s_texture) {
     HandleClose(s_texture);
   }
-  s_texture = 0;
+  s_texture = NULL;
 
   s_continent = -1;
   s_currentTaxiNode = 0;
@@ -241,7 +241,7 @@ void TaxiMapShutdown() {
   if (s_solidColor) {
     HandleClose(s_solidColor);
   }
-  s_solidColor = 0;
+  s_solidColor = NULL;
 }
 
 HTEXTURE TaxiMapGetTexture() {
@@ -256,7 +256,7 @@ BOOL TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG kno
     s_taxiTextureRect.r = 1.0f;
     s_taxiTextureRect.t = 0.0f;
     s_taxiTextureRect.b = 1.0f;
-    return 0;
+    return FALSE;
   }
 
   s_currentTaxiNode = currentTaxiNode;
@@ -285,7 +285,7 @@ BOOL TaxiMapUpdatePosition(int currentTaxiNode, LONGLONG reachable, LONGLONG kno
   s_taxiTextureRect.b *= 0.000029296876f;
   s_taxiTextureRect.t *= 0.000029296876f;
   GenerateRouteInfo(known, currentNode->m_ContinentID);
-  return 1;
+  return TRUE;
 }
 
 UINT TaxiNodeCost(UINT srcNode, UINT dstNode) {
@@ -321,7 +321,7 @@ TAXNODE_TYPE TaxiNodeGetNodeType(int nodeID) {
 HMODEL TaxiGetRouteModel(float width, float height) {
   int lines = s_lines.Count();
   if (!lines) {
-    return 0;
+    return NULL;
   }
 
   NTempest::C33Matrix mat;

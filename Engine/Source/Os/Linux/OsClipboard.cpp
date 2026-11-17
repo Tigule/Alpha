@@ -13,7 +13,7 @@
 
 static int s_initialized;
 
-static int ClipboardEventFilter(void *userdata, SDL_Event *event) {
+static BOOL ClipboardEventFilter(void *userdata, SDL_Event *event) {
   XSelectionRequestEvent *req;
   XEvent                  sevent;
   Atom                    type;
@@ -23,11 +23,11 @@ static int ClipboardEventFilter(void *userdata, SDL_Event *event) {
   unsigned char          *data;
 
   if (event->type != SDL_SYSWMEVENT) {
-    return 1;
+    return TRUE;
   }
 
   if (event->syswm.msg->msg.x11.event.type != SelectionRequest) {
-    return 1;
+    return TRUE;
   }
 
   req = &event->syswm.msg->msg.x11.event.xselectionrequest;
@@ -54,7 +54,7 @@ static int ClipboardEventFilter(void *userdata, SDL_Event *event) {
 
   XSendEvent(req->display, req->requestor, False, 0, &sevent);
   XSync(req->display, False);
-  return 1;
+  return TRUE;
 }
 
 static void OsClipboardInitialize() {
@@ -143,7 +143,7 @@ BOOL OsClipboardGetString(char *buf, UINT bufSize) {
 
   SStrCopy(buf, string, bufSize);
   OsClipboardFreeString(string);
-  return 1;
+  return TRUE;
 }
 
 BOOL OsClipboardPutString(LPCSTR string) {
@@ -168,5 +168,5 @@ BOOL OsClipboardPutString(LPCSTR string) {
     SDL_SetClipboardText(string);
   }
 
-  return 1;
+  return TRUE;
 }

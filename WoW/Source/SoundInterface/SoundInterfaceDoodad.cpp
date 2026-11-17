@@ -16,7 +16,7 @@ struct LOOPEDDOODADDESC {
   Sound             *sound;
   int                currentIndex;
 
-  LOOPEDDOODADDESC() : posInUseFlags(0), soundID(-1), sound(0), currentIndex(0) {
+  LOOPEDDOODADDESC() : posInUseFlags(0), soundID(-1), sound(NULL), currentIndex(0) {
   }
 
   int  FindFreeSlot() const;
@@ -52,7 +52,7 @@ static LOOPEDDOODADDESC *FindFreeDoodadLoop(int soundID, int &freeSlot, int &sou
 
   freeSlot = 0;
   soundIndex = 0;
-  return 0;
+  return NULL;
 }
 
 BOOL DoodadLoopHandler(LPCVOID dataPtr, LPVOID param) {
@@ -62,7 +62,7 @@ BOOL DoodadLoopHandler(LPCVOID dataPtr, LPVOID param) {
   for (UINT i = 0; i < sizeof(s_doodadLoopedInfo) / sizeof(s_doodadLoopedInfo[0]); ++i) {
     s_doodadLoopedInfo[i].Update(lPos);
   }
-  return 1;
+  return TRUE;
 }
 
 void SoundInterfaceDoodadInitialize() {
@@ -77,7 +77,7 @@ void SoundInterfaceDoodadDestroy() {
   }
 }
 
-BOOL LOOPEDDOODADDESC::FindFreeSlot() const {
+int LOOPEDDOODADDESC::FindFreeSlot() const {
   for (int slot = 0; slot < 8; ++slot) {
     if (!((1 << slot) & posInUseFlags)) {
       return slot;

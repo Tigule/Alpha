@@ -19,9 +19,9 @@ class CObserver : public TRefCnt {
   EventRegistry *GetRegistry(int create);
 
  public:
-  CObserver() : m_pEventRegistry(0) {
+  CObserver() : m_pEventRegistry(NULL) {
   }
-  CObserver(const CObserver &) : TRefCnt(), m_pEventRegistry(0) {
+  CObserver(const CObserver &) : TRefCnt(), m_pEventRegistry(NULL) {
   }
   virtual ~CObserver();
 
@@ -33,7 +33,7 @@ class CObserver : public TRefCnt {
   BOOL      IsEventRegistered(UINT id);
   BOOL      IsEventRegisteredBy(UINT id, CObserver *pObserver);
 
-  virtual BOOL OnEvent(const CEvent &event) { return 0; }
+  virtual BOOL OnEvent(const CEvent &event) { return FALSE; }
   virtual BOOL DispatchEvent(int id, CEvent &event);
   virtual BOOL DispatchEvent(CEvent &event);
 
@@ -122,12 +122,12 @@ NODEDECL(EventReg::EVENTCALLBACKREG) {
   EVENTCALLBACK callback;
   LPVOID        param;
 
-  EVENTCALLBACKREG() : callback(0), param(0) {
+  EVENTCALLBACKREG() : callback(NULL), param(NULL) {
   }
   EVENTCALLBACKREG(const EVENTCALLBACKREG &);
   ~EVENTCALLBACKREG() {
-    callback = 0;
-    param = 0;
+    callback = NULL;
+    param = NULL;
   }
 };
 

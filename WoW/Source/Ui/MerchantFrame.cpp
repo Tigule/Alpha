@@ -101,7 +101,7 @@ void CGMerchantInfo::UpdateItemQuantity(DWORDLONG vendor, DWORD muid, int newQua
 
 const ItemStats *CGMerchantInfo::GetItemStats(UINT itemID) {
   if (!itemID) {
-    return 0;
+    return NULL;
   }
   const ItemStats_C *stats = g_itemDBCache.GetRecord(itemID, GetMerchant(), MerchantItemStatsCallback, 0);
   if (!stats) {

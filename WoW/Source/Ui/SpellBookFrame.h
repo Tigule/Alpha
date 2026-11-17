@@ -26,10 +26,10 @@ class CGSpellBook {
   static bool IsPetSpellKnown(int spellID) {
     for (UINT i = 0; i < MAXIMUM_LEARNED_SPELLS; ++i) {
       if (m_petSpells[i] == spellID) {
-        return 1;
+        return true;
       }
     }
-    return 0;
+    return false;
   }
 
   static void AddKnownSpell(int spellID, int slot, int learned);

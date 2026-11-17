@@ -187,7 +187,7 @@ static void InternalLeaveCriticalSection(CRITICAL_SECTION *critsect) {
   LeaveCriticalSection(critsect);
 }
 
-static int UndecorateObjectName(LPCSTR source, char *dest, DWORD destchars) {
+static BOOL UndecorateObjectName(LPCSTR source, char *dest, DWORD destchars) {
   char *end;
 
   if (SStrLen(source) < 6 || source[0] != '.' || source[3] != 'U') {
@@ -240,7 +240,7 @@ static BOOL CanBreakToDebugger() {
   return present;
 }
 
-static int MakeDirectory(LPCSTR pszFullPath) {
+static BOOL MakeDirectory(LPCSTR pszFullPath) {
   DWORD attributes;
   DWORD error;
 

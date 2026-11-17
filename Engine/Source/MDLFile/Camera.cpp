@@ -136,7 +136,7 @@ BOOL MDL::WriteCameras(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLS
   for (UINT i = data.cameras.Count(); i; --i, ++pCamera) {
     IWriteCamera(*pCamera, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetBinCameraSize(const MDLCAMERASECTION &section) {
@@ -165,7 +165,7 @@ static void IWriteBinCamera(const MDLCAMERASECTION &section, CMsgBuffer &buffer)
 BOOL MDL::WriteBinCameras(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   UINT numCameras = data.cameras.Count();
   if (!numCameras) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('SMAC');
   UINT totalSize = 4;
@@ -178,7 +178,7 @@ BOOL MDL::WriteBinCameras(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
   for (i = 0; i < numCameras; ++i) {
     IWriteBinCamera(data.cameras[i], buf);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL ReadBinCamera(CMsgBuffer &buffer, MDLCAMERASECTION *camera, CMDLStatus *status, UINT &totalLength) {
@@ -196,22 +196,22 @@ BOOL ReadBinCamera(CMsgBuffer &buffer, MDLCAMERASECTION *camera, CMDLStatus *sta
     if (tag == 'RTCK') {
       if (!ReadBinFloatKeyFrames(camera->transkeys, buffer, localRead)) {
         status->Add(STATUS_ERROR, "Error reading translation keys in camera section.\n");
-        return 0;
+        return FALSE;
       }
     } else if (tag == 'LRCK') {
       if (!ReadBinFloatKeyFrames(camera->rollkeys, buffer, localRead)) {
         status->Add(STATUS_ERROR, "Error reading roll keys in camera section.\n");
-        return 0;
+        return FALSE;
       }
     } else if (tag == 'RTTK') {
       if (!ReadBinFloatKeyFrames(camera->target.transkeys, buffer, localRead)) {
         status->Add(STATUS_ERROR, "Error reading target translation keys in camera section.\n");
-        return 0;
+        return FALSE;
       }
     } else if (tag == 'SIVK') {
       if (!ReadBinFloatKeyFrames(camera->visibilityKeys, buffer, localRead)) {
         status->Add(STATUS_ERROR, "Error reading visibility keys in camera section.\n");
-        return 0;
+        return FALSE;
       }
     } else {
       SkipUnknown(buffer, localRead);
@@ -219,10 +219,10 @@ BOOL ReadBinCamera(CMsgBuffer &buffer, MDLCAMERASECTION *camera, CMDLStatus *sta
   }
   if (localRead > sectionLength) {
     status->FatalOverran("Camera", -1);
-    return 0;
+    return FALSE;
   }
   totalLength += localRead;
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinCameras(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -236,12 +236,12 @@ BOOL MDL::ReadBinCameras(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus
     pCam = data.cameras.New();
     if (!ReadBinCamera(buf, pCam, status, totalRead)) {
       status->Add(STATUS_ERROR, "Failure reading camera section.\n");
-      return 0;
+      return FALSE;
     }
   }
   if (totalRead > length) {
     status->FatalOverran("Camera", -1);
-    return 0;
+    return FALSE;
   }
-  return 1;
+  return TRUE;
 }

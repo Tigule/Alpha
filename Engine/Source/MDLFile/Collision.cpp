@@ -108,27 +108,27 @@ BOOL MDL::WriteCollision(const MDLDATA &data, TSGrowableArray<char> &buffer, CMD
     WriteVertices(data.collision.facetNormals, MDLTOK_NORMALS, buffer);
     WriteLine(buffer, "}\n");
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinCollision(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
   UINT totalRead = 0;
   while (totalRead < length) {
     if (!ReadBinC3VectorSection(buf, 'XTRV', "vertex", &data.collision.vertices, &totalRead, status)) {
-      return 0;
+      return FALSE;
     }
     if (!IReadBinUintSection(buf, ' IRT', "triangle index", &data.collision.triIndices, &totalRead, status)) {
-      return 0;
+      return FALSE;
     }
     if (!ReadBinC3VectorSection(buf, 'SMRN', "facet normal", &data.collision.facetNormals, &totalRead, status)) {
-      return 0;
+      return FALSE;
     }
     if (totalRead > length) {
       status->FatalOverran("Collision section overran read buffer.\n", -1);
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
@@ -141,5 +141,5 @@ BOOL MDL::WriteBinCollision(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) 
     buf.AddWordArray(data.collision.triIndices.Ptr(), data.collision.triIndices.Count());
     WriteBinC3VectorSection(buf, 'SMRN', data.collision.facetNormals);
   }
-  return 1;
+  return TRUE;
 }

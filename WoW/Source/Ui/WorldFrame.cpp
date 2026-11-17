@@ -165,16 +165,16 @@ BOOL CGWorldFrame::IsUnitLegalSelection(const CGUnit_C *unit, UINT hitFilter) {
     if (!((hitFilter & HIT_TEST_PARTY) && player->IsUnitInGroup(unit)) && !((hitFilter & HIT_TEST_FRIENDS) && player->CanAssist(unit)) &&
         !((hitFilter & HIT_TEST_ENEMIES) && player->CanAttack(unit)))
     {
-      return 0;
+      return FALSE;
     }
   }
   if (hitFilter & (HIT_TEST_LIVE | HIT_TEST_DEAD)) {
     int alive = unit->IsAlive();
     if (!((alive && (hitFilter & HIT_TEST_LIVE)) || (!alive && (hitFilter & HIT_TEST_DEAD)))) {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
@@ -184,42 +184,42 @@ BOOL CGWorldFrame::IsLegalSelection(CModelRecord *record, UINT hitFilter) {
   switch (object->GetType()) {
     case HIER_TYPE_PLAYER:
       if (!(hitFilter & HIT_TEST_PLAYERS) || (!(hitFilter & HIT_TEST_ME) && object->GetGUID() == ClntObjMgrGetActivePlayer())) {
-        return 0;
+        return FALSE;
       }
       return IsUnitLegalSelection((CGUnit_C *)object, hitFilter);
     case HIER_TYPE_UNIT:
       if (!(hitFilter & HIT_TEST_UNITS)) {
-        return 0;
+        return FALSE;
       }
       return IsUnitLegalSelection((CGUnit_C *)object, hitFilter);
     case HIER_TYPE_GAMEOBJECT:
       if (!(hitFilter & HIT_TEST_OBJECTS)) {
-        return 0;
+        return FALSE;
       }
       if (Spell_C_IsTargeting() && !Spell_C_CanTargetObject(object)) {
-        return 0;
+        return FALSE;
       }
-      return 1;
+      return TRUE;
     case HIER_TYPE_CORPSE:
       if (!(hitFilter & HIT_TEST_UNITS)) {
-        return 0;
+        return FALSE;
       }
       return !Spell_C_IsTargeting();
   }
-  return 0;
+  return FALSE;
 }
 
 void CGWorldFrame::MoveToFreeList(CModelRecord *record) {
   m_models.UnlinkNode(record);
   m_freeModels.LinkNode(record, LIST_TAIL, 0);
   HandleClose(record->model);
-  record->model = 0;
+  record->model = NULL;
 }
 
 void CGWorldFrame::MoveToFreeList(LISTPTR(CModelRecord) objList) {
   ITERATELISTPTR(CModelRecord, objList, record) {
     HandleClose(record->model);
-    record->model = 0;
+    record->model = NULL;
   }
   m_freeModels.Combine(objList, LIST_TAIL, 0);
 }
@@ -231,7 +231,7 @@ UINT CGWorldFrame::SphereTestModels(const NTempest::C3Vector &aVector, const NTe
   ModelSceneCalcFrustumPlanes();
   SAFEITERATELIST(CModelRecord, m_models, record) {
     CGObject_C *object = ClntObjMgrObjectPtr(record->guid, __FILE__, __LINE__);
-    BOOL hit = 0;
+    BOOL hit = FALSE;
     if (object && object->IsSolidSelectable()) {
       NTempest::C34Matrix worldMatrix;
       object->GetWorldMatrix(&worldMatrix);
@@ -242,7 +242,7 @@ UINT CGWorldFrame::SphereTestModels(const NTempest::C3Vector &aVector, const NTe
       if (ModelTestSphere(record->model, camRelativeMatrix, record->scale, 1) &&
           ModelHitTestSphere(record->model, record->scale, aVector, bVector, 1, &record->distance))
       {
-        hit = 1;
+        hit = TRUE;
       }
     }
 
@@ -481,7 +481,7 @@ CGWorldFrame::HIT_TYPE CGWorldFrame::HitTestPoint(float x, float y, HitTestResul
 
 BOOL CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTempest::C3Vector *b) {
   if (!PtInFrameRect(NTempest::C2Vector(x, y))) {
-    return 0;
+    return FALSE;
   }
 
   float lineX = (x - m_rect.l) / (m_rect.r - m_rect.l);
@@ -491,7 +491,7 @@ BOOL CGWorldFrame::GetLineSegment(float x, float y, NTempest::C3Vector *a, NTemp
   NTempest::C3Vector cameraPos = m_camera->Position();
   *a += cameraPos;
   *b += cameraPos;
-  return 1;
+  return TRUE;
 }
 
 void CGWorldFrame::UpdateObject(CGObject_C *object, DWORD status) {
@@ -605,7 +605,7 @@ static BOOL CheckFadeOutModels(LPCSTR command, LPCSTR arguments) {
   }
   ConsolePrintf("Found %d models, nuking. If this improves Anim let Jeff know", count);
   s_fadeOutModelTable.Clear();
-  return 1;
+  return TRUE;
 }
 
 CGWorldFrame::CGWorldFrame(CSimpleFrame *parent)
@@ -660,13 +660,13 @@ CGWorldFrame::~CGWorldFrame() {
   ConsoleCommandUnregister("debugobjectpathing");
   ConsoleCommandUnregister("SeeIfWorldFrameSucks");
   EventSetMouseMode(MOUSE_MODE_NORMAL, 0);
-  s_currentWorldFrame = 0;
+  s_currentWorldFrame = NULL;
 
   for (UINT i = 0; i < 2; ++i) {
     if (s_spellShadowTexture[i]) {
       HandleClose(s_spellShadowTexture[i]);
     }
-    s_spellShadowTexture[i] = 0;
+    s_spellShadowTexture[i] = NULL;
   }
   WorldTextShutdown();
   SmartScreenRectShutdown();
@@ -680,7 +680,7 @@ CGWorldFrame::~CGWorldFrame() {
   if (m_camera) {
     DEL(m_camera);
   }
-  m_camera = 0;
+  m_camera = NULL;
 
   GxMasterEnableSet(GxMasterEnable_ClearOnPresent, 1);
 }
@@ -727,22 +727,22 @@ BOOL CGWorldFrame::PerformDefaultAction(MOUSEBUTTON button, UINT timestamp) {
       return CGGameUI::HandleWorldClick(worldClickEvent);
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGWorldFrame::SendUnitFadeEvent(DWORDLONG guid) {
   if (guid == m_lastUnitFade) {
-    return 0;
+    return FALSE;
   }
 
   HandleUnitFade(0, guid != 0);
   m_lastUnitFade = guid;
-  return 1;
+  return TRUE;
 }
 
 BOOL CGWorldFrame::SendObjectTrackEvent(DWORDLONG guid, float x, float y) {
   if (guid == m_lastObjectTrack) {
-    return 0;
+    return FALSE;
   }
 
   CObjectTrackEvent spriteTrackEvent;
@@ -752,7 +752,7 @@ BOOL CGWorldFrame::SendObjectTrackEvent(DWORDLONG guid, float x, float y) {
   spriteTrackEvent.y = y;
   CGGameUI::HandleSpriteTrack(spriteTrackEvent);
   m_lastObjectTrack = guid;
-  return 1;
+  return TRUE;
 }
 
 void CGWorldFrame::OnLayerTrackTerrain(const HitTestResult &hitTestResult) {
@@ -898,7 +898,7 @@ BOOL CGWorldFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
     return result;
   }
   CGInputControl::GetActive();
-  return 1;
+  return TRUE;
 }
 
 void CGWorldFrame::UpdateDayNightInfo(float elapsedSec) {
@@ -999,7 +999,7 @@ static BOOL UnitUpdateProc(DWORDLONG guid, LPVOID param) {
   if ((bool)(((UINT)object->GetType() >> ID_UNIT) & 1)) {
     ((CGUnit_C *)object)->UpdateDisplay(pWorldFrame->m_updateTimeStamp);
   }
-  return 1;
+  return TRUE;
 }
 
 void CGWorldFrame::UnitUpdate() {
@@ -1124,7 +1124,7 @@ static BOOL ObjectEnumProc(LPVOID param, DWORD status, DWORDLONG param64, DWORD 
     pWorldFrame->UpdateObject(object, status);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollisionHandlerData *data) {
@@ -1133,11 +1133,11 @@ static BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollis
   CGObject_C *object = ClntObjMgrObjectPtr(param64, __FILE__, __LINE__);
   FATALASSERT(object);
   if (!object->IsSolidCollidable()) {
-    return 0;
+    return FALSE;
   }
 
   if (!(bool)(((UINT)object->GetType() >> ID_GAMEOBJECT) & 1)) {
-    return 0;
+    return FALSE;
   }
 
   CGGameObject_C *gameObject = (CGGameObject_C *)object;
@@ -1146,7 +1146,7 @@ static BOOL ObjectCollisionProc(DWORDLONG param64, DWORD param32, WorldObjCollis
   data->scale = object->GetScale() * object->GetRenderScale();
 
   data->matrix = NTempest::C44Matrix(object->GetMatrix());
-  return 1;
+  return TRUE;
 }
 
 static void RenderFadeOutModels(const NTempest::C3Vector cameraPos, const NTempest::C3Vector cameraTarg) {
@@ -1274,7 +1274,7 @@ void CGWorldFrame::OnLayerCursorExit() {
 
 BOOL CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
   if (CSimpleFrame::OnLayerKeyDown(evt)) {
-    return 1;
+    return TRUE;
   }
   if (evt.key < KEY_LAST) {
     char *string = m_lastKey[evt.key];
@@ -1282,15 +1282,15 @@ BOOL CGWorldFrame::OnLayerKeyDown(CKeyEvent &evt) {
       return CGUIBindings::GetActive()->ExecKey(string, evt.time, 1);
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
   if (CSimpleFrame::OnLayerKeyUp(evt)) {
-    return 1;
+    return TRUE;
   }
   if (evt.key >= KEY_LAST) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -1310,46 +1310,46 @@ BOOL CGWorldFrame::OnLayerKeyUp(CKeyEvent &evt) {
 
 BOOL CGWorldFrame::OnLayerMouseDown(CMouseEvent &evt) {
   if (CSimpleFrame::OnLayerMouseDown(evt)) {
-    return 1;
+    return TRUE;
   }
   if (CGGameUI::HandleMouseDown(evt)) {
-    return 1;
+    return TRUE;
   }
   char keyName[32];
   if (CGUIBindings::MouseEventToString(evt, keyName, sizeof(keyName))) {
     return CGUIBindings::GetActive()->ExecKey(keyName, evt.time, 1);
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGWorldFrame::OnLayerMouseUp(CMouseEvent &evt) {
   if (CSimpleFrame::OnLayerMouseUp(evt)) {
-    return 1;
+    return TRUE;
   }
   if (CGGameUI::HandleMouseUp(evt)) {
-    return 1;
+    return TRUE;
   }
   char keyName[32];
   if (CGUIBindings::MouseEventToString(evt, keyName, sizeof(keyName))) {
     return CGUIBindings::GetActive()->ExecKey(keyName, evt.time, 0);
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGWorldFrame::OnLayerMouseWheel(CMouseEvent &evt) {
   if (CSimpleFrame::OnLayerMouseWheel(evt)) {
-    return 1;
+    return TRUE;
   }
   char keyName[32];
   if (CGUIBindings::MouseEventToString(evt, keyName, sizeof(keyName))) {
     return CGUIBindings::GetActive()->ExecKey(keyName, evt.time, 1);
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGWorldFrame::OnLayerMouseMoveRelative(CMouseEvent &evt) {
   CGInputControl::GetActive()->OnMouseMoveRel(evt);
-  return 1;
+  return TRUE;
 }
 
 DWORDLONG CGWorldFrame::GetObjectUnderMouse() {

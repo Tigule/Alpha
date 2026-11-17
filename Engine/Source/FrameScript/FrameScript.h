@@ -77,7 +77,7 @@ inline FrameScript_Object *FrameScript_GetObjectThis(lua_State *L) {
   return object;
 }
 
-int          FrameScript_Initialize();
+BOOL         FrameScript_Initialize();
 void         FrameScript_Destroy();
 void         FrameScript_Flush();
 void         FrameScript_MemoryCleanup(int enableGC);
@@ -95,7 +95,7 @@ void         FrameScript_SetVariable(LPCSTR name, float value);
 int          FrameScript_GetVariable(LPCSTR name, float &value);
 void         FrameScript_SetVariable(LPCSTR name, LPCSTR value);
 int          FrameScript_ExecuteFile(LPCSTR filename);
-int          FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename);
+BOOL         FrameScript_ExecuteBuffer(LPVOID buffer, DWORD bytes, LPCSTR filename);
 BOOL         FrameScript_CompileFunction(LPCSTR source, LPCSTR description);
 void         FrameScript_ReleaseFunction(int function);
 void         FrameScript_UnsetVariable(LPCSTR name);

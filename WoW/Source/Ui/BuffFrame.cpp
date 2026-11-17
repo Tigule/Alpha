@@ -96,7 +96,7 @@ UINT       CGBuffBar::m_durations[56];
 
 static BOOL AuraUpdateHandler(DWORDLONG, UINT offset, UINT bytes, LPCVOID, LPVOID) {
   CGBuffBar::UpdateBuffs();
-  return 1;
+  return TRUE;
 }
 
 void CGBuffBar::InitializeGame() {
@@ -138,10 +138,10 @@ void CGBuffBar::UpdateBuffs() {
       continue;
     }
 
-    BOOL found = 0;
+    BOOL found = FALSE;
     for (aura = 0; aura < 56; ++aura) {
       if (player->GetAura(aura) == id && (player->GetAuraFlags(aura) & 0xE)) {
-        found = 1;
+        found = TRUE;
         break;
       }
     }
@@ -159,11 +159,11 @@ void CGBuffBar::UpdateBuffs() {
     if (spellID > 0 && (player->GetAuraFlags(aura) & 0xE)) {
       const SpellRec *spell = g_spellDB.GetRecord(spellID);
       if (!spell || !((spell->m_attributes & 0x80) || (spell->m_attributesEx & 0x10000000))) {
-        BOOL found = 0;
+        BOOL found = FALSE;
         int  index;
         for (index = 0; index < 56 && m_buffs[index].m_auraSpell > 0; ++index) {
           if (m_buffs[index].m_auraSpell == spellID) {
-            found = 1;
+            found = TRUE;
             break;
           }
         }
@@ -213,7 +213,7 @@ const CGBuffDesc *CGBuffBar::GetBuffByFilter(int index, UINT filter, int &buffIn
     }
     ++count;
   }
-  return 0;
+  return NULL;
 }
 
 const CGBuffDesc *CGBuffBar::GetBuffByIndex(int buffIndex) {

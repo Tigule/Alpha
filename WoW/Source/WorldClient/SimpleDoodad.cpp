@@ -41,7 +41,7 @@ void CSimpleDoodad::Destroy() {
   if (gxBufDyn) {
     GxBufDestroy(gxBufDyn);
   }
-  gxBufDyn = 0;
+  gxBufDyn = NULL;
 }
 
 void CSimpleDoodad::ClearCache() {
@@ -59,7 +59,7 @@ CSimpleDoodad *CSimpleDoodad::Create(LPCSTR fileName) {
   simpleDoodad = simpleDoodadHash.New(hashval, nullHashKey, 0, 0);
   if (!Read(fileName, simpleDoodad)) {
     simpleDoodadHash.Delete(simpleDoodad);
-    return 0;
+    return NULL;
   }
 
   simpleDoodad->refCount = 1;
@@ -151,19 +151,19 @@ BOOL CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDo
   ASSERT(simpleDoodad);
 
   if (data.textures.Count() > 4) {
-    return 0;
+    return FALSE;
   }
   if (data.materials.Count() > 4) {
-    return 0;
+    return FALSE;
   }
   if (data.geosets.Count() > 4) {
-    return 0;
+    return FALSE;
   }
 
   UINT n;
   for (n = 0; n < data.materials.Count(); ++n) {
     if (data.materials[n].texLayers.Count() != 1) {
-      return 0;
+      return FALSE;
     }
   }
 
@@ -217,7 +217,7 @@ BOOL CSimpleDoodad::MdlReadCallback(const MDLDATA &data, CSimpleDoodad *simpleDo
   simpleDoodad->extents = data.model.bounds.extent;
   simpleDoodad->bounds.c = (data.model.bounds.extent.b + data.model.bounds.extent.t) * 0.5f;
   simpleDoodad->bounds.r = data.model.bounds.radius;
-  return 1;
+  return TRUE;
 }
 
 void CSimpleDoodad::GxBufDynCallback(CGxBufCommand &cmd, CGxBuf *buf) {

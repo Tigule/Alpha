@@ -203,7 +203,7 @@ void CGObject_C::SetTypeID(OBJECT_TYPE_ID typeID) {
 BOOL CGObject_C::ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags, LPCSTR modelName) {
   if (sequence > NUM_OBJECTANIMATIONS) {
     SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIMMODEL|%d|%s", sequence, modelName);
-    return 0;
+    return FALSE;
   }
 
   if (!(m_flags & 1)) {
@@ -217,7 +217,7 @@ BOOL CGObject_C::ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags,
     result = ModelSetRandomSequenceFidget(model, sequence, GenerateAnimFlags(flags));
   }
   if (result) {
-    return 1;
+    return TRUE;
   }
 
   switch (SErrGetLastError()) {
@@ -228,13 +228,13 @@ BOOL CGObject_C::ObjectModelSetSequence(HMODEL model, UINT sequence, UINT flags,
       ReportNoAnimation(modelName);
       break;
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT objectID, UINT flags) {
   if (sequence > 135) {
     SysMsgPrintf(SYSMSG_ERROR, 8, "BADOBJECTANIM|%d", sequence);
-    return 0;
+    return FALSE;
   }
 
   if (!(m_flags & 1)) {
@@ -249,7 +249,7 @@ BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT ob
   }
 
   if (result) {
-    return 1;
+    return TRUE;
   }
 
   switch (SErrGetLastError()) {
@@ -264,13 +264,13 @@ BOOL CGObject_C::ObjectModelSetBoneSequence(HMODEL model, UINT sequence, UINT ob
       break;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CGObject_C::InitModelFileName(char *modelFileName, UINT size) {
   FATALASSERT(modelFileName);
 
-  LPCSTR name = 0;
+  LPCSTR name = NULL;
   switch (GetType()) {
     case HIER_TYPE_ITEM:
       name = ((CGItem_C *)this)->CGItem_C::GetModelFileName();
@@ -338,7 +338,7 @@ CGObject_C::CGObject_C(DWORD *storage, DWORD, CClientObjCreate *)
       m_maxAlpha(255) {
   char modelFileName[MAX_PATH] = "";
   if (!InitModelFileName(modelFileName, sizeof(modelFileName))) {
-    m_model = 0;
+    m_model = NULL;
     return;
   }
 
@@ -470,7 +470,7 @@ BOOL CGObject_C::SetBlock(UINT i, DWORD data) {
   }
 
   m_data[i] = data;
-  return 1;
+  return TRUE;
 }
 
 void CGObject_C::SetData(LPCVOID data, UINT bytes) {
@@ -581,11 +581,11 @@ BOOL CGObject_C::ShouldRender(DWORD worldStatus) {
   if (!(worldStatus & 1)) {
     ModelProcessEvents(GetObjectModel(), GetPosition(), GetFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f);
     m_flags &= ~0x10U;
-    return 0;
+    return FALSE;
   }
 
   m_flags |= 0x10;
-  return 1;
+  return TRUE;
 }
 
 void CGObject_C::ObjectSetNotRendering() {
@@ -637,12 +637,12 @@ void CGObject_C::Shutdown() {
   if (s_fadeTex) {
     GxTexDestroy(s_fadeTex);
   }
-  s_fadeTex = 0;
+  s_fadeTex = NULL;
 
   if (s_selectionTexture) {
     HandleClose(s_selectionTexture);
   }
-  s_selectionTexture = 0;
+  s_selectionTexture = NULL;
 }
 
 void CGObject_C::PreAnimate(CGWorldFrame *worldFrame) {
@@ -736,22 +736,22 @@ int CGObject_C::AreAttachmentsLoaded() const {
 
 BOOL CGObject_C::UpdateAttachmentLoadStatus() {
   if ((m_flags & 0x40) || !m_model || !ModelIsLoaded(m_model, 1)) {
-    return 0;
+    return FALSE;
   }
 
   m_flags |= 0x40;
-  return 1;
+  return TRUE;
 }
 
 BOOL CGObject_C::UpdateModelLoadStatus() {
   if ((m_flags & 0x20) || !m_model || !ModelIsLoaded(m_model, 0)) {
-    return 0;
+    return FALSE;
   }
 
   m_flags |= 0x20;
   UpdateObjectHeight(m_model);
   UpdateWorldObject();
-  return 1;
+  return TRUE;
 }
 
 void CGObject_C::GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const {
@@ -985,7 +985,7 @@ static BOOL UpdateAllWorldObjectsCallback(DWORDLONG obj, LPVOID) {
   if (object) {
     object->UpdateWorldObject();
   }
-  return 1;
+  return TRUE;
 }
 
 void CGObject_C::UpdateAllWorldObjects() {

@@ -113,7 +113,7 @@ void CSimpleMessageFrame::ClearPending() {
 
   for (i = 0; i < pendingCount; ++i) {
     DELIFUSED(m_pendingMessages[i].text);
-    m_pendingMessages[i].text = 0;
+    m_pendingMessages[i].text = NULL;
   }
 
   m_pendingMessages.Clear();
@@ -176,7 +176,7 @@ void CSimpleMessageFrame::OnLayerUpdate(float elapsedSec) {
         MessageData &message = m_pendingMessages[pendingIndex];
         AddPendingMessage(message.text, message.color, message.timeVisible, message.permanent);
         DELIFUSED(message.text);
-        message.text = 0;
+        message.text = NULL;
       }
 
       m_pendingMessages.Clear();
@@ -256,7 +256,7 @@ void CSimpleMessageFrame::HideLineNode(CSimpleMessageFrameLineNode *node) {
     node->string->Hide();
     node->timeLeft = 0.0f;
     node->fadeLeft = 0.0f;
-    node->isVisible = 0;
+    node->isVisible = FALSE;
     --m_numVisible;
   }
 }
@@ -267,14 +267,14 @@ void CSimpleMessageFrame::ShowLineNode(CSimpleMessageFrameLineNode *node, float 
   node->string->Show();
   node->timeLeft = timeVisible;
   node->fadeLeft = fadeDuration;
-  node->isVisible = 1;
+  node->isVisible = TRUE;
   node->permanent = permanent || timeVisible == 0.0f;
   ++m_numVisible;
   ASSERT(m_numVisible <= m_rows);
 }
 
 CSimpleMessageFrameLineNode::CSimpleMessageFrameLineNode()
-    : color(0ul), timeLeft(0.0f), fadeLeft(0.0f), permanent(0), isVisible(0) {
+    : color(0ul), timeLeft(0.0f), fadeLeft(0.0f), permanent(0), isVisible(FALSE) {
   string = NEW(CSimpleFontString)(0, 2, 1);
   string->SetIgnoreNewlines(1);
 }

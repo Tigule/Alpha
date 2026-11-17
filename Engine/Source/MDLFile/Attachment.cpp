@@ -70,7 +70,7 @@ BOOL MDL::ReadAttachment(Parser &parse, MDLDATA &data, CMDLStatus *status) {
 
 BOOL MDL::WriteAttachments(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (((LPCSTR)data.model.animationFile)[0]) {
-    return 1;
+    return TRUE;
   }
   int                         needObjIds = data.attachments.Count() != data.objects.Count();
   const MDLATTACHMENTSECTION *attachment = data.attachments.Ptr();
@@ -85,7 +85,7 @@ BOOL MDL::WriteAttachments(const MDLDATA &data, TSGrowableArray<char> &buffer, C
     }
     WriteObjectTrailer(*attachment, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetBinAttachmentSize(const MDLATTACHMENTSECTION &section) {
@@ -110,7 +110,7 @@ static BOOL ReadBinAttachment(CMsgBuffer &buf, MDLATTACHMENTSECTION *pAtt, CMDLS
 
   if (!ReadBinGenObject(*pAtt, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of attachment.\n");
-    return 0;
+    return FALSE;
   }
 
   pAtt->attachmentId = buf.GetUint();
@@ -130,7 +130,7 @@ static BOOL ReadBinAttachment(CMsgBuffer &buf, MDLATTACHMENTSECTION *pAtt, CMDLS
       case 'SIVK':
         if (!ReadBinFloatKeyFrames(pAtt->visibilityKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading visibility keys in attachment.\n");
-          return 0;
+          return FALSE;
         }
         break;
       default:
@@ -140,13 +140,13 @@ static BOOL ReadBinAttachment(CMsgBuffer &buf, MDLATTACHMENTSECTION *pAtt, CMDLS
 
     if (localBytesRead > sectionLength) {
       status->FatalOverran("Attachment visKeys", -1);
-      return 0;
+      return FALSE;
     }
   }
 
   totalRead += localBytesRead;
 
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinAttachments(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -160,16 +160,16 @@ BOOL MDL::ReadBinAttachments(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLSt
     pAtt = data.attachments.New();
     if (!pAtt) {
       status->FatalFlunked("Attachment", -1);
-      return 0;
+      return FALSE;
     }
     ReadBinAttachment(buf, pAtt, status, totalRead);
     if (totalRead > length) {
       status->FatalOverran("Attachment", -1);
-      return 0;
+      return FALSE;
     }
     ReadBinObjectEnd(data, pAtt, data.attachments.Count() - 1, 0x40000000);
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetParentGeosetAnimId(const MDLDATA &data, const MDLATTACHMENTSECTION &attachmentData) {
@@ -185,10 +185,10 @@ static UINT GetParentGeosetAnimId(const MDLDATA &data, const MDLATTACHMENTSECTIO
 
 BOOL MDL::WriteBinAttachments(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   if (((LPCSTR)data.model.animationFile)[0]) {
-    return 1;
+    return TRUE;
   }
   if (!data.attachments.Count()) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('HCTA');
   UINT totalSize = 8;
@@ -209,5 +209,5 @@ BOOL MDL::WriteBinAttachments(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *
     UINT geosetAnimId = GetParentGeosetAnimId(data, data.attachments[i]);
     IWriteBinAttachmentSection(data.attachments[i], geosetAnimId, buf, status);
   }
-  return 1;
+  return TRUE;
 }

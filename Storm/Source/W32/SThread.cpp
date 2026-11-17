@@ -64,14 +64,14 @@ BOOL SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC ca
   SUniConvertUTF8to16(commandLineW, MAX_PATH, commandLine, 0x7FFFFFFF, NULL, NULL);
 
   if (!CreateProcessW(appNameW, commandLineW, NULL, NULL, FALSE, 0, NULL, NULL, &startInfo, &processInfo)) {
-    return 0;
+    return FALSE;
   }
 
   if (callbackWhenProcessCompletes) {
     SProcessCompletionInfo *completionInfo;
 
     if (WaitForInputIdle(processInfo.hProcess, 10000) != 0) {
-      return 0;
+      return FALSE;
     }
 
     completionInfo = new SProcessCompletionInfo;
@@ -82,7 +82,7 @@ BOOL SCreateProcess(LPCSTR appName, char *commandLine, SPROCESSCOMPLETIONPROC ca
     SCreateThread(ProcessCompletionCallbackThread, completionInfo, &threadID, NULL, NULL);
   }
 
-  return 1;
+  return TRUE;
 }
 
 DWORD SGetCurrentThreadId() {

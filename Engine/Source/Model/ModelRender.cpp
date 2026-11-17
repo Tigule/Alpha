@@ -150,7 +150,7 @@ static void CreatePlanarQuadGeometry(
     TSGrowableArray<WORD>               *vertIndices,
     TSGrowableArray<CPrimitive>         *primitives
 );
-static int CreateCylinderGeometry(
+static BOOL CreateCylinderGeometry(
     const NTempest::C3Vector            &base,
     const NTempest::C3Vector            &height,
     const float                          radius,
@@ -178,7 +178,7 @@ struct COpaqueLayer {
   UINT           passNumber;
   CTexLayer     *layer;
 
-  COpaqueLayer() : model(0) {
+  COpaqueLayer() : model(NULL) {
   }
   COpaqueLayer(const COpaqueLayer &source) {
     geoUnique = source.geoUnique;
@@ -193,7 +193,7 @@ struct COpaqueLayer {
     if (model) {
       HandleClose(model);
     }
-    model = 0;
+    model = NULL;
   }
 
   static bool HasHigherPriority(COpaqueLayer *a, COpaqueLayer *b) {
@@ -235,7 +235,7 @@ struct CTransparentObject {
   };
 
   CTransparentObject() : sortType(SORTOBJ_GEOSET) {
-    geo.model = 0;
+    geo.model = NULL;
   }
   CTransparentObject(const CTransparentObject &source) {
     sortType = source.sortType;
@@ -376,13 +376,13 @@ static BOOL IsOpaque(CMaterial *uniqueMtl) {
   for (UINT i = 0; i < numLayers; ++i) {
     if (uniqueMtl->layers[i].layerAlpha > 0) {
       if (uniqueMtl->layers[i].blendMode >= GxBlend_Alpha || uniqueMtl->layers[i].disable.depthTest) {
-        return 0;
+        return FALSE;
       }
-      return 1;
+      return TRUE;
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void EnqueueSimpleObject(CModel *model, LPVOID object, SORTABLES sortType, const NTempest::C3Vector &position, UINT priorityPlane) {
@@ -617,7 +617,7 @@ static void LockVertices(CGeosetShared *geoShared, const CTexLayer &uniqueLayer,
   for (UINT tmu = 0; tmu < 2; ++tmu) {
     UINT coordId = sharedLayer.tmuPass[tmu].coordId;
     if (uniqueLayer.tmuPass[tmu].textureId == (UINT)-1 || coordId == (UINT)-1) {
-      texCoords[tmu] = 0;
+      texCoords[tmu] = NULL;
     } else {
       texCoords[tmu] = geoShared->texCoord[coordId].Ptr();
     }
@@ -943,7 +943,7 @@ static void RenderGeosetMultiUvMapping(CModelRenderData *modelptr, CGeosetShared
 
 static BOOL SingleUvMapping(CMaterial *uniqueMtl) {
   if (uniqueMtl->layers.Count() <= 1) {
-    return 1;
+    return TRUE;
   }
 
   CMaterialShared *sharedMtl = (CMaterialShared *)uniqueMtl->data;
@@ -966,21 +966,21 @@ static BOOL SingleUvMapping(CMaterial *uniqueMtl) {
           continue;
         }
         if (alpha != layerAlpha) {
-          return 0;
+          return FALSE;
         }
 
         for (tmu = 0; tmu < 2; ++tmu) {
           if (firstCoordIds[tmu] != sharedMtl->layers[layer].tmuPass[tmu].coordId) {
-            return 0;
+            return FALSE;
           }
         }
       }
 
-      return 1;
+      return TRUE;
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void RenderGeosetLayers(CModelRenderData *modelptr, CGeosetShared *geoShared, CStatus *status) {
@@ -1209,14 +1209,14 @@ static BOOL IModelGetExtents(CModelBase *modelptr, CModelShared *shared, UINT se
 
   if (shared->seqBounds.Count() && modelptr->m_anim && AnimNeedsSequenceBounds(modelptr->m_anim)) {
     if (seqnum >= shared->seqBounds.Count()) {
-      return 0;
+      return FALSE;
     }
     *extents = shared->seqBounds[seqnum].extent;
   } else {
     *extents = shared->bounds.extent;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL GeosetTestRay(
@@ -1228,13 +1228,13 @@ static BOOL GeosetTestRay(
     float                    *distance
 ) {
   if (geoUnique->flags & 1) {
-    return 0;
+    return FALSE;
   }
   if (!geosetColor[geoShared->geosetId].animatedColor.a) {
-    return 0;
+    return FALSE;
   }
   if (geoShared->flags & 1) {
-    return 0;
+    return FALSE;
   }
 
   WORD       *indices = geoShared->primitiveVertices.Ptr();
@@ -1265,7 +1265,7 @@ static BOOL GeosetTestRay(
   return foundHit;
 }
 
-static int
+static BOOL
 IModelTestRay(CModelSimple *modelptr, CModelShared *shared, const NTempest::C3Vector &rayStart, const NTempest::C3Vector &rayEnd, float *distance) {
   *distance = FLT_MAX;
   NTempest::C3Vector rayDirection = rayEnd - rayStart;
@@ -1277,13 +1277,13 @@ IModelTestRay(CModelSimple *modelptr, CModelShared *shared, const NTempest::C3Ve
     foundHit |= GeosetTestRay(&modelptr->m_geosets[i], &shared->geosets[i], modelptr->m_geosetColor.Ptr(), rayStart, rayDirection, distance);
   }
   if (foundHit) {
-    return 1;
+    return TRUE;
   }
   *distance = INFINITY;
-  return 0;
+  return FALSE;
 }
 
-static int IModelTestRay(
+static BOOL IModelTestRay(
     CModelComplex            *modelptr,
     CModelShared             *shared,
     const NTempest::C3Vector &rayStart,
@@ -1327,10 +1327,10 @@ static int IModelTestRay(
   }
 
   if (foundHit) {
-    return 1;
+    return TRUE;
   }
   *distance = INFINITY;
-  return 0;
+  return FALSE;
 }
 
 static int IModelTestRay(
@@ -1430,7 +1430,7 @@ HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, 
   EGxPrim                             primType;
   CreateBoxGeometry(bounds, &positions, &normals, &texCoords, &primVertIndices, &primType);
 
-  HTEXTURE solid = 0;
+  HTEXTURE solid = NULL;
   if (!texture) {
     solid = TextureCreateSolid(NTempest::CImVector(0x7F00FFFF), 0);
     texture = solid;
@@ -1614,7 +1614,7 @@ static void IModelRenderSceneOpaque(CStatus *status) {
 
   int            multiLayered = 0;
   COpaqueLayer  *lastSorted = s_opaqueScene[NTempest::CPriorityQ<COpaqueLayer *, COpaqueLayer>::eRootIndex];
-  CGeosetShared *lastGeoset = 0;
+  CGeosetShared *lastGeoset = NULL;
 
   UINT rsStackOffset = GxRsStackOffset();
   GxRsPush();
@@ -1770,7 +1770,7 @@ UINT MatrixAlloc(UINT numMatrices) {
 
 NTempest::C34Matrix *MatrixDeref(UINT handle) {
   if ((WORD)(handle >> 16) != s_currAnimFrame) {
-    return 0;
+    return NULL;
   }
 
   return &s_matrixPool[handle & 0xFFFF];
@@ -1782,8 +1782,8 @@ void ModelRenderSceneLogStart(LPCSTR fileName) {
 void ModelRenderSceneLogStop() {
 }
 
-int ModelRenderSceneLogToggle(LPCSTR fileName) {
-  return 0;
+BOOL ModelRenderSceneLogToggle(LPCSTR fileName) {
+  return FALSE;
 }
 
 void ModelScenePlaceCamera(const NTempest::C3Vector &position, const NTempest::C3Vector &direction) {
@@ -2051,7 +2051,7 @@ BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::CAaSphere bounds;
@@ -2059,7 +2059,7 @@ BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float
   bounds.c *= orientation;
   bounds.r *= scale;
   if (GxuTestSphereAndFrustumPlanes(bounds.c, bounds.r, s_frustumPlanes)) {
-    return 1;
+    return TRUE;
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
@@ -2078,12 +2078,12 @@ BOOL ModelTestSphere(HMODEL model, const NTempest::C34Matrix &orientation, float
 
       ITERATELIST(LINKUNIQUE, complex->m_attached[j], link) {
         if (ModelTestSphere(link->child, childMatrix, scale, 1)) {
-          return 1;
+          return TRUE;
         }
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void ModelSceneGetFrustumPlanes(NTempest::C4Vector fp[]) {
@@ -2145,7 +2145,7 @@ int ModelIntersectLineSegment(
   return 0;
 }
 
-static int LineSegmentIntersectBox(
+static BOOL LineSegmentIntersectBox(
     const NTempest::C34Matrix &boxToWorld,
     float                      boxScale,
     const NTempest::C3Vector  &boxMin,
@@ -2170,97 +2170,97 @@ static int LineSegmentIntersectBox(
   q = boxMin.x - ax.x;
   if (lineSegment.x > 0.0f) {
     if (q > lineSegment.x * t1)
-      return 0;
+      return FALSE;
     if (q > lineSegment.x * t0)
       t0 = q / lineSegment.x;
   } else if (lineSegment.x < 0.0f) {
     if (q > lineSegment.x * t0)
-      return 0;
+      return FALSE;
     if (q > lineSegment.x * t1)
       t1 = q / lineSegment.x;
   } else if (q <= 0.0f) {
-    return 0;
+    return FALSE;
   }
 
   q = ax.x - boxMax.x;
   if (-lineSegment.x > 0.0f) {
     if (q > -lineSegment.x * t1)
-      return 0;
+      return FALSE;
     if (q > -lineSegment.x * t0)
       t0 = q / -lineSegment.x;
   } else if (-lineSegment.x < 0.0f) {
     if (q > -lineSegment.x * t0)
-      return 0;
+      return FALSE;
     if (q > -lineSegment.x * t1)
       t1 = q / -lineSegment.x;
   } else if (q <= 0.0f) {
-    return 0;
+    return FALSE;
   }
 
   q = boxMin.y - ax.y;
   if (lineSegment.y > 0.0f) {
     if (q > lineSegment.y * t1)
-      return 0;
+      return FALSE;
     if (q > lineSegment.y * t0)
       t0 = q / lineSegment.y;
   } else if (lineSegment.y < 0.0f) {
     if (q > lineSegment.y * t0)
-      return 0;
+      return FALSE;
     if (q > lineSegment.y * t1)
       t1 = q / lineSegment.y;
   } else if (q <= 0.0f) {
-    return 0;
+    return FALSE;
   }
 
   q = ax.y - boxMax.y;
   if (-lineSegment.y > 0.0f) {
     if (q > -lineSegment.y * t1)
-      return 0;
+      return FALSE;
     if (q > -lineSegment.y * t0)
       t0 = q / -lineSegment.y;
   } else if (-lineSegment.y < 0.0f) {
     if (q > -lineSegment.y * t0)
-      return 0;
+      return FALSE;
     if (q > -lineSegment.y * t1)
       t1 = q / -lineSegment.y;
   } else if (q <= 0.0f) {
-    return 0;
+    return FALSE;
   }
 
   q = boxMin.z - ax.z;
   if (lineSegment.z > 0.0f) {
     if (q > lineSegment.z * t1)
-      return 0;
+      return FALSE;
     if (q > lineSegment.z * t0)
       t0 = q / lineSegment.z;
   } else if (lineSegment.z < 0.0f) {
     if (q > lineSegment.z * t0)
-      return 0;
+      return FALSE;
     if (q > lineSegment.z * t1)
       t1 = q / lineSegment.z;
   } else if (q <= 0.0f) {
-    return 0;
+    return FALSE;
   }
 
   q = ax.z - boxMax.z;
   if (-lineSegment.z > 0.0f) {
     if (q > -lineSegment.z * t1)
-      return 0;
+      return FALSE;
     if (q > -lineSegment.z * t0)
       t0 = q / -lineSegment.z;
   } else if (-lineSegment.z < 0.0f) {
     if (q > -lineSegment.z * t0)
-      return 0;
+      return FALSE;
     if (q > -lineSegment.z * t1)
       t1 = q / -lineSegment.z;
   } else if (q <= 0.0f) {
-    return 0;
+    return FALSE;
   }
 
   if (linePos) {
     *linePos = t0;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL LineSegmentIntersectCylinder(
@@ -2280,7 +2280,7 @@ static BOOL LineSegmentIntersectCylinder(
   NTempest::C3Vector  bx = b * worldToCyl;
   float               cylTop = cylBottom.z + cylHeight;
   if ((ax.z < cylBottom.z && bx.z < cylBottom.z) || (ax.z > cylTop && bx.z > cylTop)) {
-    return 0;
+    return FALSE;
   }
 
   float distSq;
@@ -2362,10 +2362,10 @@ static BOOL IModelTestCollisionVolumes(
   }
 
   if (!hitVolume) {
-    return 0;
+    return FALSE;
   }
   *linePos = hitVolumeLinePos;
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelTestSphere(
@@ -2379,14 +2379,14 @@ BOOL ModelTestSphere(
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::CAaSphere bounds;
   IModelGetBoundingSphere(modelptr, shared, &bounds);
   TransformBounds(position, rotationAngle, rotationAxis, scale, &bounds);
   if (GxuTestSphereAndFrustumPlanes(bounds.c, bounds.r, s_frustumPlanes)) {
-    return 1;
+    return TRUE;
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
@@ -2399,12 +2399,12 @@ BOOL ModelTestSphere(
 
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         if (ModelTestSphere(link->child, linkPosition + position, rotationAngle, rotationAxis, scale, 1)) {
-          return 1;
+          return TRUE;
         }
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static void CreatePlanarQuadGeometry(
@@ -2512,7 +2512,7 @@ static void GenerateCylinderVerts(
   }
 }
 
-static int CreateCylinderGeometry(
+static BOOL CreateCylinderGeometry(
     const NTempest::C3Vector            &base,
     const NTempest::C3Vector            &height,
     const float                          radius,
@@ -2560,7 +2560,7 @@ static int CreateCylinderGeometry(
   primitive->type = GxPrim_Triangles;
   primitive->vertexCount = 192;
 
-  return 1;
+  return TRUE;
 }
 
 static void SetVertexMatrixIndices(CGeosetShared *geoShared, const TSGrowableArray<UINT> &groupVertexCounts) {
@@ -2758,7 +2758,7 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::CAaSphere bounds;
@@ -2773,11 +2773,11 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
   PointSegmentDistSq(bounds.c, a, b, &distSq, linePos);
   if (distSq <= bounds.r * bounds.r) {
     *linePos *= lineLength;
-    return 1;
+    return TRUE;
   }
 
   if (!testLinkedModels || !(modelptr->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   CModelComplex *complex = (CModelComplex *)modelptr;
@@ -2785,11 +2785,11 @@ BOOL ModelHitTestSphere(HMODEL model, float scale, const NTempest::C3Vector &a, 
   for (UINT i = 0; i < numAttachments; ++i) {
     ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
       if (ModelHitTestSphere(link->child, scale, a, b, 1, linePos)) {
-        return 1;
+        return TRUE;
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelHasHitTestVolumes(HMODEL model) {
@@ -2797,33 +2797,33 @@ BOOL ModelHasHitTestVolumes(HMODEL model) {
   if (IModelDerefHandle((CModel *)model, &shared)) {
     ASSERT(shared);
     if (shared->hitTest.Count() > 0) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   CModelComplex *complex = (CModelComplex *)modelptr;
   if (!(complex->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   float lineLength = (b - a).Mag();
   float hitVolumeLinePos = 0.0f;
   if (IModelTestCollisionVolumes(complex, shared, scale, a, b, &hitVolumeLinePos)) {
     *linePos = hitVolumeLinePos * lineLength;
-    return 1;
+    return TRUE;
   }
 
   if (!testLinkedModels) {
-    return 0;
+    return FALSE;
   }
 
   UINT numAttachments = complex->m_attached.Count();
@@ -2835,28 +2835,28 @@ BOOL ModelHitTestVolumes(HMODEL model, float scale, const NTempest::C3Vector &a,
         ASSERT(shared);
         if (shared->hitTest.Count() > 0) {
           if (ModelHitTestVolumes(link->child, scale, a, b, 1, linePos)) {
-            return 1;
+            return TRUE;
           }
         } else {
           if (ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)) {
-            return 1;
+            return TRUE;
           }
         }
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a, const NTempest::C3Vector &b, int testLinkedModels, float *linePos) {
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &modelptr, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   if (IModelTestRay(modelptr, shared, a, b, linePos, testLinkedModels)) {
-    return 1;
+    return TRUE;
   }
 
   if (testLinkedModels && (modelptr->m_flags & 0x20)) {
@@ -2865,12 +2865,12 @@ BOOL ModelHitTestGeometry(HMODEL model, float scale, const NTempest::C3Vector &a
     for (UINT i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         if (ModelHitTestGeometry(link->child, scale, a, b, 1, linePos)) {
-          return 1;
+          return TRUE;
         }
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 ModelIntersectResult ModelIntersectLineSegmentEx(
@@ -2992,7 +2992,7 @@ void ModelHideBounds(HMODEL model) {
 
   if (unique->m_boundsModel) {
     HandleClose(unique->m_boundsModel);
-    unique->m_boundsModel = 0;
+    unique->m_boundsModel = NULL;
   }
 }
 
@@ -3022,11 +3022,11 @@ BOOL ModelGetExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
 
   if (!IModelDerefHandle((CModel *)model, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   *extents = shared->bounds.extent;
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
@@ -3034,11 +3034,11 @@ BOOL ModelGetSeqExtents(HMODEL model, NTempest::CAaBox *extents) {
   CModelShared *shared;
 
   if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   IModelGetExtents(unique, shared, extents);
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents) {
@@ -3046,7 +3046,7 @@ BOOL ModelGetSeqExtents(HMODEL model, UINT seqnum, NTempest::CAaBox *extents) {
   CModelShared *shared;
 
   if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   return IModelGetExtents(unique, shared, seqnum, extents);
@@ -3057,11 +3057,11 @@ BOOL ModelGetBounds(HMODEL model, NTempest::CAaSphere *bounds) {
   CModelShared *shared;
 
   if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   IModelGetBoundingSphere(unique, shared, bounds);
-  return 1;
+  return TRUE;
 }
 
 void ModelSetProject2dCallback(MODELPROJECT2DCALLBACK callback) {

@@ -29,7 +29,7 @@ struct CMatrixGroup {
   UINT  leftIndex;
   UINT  rightIndex;
 
-  CMatrixGroup() : matrices(0), numMatrices(0), index(0), leftIndex(-1), rightIndex(-1) {
+  CMatrixGroup() : matrices(NULL), numMatrices(0), index(0), leftIndex(-1), rightIndex(-1) {
   }
   CMatrixGroup(UINT *, UINT);
 };
@@ -68,7 +68,7 @@ static HMATERIAL MaterialDuplicate(HMATERIAL material) {
 
   CMaterial *duplicate = NEWHANDLE(HMATERIAL, CMaterial);
   if (!duplicate) {
-    return 0;
+    return NULL;
   }
 
   *duplicate = *source;
@@ -254,7 +254,7 @@ CModelSimple::CModelSimple(const CModelSimple &source) : CModelBase(source) {
 }
 
 CModel::CModel(CModel &source)
-    : asyncObject(0), createData(0) {
+    : asyncObject(NULL), createData(NULL) {
   ASSERT(source.shared);
   shared = (HMODELSHARED)HandleDuplicate(source.shared);
   ASSERT(shared);
@@ -467,7 +467,7 @@ BOOL ModelReplaceTexture(HMODEL model, UINT replaceableId, HTEXTURE texture, int
 
   if (!IModelDerefHandle(modelptr, &unique)) {
     EnqueueModelCommand(modelptr, MODEL_REPLACE_TEXTURE, replaceableId, texture, doLinkedModels);
-    return 1;
+    return TRUE;
   }
 
   if (unique->m_flags & 0x20) {
@@ -488,7 +488,7 @@ UINT ModelGetMatrixCount(HMODEL model) {
 static inline BOOL LinkIdToIndex(CModelShared *dataptr, UINT &index) {
   ASSERT(dataptr);
   if (index >= dataptr->attachIdToIndex.Count()) {
-    return 0;
+    return FALSE;
   }
 
   index = dataptr->attachIdToIndex[index];
@@ -508,12 +508,12 @@ BOOL ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entrie
 
   if (!IModelDerefHandle((CModel *)model, &unique, &shared) || !(unique->m_flags & 0x20)) {
     *entriesInOut = 0;
-    return 0;
+    return FALSE;
   }
 
   if (!LinkIdToIndex(shared, index)) {
     *entriesInOut = 0;
-    return 0;
+    return FALSE;
   }
 
   added = 0;
@@ -526,7 +526,7 @@ BOOL ModelGetLinkPoint(HMODEL model, UINT index, HMODEL *modelList, UINT *entrie
   }
 
   *entriesInOut = added;
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
@@ -537,18 +537,18 @@ BOOL ModelGetNumLinkedAtPoint(HMODEL model, UINT index, UINT *numLinked) {
   *numLinked = 0;
 
   if (!IModelDerefHandle((CModel *)model, &unique, &shared) || !(unique->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   if (!LinkIdToIndex(shared, index)) {
-    return 0;
+    return FALSE;
   }
 
   ITERATELIST(LINKUNIQUE, ((CModelComplex *)unique)->m_attached[index], link) {
     ++*numLinked;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelHasLinkPoint(HMODEL model, UINT index) {
@@ -580,16 +580,16 @@ BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
 
   if (!IModelDerefHandle(modelptr, &parentBase, &parentdata)) {
     EnqueueModelCommand(modelptr, MODEL_ADD_LINK, parentIndex, child, scale);
-    return 1;
+    return TRUE;
   }
 
   if (!(parentBase->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   parentptr = (CModelComplex *)parentBase;
   if (!LinkIdToIndex(parentdata, parentIndex)) {
-    return 0;
+    return FALSE;
   }
 
   LIST(LINKUNIQUE) &links = parentptr->m_attached[parentIndex];
@@ -598,7 +598,7 @@ BOOL ModelAddLink(HMODEL parent, UINT parentIndex, HMODEL child, float scale) {
   link->scale = scale;
 
   ModelSetLightSelectCallback(link->child, parentptr->m_PickLights, parentptr->m_pickLightsParm, 1);
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
@@ -610,16 +610,16 @@ BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
 
   if (!IModelDerefHandle(modelptr, &parentBase, &parentdata)) {
     EnqueueModelCommand(modelptr, MODEL_REMOVE_LINK, parentIndex, child);
-    return 1;
+    return TRUE;
   }
 
   if (!(parentBase->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   CModelComplex *parentptr = (CModelComplex *)parentBase;
   if (!LinkIdToIndex(parentdata, parentIndex)) {
-    return 0;
+    return FALSE;
   }
 
   CModel *childptr = (CModel *)child;
@@ -631,7 +631,7 @@ BOOL ModelRemoveLink(HMODEL parent, UINT parentIndex, HMODEL child) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
@@ -644,20 +644,20 @@ BOOL ModelClearLink(HMODEL parent, UINT parentIndex) {
 
   if (!IModelDerefHandle(modelptr, &parentBase, &parentdata)) {
     EnqueueModelCommand(modelptr, MODEL_CLEAR_LINK, parentIndex);
-    return 1;
+    return TRUE;
   }
 
   if (!(parentBase->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   parentptr = (CModelComplex *)parentBase;
   if (!LinkIdToIndex(parentdata, parentIndex)) {
-    return 0;
+    return FALSE;
   }
 
   parentptr->m_attached[parentIndex].Clear();
-  return 1;
+  return TRUE;
 }
 
 void ModelClearAllLinks(HMODEL parent) {
@@ -698,18 +698,18 @@ HCAMERA ModelGetCamera(HMODEL model, UINT index) {
   CModelBase *unique;
 
   if (!IModelDerefHandle((CModel *)model, &unique) || !(unique->m_flags & 0x20)) {
-    return 0;
+    return NULL;
   }
 
   CModelComplex *complex = (CModelComplex *)unique;
   if (complex->m_cameraOrder.Count()) {
     if (index >= complex->m_cameraOrder.Count()) {
-      return 0;
+      return NULL;
     }
 
     index = complex->m_cameraOrder[index];
     if (index == (UINT)-1) {
-      return 0;
+      return NULL;
     }
   }
 
@@ -984,7 +984,7 @@ BOOL CMatrixGroupTree::GroupsEqual(const UINT *matrixGroup1, UINT numMatrices1, 
   UINT count = numMatrices1 < numMatrices2 ? numMatrices1 : numMatrices2;
   int  compare = memcmp(matrixGroup1, matrixGroup2, count * sizeof(UINT));
   if (compare) {
-    return 0;
+    return FALSE;
   }
   return numMatrices1 == numMatrices2;
 }
@@ -1183,15 +1183,15 @@ BOOL ModelOptimizeVisibleGeosets(HMODEL model) {
   CModelShared *shared;
   if (!IModelDerefHandle(modelptr, &unique, &shared)) {
     EnqueueModelCommand(modelptr, MODEL_OPTIMIZE_VISIBLE_GEOSETS);
-    return 1;
+    return TRUE;
   }
 
   if (!(unique->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   IModelOptimizeVisibleGeosets((CModelComplex *)unique, shared);
-  return 1;
+  return TRUE;
 }
 
 BYTE ModelGetVertexAlpha(HMODEL model) {
@@ -1516,21 +1516,21 @@ static BOOL GeosetIsShowingUnselectable(CGeosetShared *geosets, UINT numGeosets)
 
   for (UINT i = 0; i < numGeosets; ++i) {
     if ((geosets[i].flags & 3) == 3) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL ModelIsShowingUnselectable(HMODEL model) {
   CModelBase   *unique;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &unique, &shared)) {
-    return 0;
+    return FALSE;
   }
 
   if (GeosetIsShowingUnselectable(shared->geosets.Ptr(), shared->geosets.Count())) {
-    return 1;
+    return TRUE;
   }
 
   if (unique->m_flags & 0x20) {
@@ -1539,12 +1539,12 @@ BOOL ModelIsShowingUnselectable(HMODEL model) {
     for (UINT i = 0; i < numAttachments; ++i) {
       ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
         if (ModelIsShowingUnselectable(link->child)) {
-          return 1;
+          return TRUE;
         }
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void ModelEnableLights(HMODEL model, int enable) {
@@ -1579,7 +1579,7 @@ const CGxLight *ModelGetLight(HMODEL model, UINT index) {
   CModelBase *pModel;
 
   if (!IModelDerefHandle((CModel *)model, &pModel)) {
-    return 0;
+    return NULL;
   }
 
   VALIDATE2(pModel->m_flags & 0x00000020);
@@ -1739,7 +1739,7 @@ BOOL ModelUsesBlending(HMODEL model) {
     return AnimUsesBlending(unique->m_anim);
   }
 
-  return 0;
+  return FALSE;
 }
 
 void ModelEnableEmitters(HMODEL model, int enable, int doLinkedModels) {
@@ -1842,7 +1842,7 @@ BOOL ModelAnimHasObjectId(HMODEL model, UINT objectId) {
     return AnimHasObjectId(unique->m_anim, objectId);
   }
 
-  return 0;
+  return FALSE;
 }
 
 static void IModelSetMaterialDisables(HMATERIAL *materials, UINT numMaterials, UINT setMask, UINT unsetMask) {

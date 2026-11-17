@@ -218,7 +218,7 @@ class CCharGeoset : public CHandleObject {
     HASSCALP = 2
   };
 
-  CCharGeoset() : m_charModel(0), m_paperDollModel(0), m_flags(0) {
+  CCharGeoset() : m_charModel(NULL), m_paperDollModel(NULL), m_flags(0) {
     memset(m_currentGeosets, 0, sizeof(m_currentGeosets));
   }
 
@@ -602,10 +602,10 @@ BOOL CharGeosetInfo::ShowingSameGeosetsAs(const CharGeosetInfo &rhs) {
     if ((flags[group] & 1) != (rhs.flags[group] & 1) || ((flags[group] ^ rhs.flags[group]) & 2) != 0 ||
         (!(flags[group] & 1) && currentGeosets[group] != rhs.currentGeosets[group]))
     {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CCharGeoset::EnableHairGeosets(UINT race, UINT sex, UINT hairStyleID) {
@@ -966,12 +966,12 @@ HTEXTURE CharCustomizationSetSkin(HMODEL characterModel, UINT raceID, UINT sexID
 
   LPCSTR skin = var.GetNames(CHARTEXTURESECTION_SKIN, variation).GetColor(color).GetString();
   if (!skin || !*skin) {
-    return 0;
+    return NULL;
   }
 
   HTEXTURE texture = TextureCreate(skin, 256, 256, GxTex_Argb1555, CGxTexFlags(filter, 0, 0, 0, 0, 0, 1));
   if (!texture) {
-    return 0;
+    return NULL;
   }
 
   ModelReplaceTexture(characterModel, 1, texture, 0);
@@ -1148,13 +1148,13 @@ BOOL CharCustomizationGetNakedSectionName(
   int color;
   CharCustomizationGetNumSkinTextures(raceID, sexID, &PCSkinVariations, &NPCSkinVariations);
   if (isNPC && NPCSkinVariations) {
-    isNPC = 1;
+    isNPC = TRUE;
     color = skinID % NPCSkinVariations;
   } else {
     if (!PCSkinVariations) {
-      return 0;
+      return FALSE;
     }
-    isNPC = 0;
+    isNPC = FALSE;
     color = skinID % PCSkinVariations;
   }
 
@@ -1282,14 +1282,14 @@ BOOL CharCustomizationGetBeardStyle(UINT raceID, UINT sexID, UINT facialHairID, 
 
   UINT facialGeosets = CharCustomizationNumBeardStyles(raceID, sexID);
   if (!facialGeosets) {
-    return 0;
+    return FALSE;
   }
 
   facialHairID %= facialGeosets;
   facialHairStyleData->beardGeoset = s_characterVariations[raceID][sexID].facialVariations.facialGeosets[facialHairID].beardGeoset;
   facialHairStyleData->sideBurnGeoset = s_characterVariations[raceID][sexID].facialVariations.facialGeosets[facialHairID].sideBurnGeoset;
   facialHairStyleData->moustacheGeoset = s_characterVariations[raceID][sexID].facialVariations.facialGeosets[facialHairID].moustacheGeoset;
-  return 1;
+  return TRUE;
 }
 
 void CharCustomizationSetFacialTexture(HMODEL characterModel, HTEXCOMPONENT texComponent, UINT raceID, UINT sexID, UINT facialID, UINT colorID) {
@@ -1321,7 +1321,7 @@ void CharCustomizationSetFacialTexture(HMODEL characterModel, HTEXCOMPONENT texC
 
 HCHARGEOSET CharCustomizationCreateGeosetHandle(HMODEL characterModel) {
   if (!characterModel) {
-    return 0;
+    return NULL;
   }
 
   CCharGeoset *newObject = NEWHANDLE(HCHARGEOSET, CCharGeoset);

@@ -107,7 +107,7 @@ static HWND WindowCreate(CGxDeviceD3d *dev, const CGxFormat &format) {
 
 static void WindowDestroy(HWND &hwnd) {
   DestroyWindow(hwnd);
-  hwnd = 0;
+  hwnd = NULL;
 }
 
 static void WindowClassDestroy(WORD &hClass) {
@@ -117,17 +117,17 @@ static void WindowClassDestroy(WORD &hClass) {
 
 CGxDeviceD3d::CGxDeviceD3d() {
   m_api = GxApi_Direct3d;
-  m_hwnd = 0;
-  m_d3dLib = 0;
-  m_d3d = 0;
-  m_d3dDevice = 0;
+  m_hwnd = NULL;
+  m_d3dLib = NULL;
+  m_d3d = NULL;
+  m_d3dDevice = NULL;
   m_d3dIsHwDevice = 0;
-  m_d3dNeedsReset = 0;
+  m_d3dNeedsReset = FALSE;
   m_caps.m_colorFormat = GxCF_argb;
   memset(m_IB, 0, sizeof(m_IB));
   m_primType = GxPrims_Last;
   m_primIndexCount = 0;
-  m_windowVisible = 0;
+  m_windowVisible = FALSE;
   memset(&m_desktopDisplayMode, 0, sizeof(m_desktopDisplayMode));
   m_deviceSupports32BitTextures = 0;
 
@@ -136,16 +136,16 @@ CGxDeviceD3d::CGxDeviceD3d() {
 
   memset(m_deviceState, 0xFF, sizeof(m_deviceState));
   memset(m_texEnable, 0, sizeof(m_texEnable));
-  m_processedVertexPtrs = 0;
-  m_processedIndexPtrs = 0;
-  m_rttColorSurface = 0;
-  m_rttDepthSurface = 0;
-  m_defColorSurface = 0;
-  m_defDepthSurface = 0;
+  m_processedVertexPtrs = FALSE;
+  m_processedIndexPtrs = FALSE;
+  m_rttColorSurface = NULL;
+  m_rttDepthSurface = NULL;
+  m_defColorSurface = NULL;
+  m_defDepthSurface = NULL;
 }
 
 CGxDeviceD3d::~CGxDeviceD3d() {
-  m_thisDevice = 0;
+  m_thisDevice = NULL;
 }
 
 BOOL CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
@@ -153,8 +153,8 @@ BOOL CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
 
   D3dCreateProc d3dCreateProc;
 
-  d3dLib = 0;
-  d3d = 0;
+  d3dLib = NULL;
+  d3d = NULL;
 
   d3dLib = LoadLibraryA("d3d9.dll");
   if (!d3dLib) {
@@ -174,21 +174,21 @@ BOOL CGxDeviceD3d::ILoadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
     goto finallylabel;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   IUnloadD3dLib(d3dLib, d3d);
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceD3d::IUnloadD3dLib(HINSTANCE &d3dLib, IDirect3D9 *&d3d) {
   if (d3d) {
     d3d->Release();
-    d3d = 0;
+    d3d = NULL;
   }
   if (d3dLib) {
     FreeLibrary(d3dLib);
-    d3dLib = 0;
+    d3dLib = NULL;
   }
 }
 
@@ -254,11 +254,11 @@ BOOL CGxDeviceD3d::ICreateD3d() {
     m_desktopDisplayMode = oldDisplayMode;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   IDestroyD3d();
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceD3d::IDestroyD3d() {
@@ -275,7 +275,7 @@ BOOL CGxDeviceD3d::IAllocBuffers() {
     ICreateBuffers((EGxVertexBufferFormat)format, 0x4000, m_VBL[GxBWF_Dynamic][format], 0xC000, m_IB[GxBWF_Dynamic][0]);
 
     if (!m_VBL[GxBWF_Dynamic][format].m_vbList.Count() || !m_IB[GxBWF_Dynamic][0]) {
-      return 0;
+      return FALSE;
     }
 
     for (int frequency = GxBWF_Low; frequency <= GxBWF_Medium; ++frequency) {
@@ -286,7 +286,7 @@ BOOL CGxDeviceD3d::IAllocBuffers() {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CGxDeviceD3d::ICreateD3dDevice(const CGxFormat &format) {
@@ -319,29 +319,29 @@ BOOL CGxDeviceD3d::ICreateD3dDevice(const CGxFormat &format) {
         Log("CGxDeviceD3d::ICreateD3dDevice(): D3D CreateDevice failure: Invalid call");
         break;
     }
-    m_d3dDevice = 0;
-    return 0;
+    m_d3dDevice = NULL;
+    return FALSE;
   }
 
   m_devDepthFormat = d3dpp.AutoDepthStencilFormat;
   m_devAdapterFormat = d3dpp.BackBufferFormat;
   if (!IAllocBuffers()) {
     IDestroyD3dDevice();
-    return 0;
+    return FALSE;
   }
 
   ISetCaps();
   Log(m_caps);
   IStateSetD3DDefaults();
   DeviceSetGamma(m_gammaRamp);
-  return 1;
+  return TRUE;
 }
 
 void CGxDeviceD3d::IDestroyD3dDevice() {
   IReleaseD3dResources(1);
   if (m_d3dDevice) {
     m_d3dDevice->Release();
-    m_d3dDevice = 0;
+    m_d3dDevice = NULL;
   }
 }
 
@@ -354,7 +354,7 @@ void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS &d3dpp, const CGxForma
       ASSERT(0);
       currMode.Format = m_desktopDisplayMode.Format;
     }
-    d3dpp.Windowed = 1;
+    d3dpp.Windowed = TRUE;
     d3dpp.BackBufferFormat = currMode.Format;
     d3dpp.FullScreen_RefreshRateInHz = 0;
   } else {
@@ -367,7 +367,7 @@ void CGxDeviceD3d::ISetPresentParms(D3DPRESENT_PARAMETERS &d3dpp, const CGxForma
 
   d3dpp.hDeviceWindow = m_hwnd;
   d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
-  d3dpp.EnableAutoDepthStencil = 1;
+  d3dpp.EnableAutoDepthStencil = TRUE;
   d3dpp.AutoDepthStencilFormat = s_GxFormatToD3dFormat[format.depthFormat];
   d3dpp.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
   d3dpp.PresentationInterval = format.vsync ? D3DPRESENT_INTERVAL_ONE : D3DPRESENT_INTERVAL_IMMEDIATE;
@@ -393,7 +393,7 @@ void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
       m_VBL[frequency][format].Release();
       if (m_IB[frequency][format]) {
         DEL(m_IB[frequency][format]);
-        m_IB[frequency][format] = 0;
+        m_IB[frequency][format] = NULL;
       }
     }
   }
@@ -402,19 +402,19 @@ void CGxDeviceD3d::IReleaseD3dResources(int freeTextures) {
 
   if (m_defColorSurface) {
     m_defColorSurface->Release();
-    m_defColorSurface = 0;
+    m_defColorSurface = NULL;
   }
   if (m_defDepthSurface) {
     m_defDepthSurface->Release();
-    m_defDepthSurface = 0;
+    m_defDepthSurface = NULL;
   }
   if (m_rttColorSurface) {
     m_rttColorSurface->Release();
-    m_rttColorSurface = 0;
+    m_rttColorSurface = NULL;
   }
   if (m_rttDepthSurface) {
     m_rttDepthSurface->Release();
-    m_rttDepthSurface = 0;
+    m_rttDepthSurface = NULL;
   }
 }
 
@@ -442,11 +442,11 @@ BOOL CGxDeviceD3d::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format
     goto finallylabel;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   DeviceDestroy();
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDeviceD3d::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
@@ -458,11 +458,11 @@ BOOL CGxDeviceD3d::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
     goto finallylabel;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   DeviceDestroy();
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceD3d::DeviceDestroy() {
@@ -496,14 +496,14 @@ BOOL CGxDeviceD3d::DeviceSetFormat(const CGxFormat &format) {
     goto finallylabel;
   }
 
-  m_context = 1;
-  return 1;
+  m_context = TRUE;
+  return TRUE;
 
 finallylabel:
   Log("CGxDeviceD3d::DeviceSetFormat(): unable to set format!");
   IDestroyD3dDevice();
   WindowDestroy(m_hwnd);
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceD3d::DeviceSetBaseMipLevel(UINT baseMipLevel) {
@@ -615,18 +615,18 @@ void CGxDeviceD3d::DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) {
   switch (wm) {
     case GxWM_Size:
       if (param2 == 1 || param2 == 2) {
-        m_windowVisible = 0;
-        m_context = 0;
+        m_windowVisible = FALSE;
+        m_context = FALSE;
       } else {
-        m_windowVisible = 1;
-        m_d3dNeedsReset = 1;
+        m_windowVisible = TRUE;
+        m_d3dNeedsReset = TRUE;
         DeviceSetDefWindow(rect);
       }
       break;
 
     case GxWM_DisplayChange:
       if (m_windowVisible) {
-        m_d3dNeedsReset = 1;
+        m_d3dNeedsReset = TRUE;
         DeviceSetDefWindow(rect);
       }
       break;
@@ -643,7 +643,7 @@ void CGxDeviceD3d::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UINT p
 
   if (target.m_apiSpecific) {
     ((IDirect3DSurface9 *)target.m_apiSpecific)->Release();
-    target.m_apiSpecific = 0;
+    target.m_apiSpecific = NULL;
   }
 
   if (gxTex) {

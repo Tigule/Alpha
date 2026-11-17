@@ -46,8 +46,8 @@ int CGxDeviceD3d::CapsIsWindowVisible() {
   if (result == 0) {
     IStateSetD3DDefaults();
     IAllocBuffers();
-    m_d3dNeedsReset = 0;
-    m_context = 1;
+    m_d3dNeedsReset = FALSE;
+    m_context = TRUE;
   }
 
   return result == 0;

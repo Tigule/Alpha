@@ -18,8 +18,8 @@ class CSimpleFontStringRecord : public CSimpleFontString, public TRefCnt {
 class CSimpleMessageScrollFrameLine {
  public:
   CSimpleMessageScrollFrameLine() {
-    string = 0;
-    isVisible = 0;
+    string = NULL;
+    isVisible = FALSE;
     timeLeft = 0.0f;
     fadeLeft = 0.0f;
   }

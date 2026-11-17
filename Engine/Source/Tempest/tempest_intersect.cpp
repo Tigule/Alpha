@@ -150,19 +150,19 @@ namespace NTempest {
       case SI_HollowHollow:
         dmin = 0.0f;
         dmax = 0.0f;
-        face = 0;
+        face = FALSE;
         for (i = 0; i < 2; ++i) {
           a = (c[i] - minB[i]) * (c[i] - minB[i]);
           b = (c[i] - maxB[i]) * (c[i] - maxB[i]);
           dmax += max(a, b);
           if (c[i] < minB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += a;
           } else if (c[i] > maxB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += b;
           } else if (min(a, b) <= r2) {
-            face = 1;
+            face = TRUE;
           }
         }
         if (face && dmin <= r2 && r2 <= dmax) {
@@ -171,18 +171,18 @@ namespace NTempest {
         break;
       case SI_HollowSolid:
         dmin = 0.0f;
-        face = 0;
+        face = FALSE;
         for (i = 0; i < 2; ++i) {
           if (c[i] < minB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += (c[i] - minB[i]) * (c[i] - minB[i]);
           } else if (c[i] > maxB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += (c[i] - maxB[i]) * (c[i] - maxB[i]);
           } else if (c[i] - minB[i] <= r) {
-            face = 1;
+            face = TRUE;
           } else if (maxB[i] - c[i] <= r) {
-            face = 1;
+            face = TRUE;
           }
         }
         if (face && dmin <= r2) {
@@ -243,19 +243,19 @@ namespace NTempest {
       case SI_HollowHollow:
         dmin = 0.0f;
         dmax = 0.0f;
-        face = 0;
+        face = FALSE;
         for (i = 0; i < 2; ++i) {
           a = (c[i] - minB[i]) * (c[i] - minB[i]);
           b = (c[i] - maxB[i]) * (c[i] - maxB[i]);
           dmax += max(a, b);
           if (c[i] < minB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += a;
           } else if (c[i] > maxB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += b;
           } else if (min(a, b) <= r2) {
-            face = 1;
+            face = TRUE;
           }
         }
         if (face && dmin <= r2 && r2 <= dmax) {
@@ -264,18 +264,18 @@ namespace NTempest {
         break;
       case SI_HollowSolid:
         dmin = 0.0f;
-        face = 0;
+        face = FALSE;
         for (i = 0; i < 2; ++i) {
           if (c[i] < minB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += (c[i] - minB[i]) * (c[i] - minB[i]);
           } else if (c[i] > maxB[i]) {
-            face = 1;
+            face = TRUE;
             dmin += (c[i] - maxB[i]) * (c[i] - maxB[i]);
           } else if (c[i] - minB[i] <= r) {
-            face = 1;
+            face = TRUE;
           } else if (maxB[i] - c[i] <= r) {
-            face = 1;
+            face = TRUE;
           }
         }
         if (face && dmin <= r2) {
@@ -782,18 +782,18 @@ bool NTempest::Intersect(const CFacet &facet0, const CFacet &facet1) {
   if (EdgeIntersectTriEdge(e0, e1, u0, u1, u2)) {
     return true;
   }
-  return PointInTri(e0, u0, u1, u2) != 0;
+  return PointInTri(e0, u0, u1, u2) != FALSE;
 }
 
 static BOOL
 EdgeIntersectTriEdge(NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &b0, NTempest::C2Vector &b1, NTempest::C2Vector &b2) {
   if (NTempest::Intersect(a0, a1, b0, b1)) {
-    return 1;
+    return TRUE;
   }
   if (NTempest::Intersect(a0, a1, b1, b2)) {
-    return 1;
+    return TRUE;
   }
-  return NTempest::Intersect(a0, a1, b2, b0) != 0;
+  return NTempest::Intersect(a0, a1, b2, b0) != false;
 }
 
 static BOOL PointInTri(NTempest::C2Vector &p, NTempest::C2Vector &a0, NTempest::C2Vector &a1, NTempest::C2Vector &a2) {
@@ -821,10 +821,10 @@ static BOOL PointInTri(NTempest::C2Vector &p, NTempest::C2Vector &a0, NTempest::
 
   if (d0 * d1 >= 0.0) {
     if (d0 * d2 >= 0.0) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static bool CoplanarTriIntersectTri(const NTempest::CFacet &facet0, const NTempest::CFacet &facet1) {
@@ -868,5 +868,5 @@ static bool CoplanarTriIntersectTri(const NTempest::CFacet &facet0, const NTempe
   if (PointInTri(v0, u0, u1, u2)) {
     return true;
   }
-  return PointInTri(u0, v0, v1, v2) != 0;
+  return PointInTri(u0, v0, v1, v2) != FALSE;
 }

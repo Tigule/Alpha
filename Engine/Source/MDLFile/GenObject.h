@@ -139,7 +139,7 @@ inline void ReadObjectIntKeyframes(Parser &parse, MDLSIMPLEKEYTRACK<T> *keyframe
   UINT       savedtoken;
   LPCSTR     tokentext;
   UTokenData value;
-  T         *key = 0;
+  T         *key = NULL;
   long       actual = 0;
   long       count = parse.GetOptionalInt(&savedtoken, &tokentext, 0);
   if (count > 0 && keyframes) {
@@ -281,14 +281,14 @@ inline UINT GetBinFloatKeyFramesSize(const MDLKEYTRACK<T> &keyframes) {
 }
 
 template <class T>
-inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
+inline BOOL ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
   if (buf.Bytes() < 3 * sizeof(UINT)) {
-    return 0;
+    return FALSE;
   }
   UINT numKeys = buf.GetUint();
   totalRead += sizeof(UINT);
   if (!numKeys) {
-    return 0;
+    return FALSE;
   }
   keyframes.type = (MDLTRACKTYPE)buf.GetUint();
   totalRead += sizeof(UINT);
@@ -303,7 +303,7 @@ inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UIN
     elements = 3 * sizeof(T) / sizeof(float);
   }
   if ((int)(keySize * numKeys) > buf.Bytes()) {
-    return 0;
+    return FALSE;
   }
   for (UINT i = numKeys; i; --i, ++key) {
     key->time = buf.GetInt();
@@ -311,17 +311,17 @@ inline int ReadBinFloatKeyFrames(MDLKEYTRACK<T> &keyframes, CMsgBuffer &buf, UIN
     buf.GetFloatArray((float *)&key->value, elements);
     totalRead += elements * sizeof(float);
   }
-  return 1;
+  return TRUE;
 }
 
-inline int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
+inline BOOL ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
   if (buf.Bytes() < 2 * sizeof(UINT)) {
-    return 0;
+    return FALSE;
   }
   UINT numKeys = buf.GetUint();
   totalRead += sizeof(UINT);
   if (!numKeys) {
-    return 0;
+    return FALSE;
   }
   buf.GetUint();
   totalRead += sizeof(UINT);
@@ -330,7 +330,7 @@ inline int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuf
   keyframes.keys.SetCount(numKeys);
   MDLINTKEY *key = keyframes.keys.Ptr();
   if ((int)(numKeys * sizeof(MDLINTKEY)) > buf.Bytes()) {
-    return 0;
+    return FALSE;
   }
   for (UINT i = numKeys; i; --i, ++key) {
     key->time = buf.GetInt();
@@ -338,7 +338,7 @@ inline int ReadBinUintKeyFrames(MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes, CMsgBuf
     buf.GetUintArray(&key->value, 1);
     totalRead += sizeof(UINT);
   }
-  return 1;
+  return TRUE;
 }
 
 inline UINT GetBinUintKeyFramesSize(const MDLSIMPLEKEYTRACK<MDLINTKEY> &keyframes) {
@@ -369,17 +369,17 @@ inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGro
   *localBytesRead += 4;
   if (found != title) {
     status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
-    return 0;
+    return FALSE;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 4;
   if (!count) {
-    return 1;
+    return TRUE;
   }
   section->SetCount(count);
   buf.GetUintArray(section->Ptr(), count);
   *localBytesRead += 4 * count;
-  return 1;
+  return TRUE;
 }
 
 inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<WORD> *section, UINT *localBytesRead, CMDLStatus *status) {
@@ -387,17 +387,17 @@ inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGro
   *localBytesRead += 4;
   if (found != title) {
     status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
-    return 0;
+    return FALSE;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 4;
   if (!count) {
-    return 1;
+    return TRUE;
   }
   section->SetCount(count);
   buf.GetWordArray(section->Ptr(), count);
   *localBytesRead += 2 * count;
-  return 1;
+  return TRUE;
 }
 
 inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGrowableArray<BYTE> *section, UINT *localBytesRead, CMDLStatus *status) {
@@ -405,15 +405,15 @@ inline BOOL IReadBinUintSection(CMsgBuffer &buf, DWORD title, LPCSTR name, TSGro
   *localBytesRead += 4;
   if (found != title) {
     status->Add(STATUS_ERROR, "Invalid %s section.\n", name);
-    return 0;
+    return FALSE;
   }
   UINT count = buf.GetUint();
   *localBytesRead += 4;
   if (!count) {
-    return 1;
+    return TRUE;
   }
   section->SetCount(count);
   buf.GetData(section->Ptr(), count);
   *localBytesRead += count;
-  return 1;
+  return TRUE;
 }

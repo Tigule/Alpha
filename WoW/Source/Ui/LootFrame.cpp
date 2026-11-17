@@ -206,7 +206,7 @@ int CGLootInfo::GetLootCoin(UINT slot) {
 
 LPCSTR CGLootInfo::GetLootSlotTexture(UINT slot) {
   if (!m_object) {
-    return 0;
+    return NULL;
   }
 
   LPCSTR path = ClientDBStringLookup(SLOOKUP_INVENTORYICONPATH);
@@ -215,7 +215,7 @@ LPCSTR CGLootInfo::GetLootSlotTexture(UINT slot) {
   if (m_coins) {
     if (!slot) {
       if (m_coins < 0) {
-        return 0;
+        return NULL;
       }
       SStrPack(
           buffer, m_coins < 10 ? "INV_Misc_Coin_05" : m_coins < 100 ? "INV_Misc_Coin_06" : m_coins < 1000 ? "INV_Misc_Coin_03"
@@ -228,7 +228,7 @@ LPCSTR CGLootInfo::GetLootSlotTexture(UINT slot) {
 
   FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (!m_loot[slot].itemID) {
-    return 0;
+    return NULL;
   }
   const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(m_loot[slot].itemDisplayID);
   if (displayInfo && *displayInfo->m_inventoryIcon) {
@@ -241,12 +241,12 @@ LPCSTR CGLootInfo::GetLootSlotTexture(UINT slot) {
 
 LPCSTR CGLootInfo::GetLootSlotText(UINT slot) {
   if (!m_object) {
-    return 0;
+    return NULL;
   }
   if (m_coins) {
     if (!slot) {
       if (m_coins < 0) {
-        return 0;
+        return NULL;
       }
       char buf[64];
       char coinName[32];
@@ -274,32 +274,32 @@ LPCSTR CGLootInfo::GetLootSlotText(UINT slot) {
 
   FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (!m_loot[slot].itemID) {
-    return 0;
+    return NULL;
   }
   const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
   if (!stats) {
-    return 0;
+    return NULL;
   }
   return stats->m_displayName[0];
 }
 
 LPCSTR CGLootInfo::GetLootSlotLink(UINT slot, char *link, UINT size) {
   if (!m_object) {
-    return 0;
+    return NULL;
   }
   if (m_coins) {
     if (!slot) {
-      return 0;
+      return NULL;
     }
     --slot;
   }
   FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (!m_loot[slot].itemID) {
-    return 0;
+    return NULL;
   }
   const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
   if (!stats) {
-    return 0;
+    return NULL;
   }
   SStrPrintf(link, size, "|Hitem:%d|h[%s]|h", m_loot[slot].itemID, stats->m_displayName[0]);
   return link;
@@ -316,10 +316,10 @@ void CGLootInfo::CoinsCleared() {
   }
 }
 
-int CGLootInfo::LootSlot(UINT slot, int force) {
+BOOL CGLootInfo::LootSlot(UINT slot, int force) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 1;
+    return TRUE;
   }
 
   UINT origSlot = slot;
@@ -334,14 +334,14 @@ int CGLootInfo::LootSlot(UINT slot, int force) {
           CGGameUI::CloseLoot(1, 0);
         }
       }
-      return 1;
+      return TRUE;
     }
     --slot;
   }
 
   FATALASSERT(slot < (sizeof(m_loot) / sizeof(m_loot[0])));
   if (!m_loot[slot].itemID) {
-    return 1;
+    return TRUE;
   }
 
   const ItemStats_C *stats = g_itemDBCache.GetRecord(m_loot[slot].itemID, m_object, 0, 0);
@@ -352,25 +352,25 @@ int CGLootInfo::LootSlot(UINT slot, int force) {
     SndInterfacePlayItemSound(ITEMSOUND_PICKUP, stats->m_displayInfoID);
     player->AutoStoreLootItem(m_loot[slot].slot);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGLootInfo::HasLoot() {
   if (!ClntObjMgrObjectPtr(m_object, __FILE__, __LINE__)) {
-    return 0;
+    return FALSE;
   }
 
   if (m_coins > 0) {
-    return 1;
+    return TRUE;
   }
 
   for (UINT index = 0; index < (sizeof(m_loot) / sizeof(m_loot[0])); ++index) {
     if (m_loot[index].itemID) {
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 void CGLootInfo::LootButtonItemStatsCallback(int id, const DWORDLONG &guid, LPVOID, bool) {

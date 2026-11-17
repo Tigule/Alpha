@@ -45,7 +45,7 @@ SIMPLEFRAMEREGHASH *GetSimpleFrameHash(LPCSTR name, UINT context, int create, in
     if (create) {
       contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
     } else {
-      return 0;
+      return NULL;
     }
   }
 
@@ -73,7 +73,7 @@ SIMPLETEXTUREREGHASH *GetSimpleTextureHash(LPCSTR name, UINT context, int create
     if (create) {
       contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
     } else {
-      return 0;
+      return NULL;
     }
   }
 
@@ -101,7 +101,7 @@ SIMPLEFONTSTRINGREGHASH *GetSimpleFontStringHash(LPCSTR name, UINT context, int 
     if (create) {
       contextHash = s_contextLookup.New(context, s_nullHashKey, 0, 0);
     } else {
-      return 0;
+      return NULL;
     }
   }
 
@@ -126,17 +126,17 @@ BOOL SimpleFrameRegistryAddEntry(LPCSTR name, CSimpleFrame *object, UINT context
   VALIDATE(object);
   VALIDATEEND;
 
-  alreadyExisted = 0;
+  alreadyExisted = FALSE;
   hash = GetSimpleFrameHash(name, context, 1, &alreadyExisted);
   ASSERT(hash);
 
   if (alreadyExisted) {
     SysMsgPrintf(SYSMSG_WARNING, 4, "Warning, trying to add duplicate frame \"%s\" in context %d!", name, context);
-    return 0;
+    return FALSE;
   }
 
   hash->object = object;
-  return 1;
+  return TRUE;
 }
 
 BOOL SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT context) {
@@ -155,11 +155,11 @@ BOOL SimpleTextureRegistryAddEntry(LPCSTR name, CSimpleTexture *object, UINT con
 
   if (alreadyExisted) {
     SysMsgPrintf(SYSMSG_WARNING, 4, "Warning, trying to add duplicate texture \"%s\" in context %d!", name, context);
-    return 0;
+    return FALSE;
   }
 
   hash->object = object;
-  return 1;
+  return TRUE;
 }
 
 BOOL SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UINT context) {
@@ -178,11 +178,11 @@ BOOL SimpleFontStringRegistryAddEntry(LPCSTR name, CSimpleFontString *object, UI
 
   if (alreadyExisted) {
     SysMsgPrintf(SYSMSG_WARNING, 4, "Warning, trying to add duplicate string \"%s\" in context %d!", name, context);
-    return 0;
+    return FALSE;
   }
 
   hash->object = object;
-  return 1;
+  return TRUE;
 }
 
 void SimpleFrameRegistryRemoveEntry(LPCSTR name, UINT context) {

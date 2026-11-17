@@ -216,7 +216,7 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
     HSHEAP          heap;
 
     details.size = sizeof(details);
-    heap = 0;
+    heap = NULL;
 
     while (SMemFindNextHeap(heap, &heap, &details)) {
       memBytesAlloc += details.allocatedbytes;
@@ -315,7 +315,7 @@ static void PaintFunc(LPVOID, const RECTF *, const RECTF *visible, float elapsed
   GxuFontRenderBatch(s_stringBatch);
   for (index = 0; index < 11; ++index) {
     GxuFontDestroyString(s_stringArray[index]);
-    s_stringArray[index] = 0;
+    s_stringArray[index] = NULL;
   }
 
   ActivityEnd(ACTIVITY_PERFDISPLAY);
@@ -326,7 +326,7 @@ void IPerfDestroy() {
     GxuFontDestroyBatch(s_stringBatch);
   }
 
-  s_stringBatch = 0;
+  s_stringBatch = NULL;
   HandleClose((HOBJECT)s_layer);
 }
 
@@ -383,7 +383,7 @@ void WINAPI IPerfHostAddrProc(const NETADDR *addrs, DWORD addrCount, LPVOID user
 }
 
 int WINAPI ChatEventProc(HNETCONN conn, const NETCONNADDR *conAddr, NETNOTE note, LPVOID user, LPCVOID data, DWORD bytes, DWORD *bytesProcessed) {
-  BOOL result = 0;
+  BOOL result = FALSE;
 
   switch (note) {
     case NETNOTE_CONNECT:
@@ -391,7 +391,7 @@ int WINAPI ChatEventProc(HNETCONN conn, const NETCONNADDR *conAddr, NETNOTE note
       s_ProfConn = OsNetConnCopyHandle(conn);
       s_ProfLock.Leave(1);
       s_ProfStartupEvent->Set();
-      result = 1;
+      result = TRUE;
       s_HasProfConn = 1;
       break;
     case NETNOTE_DISCONNECT: {
@@ -408,7 +408,7 @@ int WINAPI ChatEventProc(HNETCONN conn, const NETCONNADDR *conAddr, NETNOTE note
       if (old) {
         OsNetConnFreeHandle(old);
       }
-      result = 1;
+      result = TRUE;
       s_HasProfConn = 0;
       break;
     }
@@ -423,10 +423,10 @@ BOOL IPerfRemoteLoggingIni() {
   SSyncObject *waitObjectPtrs[2] = {s_ProfStartupEvent, s_ProfShutdownEvent};
   s_ProfStartupEvent->Reset();
   if (!OsNetGetHostAddrs(s_hostNameList, 0x17EB, IPerfHostAddrProc, 0)) {
-    return 0;
+    return FALSE;
   }
   if (WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
-    return 0;
+    return FALSE;
   }
 
   WORD  port;
@@ -435,7 +435,7 @@ BOOL IPerfRemoteLoggingIni() {
   s_ProfStartupEvent->Reset();
   OsTcpConnect(address, port, ChatEventProc, 0, &connByte, 1);
   if (WaitMultiplePtr(2, waitObjectPtrs, 0, INFINITE) != 0) {
-    return 0;
+    return FALSE;
   }
 
   s_HasProfServer = 1;
@@ -465,7 +465,7 @@ BOOL IPerfRemoteLoggingIni() {
   }
   s_ProfLock.Leave(0);
   IPerfRemoteQueuePerfLabels();
-  return 1;
+  return TRUE;
 }
 
 void IPerfGetFromBuffer(char *&buf1, long &len1, char *&buf2, long &len2) {
@@ -478,12 +478,12 @@ void IPerfGetFromBuffer(char *&buf1, long &len1, char *&buf2, long &len2) {
   buf1 += 4;
   len1 = recordBytes - 4;
   if (recordBytes <= remain) {
-    buf2 = 0;
+    buf2 = NULL;
     len2 = 0;
   } else if (remain <= 4) {
     ASSERT(remain == 4);
     buf1 = s_ProfRingBuf;
-    buf2 = 0;
+    buf2 = NULL;
     len2 = 0;
   } else {
     len1 = remain - 4;
@@ -555,10 +555,10 @@ BOOL IPerfRemoteSpaceAvail(DWORD size) {
     if (!loggedFull) {
       loggedFull = 1;
     }
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 void IPerfRemoteInitSimpleHdr(SimplePerfHdr *h, DWORD packetSize, WORD id) {
@@ -690,7 +690,7 @@ BOOL IPerfRemoteLoggingStartup() {
     }
     if (!s_hostNameList[0]) {
       SInterlockedDecrement(&s_ProfStartup);
-      return 0;
+      return FALSE;
     }
     OsNetInitialize(0, 3);
     s_ProfRingBuf = (char *)SMemAlloc(0x10000, __FILE__, __LINE__, 0);
@@ -701,10 +701,10 @@ BOOL IPerfRemoteLoggingStartup() {
     s_ProfThreadPtr = NEW(SThread)();
     SThread::Create(IPerfRemoteLoggingThread, 0, *s_ProfThreadPtr, "PerfLog");
   }
-  return 1;
+  return TRUE;
 }
 
-int IPerfRemoteLoggingShutdown() {
+BOOL IPerfRemoteLoggingShutdown() {
   if (s_ProfStartup && !SInterlockedDecrement(&s_ProfStartup)) {
     s_HasProfServer = 0;
     s_HasProfConn = 0;
@@ -714,17 +714,17 @@ int IPerfRemoteLoggingShutdown() {
     s_ProfShutdownEvent->Set();
     WaitMultiplePtr(1, (SSyncObject **)&s_ProfThreadPtr, 1, INFINITE);
     DEL(s_ProfThreadPtr);
-    s_ProfThreadPtr = 0;
+    s_ProfThreadPtr = NULL;
     SMemFree(s_ProfRingBuf, __FILE__, __LINE__, 0);
-    s_ProfRingBuf = 0;
+    s_ProfRingBuf = NULL;
     DEL(s_ProfStartupEvent);
     DEL(s_ProfShutdownEvent);
     DEL(s_ProfRequestEnqueuedEvent);
-    s_ProfStartupEvent = 0;
-    s_ProfShutdownEvent = 0;
-    s_ProfRequestEnqueuedEvent = 0;
+    s_ProfStartupEvent = NULL;
+    s_ProfShutdownEvent = NULL;
+    s_ProfRequestEnqueuedEvent = NULL;
   }
-  return 1;
+  return TRUE;
 }
 
 void ScrnPerfEnable(int enable) {

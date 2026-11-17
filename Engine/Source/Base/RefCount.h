@@ -116,7 +116,7 @@ class TRefCntPtr {
   }
 
   BYTE operator!() const {
-    return m_ptr == 0;
+    return m_ptr == NULL;
   }
 
   operator T *() {

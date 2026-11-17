@@ -47,7 +47,7 @@ void CDetailDoodad::Initialize() {
   doodadList.SetCount(nEntries);
 
   for (i = 0; i < nEntries; ++i) {
-    doodadList[i] = 0;
+    doodadList[i] = NULL;
   }
 
   for (i = 0; i < nEntries; ++i) {
@@ -76,7 +76,7 @@ void CDetailDoodad::Destroy() {
   if (alphaRampTexture) {
     GxTexDestroy(alphaRampTexture);
   }
-  alphaRampTexture = 0;
+  alphaRampTexture = NULL;
 }
 
 void CDetailDoodad::Clear() {
@@ -84,7 +84,7 @@ void CDetailDoodad::Clear() {
     if (doodadList[index]) {
       DEL(doodadList[index]);
     }
-    doodadList[index] = 0;
+    doodadList[index] = NULL;
   }
 
   instList.Clear();
@@ -114,12 +114,12 @@ void CDetailDoodad::FreeInst(CDetailDoodadInst *inst) {
     if (inst->geom[index]) {
       FreeGeom(inst->geom[index]);
     }
-    inst->geom[index] = 0;
+    inst->geom[index] = NULL;
 
     if (inst->gxBuf[index]) {
       FreeGxBuf(inst->gxBuf[index]);
     }
-    inst->gxBuf[index] = 0;
+    inst->gxBuf[index] = NULL;
   }
 }
 
@@ -140,7 +140,7 @@ void CDetailDoodad::FreeGeom(CDetailDoodadGeom *geom) {
   geom->lameAssLink.Unlink();
   geomList.LinkNode(geom, LIST_TAIL, 0);
 
-  geom->texture = 0;
+  geom->texture = NULL;
   geom->vertexList.SetCount(0);
   geom->normalList.SetCount(0);
   geom->tVertexList.SetCount(0);
@@ -257,15 +257,15 @@ void CDetailDoodadGeom::FillGxBufIndex(CGxBufCommand &cmd, CGxBuf *buf) {
 
 CDetailDoodadData::CDetailDoodadData() {
   loaded = 0;
-  texture = 0;
-  geom = 0;
-  fileName = 0;
+  texture = NULL;
+  geom = NULL;
+  fileName = NULL;
 }
 
 CDetailDoodadData::CDetailDoodadData(LPCSTR mdlName) {
   loaded = 0;
-  texture = 0;
-  geom = 0;
+  texture = NULL;
+  geom = NULL;
   fileName = mdlName;
 }
 
@@ -273,12 +273,12 @@ CDetailDoodadData::~CDetailDoodadData() {
   if (texture) {
     HandleClose(texture);
   }
-  texture = 0;
-  fileName = 0;
+  texture = NULL;
+  fileName = NULL;
 
   if (geom) {
     CDetailDoodad::FreeGeom(geom);
-    geom = 0;
+    geom = NULL;
   }
 }
 
@@ -311,21 +311,21 @@ BOOL CDetailDoodadData::Load() {
   }
 
   loaded = 1;
-  return 1;
+  return TRUE;
 }
 
 static BOOL IsBinaryModelFile(char *path) {
   int length = SStrLen(path);
   if (path[length - 1] == 'x' || path[length - 1] == 'X') {
     if (SFile::FileExists(path)) {
-      return 1;
+      return TRUE;
     }
     path[length - 1] = 'l';
   } else if (!SFile::FileExists(path)) {
     path[length - 1] = 'x';
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailDoodadData *detailDoodad) {
@@ -348,7 +348,7 @@ void CDetailDoodadData::MdlReadCallback(BYTE *fileData, UINT fileBytes, CDetailD
   CDetailDoodadGeom *geom = CDetailDoodad::AllocGeom();
   FATALASSERT(geom);
   detailDoodad->geom = geom;
-  geom->texture = 0;
+  geom->texture = NULL;
 
   data = MDLFileBinarySeek(data, fileBytes - (data - fileData), 'SOEG');
   FATALASSERT(data);
@@ -412,7 +412,7 @@ void CDetailDoodadData::MdlReadCallback(const MDLDATA &data, CDetailDoodadData *
   CDetailDoodadGeom *geom = CDetailDoodad::AllocGeom();
   FATALASSERT(geom);
   detailDoodad->geom = geom;
-  geom->texture = 0;
+  geom->texture = NULL;
 
   UINT nVertices = data.geosets[0].vertices.Count();
 
@@ -433,8 +433,8 @@ void CDetailDoodadData::MdlReadCallback(const MDLDATA &data, CDetailDoodadData *
 }
 
 CDetailDoodadInst::CDetailDoodadInst() {
-  geom[0] = geom[1] = 0;
-  gxBuf[0] = gxBuf[1] = 0;
+  geom[0] = geom[1] = NULL;
+  gxBuf[0] = gxBuf[1] = NULL;
 }
 
 CDetailDoodadInst::~CDetailDoodadInst() {
@@ -442,12 +442,12 @@ CDetailDoodadInst::~CDetailDoodadInst() {
     if (geom[index]) {
       CDetailDoodad::FreeGeom(geom[index]);
     }
-    geom[index] = 0;
+    geom[index] = NULL;
 
     if (gxBuf[index]) {
       CDetailDoodad::FreeGxBuf(gxBuf[index]);
     }
-    gxBuf[index] = 0;
+    gxBuf[index] = NULL;
   }
 }
 
@@ -456,7 +456,7 @@ void CDetailDoodadInst::FreeBufs() {
     if (gxBuf[index]) {
       CDetailDoodad::FreeGxBuf(gxBuf[index]);
     }
-    gxBuf[index] = 0;
+    gxBuf[index] = NULL;
   }
 }
 

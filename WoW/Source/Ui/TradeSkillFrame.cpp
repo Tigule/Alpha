@@ -299,8 +299,8 @@ static int __cdecl QSortSubClasses(LPCVOID a, LPCVOID b) {
   TradeSkillSubClassInfo *info1 = *(TradeSkillSubClassInfo *const *)a;
   TradeSkillSubClassInfo *info2 = *(TradeSkillSubClassInfo *const *)b;
   if (info1->classID == info2->classID) {
-    const ItemSubClassRec *rec1 = 0;
-    const ItemSubClassRec *rec2 = 0;
+    const ItemSubClassRec *rec1 = NULL;
+    const ItemSubClassRec *rec2 = NULL;
     for (UINT i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
       const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);
       if (rec->m_classID == info1->classID && rec->m_subClassID == info1->subClassID) {
@@ -528,7 +528,7 @@ BOOL CGTradeSkillInfo::IsCollpasedHeader(UINT index) {
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void CGTradeSkillInfo::SetSubClassFilter(int filter) {
@@ -742,7 +742,7 @@ static int Script_GetTradeSkillItemStats(lua_State *L) {
     ++count;
   }
 
-  subClass = 0;
+  subClass = NULL;
   int i;
   for (i = 0; i < g_itemSubClassDB.GetNumRecords(); ++i) {
     const ItemSubClassRec *rec = g_itemSubClassDB.GetRecordByIndex(i);

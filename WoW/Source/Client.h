@@ -10,7 +10,7 @@
 
 class CWOWClientStatus : public CStatus {
  public:
-  CWOWClientStatus(LPCSTR logFile) : m_logFile(0) {
+  CWOWClientStatus(LPCSTR logFile) : m_logFile(NULL) {
     if (logFile[0] && !SLogCreate(logFile, 0, &m_logFile)) {
       SysMsgPrintf(SYSMSG_WARNING, "Error, cannot create WOWClient log file \"%s\"!", logFile);
     }

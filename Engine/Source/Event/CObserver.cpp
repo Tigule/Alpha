@@ -68,7 +68,7 @@ void CObserver::ClearRegistry() {
 
   if (deleteRegistry) {
     DEL(m_pEventRegistry);
-    m_pEventRegistry = 0;
+    m_pEventRegistry = NULL;
   }
 }
 
@@ -83,7 +83,7 @@ EventRegistry *CObserver::GetRegistry(int create) {
 EventReg *CObserver::GetEventReg(UINT eventId, int create) {
   EventRegistry *registry = GetRegistry(create);
   if (!registry) {
-    return 0;
+    return NULL;
   }
 
   EventReg *reg = registry->Ptr(eventId, s_eventRegistryKey);
@@ -100,7 +100,7 @@ BOOL CObserver::DispatchEvent(CEvent &event) {
 BOOL CObserver::DispatchEvent(int id, CEvent &event) {
   EventReg *reg = GetEventReg(id, 0);
   if (!reg) {
-    return 0;
+    return FALSE;
   }
 
   IncrRef();
@@ -162,13 +162,13 @@ void CObserver::UnregisterEvent(UINT id, CObserver *pObserver) {
 }
 
 BOOL CObserver::IsEventRegistered(UINT id) {
-  return GetEventReg(id, 0) != 0;
+  return GetEventReg(id, 0) != NULL;
 }
 
 BOOL CObserver::IsEventRegisteredBy(UINT id, CObserver *pObserver) {
   EventReg *reg = GetEventReg(id, 0);
   if (!reg) {
-    return 0;
+    return FALSE;
   }
 
   return reg->IsEventRegistered(pObserver);
@@ -238,7 +238,7 @@ void EventReg::RegisterEvent(int expectedEventId, CObserver *pObserver) {
 void EventReg::UnregisterCallback(EVENTCALLBACK callback) {
   SAFEITERATELIST(EVENTCALLBACKREG, callbackList, pCallbackReg) {
     if (pCallbackReg->callback == callback || !callback) {
-      pCallbackReg->callback = 0;
+      pCallbackReg->callback = NULL;
       if (Locked()) {
         MarkChanged();
       } else {
@@ -286,19 +286,19 @@ void EventReg::CleanupEvents() {
 BOOL EventReg::IsCallbackRegistered(EVENTCALLBACK callback) const {
   CONSTITERATELIST(EVENTCALLBACKREG, callbackList, entry) {
     if (entry->callback == callback) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL EventReg::IsEventRegistered(CObserver *pObserver) const {
   CONSTITERATELIST(EVENTDISPATCHREG, dispatchList, entry) {
     if (entry->pObserver == pObserver) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL EventReg::DispatchCallback(CEvent &event) {

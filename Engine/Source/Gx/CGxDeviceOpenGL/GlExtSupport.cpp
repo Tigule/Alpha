@@ -171,18 +171,18 @@ void BindGlExtensions() {
 #endif
   glExtTextureLodBias = FindGlExt("GL_EXT_texture_lod_bias");
 
-  LPCSTR compressedTexImageProcName = 0;
-  LPCSTR compressedTexSubImageProcName = 0;
+  LPCSTR compressedTexImageProcName = NULL;
+  LPCSTR compressedTexSubImageProcName = NULL;
   if (FindGlExt("GL_ARB_texture_compression")) {
     compressedTexImageProcName = "glCompressedTexImage2DARB";
     compressedTexSubImageProcName = "glCompressedTexSubImage2DARB";
-    glExtTextureCompression = 1;
+    glExtTextureCompression = TRUE;
   }
 #ifndef __APPLE__
   else if (FindGlExt("GL_EXT_texture_compression")) {
     compressedTexImageProcName = "glCompressedTexImage2DEXT";
     compressedTexSubImageProcName = "glCompressedTexSubImage2DEXT";
-    glExtTextureCompression = 1;
+    glExtTextureCompression = TRUE;
   }
 #endif
   glExtTextureCompressionS3tc = FindGlExt("GL_EXT_texture_compression_s3tc");
@@ -193,8 +193,8 @@ void BindGlExtensions() {
         (void(APIENTRY *)(UINT, int, int, int, int, int, UINT, int, LPCVOID))wglGetProcAddress(compressedTexSubImageProcName);
   }
   if (!glCompressedTexImage2DARB || !glCompressedTexSubImage2DARB) {
-    glExtTextureCompression = 0;
-    glExtTextureCompressionS3tc = 0;
+    glExtTextureCompression = FALSE;
+    glExtTextureCompressionS3tc = FALSE;
   }
 #ifdef __APPLE__
   glSGISTextureLod = FindGlExt("GL_SGIS_texture_lod") && glExtTextureCompression && glExtTextureCompressionS3tc;
@@ -202,10 +202,10 @@ void BindGlExtensions() {
 
 #ifndef __APPLE__
   if (FindGlExt("GL_SGIS_generate_mipmap")) {
-    glSGISGenerateMipmap = 1;
+    glSGISGenerateMipmap = TRUE;
   }
   if (FindGlExt("GL_EXT_texture_filter_anisotropic")) {
-    glExtTextureFilterAnisotropic = 1;
+    glExtTextureFilterAnisotropic = TRUE;
   }
 #endif
 
@@ -231,16 +231,16 @@ void BindGlExtensions() {
 
   if (FindGlExt("GL_EXT_draw_range_elements")) {
     int maxVerts;
-    glExtDrawRangeElements = 1;
+    glExtDrawRangeElements = TRUE;
     glDrawRangeElementsEXT = (void(APIENTRY *)(UINT, UINT, UINT, int, UINT, LPCVOID))wglGetProcAddress("glDrawRangeElementsEXT");
     glGetIntegerv(0x80E8, &maxVerts);
     glGetIntegerv(0x80E9, &maxIdxs);
   }
 
 #ifndef __APPLE__
-  glSGISTextureLod = 0;
+  glSGISTextureLod = FALSE;
   if (FindGlExt("GL_NV_register_combiners")) {
-    glNVRegisterCombiners = 1;
+    glNVRegisterCombiners = TRUE;
     glCombinerInputNV = (void(APIENTRY *)(UINT, UINT, UINT, UINT, UINT, UINT))wglGetProcAddress("glCombinerInputNV");
     glCombinerOutputNV =
         (void(APIENTRY *)(UINT, UINT, UINT, UINT, UINT, UINT, UINT, BYTE, BYTE, BYTE))wglGetProcAddress("glCombinerOutputNV");
@@ -250,24 +250,24 @@ void BindGlExtensions() {
   }
 #endif
   if (FindGlExt("GL_NV_register_combiners2")) {
-    glNVRegisterCombiners2 = 1;
+    glNVRegisterCombiners2 = TRUE;
     glCombinerStageParameterfvNV = (void(APIENTRY *)(UINT, UINT, const float *))wglGetProcAddress("glCombinerStageParameterfvNV");
   }
   if (FindGlExt("GL_NV_texture_shader")) {
-    glNVTextureShader = 1;
+    glNVTextureShader = TRUE;
   }
   if (FindGlExt("GL_NV_texture_shader2")) {
-    glNVTextureShader2 = 1;
+    glNVTextureShader2 = TRUE;
   }
   if (FindGlExt("GL_NV_texture_shader3")) {
-    glNVTextureShader3 = 1;
+    glNVTextureShader3 = TRUE;
   }
   if (FindGlExt("GL_ATI_fragment_shader")) {
-    glATIFragmentShader = 1;
+    glATIFragmentShader = TRUE;
   }
 
   if (FindGlExt("GL_ARB_fragment_program")) {
-    glARBFragmentProgram = 1;
+    glARBFragmentProgram = TRUE;
     glProgramStringARB = (void(APIENTRY *)(UINT, UINT, int, LPCVOID))wglGetProcAddress("glProgramStringARB");
     glBindProgramARB = (void(APIENTRY *)(UINT, UINT))wglGetProcAddress("glBindProgramARB");
     glProgramLocalParameter4fvARB = (void(APIENTRY *)(UINT, UINT, const float *))wglGetProcAddress("glProgramLocalParameter4fvARB");
@@ -278,13 +278,13 @@ void BindGlExtensions() {
 
   wglGetExtensionsStringARB = (WGLGETEXTENSIONSSTRINGARB)wglGetProcAddress("wglGetExtensionsStringARB");
   if (FindWglExt("WGL_ARB_pixel_format")) {
-    wglARBPixelFormat = 1;
+    wglARBPixelFormat = TRUE;
     wglGetPixelFormatAttribivARB = (WGLGETPIXELFORMATATTRIBIVARB)wglGetProcAddress("wglGetPixelFormatAttribivARB");
     wglGetPixelFormatAttribfvARB = (WGLGETPIXELFORMATATTRIBFVARB)wglGetProcAddress("wglGetPixelFormatAttribfvARB");
     wglChoosePixelFormatARB = (WGLCHOOSEPIXELFORMATARB)wglGetProcAddress("wglChoosePixelFormatARB");
   }
   if (FindWglExt("WGL_ARB_pbuffer")) {
-    wglARBPbuffer = 1;
+    wglARBPbuffer = TRUE;
     wglCreatePbufferARB = (HPBUFFERARB(APIENTRY *)(HDC, int, int, int, const int *))wglGetProcAddress("wglCreatePbufferARB");
     wglGetPbufferDCARB = (HDC(APIENTRY *)(HPBUFFERARB))wglGetProcAddress("wglGetPbufferDCARB");
     wglReleasePbufferDCARB = (int(APIENTRY *)(HPBUFFERARB, HDC))wglGetProcAddress("wglReleasePbufferDCARB");
@@ -292,14 +292,14 @@ void BindGlExtensions() {
     wglQueryPbufferARB = (int(APIENTRY *)(HPBUFFERARB, int, int *))wglGetProcAddress("wglQueryPbufferARB");
   }
   if (FindWglExt("WGL_EXT_swap_control")) {
-    wglEXTSwapControl = 1;
+    wglEXTSwapControl = TRUE;
     wglSwapIntervalEXT = (int(APIENTRY *)(int))wglGetProcAddress("wglSwapIntervalEXT");
   }
 }
 
 void UnbindGlExtensions() {
-  s_glExts = 0;
-  s_wglExts = 0;
+  s_glExts = NULL;
+  s_wglExts = NULL;
 }
 
 static bool ScanString(LPCSTR string, LPCSTR ext) {

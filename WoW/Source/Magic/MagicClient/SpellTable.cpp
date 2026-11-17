@@ -93,7 +93,7 @@ const SkillLineAbilityRec *SkillLineTable::Lookup(UINT raceID, UINT classID, UIN
     return m_abilities[index][spellID];
   }
 
-  return 0;
+  return NULL;
 }
 
 const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, UINT spellID) {
@@ -103,7 +103,7 @@ const SkillLineAbilityRec *SkillLineTable::LookupPet(int skillLineID, UINT spell
       return ability;
     }
   }
-  return 0;
+  return NULL;
 }
 
 void SpellTableInitialize() {
@@ -116,13 +116,13 @@ void SpellTableInitialize() {
 void SpellTableDestroy() {
   if (s_skillLineTable) {
     delete s_skillLineTable;
-    s_skillLineTable = 0;
+    s_skillLineTable = NULL;
   }
 }
 
 const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UINT spellID) {
   if (!s_skillLineTable) {
-    return 0;
+    return NULL;
   }
 
   return s_skillLineTable->Lookup(raceID, classID, spellID);
@@ -130,7 +130,7 @@ const SkillLineAbilityRec *SpellTableLookupAbility(UINT raceID, UINT classID, UI
 
 const SkillLineAbilityRec *SpellTableLookupPetAbility(int skillLineID, UINT spellID) {
   if (!s_skillLineTable) {
-    return 0;
+    return NULL;
   }
 
   return s_skillLineTable->LookupPet(skillLineID, spellID);

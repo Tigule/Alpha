@@ -20,7 +20,7 @@ void Initialize();
 }
 
 int   CommonMain();
-int   OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
+BOOL  OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
 void  OsLaunchURLSetCallback(void (*callback)());
 void  SErrMacSetAssertOptions(DWORD options);
 DWORD SErrMacGetAssertOptions();
@@ -63,13 +63,13 @@ void MacClient::SetupCommandLine(int argc, char **argv) {
       count = 0;
       s_argv[count++] = argv[0];
 
-      while (count < 20 && (token = strsep(&cursor, " \t\r\n")) != 0) {
+      while (count < 20 && (token = strsep(&cursor, " \t\r\n")) != NULL) {
         if (*token) {
           s_argv[count++] = token;
         }
       }
 
-      s_argv[count] = 0;
+      s_argv[count] = NULL;
       argv = s_argv;
     } else {
       NSLog(@"command line file not found!\n");

@@ -148,7 +148,7 @@ static BOOL CCommand_Trade(LPCSTR command, LPCSTR arguments) {
   if (player) {
     Trade_C_InitiateTrade(player->GetLocalTarget(), 0);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
@@ -158,18 +158,18 @@ static BOOL CCommand_AddTradeItem(LPCSTR command, LPCSTR arguments) {
   CGGameUI::GetCursorItem(cursorItem, cursorItemContainer, cursorItemSlot);
   BYTE tradeSlot = arguments && *arguments ? SStrToInt(arguments) : 0;
   Trade_C_AddItem(cursorItem, cursorItemContainer, cursorItemSlot, tradeSlot);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ClearTradeItem(LPCSTR command, LPCSTR arguments) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 1;
+    return TRUE;
   }
 
   BYTE tradeSlot = arguments && *arguments ? SStrToInt(arguments) : 0;
   Trade_C_RemoveItem(tradeSlot);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
@@ -180,21 +180,21 @@ static BOOL CCommand_ClearTrade(LPCSTR command, LPCSTR arguments) {
     msg.Finalize();
     ClientServices_Send(&msg);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_AcceptTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_AcceptTrade();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_CancelTrade(LPCSTR command, LPCSTR arguments) {
   if (ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__)) {
     Trade_C_CancelTrade();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ShowTrade(LPCSTR, LPCSTR) {
@@ -208,7 +208,7 @@ static BOOL CCommand_ShowTrade(LPCSTR, LPCSTR) {
       ConsolePrintf("%d: item=%d, display=%d", slot, s_tradeItems[player][slot].entryID, s_tradeItems[player][slot].displayID);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
@@ -218,12 +218,12 @@ static BOOL CCommand_TradeGold(LPCSTR, LPCSTR arguments) {
   msg.Put(gold);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_UnacceptTrade(LPCSTR, LPCSTR) {
   Trade_C_UnacceptTrade();
-  return 1;
+  return TRUE;
 }
 
 static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
@@ -233,7 +233,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
   BAG_RESULT   bagResult = BAG_OK;
   BYTE         failureForMe = 0;
   int          itemID = 0;
-  LPCSTR       message = 0;
+  LPCSTR       message = NULL;
   char         buf[256];
   char         msgbuf[100];
   DWORDLONG    guid;
@@ -248,7 +248,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
       break;
     case 15: {
       CGUnit_C *partner = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(s_tradePartner, __FILE__, __LINE__));
-      message = 0;
+      message = NULL;
       if (partner) {
         SStrPrintf(msgbuf, sizeof(msgbuf), FrameScript_GetText("ERR_IGNORING_YOU_S", -1, GENDER_NOT_APPLICABLE), partner->GetUnitName());
         message = msgbuf;
@@ -362,7 +362,7 @@ static BOOL TradeStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *netmsg) {
   if (message) {
     ConsoleWriteA(message, DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -390,7 +390,7 @@ static BOOL TradeExtendedStatusHandler(LPVOID, NETMESSAGE, DWORD, CDataStore *ms
   char buf[128];
   SStrCopy(buf, FrameScript_GetText("TRADE_ITEMS_MODIFIED", -1, GENDER_NOT_APPLICABLE), sizeof(buf));
   ConsoleWriteA(buf, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 DWORDLONG Trade_C_GetTradeTarget() {
@@ -409,9 +409,9 @@ BOOL Trade_C_GetProposedEnchantment(UINT player, int &spellID, int &slot) {
   if (s_tradeProposedEnchantment[player] > 0) {
     spellID = s_tradeProposedEnchantment[player];
     slot = s_tradeProposedEnchantmentSlot[player];
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 static void TradeNameCallback(int id, const DWORDLONG &guid, LPVOID, bool granted) {

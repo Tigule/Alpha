@@ -120,9 +120,9 @@ void UnitSoundInitialize() {
 BOOL CheckUnitSoundTimer(UNITSOUNDTYPE soundType) {
   FATALASSERT(soundType < NUM_UNITSOUNDTYPES);
   DWORD currentTime = OsGetAsyncTimeMs();
-  BOOL  canPlay = 0;
+  BOOL  canPlay = FALSE;
   if ((LONG)(currentTime - s_unitSoundTimers[soundType]) > 0) {
-    canPlay = 1;
+    canPlay = TRUE;
   }
   s_unitSoundTimers[soundType] = currentTime + s_unitSoundTimeouts[soundType];
   return canPlay;
@@ -257,7 +257,7 @@ void CGUnit_C::KillSpellLoopedSound() {
   if (m_spellLoopedSound) {
     SndInterfaceAssociateSoundWithObject(m_spellLoopedSound, 0);
     m_spellLoopedSound->Stop(1.5f);
-    m_spellLoopedSound = 0;
+    m_spellLoopedSound = NULL;
   }
 }
 
@@ -265,7 +265,7 @@ void CGUnit_C::KillCreatureLoopSound() {
   if (m_creatureLoopSound) {
     SndInterfaceAssociateSoundWithObject(m_creatureLoopSound, 0);
     m_creatureLoopSound->Stop(1.5f);
-    m_creatureLoopSound = 0;
+    m_creatureLoopSound = NULL;
   }
 }
 
@@ -307,7 +307,7 @@ bool CGUnit_C::GetWeaponSwingType(bool mainHand, WEAPONSWING_SOUNDTYPES &type) {
   if (subClass) {
     type = (WEAPONSWING_SOUNDTYPES)subClass->m_WeaponSwingSize;
   }
-  return subClass != 0;
+  return subClass != NULL;
 }
 
 UINT CGUnit_C::GetImpactType() const {

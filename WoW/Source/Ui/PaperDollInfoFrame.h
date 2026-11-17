@@ -38,7 +38,7 @@ class CGCharacterInfo {
   static int GetNumProficiencies() {
     return max(0, (int)(m_specialOffset - m_profOffset - 1));
   }
-  static int              GetSkillOffsetFromString(LPCSTR string, int &offset);
+  static BOOL             GetSkillOffsetFromString(LPCSTR string, int &offset);
   static const SkillInfo *GetSkillInfoByIndex(int index);
 
  protected:

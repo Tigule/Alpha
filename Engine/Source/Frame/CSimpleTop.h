@@ -91,7 +91,7 @@ class CSimpleSortedArray {
 
   T *IterateNext() {
     if (m_iterator >= m_count) {
-      return 0;
+      return NULL;
     }
 
     return &m_array[m_iterator++];
@@ -141,7 +141,7 @@ class CSimpleTop : public CLayoutFrame {
 
   void UnregisterForMouseButton(int (*callback)(const CMouseEvent &)) {
     ASSERT(m_mouseButtonCallback == callback);
-    m_mouseButtonCallback = 0;
+    m_mouseButtonCallback = NULL;
   }
 
   void RegisterForDisplaySize(int (*callback)(const CSizeEvent &)) {
@@ -151,7 +151,7 @@ class CSimpleTop : public CLayoutFrame {
 
   void UnregisterForDisplaySize(int (*callback)(const CSizeEvent &)) {
     ASSERT(m_displaySizeCallback == callback);
-    m_displaySizeCallback = 0;
+    m_displaySizeCallback = NULL;
   }
 
   void SetCursor(HMODEL cursor);
@@ -185,7 +185,7 @@ class CSimpleTop : public CLayoutFrame {
   }
 
   BOOL IsMovingOrResizing() {
-    return m_layout.frame != 0;
+    return m_layout.frame != NULL;
   }
 
   BOOL  StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize);

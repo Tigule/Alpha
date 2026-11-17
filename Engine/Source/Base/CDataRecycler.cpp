@@ -4,7 +4,7 @@
 #include "CDataRecycler.h"
 #include <stdio.h>
 
-CDataRecycler::CDataRecycler(UINT nodesPerBlock, LONG maxNodes) : m_nodeBlockList(0), m_nodeFullList(0), m_nodeEmptyList(0) {
+CDataRecycler::CDataRecycler(UINT nodesPerBlock, LONG maxNodes) : m_nodeBlockList(NULL), m_nodeFullList(NULL), m_nodeEmptyList(NULL) {
   m_nodesRecyclable = max(maxNodes, 1);
   m_nodesPerBlock = max(nodesPerBlock, 1);
   m_nodesPerBlock = min(m_nodesPerBlock, m_nodesRecyclable);
@@ -17,12 +17,12 @@ void CDataRecycler::Clear() {
   Node      *node;
   NodeBlock *nodeBlock;
 
-  while ((node = Unlink(&m_nodeFullList)) != 0) {
+  while ((node = Unlink(&m_nodeFullList)) != NULL) {
     FreeData(node->m_data, 0, 0);
   }
 
-  m_nodeEmptyList = 0;
-  while ((nodeBlock = Unlink(&m_nodeBlockList)) != 0) {
+  m_nodeEmptyList = NULL;
+  while ((nodeBlock = Unlink(&m_nodeBlockList)) != NULL) {
     DEL(nodeBlock);
   }
 }
@@ -36,7 +36,7 @@ void CDataRecycler::GetData(LPVOID &data, DWORD &bytes, LPCSTR fileName, int lin
     bytes = node->m_bytes;
     Link(&m_nodeEmptyList, node);
   } else {
-    data = 0;
+    data = NULL;
     bytes = 0;
   }
 }
@@ -50,7 +50,7 @@ void CDataRecycler::PutData(LPVOID data, DWORD bytes, LPCSTR fileName, int lineN
     return;
   }
 
-  while ((node = Unlink(&m_nodeEmptyList)) == 0) {
+  while ((node = Unlink(&m_nodeEmptyList)) == NULL) {
     NodeBlock *nodeBlock = (NodeBlock *)ALLOC(sizeof(NodeBlock *) + m_nodesPerBlock * sizeof(Node));
 
     Link(&m_nodeBlockList, nodeBlock);
@@ -94,7 +94,7 @@ void CDataRecycler::Link(LPVOID *list, LPVOID item, int nextOffset) {
 LPVOID CDataRecycler::Unlink(LPVOID *list, int nextOffset) {
   LPVOID head;
 
-  while ((head = *list) != 0) {
+  while ((head = *list) != NULL) {
     if (SInterlockedCompareExchangePointer(list, *(LPVOID *)((char *)head + nextOffset), head) == head) {
       break;
     }

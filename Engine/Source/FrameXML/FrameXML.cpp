@@ -74,7 +74,7 @@ TREENODE::~TREENODE() {
   XMLTree_Free(tree);
 }
 
-static BOOL     GuessNumFiles(LPCSTR string);
+static int      GuessNumFiles(LPCSTR string);
 static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status);
 BOOL            FrameXML_ProcessFile(LPCSTR filename, CStatus *status);
 void            FrameXML_StoreHashNode(const XMLNode *node, LPCSTR name, CStatus *status);
@@ -102,7 +102,7 @@ BOOL FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
 
   if (!SFile::LoadFile(path, &buffer, 0, 1, 0)) {
     status->Add(STATUS_ERROR, "Couldn't open %s", path);
-    return 0;
+    return FALSE;
   }
 
   string = (LPCSTR)buffer;
@@ -153,10 +153,10 @@ BOOL FrameXML_CreateFrames(LPCSTR path, CStatus *status) {
     s_treeList.Clear();
   }
 
-  return 1;
+  return TRUE;
 }
 
-static BOOL GuessNumFiles(LPCSTR string) {
+static int GuessNumFiles(LPCSTR string) {
   LPCSTR line;
   int    count;
 
@@ -188,7 +188,7 @@ BOOL FrameXML_ProcessFile(LPCSTR filename, CStatus *status) {
 
   tree = FrameXML_LoadXML(filename, status);
   if (!tree) {
-    return 0;
+    return FALSE;
   }
 
   s_treeList.NewNode(LIST_TAIL, 0, 0)->tree = tree;
@@ -250,7 +250,7 @@ BOOL FrameXML_ProcessFile(LPCSTR filename, CStatus *status) {
     node = node->GetSibling();
   }
 
-  return 1;
+  return TRUE;
 }
 
 static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status) {
@@ -260,7 +260,7 @@ static XMLTree *FrameXML_LoadXML(LPCSTR filename, CStatus *status) {
 
   if (!SFile::LoadFile(filename, &buffer, &bytes, 0, 0)) {
     status->Add(STATUS_ERROR, "Couldn't open %s", filename);
-    return 0;
+    return NULL;
   }
 
   tree = XMLTree_Load((LPCSTR)buffer, bytes);
@@ -289,7 +289,7 @@ CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CS
   factoryNode = s_frameFactories.Ptr(node->GetName());
   if (!factoryNode) {
     status->Add(STATUS_WARNING, "Unknown frame type: %s", node->GetName());
-    return 0;
+    return NULL;
   }
 
   name = node->GetAttributeByName("parent");
@@ -303,7 +303,7 @@ CSimpleFrame *FrameXML_CreateFrame(const XMLNode *node, CSimpleFrame *parent, CS
   frame = factoryNode->factory(parent);
   if (!frame) {
     status->Add(STATUS_WARNING, "Unable to create frame type: %s", node->GetName());
-    return 0;
+    return NULL;
   }
 
   frame->PreLoadXML(node, status);
@@ -336,7 +336,7 @@ const XMLNode *FrameXML_FindHashNode(LPCSTR name) {
     return hashedNode->node;
   }
 
-  return 0;
+  return NULL;
 }
 
 void FrameXML_ClearFactories() {
@@ -348,12 +348,12 @@ BOOL FrameXML_RegisterFactory(LPCSTR type, FRAMEFACTORY factory) {
 
   if (s_frameFactories.Ptr(type)) {
     ASSERT(!"Frame type is already registered");
-    return 0;
+    return FALSE;
   }
 
   node = s_frameFactories.New(type, 0, 0);
   node->factory = factory;
-  return 1;
+  return TRUE;
 }
 
 CSimpleFrame *Create_SimpleButton(CSimpleFrame *parent) {
@@ -400,7 +400,7 @@ CSimpleFrame *Create_SimpleStatusBar(CSimpleFrame *parent) {
   return new (ALLOC(sizeof(CSimpleStatusBar))) CSimpleStatusBar(parent);
 }
 
-int FrameXML_RegisterDefault() {
+BOOL FrameXML_RegisterDefault() {
   FrameXML_RegisterFactory("Button", Create_SimpleButton);
   FrameXML_RegisterFactory("CheckButton", Create_SimpleCheckButton);
   FrameXML_RegisterFactory("EditBox", Create_SimpleEditBox);
@@ -412,7 +412,7 @@ int FrameXML_RegisterDefault() {
   FrameXML_RegisterFactory("Slider", Create_SimpleSlider);
   FrameXML_RegisterFactory("SimpleHTML", Create_SimpleHTML);
   FrameXML_RegisterFactory("StatusBar", Create_SimpleStatusBar);
-  return 1;
+  return TRUE;
 }
 
 void FrameXML_RegisterLoadProgressCallback(FRAMELOADPROGRESSCALLBACK callback) {

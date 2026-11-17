@@ -28,7 +28,7 @@ HOBJECT HandleDuplicate(HOBJECT handle) {
   CHandleObject *ptr;
 
   if (!handle) {
-    return 0;
+    return NULL;
   }
 
   ptr = HandleDereference(handle);

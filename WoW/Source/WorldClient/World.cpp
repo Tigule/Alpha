@@ -133,7 +133,7 @@ void CWorld::Initialize() {
 
   memset(shadowModColor, 0xFF, sizeof(shadowModColor));
   idMat.Identity();
-  shadowModGxTex = 0;
+  shadowModGxTex = NULL;
 
   GxTexCreate(
       GxTex_2d, 8, 8, 0, GxTex_Argb4444, GxTex_Argb8888, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), shadowModColor, UpdateShadowGxTex,
@@ -190,7 +190,7 @@ void CWorld::Destroy() {
   if (shadowModGxTex) {
     GxTexDestroy(shadowModGxTex);
   }
-  shadowModGxTex = 0;
+  shadowModGxTex = NULL;
 
   delete particulate;
 }
@@ -322,14 +322,14 @@ UINT CWorld::QueryAreaId(float x, float y) {
   return CMap::QueryAreaId(x, y);
 }
 
-int CWorld::QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb) {
+BOOL CWorld::QueryShadow(const NTempest::C3Vector &pos, NTempest::CImVector &argb) {
   if (CMap::QueryShadow(pos)) {
     argb = shadowColor;
-    return 1;
+    return TRUE;
   }
 
   argb = 0x01010101;
-  return 0;
+  return FALSE;
 }
 
 int CWorld::QueryObjectInside(DWORD_PTR hWorldObject) {
@@ -436,13 +436,13 @@ BOOL CWorld::QueryObjectLiquid(DWORD_PTR hWorldObject, UINT &liquid, float &surf
     flowDir = entity->lqDirection;
     liquid = entity->lqWhich;
     deep = entity->flagDeepLiquid;
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
-int CWorld::QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType) {
+BOOL CWorld::QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType) {
   CMapStaticEntity *entity = (CMapStaticEntity *)hWorldObject;
   FATALASSERT(entity);
   FATALASSERT(entity->GetType() & CMapBaseObj::Type_Entity);
@@ -460,7 +460,7 @@ int CWorld::QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType) {
       if (mapObjGroup->GetTris(triData, seg, t, mapObjDef, 8)) {
         SMOPoly *poly = mapObjGroup->GetPoly(triData.GetBatch(0).triIndices[0]);
         groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
-        return 1;
+        return TRUE;
       }
     }
   } else {
@@ -471,14 +471,14 @@ int CWorld::QueryGroundType(DWORD_PTR hWorldObject, UINT &groundType) {
     CMapObj           *mapObj;
     if (CMap::VectorIntersectMapObjs(&p0, &p1, 0, 8, 0x2000, &t, &poly, &mapObj) && poly) {
       groundType = mapObj->GetMaterial(poly->mtlId)->groundType;
-      return 1;
+      return TRUE;
     }
     if (CMap::QueryGroundType(entity->pos, groundType)) {
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 bool CWorld::QueryMountAllowed(DWORD_PTR hWorldObject, bool &allowed) {
@@ -490,7 +490,7 @@ bool CWorld::QueryMountAllowed(DWORD_PTR hWorldObject, bool &allowed) {
     CMapObjDef      *mapObjDef;
     CMapObj         *mapObj;
     CMapObjDefGroup *mapObjDefGroup;
-    CMapObjGroup    *mapObjGroup = 0;
+    CMapObjGroup    *mapObjGroup = NULL;
     FATALASSERT(entity->GetMapObjAndGroup(mapObjDef, mapObj, mapObjDefGroup, mapObjGroup));
     allowed = (mapObjGroup->GetFlags() & 0x8000) != 0;
     return true;
@@ -508,7 +508,7 @@ UINT_PTR CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle,
     FATALASSERT(mapObjDef);
     mapObjDef->param64 = param64;
     link = CMap::AllocBaseObjLink(mapObjDef);
-    link->ref = 0;
+    link->ref = NULL;
     CMap::mapObjDefLinkList.LinkNode(link, LIST_TAIL, 0);
     baseObj = mapObjDef;
     if (bSnap) {
@@ -519,7 +519,7 @@ UINT_PTR CWorld::ObjectCreate(LPCSTR name, NTempest::C3Vector &pos, float angle,
     CMapDoodadDef *doodadDef = CMap::CreateDoodadDef(name, pos, angle, bWait);
     FATALASSERT(doodadDef);
     link = CMap::AllocBaseObjLink(doodadDef);
-    link->ref = 0;
+    link->ref = NULL;
     CMap::doodadDefLinkList.LinkNode(link, LIST_TAIL, 0);
     baseObj = doodadDef;
     if (bSnap) {
@@ -615,7 +615,7 @@ DWORD_PTR CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL hModel, UIN
   CMapEntity *entity = CMap::AllocEntity();
   FATALASSERT(entity);
 
-  entity->model = 0;
+  entity->model = NULL;
   if (hModel) {
     entity->model = (HMODEL)HandleDuplicate(hModel);
   }
@@ -624,7 +624,7 @@ DWORD_PTR CWorld::AddObject(DWORDLONG param64, DWORD param32, HMODEL hModel, UIN
   entity->pos = NTempest::C3Vector(10000000.0f, 10000000.0f, 10000000.0f);
   entity->dirLightScale = 1.0f;
   entity->dirLightScaleTarget = 1.0f;
-  entity->handler = 0;
+  entity->handler = NULL;
   entity->rFrameCount = 0;
   entity->flags = 0;
   entity->flagCollidable = (objFlags & 1) ? 1 : 0;
@@ -639,7 +639,7 @@ DWORD_PTR CWorld::AddDoodad(LPCSTR fileName, HMODEL hModel, const NTempest::C44M
   CMapDoodadDef *doodad = CMap::AllocDoodadDef();
   FATALASSERT(doodad);
 
-  doodad->model = 0;
+  doodad->model = NULL;
   if (hModel) {
     doodad->model = (HMODEL)HandleDuplicate(hModel);
   }
@@ -788,7 +788,7 @@ void CWorld::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempes
     CMap::oldSelectLightParm = baseObj;
     baseObj->SelectLights();
   } else {
-    CMap::oldSelectLightParm = 0;
+    CMap::oldSelectLightParm = NULL;
     GxuLightSelect(worldPos, cameraWorldPos, maxLightsToUse);
   }
 }
@@ -840,7 +840,7 @@ int CWorld::QueryLiquidStatus(const NTempest::C3Vector &point, UINT &liquid, flo
   return CMap::QueryLiquidStatus(point, liquid, surface, waterDir, deep);
 }
 
-int CWorld::QueryLiquidSounds(DWORD_PTR hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
+BOOL CWorld::QueryLiquidSounds(DWORD_PTR hwObject, float radius, int *lbool, NTempest::C3Vector *ldelta) {
   FATALASSERT(lbool);
   FATALASSERT(ldelta);
   FATALASSERT(radius > 0.0f && radius < 16);
@@ -864,7 +864,7 @@ int CWorld::QueryLiquidSounds(DWORD_PTR hwObject, float radius, int *lbool, NTem
   } else {
     CMap::QueryLiquidSounds(entity->pos, radius, lbool, ldelta, ldsquared);
   }
-  return 1;
+  return TRUE;
 }
 
 UINT CWorld::SceneCamLiquidStatus() {
@@ -1094,10 +1094,10 @@ BOOL CWorld::ParticleProjectCallback(const NTempest::C3Segment &seg, float &z) {
 
   if (GetFacet(seg, segT, facet, 0x111)) {
     z = (seg.end.z - seg.start.z) * segT + seg.start.z;
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
@@ -1106,10 +1106,10 @@ BOOL CWorld::AnimBoneProjectCallback(const NTempest::C3Segment &seg, float &z) {
 
   if (GetFacet(seg, segT, facet, 0x111)) {
     z = (seg.end.z - seg.start.z) * segT + seg.start.z;
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
@@ -1121,7 +1121,7 @@ BOOL CWorld::ConsoleCommand_ShowDetailDoodads(LPCSTR, LPCSTR) {
     enables |= Enable_DetailDoodads;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowMapObjBSP(LPCSTR, LPCSTR) {
@@ -1133,7 +1133,7 @@ BOOL CWorld::ConsoleCommand_ShowMapObjBSP(LPCSTR, LPCSTR) {
     enables |= Enable_MapObjBSP;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_DebugBSP(LPCSTR, LPCSTR) {
@@ -1145,7 +1145,7 @@ BOOL CWorld::ConsoleCommand_DebugBSP(LPCSTR, LPCSTR) {
     enables |= Enable_DebugBSP;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowTerrain(LPCSTR, LPCSTR) {
@@ -1157,7 +1157,7 @@ BOOL CWorld::ConsoleCommand_ShowTerrain(LPCSTR, LPCSTR) {
     enables |= Enable_Chunks;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowDoodads(LPCSTR, LPCSTR) {
@@ -1169,7 +1169,7 @@ BOOL CWorld::ConsoleCommand_ShowDoodads(LPCSTR, LPCSTR) {
     enables |= Enable_Doodads;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowAABoxes(LPCSTR, LPCSTR) {
@@ -1181,7 +1181,7 @@ BOOL CWorld::ConsoleCommand_ShowAABoxes(LPCSTR, LPCSTR) {
     enables |= Enable_AABoxes;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowCollision(LPCSTR, LPCSTR) {
@@ -1193,7 +1193,7 @@ BOOL CWorld::ConsoleCommand_ShowCollision(LPCSTR, LPCSTR) {
     enables |= Enable_Collision;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
@@ -1207,7 +1207,7 @@ BOOL CWorld::ConsoleCommand_MaxLOD(LPCSTR, LPCSTR arguments) {
   }
 
   lodMax = maxLod;
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowCull(LPCSTR, LPCSTR) {
@@ -1219,7 +1219,7 @@ BOOL CWorld::ConsoleCommand_ShowCull(LPCSTR, LPCSTR) {
     enables |= Enable_Culling;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments) {
@@ -1239,11 +1239,11 @@ BOOL CWorld::ConsoleCommand_SetShadow(LPCSTR, LPCSTR arguments) {
       (BYTE)(color[3] * 255.0f)
   );
   SetShadowColor(argb);
-  return 1;
+  return TRUE;
 
 shadowColorRangeInvalid:
   ConsoleWrite("Color values must be in range (0.0,1.0).", DEFAULT_COLOR);
-  return 0;
+  return FALSE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowMapObjLight(LPCSTR, LPCSTR) {
@@ -1255,7 +1255,7 @@ BOOL CWorld::ConsoleCommand_ShowMapObjLight(LPCSTR, LPCSTR) {
     enables |= Enable_MapObjLight;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
@@ -1267,7 +1267,7 @@ BOOL CWorld::ConsoleCommand_MapObjLightMode(LPCSTR, LPCSTR) {
     enables |= Enable_VertexLight;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowMapObjTex(LPCSTR, LPCSTR) {
@@ -1279,7 +1279,7 @@ BOOL CWorld::ConsoleCommand_ShowMapObjTex(LPCSTR, LPCSTR) {
     enables |= Enable_MapObjTex;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowCrappyBatches(LPCSTR, LPCSTR) {
@@ -1291,7 +1291,7 @@ BOOL CWorld::ConsoleCommand_ShowCrappyBatches(LPCSTR, LPCSTR) {
     enables |= Enable_CrappyBatches;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowMapObjs(LPCSTR, LPCSTR) {
@@ -1303,7 +1303,7 @@ BOOL CWorld::ConsoleCommand_ShowMapObjs(LPCSTR, LPCSTR) {
     enables |= Enable_MapObjs;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowPortals(LPCSTR, LPCSTR) {
@@ -1315,7 +1315,7 @@ BOOL CWorld::ConsoleCommand_ShowPortals(LPCSTR, LPCSTR) {
     enables |= Enable_Portals;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_PortalVis(LPCSTR, LPCSTR) {
@@ -1327,7 +1327,7 @@ BOOL CWorld::ConsoleCommand_PortalVis(LPCSTR, LPCSTR) {
     enables |= Enable_PortalVis;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_WaterShow(LPCSTR, LPCSTR) {
@@ -1339,34 +1339,34 @@ BOOL CWorld::ConsoleCommand_WaterShow(LPCSTR, LPCSTR) {
     enables |= Enable_Water;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_WaterMaxLOD(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterMaxLOD);
   if (CMapArea::ccWaterMaxLOD > 4) {
     CMapArea::ccWaterMaxLOD = 4;
-    return 1;
+    return TRUE;
   }
   if (CMapArea::ccWaterMaxLOD < 0) {
     CMapArea::ccWaterMaxLOD = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_WaterWaves(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterWaves);
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_WaterSpecular(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterSpecular);
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_WaterRipples(LPCSTR, LPCSTR arguments) {
   sscanf(arguments, "%d", &CMapArea::ccWaterRipples);
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
@@ -1378,12 +1378,12 @@ BOOL CWorld::ConsoleCommand_WaterParticulates(LPCSTR, LPCSTR) {
     enables |= Enable_Particulates;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_Proj(LPCSTR, LPCSTR) {
   GxMasterEnableSet(GxMasterEnable_NormalProjection, !GxMasterEnable(GxMasterEnable_NormalProjection));
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowTris(LPCSTR, LPCSTR) {
@@ -1393,7 +1393,7 @@ BOOL CWorld::ConsoleCommand_ShowTris(LPCSTR, LPCSTR) {
     enables |= Enable_ShowTris;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowNormals(LPCSTR, LPCSTR) {
@@ -1403,7 +1403,7 @@ BOOL CWorld::ConsoleCommand_ShowNormals(LPCSTR, LPCSTR) {
     enables |= Enable_ShowNormals;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments) {
@@ -1423,7 +1423,7 @@ BOOL CWorld::ConsoleCommand_DebugZones(LPCSTR command, LPCSTR arguments) {
   msg.Put(on);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowQuery(LPCSTR, LPCSTR) {
@@ -1435,7 +1435,7 @@ BOOL CWorld::ConsoleCommand_ShowQuery(LPCSTR, LPCSTR) {
     enables |= Enable_ShowQuery;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_DetailDoodadTest(LPCSTR, LPCSTR) {
@@ -1447,7 +1447,7 @@ BOOL CWorld::ConsoleCommand_DetailDoodadTest(LPCSTR, LPCSTR) {
     detailDoodadTest = 1;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
@@ -1459,7 +1459,7 @@ BOOL CWorld::ConsoleCommand_DetailDoodadAlpha(LPCSTR, LPCSTR arguments) {
   } else {
     detailDoodadAlphaRef = alphaRef;
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_GroupOnly(LPCSTR, LPCSTR) {
@@ -1471,7 +1471,7 @@ BOOL CWorld::ConsoleCommand_GroupOnly(LPCSTR, LPCSTR) {
     ConsoleWrite("Rendering all visible groups (standard)", DEFAULT_COLOR);
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowShadow(LPCSTR, LPCSTR) {
@@ -1483,7 +1483,7 @@ BOOL CWorld::ConsoleCommand_ShowShadow(LPCSTR, LPCSTR) {
     enables |= Enable_Shadow;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowLowDetail(LPCSTR, LPCSTR) {
@@ -1495,7 +1495,7 @@ BOOL CWorld::ConsoleCommand_ShowLowDetail(LPCSTR, LPCSTR) {
     enables |= Enable_LowDetail;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_ShowSimpleDoodads(LPCSTR, LPCSTR) {
@@ -1507,7 +1507,7 @@ BOOL CWorld::ConsoleCommand_ShowSimpleDoodads(LPCSTR, LPCSTR) {
     bShowSimpleDoodads = 1;
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
@@ -1517,7 +1517,7 @@ BOOL CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
 
   if (!*name) {
     ConsoleWrite("Must specify log file name.", DEFAULT_COLOR);
-    return 0;
+    return FALSE;
   }
 
   OsGetTimeStamp(timeStamp, sizeof(timeStamp));
@@ -1526,7 +1526,7 @@ BOOL CWorld::ConsoleCommand_EnumTextures(LPCSTR, LPCSTR name) {
   TextureLogTextures(log);
   SLogWrite(log, "Terrain Texture in Mbytes:\t\t%.2f", (float)CMap::GetTextureUseage() / 1048576.0f);
   SLogClose(log);
-  return 1;
+  return TRUE;
 }
 
 BOOL CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
@@ -1536,7 +1536,7 @@ BOOL CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
 
   if (!*name) {
     ConsoleWrite("Must specify log file name.", DEFAULT_COLOR);
-    return 0;
+    return FALSE;
   }
 
   OsGetTimeStamp(timeStamp, sizeof(timeStamp));
@@ -1544,5 +1544,5 @@ BOOL CWorld::ConsoleCommand_EnumTextureGxCache(LPCSTR, LPCSTR name) {
   SLogCreate(buffer, 1, &log);
   TextureLogGxCache(log);
   SLogClose(log);
-  return 1;
+  return TRUE;
 }

@@ -361,7 +361,7 @@ class CMapObjGroup {
     return bLoaded;
   }
   bool IsLoading() {
-    return asyncObject != 0;
+    return asyncObject != NULL;
   }
   void SetFlushTime(float time) {
     flushTime = time;
@@ -530,7 +530,7 @@ class CMapObj : public TSHashObject<CMapObj, HASHKEY_NONE> {
     return bLoaded;
   }
   bool IsLoading() {
-    return asyncObject != 0;
+    return asyncObject != NULL;
   }
   LPCSTR GetFileName() {
     return name;

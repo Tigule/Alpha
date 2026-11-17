@@ -215,7 +215,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   static void       SetActive(const CGPlayer_C *playerPtr);
   static void       TogglePlayerBounds();
   static UINT       GetProficiency(BYTE type);
-  int               SwapInventorySlots(int slotA, int slotB);
+  BOOL              SwapInventorySlots(int slotA, int slotB);
   BOOL              ReportBagItemSubtypeMismatch(BYTE bagSlot) const;
   BOOL              OnTerrainClick(const CTerrainClickEvent &);
   void              OnUnitDeath(DWORDLONG guid);
@@ -257,7 +257,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   BYTE              FindSlotIndex(DWORDLONG obj);
   void              ClearPendingEquip(UINT index, int equip);
   BOOL              HasEquipped(int classID, int subclassID);
-  int               LootUnit(CGUnit_C *unit);
+  BOOL              LootUnit(CGUnit_C *unit);
   BOOL              OnLootResponse(UINT eventTime, CDataStore *msg);
   BOOL              OnLootReleaseResponse(CDataStore *msg);
   BOOL              OnLootRemoved(CDataStore *msg);
@@ -278,7 +278,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   BOOL              CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason);
   BOOL              InviteToGroup(DWORDLONG target);
   void              InviteToGroup(LPCSTR target);
-  int               Uninvite(DWORDLONG target);
+  BOOL              Uninvite(DWORDLONG target);
   void              Uninvite(LPCSTR target);
   BOOL              SetNewLeader(DWORDLONG target);
   void              SetNewLeader(LPCSTR target);
@@ -476,7 +476,7 @@ class CGPlayer_C : public CGUnit_C, public CGPlayer {
   virtual void                   PreAnimate(CGWorldFrame *worldFrame);
   void                           OnTaxiNodeStatus(CDataStore *msg);
   void                           ShowTaxiNodes(CDataStore *msg);
-  int                            QueryTaxiNodes(const DWORDLONG &unit);
+  BOOL                           QueryTaxiNodes(const DWORDLONG &unit);
   void                           StartTaxi(DWORDLONG vendor, UINT startNode, UINT destNode);
   void                           HandleActivateTaxiReply(UINT code);
   bool                           CanTrack(const CGUnit_C *unit);
@@ -570,7 +570,7 @@ class CreatureModelDataRec;
 
 const CreatureModelDataRec *Player_C_GetModelName(UINT race, UINT sex);
 UINT                        Player_C_GetDisplayId(UINT race, UINT sex);
-int                         Player_C_AppFocusMovementHandler(int focus);
+BOOL                        Player_C_AppFocusMovementHandler(int focus);
 BOOL                        Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg);
 int                         Player_C_SetPlayerRender(int enable);
 void                        Player_C_ClearGuildIDs();

@@ -426,7 +426,7 @@ BOOL CGCraftInfo::IsCollpasedHeader(UINT index) {
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void CGCraftInfo::SetCollapseFilter(int filter) {

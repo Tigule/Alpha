@@ -1,7 +1,7 @@
 #include <storm.h>
 
-int WowLogInitialize() {
-  return 1;
+BOOL WowLogInitialize() {
+  return TRUE;
 }
 
 void WowLogDestroy() {

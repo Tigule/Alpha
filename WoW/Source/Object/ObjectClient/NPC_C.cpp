@@ -52,14 +52,14 @@ static BOOL NPCResponseHandler(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataS
     s_npcGUID = npcGUID;
     CGObject_C *object = ClntObjMgrObjectPtr(npcGUID, __FILE__, __LINE__);
     if (!object || !object->IsA(ID_UNIT)) {
-      return 0;
+      return FALSE;
     }
     CGUnit_C *unit = (CGUnit_C *)object;
     if (!unit->IsNPC()) {
       SysMsgPrintf(SYSMSG_ERROR, 2, "UNITNOTNPC|%d|0x%016I64X", unit->GetEntryID(), s_npcGUID);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void NPC_C_Initialize() {

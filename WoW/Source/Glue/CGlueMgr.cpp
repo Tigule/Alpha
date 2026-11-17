@@ -117,7 +117,7 @@ void CGlueMgr::Resume() {
   m_disconnectPending = 0;
   m_reconnect = 0;
   m_idleState = IDLE_NONE;
-  m_characterInfo = 0;
+  m_characterInfo = NULL;
   m_suspended = 0;
 
   m_simpleTop = NEW(CSimpleTop);
@@ -143,7 +143,7 @@ void CGlueMgr::Suspend() {
 
   if (m_simpleTop) {
     DEL(m_simpleTop);
-    m_simpleTop = 0;
+    m_simpleTop = NULL;
   }
 
   DestroyCursor();
@@ -168,7 +168,7 @@ void CGlueMgr::InitCursor() {
 void CGlueMgr::DestroyCursor() {
   if (m_cursorModel) {
     HandleClose(m_cursorModel);
-    m_cursorModel = 0;
+    m_cursorModel = NULL;
   }
 }
 
@@ -329,7 +329,7 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
       m_reload = 0;
     }
 
-    return 1;
+    return TRUE;
   }
 
   int statusComplete = ClientServices_PollStatus(op, msg, result, errorCode);
@@ -353,19 +353,19 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
     }
 
     if (!statusComplete) {
-      return 1;
+      return TRUE;
     }
 
     if (!result) {
       FrameScript_SignalEvent(3, "%s%s", "OKAY", msg);
       m_idleState = IDLE_NONE;
       SetScreen("login");
-      return 1;
+      return TRUE;
     }
 
     if (op == COP_CONNECT) {
       ClientServices_AccountLogin(m_accountName, "", m_region, m_locale);
-      return 1;
+      return TRUE;
     }
 
     ASSERT(op == COP_AUTHENTICATE || op == COP_WAIT_QUEUE);
@@ -383,7 +383,7 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
     FrameScript_SignalEvent(5);
     CCharSelectInfo::SelectCharacter(-1);
     SetScreen("charselect");
-    return 1;
+    return TRUE;
   }
 
   if (m_idleState == IDLE_CHARACTER_LIST) {
@@ -391,7 +391,7 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
     FrameScript_SignalEvent(4, "%s", msg);
 
     if (!statusComplete) {
-      return 1;
+      return TRUE;
     }
 
     if (!result) {
@@ -400,13 +400,13 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
       m_idleState = IDLE_NONE;
       FrameScript_SignalEvent(5);
       CCharSelectInfo::UpdateCharacterList();
-      return 1;
+      return TRUE;
     }
   } else if (m_idleState == IDLE_REALM_LIST) {
     FrameScript_SignalEvent(4, "%s", msg);
 
     if (!statusComplete) {
-      return 1;
+      return TRUE;
     }
 
     if (!result) {
@@ -416,13 +416,13 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
       m_idleState = IDLE_NONE;
       FrameScript_SignalEvent(5);
       FrameScript_SignalEvent(8);
-      return 1;
+      return TRUE;
     }
   } else if (m_idleState == IDLE_CREATE_CHARACTER) {
     FrameScript_SignalEvent(4, "%s", msg);
 
     if (!statusComplete) {
-      return 1;
+      return TRUE;
     }
 
     if (!result) {
@@ -433,24 +433,24 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
       FrameScript_SignalEvent(5);
       FrameScript_SignalEvent(10);
       SetScreen("charselect");
-      return 1;
+      return TRUE;
     }
   } else {
     if (m_idleState == IDLE_DELETE_CHARACTER) {
       FrameScript_SignalEvent(4, "%s", msg);
 
       if (!statusComplete) {
-        return 1;
+        return TRUE;
       }
 
       CCharSelectInfo::SelectCharacter(0);
       GetCharacterList();
-      return 1;
+      return TRUE;
     }
 
     if (m_idleState == IDLE_ENTER_WORLD) {
       if (!DrawingLoadingScreen()) {
-        return 1;
+        return TRUE;
       }
 
       if (!m_suspended) {
@@ -459,28 +459,28 @@ BOOL CGlueMgr::Idle(LPCVOID, LPVOID) {
         position = m_characterInfo->position;
         Suspend();
         ClientInitializeGame(mapID, position);
-        return 1;
+        return TRUE;
       }
 
       if (AsyncFileReadIsReading()) {
-        return 1;
+        return TRUE;
       }
 
       m_idleState = IDLE_NONE;
       SndInterfaceSetGlueMusic(0);
       ClientServices_CharacterLogin(s_loginGUID, 0, 0.0f);
-      return 1;
+      return TRUE;
     }
 
     if (m_idleState == IDLE_WORLD_LOGIN) {
       FrameScript_SignalEvent(3, "%s%s", "OKAY", msg);
     }
 
-    return 1;
+    return TRUE;
   }
 
   m_idleState = IDLE_NONE;
-  return 1;
+  return TRUE;
 }
 
 BOOL CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
@@ -500,7 +500,7 @@ BOOL CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
       m_idleState = IDLE_ACCOUNT_LOGIN;
       FrameScript_SignalEvent(3, "%s", "CANCEL");
       ClientServices_Connect();
-      return 1;
+      return TRUE;
     }
   } else if (ClientServices_ValidDisconnect(eventData)) {
     ClientServices_Disconnected();
@@ -513,18 +513,18 @@ BOOL CGlueMgr::NetDisconnectHandler(LPCVOID eventData, LPVOID) {
 
     if (!notAccountLogin && ClientServices_PollStatus(op, msg, result, errorCode) && !result) {
       FrameScript_SignalEvent(3, "%s%s", "OKAY", msg);
-      return 1;
+      return TRUE;
     }
 
     FrameScript_SignalEvent(2);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Script(LPCSTR command, LPCSTR arguments) {
   FrameScript_Execute(arguments, arguments);
-  return 1;
+  return TRUE;
 }
 
 void CGlueMgr::RegisterConsoleCommands() {

@@ -166,12 +166,12 @@ BOOL CompUtilGetSectionDimensions(UINT sectionIndex, UINT *width, UINT *height) 
   VALIDATEEND;
 
   if (sectionIndex >= NUM_TEXCOMPONENT_SECTIONS) {
-    return 0;
+    return FALSE;
   }
 
   *width = s_sectionTable[sectionIndex].width;
   *height = s_sectionTable[sectionIndex].height;
-  return 1;
+  return TRUE;
 }
 
 BOOL CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord) {
@@ -181,12 +181,12 @@ BOOL CompUtilGetSectionOffset(UINT sectionIndex, UINT *xCoord, UINT *yCoord) {
   VALIDATEEND;
 
   if (sectionIndex >= NUM_TEXCOMPONENT_SECTIONS) {
-    return 0;
+    return FALSE;
   }
 
   *xCoord = s_sectionTable[sectionIndex].x;
   *yCoord = s_sectionTable[sectionIndex].y;
-  return 1;
+  return TRUE;
 }
 
 BOOL CompUtilItemSectionInfo(
@@ -227,7 +227,7 @@ BOOL CompUtilItemSectionInfo(
   }
 
   *numTextureComponents = numSections;
-  return 1;
+  return TRUE;
 }
 
 BOOL CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS section, TEXCOMPONENT_LAYERS *layer, LAYERPRIORITY *priority) {
@@ -238,11 +238,11 @@ BOOL CompUtilItemSectionInfo(INVENTORY_TYPES invType, TEXCOMPONENT_SECTIONS sect
 
   *layer = g_sectionLayers[invType].layers[section];
   if (*layer == TEXLAYER_NONE) {
-    return 0;
+    return FALSE;
   }
 
   *priority = g_sectionPriorities[invType].priorities[section];
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, UINT whichComponent, UINT inventoryType, SUBCOMPONENTDESC *subComp) {
@@ -257,16 +257,16 @@ static BOOL ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, UINT whic
     if (subComp->textureName) {
       SMemFree(subComp->textureName, __FILE__, __LINE__, 0);
     }
-    subComp->pathName = 0;
-    subComp->textureName = 0;
+    subComp->pathName = NULL;
+    subComp->textureName = NULL;
   }
 
   if (!displayInfoRec) {
-    return 0;
+    return FALSE;
   }
   LPCSTR modelName = displayInfoRec->m_modelName[whichComponent];
   if (!*modelName) {
-    return 0;
+    return FALSE;
   }
 
   if (subComp) {
@@ -282,10 +282,10 @@ static BOOL ReadSubComponent(const ItemDisplayInfoRec *displayInfoRec, UINT whic
       }
       subComp->textureName = SStrDupA(buffer, __FILE__, __LINE__);
     } else {
-      subComp->textureName = 0;
+      subComp->textureName = NULL;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 UINT CompUtilGetObjComponents(
@@ -350,7 +350,7 @@ UINT CompUtilGetObjComponentSlotFlags(const ItemDisplayInfoRec *displayInfoRec, 
 
 LPCSTR CompUtilGetTextureSectionName(const ItemDisplayInfoRec *displayInfoRec, UINT textureSection) {
   if (!displayInfoRec || textureSection >= NUM_TEXCOMPONENT_SECTIONS) {
-    return 0;
+    return NULL;
   }
 
   int textureIndex = s_textureSections[textureSection];
@@ -381,10 +381,10 @@ void ComponentUtilAddItemVisual(HMODEL itemModel, int index, LPCSTR name) {
 
 HMODEL ComponentUtilGetChildModel(HMODEL parent, int index) {
   if (!parent) {
-    return 0;
+    return NULL;
   }
 
-  HMODEL model = 0;
+  HMODEL model = NULL;
   UINT   max = 1;
   ModelGetLinkPoint(parent, index, &model, &max);
   return model;

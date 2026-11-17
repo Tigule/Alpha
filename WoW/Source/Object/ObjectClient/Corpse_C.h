@@ -100,7 +100,7 @@ class CGCorpse_C : public CGObject_C, public CGCorpse {
   }
   virtual void GetWorldMatrix(NTempest::C34Matrix *worldMatrix) const;
   virtual BOOL CanHighlight() const {
-    return 1;
+    return TRUE;
   }
   virtual void OnLeftClick();
   virtual void OnRightClick();

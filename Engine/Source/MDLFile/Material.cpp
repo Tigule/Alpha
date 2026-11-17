@@ -75,19 +75,19 @@ static MDLTEXOP IReadFilterMode(Parser &parse) {
 static BOOL IReadAlpha(Parser &parse, int expectanimation, MDLTEXLAYER *layer) {
   if (!expectanimation) {
     layer->staticAlpha = parse.ExpectFloat();
-    return 0;
+    return FALSE;
   }
   ReadObjectFloatKeyframes(parse, &layer->alphaKeys);
-  return 1;
+  return TRUE;
 }
 
 static BOOL IReadFlipbook(Parser &parse, int expectanimation, MDLTEXLAYER *layer) {
   if (!expectanimation) {
     layer->textureId = parse.ExpectInt();
-    return 0;
+    return FALSE;
   }
   ReadObjectIntKeyframes(parse, &layer->flipKeys);
-  return 1;
+  return TRUE;
 }
 
 static BOOL IllegalStaticToken(UINT token) {
@@ -289,10 +289,10 @@ static BOOL ReadBinLayer(CMsgBuffer &buf, CMDLStatus *status, UINT *bytesRead, M
   }
   if (localBytesRead > sectionLength) {
     status->FatalOverran("TexLayer", -1);
-    return 0;
+    return FALSE;
   }
   *bytesRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReadBinMaterial(CMsgBuffer &buf, UINT sectionLength, MDLMATERIALSECTION *pMat, CMDLStatus *status, UINT &bytesRead) {
@@ -304,15 +304,15 @@ static BOOL ReadBinMaterial(CMsgBuffer &buf, UINT sectionLength, MDLMATERIALSECT
   pMat->texLayers.SetCount(numLayers);
   for (UINT i = 0; i < numLayers; ++i) {
     if (!ReadBinLayer(buf, status, &localBytesRead, &pMat->texLayers[i])) {
-      return 0;
+      return FALSE;
     }
   }
   if (localBytesRead > sectionLength) {
     status->FatalOverran("Material", -1);
-    return 0;
+    return FALSE;
   }
   bytesRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 static UINT GetLayerSize(const MDLTEXLAYER &layer) {
@@ -385,7 +385,7 @@ BOOL MDL::WriteMaterials(const MDLDATA &data, TSGrowableArray<char> &buffer, CMD
     }
     MDL::WriteLine(buffer, "}\n");
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinMaterials(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -398,14 +398,14 @@ BOOL MDL::ReadBinMaterials(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStat
     MDLMATERIALSECTION *material = data.materials.New();
     UINT                sectionLength = buf.GetUint();
     if (!ReadBinMaterial(buf, sectionLength, material, status, bytesRead)) {
-      return 0;
+      return FALSE;
     }
     if (bytesRead > length) {
       status->FatalOverran("MaterialSection", -1);
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinMaterials(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
@@ -415,7 +415,7 @@ BOOL MDL::WriteBinMaterials(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) 
   UINT i;
   UINT size;
   if (!numMaterials) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('SLTM');
   size = 8;
@@ -439,5 +439,5 @@ BOOL MDL::WriteBinMaterials(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) 
     buf.AddInt(data.materials[i].priorityPlane);
     AddLayers(buf, data.materials[i]);
   }
-  return 1;
+  return TRUE;
 }

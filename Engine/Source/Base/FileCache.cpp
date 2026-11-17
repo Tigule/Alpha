@@ -19,7 +19,7 @@ struct PrefetchNode : public TSHashObject<PrefetchNode, HASHKEY_STRI> {
   SOVERLAPPED overlapped;
   int         refCount;
 
-  PrefetchNode() : buffer(0), size(0), refCount(0) {
+  PrefetchNode() : buffer(NULL), size(0), refCount(0) {
     SFile::CreateOverlapped(&overlapped);
   }
 
@@ -79,7 +79,7 @@ static PrefetchNode *IBaseFileStartLoad(LPCSTR fileName) {
 
   if (!SFile::LoadFile(fileName, &localBuffer, &localBytes, 1, &theFile->overlapped)) {
     s_activeFiles.Delete(fileName);
-    return 0;
+    return NULL;
   }
 
   theFile->buffer = localBuffer;
@@ -90,7 +90,7 @@ static PrefetchNode *IBaseFileStartLoad(LPCSTR fileName) {
 }
 
 BOOL IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
-  BOOL          success = 0;
+  BOOL          success = FALSE;
   PrefetchNode *theFile = IBaseFileStartLoad(fileName);
   if (theFile) {
     IBaseFileWaitForLoad(theFile);
@@ -100,7 +100,7 @@ BOOL IBaseFileLoad(LPCSTR fileName, LPCVOID *fileBuffer, DWORD *fileSize) {
     if (fileSize) {
       *fileSize = theFile->size;
     }
-    success = 1;
+    success = TRUE;
   }
 
   return success;
@@ -134,7 +134,7 @@ BOOL BaseFilePrefetch(LPCSTR fileName) {
   s_critSect.Enter();
   int success = 0;
   if (!s_uncachableFiles.Ptr(fileName)) {
-    success = IBaseFileStartLoad(fileName) != 0;
+    success = IBaseFileStartLoad(fileName) != NULL;
   }
   s_critSect.Leave();
   return success;
@@ -164,7 +164,7 @@ int BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize) {
   LPCVOID tempBuffer;
   DWORD   tempSize;
 
-  *fileBuffer = 0;
+  *fileBuffer = NULL;
   if (fileSize) {
     *fileSize = 0;
   }
@@ -175,7 +175,7 @@ int BaseFileLoad(LPCSTR fileName, LPVOID *fileBuffer, DWORD *fileSize) {
   if (s_uncachableFiles.Ptr(fileName)) {
     success = SFile::LoadFile(fileName, fileBuffer, fileSize, 1, 0);
   } else {
-    tempBuffer = 0;
+    tempBuffer = NULL;
     tempSize = 0;
     if (IBaseFileLoad(fileName, &tempBuffer, &tempSize)) {
       *fileBuffer = SMemAlloc(tempSize + 1, __FILE__, __LINE__, 0);

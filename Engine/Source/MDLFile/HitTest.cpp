@@ -136,13 +136,13 @@ BOOL MDL::WriteHitTests(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDL
   for (UINT i = numHitTestShapes; i; --i, ++section) {
     IWriteHitTestSection(data, *section, needObjIds, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   UINT numHitTestShapes = data.hitTestShapes.Count();
   if (!numHitTestShapes) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('TSTH');
   UINT totalSize = 4;
@@ -209,7 +209,7 @@ BOOL MDL::WriteBinHitTests(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *sta
         break;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinHitTests(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -221,13 +221,13 @@ BOOL MDL::ReadBinHitTests(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatu
     MDLHITTESTSHAPE *section = data.hitTestShapes.New();
     if (!section) {
       status->FatalFlunked("Hit test", -1);
-      return 0;
+      return FALSE;
     }
     buf.GetUint();
     totalRead += 4;
     if (!ReadBinGenObject(*section, buf, status, totalRead)) {
       status->Add(STATUS_ERROR, "Error reading gen object portion of hit test shape.\n");
-      return 0;
+      return FALSE;
     }
     section->type = (GEOM_SHAPE)buf.GetByte();
     ++totalRead;
@@ -258,9 +258,9 @@ BOOL MDL::ReadBinHitTests(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatu
     }
     if (totalRead > length) {
       status->FatalOverran("Hit test section overran read buffer.\n", -1);
-      return 0;
+      return FALSE;
     }
     ReadBinObjectEnd(data, section, data.hitTestShapes.Count() - 1, 0x80000000);
   }
-  return 1;
+  return TRUE;
 }

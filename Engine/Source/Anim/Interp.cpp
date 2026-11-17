@@ -115,10 +115,10 @@ BOOL CKeyFrameTrackBase::JustPastKeyForward(
     return seqElapsed >= key->time;
   }
   if (elapsedTime >= seqShared.time.Magnitude()) {
-    return 1;
+    return TRUE;
   }
   if (curr.currKey != prev.currKey) {
-    return 1;
+    return TRUE;
   }
 
   int timePastKey = prev.timepastkey + elapsedTime;
@@ -141,10 +141,10 @@ BOOL CKeyFrameTrackBase::JustPastKeyBackward(
     return seqElapsed <= key->time;
   }
   if (-elapsedTime >= seqShared.time.Magnitude()) {
-    return 1;
+    return TRUE;
   }
   if (curr.currKey != prev.currKey) {
-    return 1;
+    return TRUE;
   }
 
   int timePastKey = prev.timepastkey + elapsedTime;

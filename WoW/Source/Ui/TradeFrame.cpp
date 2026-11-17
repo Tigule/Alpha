@@ -285,15 +285,15 @@ BOOL CGTradeInfo::SetPlayerItem(int index, DWORDLONG guid, DWORDLONG bag, BYTE s
     if (!guid) {
       Trade_C_RemoveItem(index);
     } else if (!Trade_C_AddItem(guid, bag, slot, index)) {
-      return 0;
+      return FALSE;
     }
     m_playerItems[index] = guid;
     m_playerItemBag[index] = bag;
     m_playerItemSlot[index] = slot;
     FrameScript_SignalEvent(301, "%d", index + 1);
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 void CGTradeInfo::RemovePlayerItem(DWORDLONG guid) {

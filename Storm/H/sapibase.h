@@ -241,12 +241,12 @@ extern "C" BOOL APIENTRY  SCmdRegisterArgument(
 #define SCOMP_IMA_ADPCM_MONO   0x00000040
 #define SCOMP_IMA_ADPCM_STEREO 0x00000080
 
-extern "C" int APIENTRY
+extern "C" BOOL APIENTRY
 SCompCompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, DWORD compressiontypes, DWORD hint, DWORD optimization);
 extern "C" int APIENTRY SCompDecompress(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize);
-int APIENTRY            SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename);
+BOOL APIENTRY            SCompDecompress2(LPVOID dest, DWORD *destsize, LPCVOID source, DWORD sourcesize, LPCSTR filename);
 BOOL                    SCompPkwareDecompressBuffer(BYTE *dest, DWORD *destsize, const BYTE *source, DWORD sourcesize);
-extern "C" int APIENTRY SCompDestroy();
+extern "C" BOOL APIENTRY SCompDestroy();
 
 // --------------------------------
 // Big integer functions

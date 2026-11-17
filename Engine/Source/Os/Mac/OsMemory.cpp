@@ -7,7 +7,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-COsSharedMemory::COsSharedMemory() : m_data(0), m_size(0) {
+COsSharedMemory::COsSharedMemory() : m_data(NULL), m_size(0) {
   *(int *)m_opaqueData = -1;
 }
 
@@ -46,7 +46,7 @@ bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
   if (shmid >= 0) {
     m_data = shmat(shmid, 0, atFlags);
     if (m_data == (LPVOID)-1) {
-      m_data = 0;
+      m_data = NULL;
     }
 
     if (flags & IPC_CREAT) {
@@ -72,7 +72,7 @@ void COsSharedMemory::Destroy() {
       shmctl(*(int *)m_opaqueData, IPC_RMID, 0);
     }
     shmdt(m_data);
-    m_data = 0;
+    m_data = NULL;
   }
 
   m_size = 0;

@@ -41,7 +41,7 @@ void CParticleEmitter::Init() {
   m_scale = 1.0f;
   m_latitude = PI * 0.25f;
   m_longitude = PI * 0.25f;
-  m_hmodel = 0;
+  m_hmodel = NULL;
 }
 
 void CParticleEmitter::Copy(const CParticleEmitter &rhs) {

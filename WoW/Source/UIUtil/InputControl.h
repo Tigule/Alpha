@@ -54,7 +54,7 @@ class CGInputControl {
   static void Destroy() {
     ASSERT(s_inputControl);
     DEL(s_inputControl);
-    s_inputControl = 0;
+    s_inputControl = NULL;
   }
 
   static CGInputControl *GetActive();

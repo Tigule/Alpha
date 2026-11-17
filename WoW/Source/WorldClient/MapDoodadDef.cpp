@@ -175,8 +175,8 @@ void CMapStaticEntity::CreateCacheLight(CMapLight *light) {
 
 CMapDoodadDef::CMapDoodadDef() {
   type |= Type_DoodadDef;
-  modelName = 0;
-  model = 0;
+  modelName = NULL;
+  model = NULL;
   doodadSoundHandle = 0;
 }
 

@@ -31,8 +31,8 @@ static TSGrowableArray<void (*)(void)> s_handlers;
 void AsyncFileReadInitialize() {
   EventRegisterEx(EVENT_ID_POLL, AsyncFileReadPollHandler, 0, EVENT_PRIORITY_NORMAL);
 
-  s_asyncCurrentObject = 0;
-  s_asyncWaitObject = 0;
+  s_asyncCurrentObject = NULL;
+  s_asyncWaitObject = NULL;
   s_propContext = PropGetSelectedContext();
   s_shutdownEvent.Reset();
   SThread::Create(AsyncFileReadThread, 0, s_asyncReadThread, "AsyncFileLoader");
@@ -82,7 +82,7 @@ static UINT APIENTRY AsyncFileReadThread(LPVOID param) {
 
         s_queueLock.Enter();
         s_asyncFileReadPostList.LinkNode(object, LIST_TAIL, 0);
-        s_asyncCurrentObject = 0;
+        s_asyncCurrentObject = NULL;
         s_queueLock.Leave();
 
         OsSleep(1);
@@ -136,13 +136,13 @@ CAsyncObject *AsyncFileReadCreateObject() {
   object->link.Unlink();
   s_queueLock.Leave();
 
-  object->file = 0;
+  object->file = NULL;
   object->offset = 0;
-  object->buffer = 0;
+  object->buffer = NULL;
   object->size = 0;
-  object->userArg = 0;
-  object->userPostloadCallback = 0;
-  object->critSect = 0;
+  object->userArg = NULL;
+  object->userPostloadCallback = NULL;
+  object->critSect = NULL;
   object->isLoaded = 0;
   object->canReorder = 1;
 
@@ -227,7 +227,7 @@ bool AsyncFileReadIsReading() {
   bool reading;
 
   s_queueLock.Enter();
-  reading = s_asyncCurrentObject != 0 || s_asyncFileReadList.Head() != 0 || s_asyncFileReadPostList.Head() != 0;
+  reading = s_asyncCurrentObject != NULL || s_asyncFileReadList.Head() != NULL || s_asyncFileReadPostList.Head() != NULL;
   s_queueLock.Leave();
 
   return reading;
@@ -251,12 +251,12 @@ BOOL AsyncFileReadPollHandler(LPCVOID, LPVOID) {
     object = s_asyncFileReadPostList.Head();
     if (!object) {
       s_queueLock.Leave();
-      return 1;
+      return TRUE;
     }
 
     object->link.Unlink();
     if (object == s_asyncWaitObject) {
-      s_asyncWaitObject = 0;
+      s_asyncWaitObject = NULL;
     }
     object->isLoaded = 1;
     s_queueLock.Leave();
@@ -265,7 +265,7 @@ BOOL AsyncFileReadPollHandler(LPCVOID, LPVOID) {
     object->userPostloadCallback(object->userArg);
 
     if (OsGetAsyncTimeMsPrecise() - start > 20) {
-      return 1;
+      return TRUE;
     }
   }
 }

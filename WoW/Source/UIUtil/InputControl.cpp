@@ -469,7 +469,7 @@ void CGInputControl::SetReleaseAction(CGInputReleaseAction action) {
 
 BOOL CGInputControl::SetControlBit(INPUT_CONTROL bit) {
   if (bit & m_controlFlags) {
-    return 0;
+    return FALSE;
   }
 
   if (!(m_controlFlags & INPUT_FREE_LOOK_MASK) && (bit & INPUT_FREE_LOOK_MASK)) {
@@ -495,24 +495,24 @@ BOOL CGInputControl::SetControlBit(INPUT_CONTROL bit) {
   if ((bit & INPUT_FREE_LOOK_MASK) && (m_controlFlags & INPUT_FREE_LOOK_MASK) != (UINT)bit) {
     m_releaseAction = INPUT_RELEASE_NONE;
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGInputControl::IsMouseDragging() const {
   if ((int)(OsGetAsyncTimeMs() - m_mouseDownTime - 800) >= 0) {
-    return 1;
+    return TRUE;
   }
 
   if (m_mouseChangeX >= MOUSE_DRAG_THRESHOLD || m_mouseChangeY >= MOUSE_DRAG_THRESHOLD) {
     return (int)(OsGetAsyncTimeMs() - m_mouseDownTime - 200) >= 0;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CGInputControl::IsMouseDragMoving() const {
   if (!IsMouseDragging()) {
-    return 0;
+    return FALSE;
   }
 
   return GxPerfCounter(GxPerf_FrameNum) - m_lastFrameMouseMoved < 2;
@@ -520,7 +520,7 @@ BOOL CGInputControl::IsMouseDragMoving() const {
 
 BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
   if (!(bit & m_controlFlags)) {
-    return 0;
+    return FALSE;
   }
 
   bool leavingFreeLook = (m_controlFlags & INPUT_FREE_LOOK_MASK) && !(m_controlFlags & ~bit & INPUT_FREE_LOOK_MASK);
@@ -534,7 +534,7 @@ BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
   if (leavingFreeLook) {
     if (IsMouseDragging()) {
       m_releaseAction = INPUT_RELEASE_NONE;
-      return 1;
+      return TRUE;
     }
 
     CGWorldFrame *worldFrame = CGWorldFrame::GetActive();
@@ -549,7 +549,7 @@ BOOL CGInputControl::UnsetControlBit(INPUT_CONTROL bit, int sticky) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CGInputControl::MovePlayer(DWORD now, CGUnit_C *player) {
@@ -696,27 +696,27 @@ void CGInputControl::SetControlBit(INPUT_CONTROL bit, int set, DWORD now, int st
 BOOL CGInputControl::CameraCanTurnPlayer() const {
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(CGUnit_C::GetActiveMover(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   if (player->GetHealth() <= 0 || !player->IsClientControlled() || (player->GetUnitFlags() & 0x40000) || player->IsInStandSitTransition() || player->GetStandState()) {
-    return 0;
+    return FALSE;
   }
 
   CGCamera *camera = Camera();
   if (camera->m_target != player->GetGUID()) {
-    return 0;
+    return FALSE;
   }
 
   if (!(camera->m_flags & 8)) {
-    return 0;
+    return FALSE;
   }
 
   if (m_controlFlags & INPUT_TURN_PLAYER) {
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void CGInputControl::CameraTurnPlayer(DWORD timestamp, float yaw, float pitch, bool setSmoothFacing) {

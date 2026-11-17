@@ -126,7 +126,7 @@ class CHashKeyFilePath {
 };
 
 struct CModelHash : public TSHashObject<CModelHash, CHashKeyFilePath> {
-  CModelHash() : model(0), createFlags(0), timeStamp(0) {
+  CModelHash() : model(NULL), createFlags(0), timeStamp(0) {
   }
 
   ~CModelHash() {
@@ -240,7 +240,7 @@ static HMODEL GetModel(LPCSTR modelFName, CModelCreate *data) {
 
   CModelHash *entry = s_modelCache.Ptr(fileName);
   if (!entry) {
-    return 0;
+    return NULL;
   }
 
   HMODEL      duplicate = ModelDuplicate(entry->model, 0);
@@ -279,7 +279,7 @@ static BOOL MdlReadLoadNumMatrices(const MDLDATA &data, CModelShared *shared, UI
   if (flags & 0x100) {
     shared->numBones = 1;
     shared->numTexBones = 0;
-    return 1;
+    return TRUE;
   }
 
   shared->numBones = data.bones.Count();
@@ -287,7 +287,7 @@ static BOOL MdlReadLoadNumMatrices(const MDLDATA &data, CModelShared *shared, UI
     shared->numBones += data.hitTestShapes.Count();
   }
   shared->numTexBones = data.textureanims.Count();
-  return 1;
+  return TRUE;
 }
 
 static void MdxReadNumMatrices(BYTE *data, UINT fileBytes, UINT flags, CModelShared *shared) {
@@ -340,27 +340,27 @@ static UINT ConvertAnimCreateFlags(UINT loadFlags) {
 static BOOL MdlReadLoadAnim(const MDLDATA &data, CModelBase *modelptr, UINT loadFlags, CStatus *status) {
   modelptr->m_anim = AnimCreate(data, ConvertAnimCreateFlags(loadFlags), status);
   if (!modelptr->m_anim) {
-    return 0;
+    return FALSE;
   }
 
   if (AnimGetFlags(modelptr->m_anim) & 0x4) {
     HandleClose(modelptr->m_anim);
-    modelptr->m_anim = 0;
+    modelptr->m_anim = NULL;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL MdxReadAnimation(BYTE *fileData, UINT fileBytes, CModelBase *modelptr, UINT loadFlags) {
   modelptr->m_anim = AnimCreate(fileData, fileBytes, ConvertAnimCreateFlags(loadFlags));
   if (!modelptr->m_anim) {
-    return 0;
+    return FALSE;
   }
 
   if (AnimGetFlags(modelptr->m_anim) & 0x4) {
     HandleClose(modelptr->m_anim);
-    modelptr->m_anim = 0;
+    modelptr->m_anim = NULL;
   }
-  return 1;
+  return TRUE;
 }
 
 static void MdxReadHitTestData(BYTE *data, UINT fileBytes, CModelComplex *modelptr, CModelShared *shared) {
@@ -466,7 +466,7 @@ static BOOL MdlReadLoadHitTestData(const MDLDATA &data, CModelComplex *modelptr,
         break;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static void ComputeBoundingRadius(const CGeosetShared *geosets, UINT numGeosets, const NTempest::C3Vector &center, float *radius) {
@@ -524,7 +524,7 @@ static BOOL MdlReadLoadExtents(const MDLDATA &data, CModelBase *modelptr, CModel
   } else if (NTempest::CMath::fabs_(shared->bounds.sphere.r) < 0.00000023841858f && data.sequences.Count()) {
     LoadBoundsData(data.sequences[0].bounds, &shared->bounds);
   }
-  return 1;
+  return TRUE;
 }
 
 static BYTE *LoadBoundsData(BYTE *data, CBoundsData *bounds) {
@@ -580,12 +580,12 @@ static BOOL MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *
   ASSERT(shared);
   UINT numPivots = data.pivotPoints.Count();
   if (!numPivots) {
-    return 1;
+    return TRUE;
   }
 
   if ((flags & 0x220) == 0x20 || (!data.hitTestShapes.Count() && !data.lights.Count())) {
     shared->positions.Set(numPivots, data.pivotPoints.Ptr());
-    return 1;
+    return TRUE;
   }
 
   TSStackArray<UINT> idConversion(_alloca(numPivots * sizeof(UINT)), numPivots, numPivots);
@@ -602,7 +602,7 @@ static BOOL MdlReadLoadPositions(const MDLDATA &data, UINT flags, CModelShared *
   for (i = 0; i < numEmitters; ++i) {
     shared->emitter2Order[i] = idConversion[shared->emitter2Order[i]];
   }
-  return 1;
+  return TRUE;
 }
 
 static void MdxReadPositions(BYTE *fileData, UINT fileBytes, UINT flags, CModelShared *shared) {
@@ -677,17 +677,17 @@ static BOOL IsSimpleModel(BYTE *fileData, UINT fileBytes) {
   if (GetSectionCount(fileData, fileBytes, 'SLTM') > 4 || GetTextureCount(fileData, fileBytes) > 4 ||
       GetSectionCount(fileData, fileBytes, 'SOEG') > 5)
   {
-    return 0;
+    return FALSE;
   }
 
   if (GetSectionCount(fileData, fileBytes, 'ETIL') || GetSectionCount(fileData, fileBytes, 'HCTA') ||
       GetSectionCount(fileData, fileBytes, '2ERP') || GetSectionCount(fileData, fileBytes, 'BBIR') ||
       GetSectionCount(fileData, fileBytes, 'SMAC') || GetSectionCount(fileData, fileBytes, 'TSTH'))
   {
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void BuildSimpleModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
@@ -742,13 +742,13 @@ static void BuildModelFromMdxData(BYTE *fileData, UINT fileBytes, CModelBase *ba
 
 static BOOL BuildSimpleModelFromMdlData(const MDLDATA &source, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
   if (!MdlReadLoadModel(source, modelptr, shared, flags, status)) {
-    return 0;
+    return FALSE;
   }
   if (!(flags & 0x100) && !MdlReadLoadAnim(source, modelptr, flags, status)) {
-    return 0;
+    return FALSE;
   }
   if (!MdlReadLoadNumMatrices(source, shared, flags)) {
-    return 0;
+    return FALSE;
   }
   if (flags & 0x80) {
     IModelEnableFullAlpha(modelptr, 0);
@@ -919,7 +919,7 @@ void ModelRemoveFromCache(LPCSTR sourcefile) {
   if (modelHash->model) {
     HandleClose(modelHash->model);
   }
-  modelHash->model = 0;
+  modelHash->model = NULL;
   s_modelCache.Delete(modelHash);
 }
 
@@ -942,7 +942,7 @@ BOOL ModelCacheUpdate(DWORD currentTime, CStatus *status) {
       modelHash->timeStamp = currentTime;
     } else {
       HandleClose(modelHash->model);
-      modelHash->model = 0;
+      modelHash->model = NULL;
       s_modelCache.Delete(modelHash);
       ++numModelsFlushed;
     }
@@ -1011,7 +1011,7 @@ void CModel::DeleteAsyncObj() {
 
   SFile *file = asyncObject->file;
   AsyncFileReadDestroyObject(asyncObject);
-  asyncObject = 0;
+  asyncObject = NULL;
   SFile::Close(file);
 }
 
@@ -1072,7 +1072,7 @@ static void AsnycModelPostLoadCallback(LPVOID userArg) {
   model->DeleteAsyncObj();
   model->data = modelptr;
   DEL(model->createData);
-  model->createData = 0;
+  model->createData = NULL;
   model->state = CMODEL_LOADED;
   ExecuteQueuedActions(model);
 }
@@ -1095,7 +1095,7 @@ static HMODEL IModelCreate(LPCSTR fileName, char *actualPath, CModelCreate *crea
     if (createData->flags & 0x2000) {
       return CreateDefaultModel(fileName, createData->flags, status);
     }
-    return 0;
+    return NULL;
   }
 
   CModel *model = NEWHANDLE(HMODEL, CModel);
@@ -1135,16 +1135,16 @@ static BOOL IsBinaryFile(char *path) {
 
   if (lastCharacter == 'x' || lastCharacter == 'X') {
     if (SFile::FileExists(path)) {
-      return 1;
+      return TRUE;
     }
 
     path[length - 1] = 'l';
   } else if (!SFile::FileExists(path)) {
     path[length - 1] = 'x';
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
@@ -1174,7 +1174,7 @@ HMODEL ModelCreate(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
     return CreateDefaultModel(sourcefile, data->flags, useStatus);
   }
 
-  return 0;
+  return NULL;
 }
 
 HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
@@ -1221,7 +1221,7 @@ HMODEL ModelCreate(const MDLDATA &source, CModelCreate *data, CStatus *status) {
   if (createFlags & 0x2000) {
     return CreateDefaultModel(source.header.sourceFilename, createFlags, status);
   }
-  return 0;
+  return NULL;
 }
 
 static CModel *IModelCreateSimpleEmpty(LPCSTR name) {
@@ -1296,7 +1296,7 @@ BOOL ModelGeosetAdd(
   CModelBase   *modelptr;
   CModelShared *shared;
   if (!IModelDerefHandle((CModel *)model, &modelptr, &shared) || !(modelptr->m_flags & 0x20)) {
-    return 0;
+    return FALSE;
   }
 
   CModelComplex *complex = (CModelComplex *)modelptr;
@@ -1313,12 +1313,12 @@ BOOL ModelGeosetAdd(
   complex->m_geosets.New();
   complex->m_geosetColor.New()->animatedColor = color;
   IModelComputeBounds(shared);
-  return 1;
+  return TRUE;
 }
 
 HMODEL ModelDuplicate(HMODEL sourceModel, UINT flags) {
   if (!sourceModel) {
-    return 0;
+    return NULL;
   }
 
   CModel *source = (CModel *)sourceModel;
@@ -1418,7 +1418,7 @@ void EnqueueModelCommand(CModel *model, EModelModQ command, ...) {
 }
 
 void ExecuteQueuedActions(CModel *model) {
-  HMODEL modelHandle = 0;
+  HMODEL modelHandle = NULL;
 
   SAFEITERATELIST(CModelModItem, model->modelModQueue, item) {
     if (!modelHandle) {
@@ -1682,16 +1682,16 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   VALIDATE2(model);
 
   if (model->state != CMODEL_LOADED) {
-    return 0;
+    return FALSE;
   }
 
   if (!doLinkedModels) {
-    return 1;
+    return TRUE;
   }
 
   base = model->data;
   if (!(base->m_flags & 0x20)) {
-    return 1;
+    return TRUE;
   }
 
   complex = (CModelComplex *)base;
@@ -1699,37 +1699,37 @@ BOOL ModelIsLoaded(HMODEL modelHandle, int doLinkedModels) {
   for (i = 0; i < numLinks; ++i) {
     ITERATELIST(LINKUNIQUE, complex->m_attached[i], link) {
       if (!ModelIsLoaded(link->child, 1)) {
-        return 0;
+        return FALSE;
       }
     }
   }
 
-  return 1;
+  return TRUE;
 }
 BOOL IModelDerefHandle(CModel *model, CModelBase **unique, CModelShared **shared) {
   VALIDATE2(model);
-  *unique = 0;
+  *unique = NULL;
   *shared = (CModelShared *)model->shared;
   VALIDATE2(*shared);
 
   if (model->state != CMODEL_LOADED) {
-    return 0;
+    return FALSE;
   }
 
   *unique = model->data;
-  return 1;
+  return TRUE;
 }
 
 BOOL IModelDerefHandle(CModel *model, CModelBase **unique) {
   VALIDATE2(model);
 
-  *unique = 0;
+  *unique = NULL;
   if (model->state != CMODEL_LOADED) {
-    return 0;
+    return FALSE;
   }
 
   *unique = model->data;
-  return 1;
+  return TRUE;
 }
 
 BOOL IModelDerefHandle(CModel *model, CModelShared **shared) {

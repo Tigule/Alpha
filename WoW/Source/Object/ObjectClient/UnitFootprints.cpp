@@ -134,8 +134,8 @@ static NTempest::C44Matrix MakeBasis(int mirror, float facing, const NTempest::C
 }
 
 static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPNCT0T1 *vertices = 0;
-  WORD             *idx = 0;
+  CGxVertexPNCT0T1 *vertices = NULL;
+  WORD             *idx = NULL;
   if (cmd.vertex.op == GxBufOp_Nop || cmd.index.op == GxBufOp_Nop) {
     FATALASSERT(0);
     return;
@@ -182,20 +182,20 @@ static void ProjectTexRenderPNCT0T1(CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 bool SPLATDATA::Update(float progress, bool &nuke) {
-  nuke = 0;
+  nuke = false;
   if (!data.Count() || !indices.Count()) {
-    nuke = 1;
-    return 1;
+    nuke = true;
+    return true;
   }
 
   NTempest::C3Vector diff = position - s_currentCamera;
   if (diff.SquaredMag() > s_maxPurgeDist * s_maxPurgeDist) {
-    nuke = 1;
-    return 1;
+    nuke = true;
+    return true;
   }
   if (skip) {
-    skip = 0;
-    return 1;
+    skip = false;
+    return true;
   }
   if (startTime == -1) {
     static int MAXALPHA = 128;
@@ -208,8 +208,8 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
     static const float MAXALPHA = 128.0f;
     int                elapsed = s_currentTime - startTime;
     if (elapsed < 0 || elapsed > FADEDONE + FADEOUT) {
-      nuke = 1;
-      return 1;
+      nuke = true;
+      return true;
     }
     if (elapsed < FADEIN) {
       color.a = MAXALPHA * ((float)elapsed / FADEIN);
@@ -221,7 +221,7 @@ bool SPLATDATA::Update(float progress, bool &nuke) {
   }
   chunk->m_vertCount += data.Count();
   chunk->m_indexCount += indices.Count();
-  return 0;
+  return false;
 }
 
 void LISTBASE::SetTexture(LPCSTR n) {
@@ -266,12 +266,12 @@ void LISTBASE::Render() {
       renderChunk->Render();
     }
   }
-  s_currentChunk = 0;
-  s_currentList = 0;
+  s_currentChunk = NULL;
+  s_currentList = NULL;
 }
 
 CHUNKDATA *LISTBASE::FindChunk(int id) {
-  CHUNKDATA *chunk = 0;
+  CHUNKDATA *chunk = NULL;
   ITERATELIST(CHUNKDATA, m_chunks, search) {
     if (search->m_sourceID == id) {
       chunk = search;
@@ -326,7 +326,7 @@ bool PERSISTENTTEXTURE::MakeSpace() {
       splat->chunk->RecycleSplat(splat);
     }
   }
-  return 1;
+  return true;
 }
 
 SPLATDATA *GetSplat() {
@@ -336,7 +336,7 @@ SPLATDATA *GetSplat() {
   } else {
     splat = NEW(SPLATDATA);
   }
-  splat->skip = 0;
+  splat->skip = false;
   splat->color = NTempest::CImVector(0xFFFFFFFF);
   return splat;
 }
@@ -383,7 +383,7 @@ SPLATDATA *CHUNKDATA::Add(const CWTriData::Batch &batch, const NTempest::CAaBox 
   int highest;
   int vertCount = GetVertCount(batch, lowest, highest);
   if (!vertCount) {
-    return 0;
+    return NULL;
   }
   SPLATDATA *splat = GetSplat();
   if (m_flags & 1) {
@@ -437,7 +437,7 @@ void CHUNKDATA::RecycleSplat(SPLATDATA *splat) {
   splat->data.SetCount(0);
   splat->indices.SetCount(0);
   splat->orderLink.Unlink();
-  splat->chunk = 0;
+  splat->chunk = NULL;
   s_freeList.LinkNode(splat, LIST_TAIL, 0);
 }
 

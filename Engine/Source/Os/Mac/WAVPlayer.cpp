@@ -28,7 +28,7 @@ unsigned char *WAV::find_chunk(unsigned char *ptr, unsigned char *end, const cha
     }
     ptr += 8 + chunkSize;
   }
-  return 0;
+  return NULL;
 }
 
 unsigned char *WAV::sfx_find_data(unsigned char *header, UInt32 *size, tWAVEFORMATEX *format) {
@@ -36,12 +36,12 @@ unsigned char *WAV::sfx_find_data(unsigned char *header, UInt32 *size, tWAVEFORM
   UInt32         chunkSize;
 
   if (*size < 12 || memcmp(header, "RIFF", 4) || memcmp(header + 8, "WAVE", 4)) {
-    return 0;
+    return NULL;
   }
 
   unsigned char *fmt = find_chunk(header + 12, end, "fmt ", &chunkSize);
   if (!fmt || chunkSize < 16 || fmt + 16 > end) {
-    return 0;
+    return NULL;
   }
 
   memset(format, 0, sizeof(*format));
@@ -49,7 +49,7 @@ unsigned char *WAV::sfx_find_data(unsigned char *header, UInt32 *size, tWAVEFORM
 
   unsigned char *data = find_chunk(header + 12, end, "data", &chunkSize);
   if (!data) {
-    return 0;
+    return NULL;
   }
 
   *size = chunkSize;

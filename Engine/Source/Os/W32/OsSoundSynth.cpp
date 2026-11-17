@@ -312,7 +312,7 @@ const SynthInstrument *CSynthBank::Find(DWORD patch) const {
       return &m_instruments[i];
     }
   }
-  return 0;
+  return NULL;
 }
 
 bool CSynthBank::Load(const BYTE *data, DWORD size) {
@@ -355,7 +355,7 @@ bool CSynthBank::Load(const BYTE *data, DWORD size) {
           WORD        format = 0;
           WORD        channels = 0;
           WORD        bits = 0;
-          const BYTE *samples = 0;
+          const BYTE *samples = NULL;
           DWORD       sampleBytes = 0;
           const BYTE *part = chunk + w + 12;
           for (DWORD p = 0; p + 8 <= waveLength - 4;) {
@@ -734,7 +734,7 @@ static int LfoLevel(const SynthVoice *voice, LONGLONG time, LONGLONG *next) {
 void CSynth::ClearVoice(SynthVoice *voice) {
   voice->bank->Release();
   voice->inUse = false;
-  voice->bank = 0;
+  voice->bank = NULL;
 }
 
 void CSynth::StopVoice(SynthVoice *voice, LONGLONG time) {
@@ -767,7 +767,7 @@ void CSynth::QuickStopVoice(SynthVoice *voice, LONGLONG time) {
 }
 
 SynthVoice *CSynth::OldestVoice() {
-  SynthVoice *best = 0;
+  SynthVoice *best = NULL;
   for (int i = 0; i < SYNTH_VOICES + SYNTH_EXTRA_VOICES; ++i) {
     SynthVoice *voice = &m_voices[i];
     if (!voice->inUse || voice->tag) {
@@ -814,7 +814,7 @@ SynthVoice *CSynth::StealVoice(DWORD priority) {
     sorted[at] = voice;
   }
 
-  SynthVoice *best = 0;
+  SynthVoice *best = NULL;
   for (i = 0; i < count; ++i) {
     SynthVoice *voice = sorted[i];
     if (!best) {
@@ -867,7 +867,7 @@ void CSynth::NoteOn(LONGLONG time, int channelIndex, int key, int velocity) {
     patch |= SYNTH_DRUM_FLAG;
   }
 
-  const SynthDownload *download = 0;
+  const SynthDownload *download = NULL;
   for (i = 0; i < m_downloads.Count() && !download; ++i) {
     if (m_downloads[i].patch == patch) {
       download = &m_downloads[i];
@@ -959,7 +959,7 @@ void CSynth::NoteOn(LONGLONG time, int channelIndex, int key, int velocity) {
 
 void CSynth::NoteOff(LONGLONG time, int channelIndex, int key) {
   int         i;
-  SynthVoice *first = 0;
+  SynthVoice *first = NULL;
   for (i = 0; i < SYNTH_VOICES + SYNTH_EXTRA_VOICES; ++i) {
     SynthVoice *voice = &m_voices[i];
     if (voice->inUse && voice->channel == channelIndex && voice->key == key && voice->egStop == SYNTH_FOREVER && !voice->sustained && !voice->tag) {

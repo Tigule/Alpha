@@ -198,7 +198,7 @@ class CPlayerMoveQueue {
 class CMovementData {
  public:
   CMovementData(const NTempest::C3Vector &position, float facing, const DWORDLONG &guid);
-  CMovementData(const DWORDLONG &guid) : m_guid(guid), m_spline(0) {
+  CMovementData(const DWORDLONG &guid) : m_guid(guid), m_spline(NULL) {
   }
   ~CMovementData();
   NTempest::C3Vector GetPosition(const NTempest::C3Vector &position) const;
@@ -365,7 +365,7 @@ class CMovementData {
   friend class CGGameObject_C_Type_MapObjTransport;
   friend class CGGameObject_C_Type_Transport;
   friend BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
-  friend int  Player_C_AppFocusMovementHandler(int focus);
+  friend BOOL Player_C_AppFocusMovementHandler(int focus);
 
   LINKDECLEX(CMovementData, moveLink);
   LINKDECLEX(CMovementData, transportLink);
@@ -413,18 +413,18 @@ class CMovementData {
 };
 
 struct CMovementGlobals {
-  CMovementGlobals() : movementLog(0), fallingLog(0), numMovers(0), ignoreObstacles(0), currentLoading(0) {
+  CMovementGlobals() : movementLog(NULL), fallingLog(NULL), numMovers(0), ignoreObstacles(0), currentLoading(NULL) {
   }
 
   ~CMovementGlobals() {
     if (movementLog) {
       fclose(movementLog);
     }
-    movementLog = 0;
+    movementLog = NULL;
     if (fallingLog) {
       fclose(fallingLog);
     }
-    fallingLog = 0;
+    fallingLog = NULL;
   }
 
   char  logFileName[MAX_PATH];

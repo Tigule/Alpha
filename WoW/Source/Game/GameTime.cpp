@@ -183,7 +183,7 @@ HGAMETIMECALLBACK CGameTime::GameTimeRegisterCallback(const WowTime &time, void(
   VALIDATE2(callback);
 
   if (time.m_hour < 0 || time.m_minute < 0) {
-    return 0;
+    return NULL;
   }
 
   GAMETIMECBSTRUCT *newCallback = NEWHANDLE(HGAMETIMECALLBACK, GAMETIMECBSTRUCT);

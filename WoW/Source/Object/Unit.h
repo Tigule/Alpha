@@ -463,7 +463,7 @@ class CGUnit {
   friend class CGInputControl;
   friend void OnMoveUpdate(DWORDLONG unit, DWORD eventTime);
   friend BOOL MoveHeartBeatHandler(LPCVOID packetData, LPVOID param);
-  friend int  Player_C_AppFocusMovementHandler(int focus);
+  friend BOOL Player_C_AppFocusMovementHandler(int focus);
 
  public:
   UINT GetUnitFlags() const {

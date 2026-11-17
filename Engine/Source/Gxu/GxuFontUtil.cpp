@@ -178,7 +178,7 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
 
       hex[2] = 0;
       for (i = 0; i < 4; ++i) {
-        char *error = 0;
+        char *error = NULL;
 
         hex[0] = *text++;
         hex[1] = *text++;
@@ -211,23 +211,23 @@ QUOTEDCODE GxuDetermineQuotedCode(LPCSTR text, UINT &advance, NTempest::CImVecto
 
 static BOOL CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
   if (!lastChar) {
-    return 0;
+    return FALSE;
   }
 
   if (lastChar == '-') {
-    return 1;
+    return TRUE;
   }
 
   if (wideChar == (UINT)-1) {
-    return 1;
+    return TRUE;
   }
 
   if (iswspace(lastChar)) {
-    return 0;
+    return FALSE;
   }
 
   if (iswspace(wideChar)) {
-    return 1;
+    return TRUE;
   }
 
   switch (lastChar) {
@@ -256,7 +256,7 @@ static BOOL CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
     case 0xFFE1:
     case 0xFFE5:
     case 0xFFE6:
-      return 0;
+      return FALSE;
   }
 
   switch (wideChar) {
@@ -317,13 +317,13 @@ static BOOL CanWrapBetween(UINT lastChar, UINT wideChar, UINT flags) {
     case 0xFF9E:
     case 0xFF9F:
     case 0xFFE0:
-      return 0;
+      return FALSE;
   }
 
   if ((wideChar >= 0x1100 && wideChar <= 0x11FF) || (wideChar >= 0x3000 && wideChar <= 0xD7AF) || (wideChar >= 0xF900 && wideChar <= 0xFAFF) ||
       (wideChar >= 0xFF00 && wideChar <= 0xFF9F) || (wideChar >= 0xFFA0 && wideChar <= 0xFFDC))
   {
-    return 1;
+    return TRUE;
   }
 
   return flags & 0x40;
@@ -717,12 +717,12 @@ void CalcWrapPoint(
 ) {
   UINT   lineBytes = currentText ? SStrLen(currentText) : 0;
   float  extent = 0.0f;
-  LPCSTR nextText = 0;
+  LPCSTR nextText = NULL;
   UINT   bytesInString;
 
   InternalGetMaxCharsWithinWidth(face, currentText, fontHeight, blockWidth, lineBytes, &extent, flags, &bytesInString, 0, 0);
   if (bytesInString == lineBytes) {
-    nextText = 0;
+    nextText = NULL;
     goto finallylabel;
   }
 
@@ -737,7 +737,7 @@ finallylabel:
   *pNextText = nextText;
 }
 
-GLYPHBITMAPDATA::GLYPHBITMAPDATA() : m_code(0), m_data(0), m_dataSize(0), m_dirty(1), m_textureCoords(0.0f), m_textureValid(0) {
+GLYPHBITMAPDATA::GLYPHBITMAPDATA() : m_code(0), m_data(NULL), m_dataSize(0), m_dirty(1), m_textureCoords(0.0f), m_textureValid(0) {
 }
 
 GLYPHBITMAPDATA::~GLYPHBITMAPDATA() {
@@ -1187,7 +1187,7 @@ void TEXTURECACHE::PasteGlyph(GLYPHBITMAPDATA *data, DWORD *dst, int thick) {
 
 void GLYPHBITMAPDATA::Clear() {
   FREEIFUSED(m_data);
-  m_data = 0;
+  m_data = NULL;
 }
 
 void CGxString::SetStringPosition(const NTempest::C3Vector &position) {
@@ -1346,7 +1346,7 @@ void CGxString::CreateGeometry() {
   info.currentParseInfo.extent.l = 0.0f;
   info.currentParseInfo.extent.r = 0.0f;
 
-  LPCSTR nextText = 0;
+  LPCSTR nextText = NULL;
   UINT   numBytes = 0;
   float  lineHeight = ScreenToPixelHeight(m_flags & 0x80, m_spacing + m_currentFontHeight);
 
@@ -1456,7 +1456,7 @@ void CGxString::InitializeViewportOffsets() {
 
 void CGxString::TexturePageEvicted(UINT pageNumber) {
   if ((1 << pageNumber) & m_texturePagesUsed) {
-    m_textureEvicted = 1;
+    m_textureEvicted = TRUE;
   }
 }
 
@@ -1595,8 +1595,8 @@ CGxString::CGxString()
       m_shadowOffset(0.00125f, -0.00125f),
       m_blockWidth(1.0f),
       m_blockHeight(1.0f),
-      m_currentFace(0),
-      m_text(0),
+      m_currentFace(NULL),
+      m_text(NULL),
       m_textLen(0),
       m_vertJust(GxVJ_Top),
       m_horzJust(GxHJ_Left),
@@ -1604,7 +1604,7 @@ CGxString::CGxString()
       m_flags(0),
       m_viewportOffset(0.0f),
       m_texturePagesUsed(0),
-      m_textureEvicted(0),
+      m_textureEvicted(FALSE),
       m_stringHeight(0.0f),
       m_savedWidth(0.0f),
       m_lastGradientStart(-1),
@@ -1636,11 +1636,11 @@ BOOL CGxFont::CheckStringGlyphs(LPCSTR string) {
   while (*string) {
     ++string;
     if (*string != '\n' && !m_activeCharacters.Ptr(*string, s_nullHashKey)) {
-      return 0;
+      return FALSE;
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 int CGxFont::UpdateDimensions() {
@@ -1691,7 +1691,7 @@ const CHARCODEDESC *CGxFont::NewCodeDesc(UINT code) {
     data = NEW(GLYPHBITMAPDATA);
     if (!GetGlyphData(data, theFace, code)) {
       delete data;
-      return 0;
+      return NULL;
     }
     m_glyphBitmapData.Insert(data, code, s_nullHashKey);
   }
@@ -1733,13 +1733,13 @@ const CHARCODEDESC *CGxFont::NewCodeDesc(UINT code) {
       if (theDesc) {
         theDesc->rowNumber = rowNumber;
         theDesc->textureNumber = textureNumber;
-        texture->m_anyDirtyGlyphs = 1;
+        texture->m_anyDirtyGlyphs = TRUE;
       }
     }
   }
 
   if (theDesc) {
-    data = 0;
+    data = NULL;
     ASSERT(theDesc->ValidTextureCoords());
     m_activeCharacters.Insert(theDesc, code, s_nullHashKey);
     m_activeCharacterCache.LinkNode(theDesc, LIST_HEAD, 0);
@@ -1760,7 +1760,7 @@ BOOL CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, UINT code) 
 
   GLYPHDATA data;
   if (!IGxuFontGlyphRenderGlyph(face, m_pixelSize, code, m_baseline, &data, (~m_flags >> 1) & 1, m_flags & 0x10)) {
-    return 0;
+    return FALSE;
   }
 
   glyphData->Clear();
@@ -1782,8 +1782,8 @@ BOOL CGxFont::GetGlyphData(GLYPHBITMAPDATA *glyphData, FT_Face face, UINT code) 
   glyphData->m_yStart = data.yStart;
   glyphData->m_glyphAdvance = data.freeTypeGlyphAdvance;
   glyphData->m_glyphBearing = data.freeTypeGlyphBearing;
-  data.data = 0;
-  return 1;
+  data.data = NULL;
+  return TRUE;
 }
 
 int CGxFont::Initialize(LPCSTR name, UINT newFlags, float fontHeight) {
@@ -1944,7 +1944,7 @@ void CGxFont::Clear() {
     FontFaceCloseHandle(m_faceHandle);
   }
 
-  m_faceHandle = 0;
+  m_faceHandle = NULL;
   ClearGlyphs();
 }
 
@@ -1981,11 +1981,11 @@ void TEXTURECACHEROW::EvictGlyph(CHARCODEDESC *&desc) {
   UINT pixelsNeeded = desc->bitmapData->m_glyphCellWidth;
   ASSERT(pixelsNeeded);
 
-  BOOL found = 0;
+  BOOL found = FALSE;
   {
     ITERATELIST(CHARCODEDESC, glyphList, current) {
       if (current == desc) {
-        found = 1;
+        found = TRUE;
         break;
       }
     }
@@ -2051,7 +2051,7 @@ CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumb
   ASSERT(glyphWidth);
 
   if (widestFreeSlot < glyphWidth) {
-    return 0;
+    return NULL;
   }
 
   current = glyphList.Head();
@@ -2067,8 +2067,8 @@ CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumb
     return newNode;
   }
 
-  newNode = 0;
-  inserted = 0;
+  newNode = NULL;
+  inserted = FALSE;
   widestFreeSlot = current->GapToPreviousTexture();
   if (widestFreeSlot >= glyphWidth) {
     newNode = NEW(CHARCODEDESC);
@@ -2111,9 +2111,9 @@ CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumb
       newNode->GenerateTextureCoords(rowNumber, glyphCellHeight);
       newNode->dataValid = 1;
       next = newNode;
-      inserted = 1;
+      inserted = TRUE;
     } else if (!next) {
-      return 0;
+      return NULL;
     }
 
     current = next;
@@ -2122,7 +2122,7 @@ CHARCODEDESC *TEXTURECACHEROW::CreateNewDesc(GLYPHBITMAPDATA *data, UINT rowNumb
   return newNode;
 }
 
-TEXTURECACHE::TEXTURECACHE() : m_anyDirtyGlyphs(1), m_data(0), m_texture(0), m_theFace(0), m_page(0) {
+TEXTURECACHE::TEXTURECACHE() : m_anyDirtyGlyphs(TRUE), m_data(NULL), m_texture(NULL), m_theFace(NULL), m_page(0) {
 }
 
 void TEXTURECACHE::Initialize(CGxFont *face, UINT thePage, UINT pixelSize) {
@@ -2218,7 +2218,7 @@ void TEXTURECACHE::TextureCallbackHandler(EGxTexCommand cmd, UINT w, UINT h, UIN
     }
   }
 
-  m_anyDirtyGlyphs = 0;
+  m_anyDirtyGlyphs = FALSE;
 }
 
 CHARCODEDESC *TEXTURECACHE::AllocateNewGlyph(GLYPHBITMAPDATA *data) {
@@ -2229,13 +2229,13 @@ CHARCODEDESC *TEXTURECACHE::AllocateNewGlyph(GLYPHBITMAPDATA *data) {
   for (UINT row = 0; row < count; ++row) {
     CHARCODEDESC *desc = m_textureRows[row].CreateNewDesc(data, row, m_theFace->m_cellHeight);
     if (desc) {
-      m_anyDirtyGlyphs = 1;
+      m_anyDirtyGlyphs = TRUE;
       desc->rowNumber = row;
       return desc;
     }
   }
 
-  return 0;
+  return NULL;
 }
 
 void IGXUTEXTBLOCK::Destroy() {
@@ -2445,7 +2445,7 @@ void CGxString::CheckEvictedTextures() {
       CreateGeometry();
     }
 
-    m_textureEvicted = 0;
+    m_textureEvicted = FALSE;
   }
 }
 

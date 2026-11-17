@@ -33,7 +33,7 @@ static GLuint s_renderTargetBuffers[2];
 
 static BOOL APIENTRY SDLErrorHandler(DWORD errorcode, LPCSTR errorstr, LPCSTR filename, int linenumber, LPCSTR description) {
   SDL_Quit();
-  return 1;
+  return TRUE;
 }
 
 void CGxDeviceOpenGl::DeviceCreatePbuffer() {
@@ -85,7 +85,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
 
 BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   ASSERT(!"Not used");
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
@@ -96,7 +96,7 @@ BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   IRsSync(1);
   ISceneBegin(3);
   m_context = 1;
-  return 1;
+  return TRUE;
 }
 
 void CGxDeviceOpenGl::IDevRemoveGlContext() {
@@ -123,17 +123,17 @@ BOOL CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &for
     }
 
     if (CGxDevice::DeviceCreate(windowProc, format)) {
-      return 1;
+      return TRUE;
     }
   }
 
   DeviceDestroy();
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDeviceOpenGl::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
   ASSERT(!"Not yet implemented");
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceOpenGl::DeviceDestroy() {
@@ -183,13 +183,13 @@ BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
         format.window ? "windowed" : "fullscreen", SDL_GetError()
     );
     FATALERROR((errorString));
-    return 0;
+    return FALSE;
   }
 
   DeviceSetDefWindow(NTempest::CRect(0.0f, 0.0f, (float)format.size.y, (float)format.size.x));
 
   if (!IDevAttachGlContext(format)) {
-    return 0;
+    return FALSE;
   }
 
   DeviceSetGamma(m_gammaRamp);
@@ -269,7 +269,7 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   int             prevHeight = 0;
 
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    return 0;
+    return FALSE;
   }
 
   for (int index = 0; index < SDL_GetNumDisplayModes(0); ++index) {
@@ -341,7 +341,7 @@ static BOOL FindPciDisplayAdapter(WORD &vendorID, WORD &deviceID) {
   FILE        *file = fopen("/proc/bus/pci/devices", "r");
 
   if (!file) {
-    return 0;
+    return FALSE;
   }
 
   while (fgets(line, sizeof(line), file)) {
@@ -374,7 +374,7 @@ BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
   AdapterID(vendorID, deviceID, driverVersionHi, driverVersionLow);
   printf("Warning: Unknown video card: 0x%.4x, 0x%.4x\n", vendorID, deviceID);
   deviceID = 0;
-  return 1;
+  return TRUE;
 }
 
 static int CGxMonitorModeSort(const void *a, const void *b) {
@@ -393,7 +393,7 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
   modes.SetCount(0);
 
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    return 0;
+    return FALSE;
   }
 
   SDL_GetDesktopDisplayMode(0, &desktop);
@@ -418,13 +418,13 @@ BOOL CGxDevice::AdapterMonitorModes(TSGrowableArray<CGxMonitorMode> &modes) {
 }
 
 BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
-  return 0;
+  return FALSE;
 }
 
 CGxDevice *CGxDevice::NewD3d() {
-  return 0;
+  return NULL;
 }

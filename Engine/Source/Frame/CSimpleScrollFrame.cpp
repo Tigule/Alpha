@@ -16,8 +16,8 @@
 
 CSimpleScrollFrame::CSimpleScrollFrame(CSimpleFrame *parent)
     : CSimpleFrame(parent),
-      m_updateScrollChild(0),
-      m_scrollChild(0),
+      m_updateScrollChild(FALSE),
+      m_scrollChild(NULL),
       m_scrollRange(0.0f),
       m_scrollOffset(0.0f),
       m_onHorizontalScroll(0),
@@ -76,7 +76,7 @@ void CSimpleScrollFrame::SetScrollChild(CSimpleFrame *frame) {
   }
 
   UpdateScrollChild();
-  m_updateScrollChild = 1;
+  m_updateScrollChild = TRUE;
 }
 
 void CSimpleScrollFrame::SetHorizontalScroll(float offset) {
@@ -163,7 +163,7 @@ void CSimpleScrollFrame::OnLayerUpdate(float elapsedSec) {
       UpdateScrollChildRect(rect.r - rect.l, rect.b - rect.t);
     }
 
-    m_updateScrollChild = 0;
+    m_updateScrollChild = FALSE;
   }
 }
 
@@ -177,7 +177,7 @@ void CSimpleScrollFrame::OnFrameRender(CRenderBatch *batch, UINT layer) {
 
 void CSimpleScrollFrame::OnFrameSizeChanged(float w, float h) {
   CSimpleFrame::OnFrameSizeChanged(w, h);
-  m_updateScrollChild = 1;
+  m_updateScrollChild = TRUE;
 }
 
 void CSimpleScrollFrame::RenderScrollChild(LPVOID param) {

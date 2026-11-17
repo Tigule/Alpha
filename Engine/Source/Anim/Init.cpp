@@ -172,15 +172,15 @@ BOOL AnimObjectSetParent(CAnimData *shared, CAnimObj *objptr, UINT parentIndex) 
   ASSERT(objptr);
   if (parentIndex == (UINT)-1) {
     *shared->headarray.New() = objptr;
-    return 1;
+    return TRUE;
   }
 
   CAnimObj *parent = GetNodeByIndex(shared, parentIndex);
   if (!parent) {
-    return 0;
+    return FALSE;
   }
   parent->childarray.New(objptr);
-  return 1;
+  return TRUE;
 }
 
 static KEYTYPE GetTrackType(UINT mdlTrackType, MDLTRACKTYPE forceType) {
@@ -642,7 +642,7 @@ ANIM_RIBBON_TRACK_SETTER(AnimObjectSetRibbonAlpha, alpha, 'LARK')
 CAnim *AnimCreate(UINT objectCounts[], UINT numGeosets, UINT numCameras, UINT numMaterialLayers) {
   CAnimData *shared = NEWHANDLE(HANIMDATA, CAnimData);
   if (!shared) {
-    return 0;
+    return NULL;
   }
 
   shared->baseObjs.ReserveSpace(objectCounts[0]);
@@ -672,7 +672,7 @@ CAnim *AnimCreate(UINT objectCounts[], UINT numGeosets, UINT numCameras, UINT nu
   CAnim *unique = NEWHANDLE(HANIM, CAnim)(0);
   if (!unique) {
     delete shared;
-    return 0;
+    return NULL;
   }
 
   unique->baseStatus.SetCount(objectCounts[0]);
@@ -696,7 +696,7 @@ HANIM AnimDuplicate(HANIM oldanim, UINT flags) {
 
   CAnim *unique = NEWHANDLE(HANIM, CAnim)(0);
   if (!unique) {
-    return 0;
+    return NULL;
   }
 
   CAnimData *shared = (CAnimData *)oldUnique->hdata;
@@ -880,7 +880,7 @@ void AnimAddCamera(CAnimData *shared, const MDLCAMERASECTION &cameraData, MDLTRA
 
 void AnimAddSequences(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *shared) {
   UINT  numSequences = 0;
-  BYTE *seqDataDone = 0;
+  BYTE *seqDataDone = NULL;
   BYTE *data = MDLFileBinarySeek(fileData, fileBytes, 'SQES');
   if (data) {
     UINT sectionBytes = *(UINT *)data;
@@ -926,7 +926,7 @@ void AnimAddSequences(BYTE *fileData, UINT fileBytes, CAnim *unique, CAnimData *
   unique->seq.SetCount(numSequences);
 
   UINT numGlobalSeqs = 0;
-  seqDataDone = 0;
+  seqDataDone = NULL;
   if (!data) {
     data = fileData;
   }

@@ -29,11 +29,11 @@ static BOOL SimpleHealthUpdateHandler(DWORDLONG guid, UINT, UINT, LPCVOID data, 
     healthBar->SetValue(unit->GetHealth());
   }
 
-  return 1;
+  return TRUE;
 }
 
 CGSimpleHealthBar::CGSimpleHealthBar(CSimpleFrame *parent) : CSimpleStatusBar(parent), m_unitGUID(0) {
-  m_scaleColor = 1;
+  m_scaleColor = TRUE;
 }
 
 CGSimpleHealthBar::~CGSimpleHealthBar() {
@@ -60,7 +60,7 @@ void CGSimpleHealthBar::SetValue(float value) {
     float               animValue = GetAnimValue();
     NTempest::CImVector color(0xFF, animValue > HPBAR_RED_THRESHOLD ? 0 : 0xFF, animValue > HPBAR_RED_THRESHOLD ? 0xFF : 0, 0);
     SetStatusBarColor(color);
-    m_scaleColor = 1;
+    m_scaleColor = TRUE;
   }
 }
 
@@ -68,7 +68,7 @@ void CGSimpleHealthBar::SetStatusBarColor(const NTempest::CImVector &color) {
   if (m_barTexture) {
     m_barTexture->SetVertexColor(color);
   }
-  m_scaleColor = 0;
+  m_scaleColor = FALSE;
 }
 
 void CGSimpleHealthBar::InstallMirrorHandlers() {

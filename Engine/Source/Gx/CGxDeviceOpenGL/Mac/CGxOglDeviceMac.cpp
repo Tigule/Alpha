@@ -151,9 +151,9 @@ static int FullscreenInWindow() {
   return s_fullscreenInWindow;
 }
 
-static int GxDevDefaultWindowRect(RECT *rect) {
+static BOOL GxDevDefaultWindowRect(RECT *rect) {
   *rect = s_defaultWindowRect;
-  return 1;
+  return TRUE;
 }
 
 static int s_ConstrainSize(RECT &rect, const RECT &bounds) {
@@ -307,7 +307,7 @@ void CGxDeviceOpenGl::DeviceSetupVXR() {
     m_vxrManager = new CGxVxrManager(s_vxrBufferDefs, &success);
     if (!success) {
       delete m_vxrManager;
-      m_vxrManager = 0;
+      m_vxrManager = NULL;
       OsOutputDebugString(" error activating VXR support");
     } else {
       OsOutputDebugString(" activated VXR support");
@@ -398,9 +398,9 @@ void CGxDeviceOpenGl::HandleModeChanges() {
 void CGxDeviceOpenGl::DeviceCreatePbuffer() {
   ASSERT(m_renderTargetType != kRenderTargetType_None);
 
-  m_hPbuffer = 0;
-  m_hPbufferDC = 0;
-  m_hPbufferRC = 0;
+  m_hPbuffer = NULL;
+  m_hPbufferDC = NULL;
+  m_hPbufferRC = NULL;
 
   if (m_renderTargetType != kRenderTargetType_PBuffer) {
     return;
@@ -436,9 +436,9 @@ void CGxDeviceOpenGl::DeviceDestroyPbuffer() {
     s_pbufferRenderbuffers[1] = 0;
   }
 
-  m_hPbuffer = 0;
-  m_hPbufferDC = 0;
-  m_hPbufferRC = 0;
+  m_hPbuffer = NULL;
+  m_hPbufferDC = NULL;
+  m_hPbufferRC = NULL;
 }
 
 void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
@@ -465,7 +465,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
     if (s_desktopMode) {
       CGDisplaySetDisplayMode(kCGDirectMainDisplay, s_desktopMode, 0);
       CGDisplayModeRelease(s_desktopMode);
-      s_desktopMode = 0;
+      s_desktopMode = NULL;
     }
 
     CGDisplayRelease(kCGDirectMainDisplay);
@@ -479,7 +479,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
 BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   if (format.window) {
     format.apiSpecificModeID = 0;
-    return 1;
+    return TRUE;
   }
 
   CFArrayRef modes = CGDisplayCopyAllDisplayModes(kCGDirectMainDisplay, 0);
@@ -489,7 +489,7 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   s_fullscreenInWindow = -1;
 
   if (!modes) {
-    return 0;
+    return FALSE;
   }
 
   count = CFArrayGetCount(modes);
@@ -500,14 +500,14 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
     if ((int)CGDisplayModeGetWidth(mode) == format.size.x && (int)CGDisplayModeGetHeight(mode) == format.size.y) {
       format.apiSpecificModeID = (DWORD)index;
       CFRelease(modes);
-      return 1;
+      return TRUE;
     }
   }
 
   CFRelease(modes);
   s_fullscreenInWindow = 1;
   format.apiSpecificModeID = 0;
-  return 1;
+  return TRUE;
 }
 
 BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
@@ -533,7 +533,7 @@ BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
     m_hwnd = (HWND)GxMacWindowCreate(format.pos.x, format.pos.y, format.size.x, format.size.y, !captured);
 
     if (!m_hwnd) {
-      return 0;
+      return FALSE;
     }
 
     IDevSetFocus(1, format);
@@ -543,14 +543,14 @@ BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
 
   if (!view) {
     IDevRemoveGlContext();
-    return 0;
+    return FALSE;
   }
 
   context = GxMacContextCreate(view);
 
   if (!context) {
     IDevRemoveGlContext();
-    return 0;
+    return FALSE;
   }
 
   GxMacGetWindowBounds((LPVOID)m_hwnd, 0, &window.left, &window.top, &window.right, &window.bottom);
@@ -593,10 +593,10 @@ BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   ISceneBegin(3);
   GxPrepareFontTweaks();
   DeviceSetupVXR();
-  m_context = 1;
+  m_context = TRUE;
   m_modeChangePending = 1;
   HandleModeChanges();
-  return 1;
+  return TRUE;
 }
 
 void CGxDeviceOpenGl::IDevRemoveGlContext() {
@@ -637,17 +637,17 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
     m_renderTargetType = kRenderTargetType_None;
 
     delete m_vaoManager;
-    m_vaoManager = 0;
+    m_vaoManager = NULL;
     if (m_vxrManager) {
       glDisableClientState(GL_VERTEX_ARRAY_RANGE_APPLE);
       delete m_vxrManager;
     }
-    m_vxrManager = 0;
+    m_vxrManager = NULL;
 
     GxMacContextClearCurrent();
     GxMacContextDestroy((LPVOID)m_hglrc);
 
-    m_hglrc = 0;
+    m_hglrc = NULL;
   }
 
   fade.Initialize();
@@ -655,11 +655,11 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
     fade.Fade();
   }
 
-  m_hdc = 0;
+  m_hdc = NULL;
 
   if (s_gxWindowHandler) {
     OsMacRemoveEventHandler(s_gxWindowHandler);
-    s_gxWindowHandler = 0;
+    s_gxWindowHandler = NULL;
   }
 
   OsInputRemoveGameWindowHandlers((LPVOID)m_hwnd);
@@ -668,13 +668,13 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
     IDevSetFocus(0, m_format);
     GxMacSetSystemUIMode(0);
     GxMacWindowDestroy((LPVOID)m_hwnd);
-    m_hwnd = 0;
+    m_hwnd = NULL;
   }
 
 #if BUILD_FIXES
   GxMacInitCursor();
 #endif
-  m_context = 0;
+  m_context = FALSE;
 }
 
 void CGxDeviceOpenGl::DeviceWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) {
@@ -688,24 +688,24 @@ BOOL CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &for
   VALIDATEEND;
 
   m_ownhwnd = 1;
-  m_vxrManager = 0;
-  m_vaoManager = 0;
+  m_vxrManager = NULL;
+  m_vaoManager = NULL;
   m_renderTargetType = kRenderTargetType_None;
   m_modeChangePending = 0;
   m_contextUpdatePending = 0;
 
   if (CGxDevice::DeviceCreate(windowProc, format)) {
     CreateDynamicBufs();
-    return 1;
+    return TRUE;
   }
 
   DeviceDestroy();
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDeviceOpenGl::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
   ASSERT(!"CGxDeviceOpenGl::DeviceCreate (uint /*hwnd*/, const CGxFormat& /*format*/)");
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceOpenGl::DeviceDestroy() {
@@ -726,13 +726,13 @@ BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
       DeviceSetGamma(m_gammaRamp);
 
       if (CGxDevice::DeviceSetFormat(format)) {
-        return 1;
+        return TRUE;
       }
     }
   }
 
   CGxDevice::DeviceSetFormat(prevFormat);
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceOpenGl::DeviceSetBaseMipLevel(UINT baseMipLevel) {
@@ -791,7 +791,7 @@ void CGxDeviceOpenGl::IDeviceSetRenderTargetSurfaceTexture(EGxBuffer buffer, CGx
     }
 
     oldTex->m_needsCreation = 0;
-    target.m_apiSpecific = 0;
+    target.m_apiSpecific = NULL;
   }
 
   if (gxTex) {
@@ -822,7 +822,7 @@ void CGxDeviceOpenGl::IDeviceSetRenderTargetPBuffer(EGxBuffer buffer, CGxTex *gx
     }
 
     oldTex->m_needsCreation = 0;
-    target.m_apiSpecific = 0;
+    target.m_apiSpecific = NULL;
   }
 
   if (gxTex) {
@@ -902,15 +902,15 @@ void CGxDeviceOpenGl::CapsWindowSizeInScreenCoords(NTempest::CRect &dst) {
 }
 
 BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDevice::D3dEnumFormats(TSGrowableArray<CGxFormat> &formats) {
-  return 0;
+  return FALSE;
 }
 
 CGxDevice *CGxDevice::NewD3d() {
-  return 0;
+  return NULL;
 }
 
 BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, UINT &driverVersionHi, UINT &driverVersionLow) {
@@ -918,7 +918,7 @@ BOOL CGxDevice::AdapterID(WORD &vendorID, WORD &deviceID, UINT &driverVersionHi,
   deviceID = 0;
   driverVersionHi = 0;
   driverVersionLow = 0;
-  return 1;
+  return TRUE;
 }
 
 static uint64_t GetTotalVRAM() {
@@ -964,7 +964,7 @@ BOOL CGxDevice::AdapterInfer(WORD &deviceID) {
     deviceID = 2;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static int CGxMonitorModeSort(const void *a, const void *b) {
@@ -1019,7 +1019,7 @@ BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   CGDisplayModeRef displayMode = CGDisplayCopyDisplayMode(kCGDirectMainDisplay);
 
   if (!displayMode) {
-    return 0;
+    return FALSE;
   }
 
   mode.size.x = (int)CGDisplayModeGetWidth(displayMode);
@@ -1031,5 +1031,5 @@ BOOL CGxDevice::AdapterDesktopMode(CGxMonitorMode &mode) {
   }
 
   CGDisplayModeRelease(displayMode);
-  return 1;
+  return TRUE;
 }

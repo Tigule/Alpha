@@ -18,24 +18,24 @@ static const float MIN_DRAG_DIST = 0.0080000004f;
 static const float MIN_DRAG_DIST_SQ = MIN_DRAG_DIST * MIN_DRAG_DIST;
 
 CSimpleFrame::CSimpleFrame(CSimpleFrame *parent)
-    : m_parent(0),
-      m_tooltip(0),
-      m_titleRegion(0),
+    : m_parent(NULL),
+      m_tooltip(NULL),
+      m_titleRegion(NULL),
       m_initialized_state(STATE_INITIALIZED),
       m_id(0),
-      m_frameName(0),
+      m_frameName(NULL),
       m_frameRegContext(0),
       m_flags(0),
       m_strata(2),
       m_level(0),
       m_alpha(0xFF),
       m_eventmask(0),
-      m_visible(0),
+      m_visible(FALSE),
       m_highlightLocked(0),
       m_lookForDrag(0),
-      m_mouseDown(0),
-      m_dragging(0),
-      m_loading(0),
+      m_mouseDown(FALSE),
+      m_dragging(FALSE),
+      m_loading(FALSE),
       m_onLoad(0),
       m_onSizeChanged(0),
       m_onUpdate(0),
@@ -52,7 +52,7 @@ CSimpleFrame::CSimpleFrame(CSimpleFrame *parent)
       m_onChar(0),
       m_onKeyDown(0),
       m_onKeyUp(0),
-      m_backdrop(0),
+      m_backdrop(NULL),
       m_batchDirty(0) {
   m_top = CSimpleTop::GetInstance();
   m_top->RegisterFrame(this);
@@ -68,7 +68,7 @@ CSimpleFrame::CSimpleFrame(CSimpleFrame *parent)
 CSimpleFrame::~CSimpleFrame() {
   m_top->UnregisterFrame(this);
   m_top->ValidateDeletedFrame(this);
-  m_top = 0;
+  m_top = NULL;
 
   ClearFromSimpleRegistry();
 
@@ -183,7 +183,7 @@ void CSimpleFrame::PreLoadXML(const XMLNode *node, CStatus *status) {
     }
   }
 
-  m_loading = 1;
+  m_loading = TRUE;
   SetDeferredResize(1);
 }
 
@@ -385,7 +385,7 @@ void CSimpleFrame::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleFrame::PostLoadXML(const XMLNode *node, CStatus *status) {
-  m_loading = 0;
+  m_loading = FALSE;
   RunOnLoadScript();
 
   if (m_visible) {
@@ -493,12 +493,12 @@ BOOL CSimpleFrame::SetHighlight(LPCSTR texFile, EGxBlend blendMode) {
 
 BOOL CSimpleFrame::SetHighlight(CSimpleTexture *texture, EGxBlend blendMode) {
   if (!texture) {
-    return 0;
+    return FALSE;
   }
 
   texture->SetFrame(this, 4, 1);
   texture->SetBlendMode(blendMode);
-  return 1;
+  return TRUE;
 }
 
 void CSimpleFrame::SetAlpha(BYTE alpha) {
@@ -589,7 +589,7 @@ BOOL CSimpleFrame::AddToFrameRegistry(LPCSTR frameName, UINT context) {
     UnregisterScriptObject(m_frameName);
     SimpleFrameRegistryRemoveEntry(m_frameName, m_frameRegContext);
     FREE(m_frameName);
-    m_frameName = 0;
+    m_frameName = NULL;
   }
 
   if (frameName && *frameName) {
@@ -722,7 +722,7 @@ BOOL CSimpleFrame::HideThis() {
 
     UnregisterForEvents();
     NotifyDrawLayersChanged();
-    m_visible = 0;
+    m_visible = FALSE;
     OnLayerHide();
 
     ITERATELIST(SIMPLEFRAMENODE, m_children, node) {
@@ -730,7 +730,7 @@ BOOL CSimpleFrame::HideThis() {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleFrame::ShowThis() {
@@ -742,7 +742,7 @@ BOOL CSimpleFrame::ShowThis() {
         SetDeferredResize(0);
       }
 
-      m_visible = 1;
+      m_visible = TRUE;
       OnLayerShow();
       RegisterForEvents();
       NotifyDrawLayersChanged();
@@ -810,7 +810,7 @@ void CSimpleFrame::UnregisterForEvents() {
 
 BOOL CSimpleFrame::TestHitRect(const NTempest::C2Vector &pt) {
   if (!(CLayoutFrame::m_flags & 0x1)) {
-    return 0;
+    return FALSE;
   }
 
   if (m_flags & 0x2000) {
@@ -823,7 +823,7 @@ BOOL CSimpleFrame::TestHitRect(const NTempest::C2Vector &pt) {
       rect.Intersect(m_hitRect);
       return rect.Contains(pt);
     }
-    return 0;
+    return FALSE;
   }
 
   return m_hitRect.Contains(pt);
@@ -846,10 +846,10 @@ void CSimpleFrame::SetHitRectInsets(float left, float right, float top, float bo
 BOOL CSimpleFrame::GetHitRect(NTempest::CRect &rect) {
   if (CLayoutFrame::m_flags & 0x1) {
     rect = m_hitRect;
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 void CSimpleFrame::OnLayerShow() {
@@ -872,7 +872,7 @@ BOOL CSimpleFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
     float dy = pt.y - m_clickPoint.y;
 
     if (dx * dx + dy * dy >= MIN_DRAG_DIST_SQ) {
-      m_dragging = 1;
+      m_dragging = TRUE;
       OnDragStart((CMouseEvent &)evt);
     }
   }
@@ -976,7 +976,7 @@ void CSimpleFrame::OnLayerCursorExit() {
   }
 
   if (m_mouseDown && !m_dragging) {
-    m_dragging = 1;
+    m_dragging = TRUE;
 
     CMouseEvent evt;
 
@@ -993,68 +993,68 @@ BOOL CSimpleFrame::OnLayerChar(CCharEvent &evt) {
   char utf8string[6];
 
   if (!m_visible || !m_onChar) {
-    return 0;
+    return FALSE;
   }
 
   sputu8(evt.ch, utf8string);
   RunOnCharScript(utf8string);
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleFrame::OnLayerKeyDown(CKeyEvent &evt) {
   if (!m_visible || !m_onKeyDown) {
-    return 0;
+    return FALSE;
   }
   RunOnKeyDownScript(KeyToString(evt.key));
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleFrame::OnLayerKeyUp(CKeyEvent &evt) {
   if (!m_visible || !m_onKeyUp) {
-    return 0;
+    return FALSE;
   }
   RunOnKeyUpScript(KeyToString(evt.key));
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleFrame::OnLayerMouseDown(CMouseEvent &evt) {
   if (m_lookForDrag & evt.button) {
-    m_mouseDown = 1;
-    m_dragging = 0;
+    m_mouseDown = TRUE;
+    m_dragging = FALSE;
     m_dragButton = evt.button;
     m_clickPoint.Set(evt.x, evt.y);
   }
 
   RunOnMouseDownScript(evt.button);
-  return 0;
+  return FALSE;
 }
 
 BOOL CSimpleFrame::OnLayerMouseUp(CMouseEvent &evt) {
   if (m_lookForDrag & evt.button) {
     int dragging = m_dragging;
 
-    m_mouseDown = 0;
+    m_mouseDown = FALSE;
     if (dragging) {
       OnDragStop(evt);
       if (m_top->m_mouseFocus) {
         m_top->m_mouseFocus->OnReceiveDrag(evt);
       }
-      m_dragging = 0;
-      return 1;
+      m_dragging = FALSE;
+      return TRUE;
     }
   }
 
   RunOnMouseUpScript(evt.button);
-  return 0;
+  return FALSE;
 }
 
 BOOL CSimpleFrame::OnLayerMouseWheel(CMouseEvent &evt) {
   if (!m_visible || !m_onMouseWheel) {
-    return 0;
+    return FALSE;
   }
 
   RunOnMouseWheelScript(evt.wheelDistance >= 0 ? 1 : -1);
-  return 1;
+  return TRUE;
 }
 
 void CSimpleFrame::OnDragStart(CMouseEvent &evt) {

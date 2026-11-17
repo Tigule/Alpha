@@ -13,7 +13,7 @@ class CFramePoint {
   virtual float         X(float scale) = 0;
   virtual float         Y(float scale) = 0;
   virtual CLayoutFrame *GetRelative() {
-    return 0;
+    return NULL;
   }
 };
 

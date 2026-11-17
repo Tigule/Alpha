@@ -31,7 +31,7 @@ NTempest::C44Matrix                                                    CParticle
 NTempest::C3Vector                                                     CParticleEmitter2::s_quadVectors[4];
 
 CParticleEmitter2::CParticleEmitter2() : m_refCount(1) {
-  m_hTex = 0;
+  m_hTex = NULL;
   m_replaceableId = 0;
   m_emitterType = PET_BASE_EMITTER;
   m_particleType = PT_QUAD;
@@ -86,9 +86,9 @@ CParticleEmitter2::CParticleEmitter2() : m_refCount(1) {
   m_followB = 0.0f;
   m_followM = 0.0f;
   for (UINT i = 0; i < MAX_CHILD_EMITTERS; ++i) {
-    m_childEmitter[i] = 0;
+    m_childEmitter[i] = NULL;
   }
-  m_model = 0;
+  m_model = NULL;
   m_verticesPerParticle = 0;
   m_indicesPerParticle = 0;
 }
@@ -114,7 +114,7 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep) : m
     if (rhs.m_childEmitter[loop]) {
       m_childEmitter[loop] = ParticleSystemManager::GetInstance()->DuplicateEmitter(rhs.m_childEmitter[loop], 0);
     } else {
-      m_childEmitter[loop] = 0;
+      m_childEmitter[loop] = NULL;
     }
   }
   m_model = (HMODEL)HandleDuplicate(rhs.m_model);
@@ -197,16 +197,16 @@ CParticleEmitter2::CParticleEmitter2(const CParticleEmitter2 &rhs, int deep) : m
 CParticleEmitter2::~CParticleEmitter2() {
   if (m_hTex) {
     HandleClose(m_hTex);
-    m_hTex = 0;
+    m_hTex = NULL;
   }
   if (m_model) {
     HandleClose(m_model);
-    m_model = 0;
+    m_model = NULL;
   }
   for (UINT i = 0; i < MAX_CHILD_EMITTERS; ++i) {
     if (m_childEmitter[i]) {
       ParticleSystemManager::GetInstance()->DeleteEmitter2(m_childEmitter[i]);
-      m_childEmitter[i] = 0;
+      m_childEmitter[i] = NULL;
     }
   }
 }
@@ -374,9 +374,9 @@ BOOL CParticleEmitter2::MoveParticle(CParticle2 &p, float elapsedTime) {
   }
 
   if (m_0XKill && NTempest::C3Vector::Dot(move, p.m_position) > 0.0f) {
-    return 0;
+    return FALSE;
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CParticleEmitter2::MoveParticle(CParticle2_Model &p, float elapsedTime) {
@@ -408,7 +408,7 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
     randomIndex = (((DWORD)&p >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
   }
   if (m_twinkleOnOff < 1.0f && m_rndTable[randomIndex] > m_twinkleOnOff) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::CImVector color;
@@ -523,11 +523,11 @@ BOOL CParticleEmitter2::IRenderParticle(CParticle2 &p, CGxVertexPNCT0 *vtx) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPNCT0 *vtxBase = 0;
+  CGxVertexPNCT0 *vtxBase = NULL;
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
       vtxBase = (CGxVertexPNCT0 *)GxAllocVertexMem(buf->VertexCount() * sizeof(CGxVertexPNCT0));
@@ -576,7 +576,7 @@ void CParticleEmitter2::IRenderVertices(const CGxBufCommand &cmd, CGxBuf *buf) {
 void CParticleEmitter2::IRenderIndices(const CGxBufCommand &cmd, CGxBuf *buf) {
   s_renderedIndices = m_indicesPerParticle * s_renderedParticles;
 
-  WORD *indices = 0;
+  WORD *indices = NULL;
   switch (cmd.index.op) {
     case GxBufOp_Assign:
       indices = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(WORD));
@@ -691,7 +691,7 @@ BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
     randomIndex = (((DWORD)&p >> 5) + NTempest::CMath::ftol_0_256_(m_twinkleFPS * p.m_age)) & RND_TABLE_MASK;
   }
   if (m_twinkleOnOff < 1.0f && m_rndTable[randomIndex] > m_twinkleOnOff) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::CImVector color;
@@ -722,7 +722,7 @@ BOOL CParticleEmitter2::RenderParticle(CParticle2_Model &p) {
   ModelSetVertexColor(m_model, color.r, color.g, color.b, 0);
   ModelSetVertexAlpha(m_model, color.a, 0);
   ModelRender(m_model, 0, 0);
-  return 1;
+  return TRUE;
 }
 
 void CParticleEmitter2::RenderParticleModels() {

@@ -69,10 +69,10 @@ BOOL OsGetModuleName(DWORD moduleId, char *buffer, DWORD chars) {
   for (UINT i = 0; i < 8; ++i) {
     if (s_modules[i].m_id == moduleId) {
       GetModuleFileNameA(s_modules[i].m_handle, buffer, chars);
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL OsSetModuleHandle(DWORD moduleId, HINSTANCE moduleHandle) {
@@ -83,17 +83,17 @@ BOOL OsSetModuleHandle(DWORD moduleId, HINSTANCE moduleHandle) {
     if (!s_modules[i].m_handle || s_modules[i].m_id == moduleId) {
       s_modules[i].m_id = moduleId;
       s_modules[i].m_handle = moduleHandle;
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void OsClearModuleHandle(DWORD moduleId) {
   for (UINT i = 0; i < 8; ++i) {
     if (s_modules[i].m_id == moduleId) {
       s_modules[i].m_id = 0;
-      s_modules[i].m_handle = 0;
+      s_modules[i].m_handle = NULL;
       return;
     }
   }
@@ -162,24 +162,24 @@ BOOL OsPathIsRelative(LPCSTR path) {
 BOOL OsPathHasInvalidChars(LPCSTR path) {
   for (char ch = *path++; ch; ch = *path++) {
     if (SStrChr("*/:><|&+^?\"", ch)) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL OsFileNameHasInvalidChars(LPCSTR filename) {
   for (char ch = *filename++; ch; ch = *filename++) {
     if (SStrChr("\\*/:><|&+^?\"", ch)) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL OsFileNameIsValid(LPCSTR filename) {
   if (OsFileNameHasInvalidChars(filename)) {
-    return 0;
+    return FALSE;
   }
 
   char   filenameNoExt[MAX_PATH];
@@ -192,10 +192,10 @@ BOOL OsFileNameIsValid(LPCSTR filename) {
 
   for (UINT i = 0; i < 22; ++i) {
     if (!SStrCmpI(s_invalidFileNames[i], filenameNoExt, 0x7FFFFFFF)) {
-      return 0;
+      return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void OsGetSystemFontDirectory(char *buffer, UINT chars) {

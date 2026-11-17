@@ -62,12 +62,12 @@ static BOOL CaptureScreen() {
 #endif
   }
 
-  return pixels != 0;
+  return pixels != NULL;
 }
 
 static BOOL OnIdle(const EVENT_DATA_IDLE *data, LPVOID) {
   s_elapsedSec += data->elapsedSec;
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnPaint(LPCVOID, LPVOID) {
@@ -79,7 +79,7 @@ static BOOL OnPaint(LPCVOID, LPVOID) {
   float maxZ;
 
   if (s_ScrnDisable || !GxCapsIsWindowVisible()) {
-    return 1;
+    return TRUE;
   }
 
   {
@@ -137,13 +137,13 @@ static BOOL OnPaint(LPCVOID, LPVOID) {
     GxScenePresent(3);
     s_captureScreen(CaptureScreen());
     GxDevClearScreenShot();
-    s_captureScreen = 0;
+    s_captureScreen = NULL;
   } else {
     GxScenePresent(3);
   }
 
   s_elapsedSec = 0.0f;
-  return 1;
+  return TRUE;
 }
 
 void ILayerDestroy() {

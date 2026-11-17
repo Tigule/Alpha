@@ -93,12 +93,12 @@ struct CSimpleDoodad : public TSHashObject<CSimpleDoodad, HASHKEY_NONE> {
   ~CSimpleDoodad() {
     for (UINT index = 0; index < nTextures; ++index) {
       HandleClose(textures[index]);
-      textures[index] = 0;
+      textures[index] = NULL;
     }
 
     if (gxBuf) {
       GxBufDestroy(gxBuf);
-      gxBuf = 0;
+      gxBuf = NULL;
     }
   }
 

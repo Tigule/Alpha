@@ -12,7 +12,7 @@ NODEDECL(GAMETIMECBSTRUCT), public CHandleObject {
   LPVOID userData;
   void(WINAPI * callback)(const WowTime &, LPVOID);
 
-  GAMETIMECBSTRUCT() : userData(0), callback(0) {
+  GAMETIMECBSTRUCT() : userData(NULL), callback(NULL) {
   }
   GAMETIMECBSTRUCT(const GAMETIMECBSTRUCT &);
 };

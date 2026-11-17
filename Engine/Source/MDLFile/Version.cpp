@@ -35,7 +35,7 @@ namespace MDL {
 
     if (errors.Found(MDLTOK_FORMATVERSION) && data.version > 0x514) {
       status->Add(STATUS_FATAL, "Error: File version (%u) is newer than newest version (%u) supported by app\n", data.version, 0x514);
-      return 0;
+      return FALSE;
     }
     return !parse.FoundError();
   }
@@ -44,23 +44,23 @@ namespace MDL {
     WriteLine(buffer, "%s {\n", TokenText(MDLTOK_VERSION));
     WriteLine(buffer, "\t%s %d,\n", TokenText(MDLTOK_FORMATVERSION), 0x514);
     WriteLine(buffer, "}\n");
-    return 1;
+    return TRUE;
   }
 
   BOOL ReadBinVersion(CMsgBuffer &buf, UINT len, MDLDATA &data, CMDLStatus *status) {
     VALIDATE2(status != 0);
     if (len != 4) {
       status->Add(STATUS_ERROR, "Invalid VERX section detected in model.\n");
-      return 0;
+      return FALSE;
     }
     data.version = buf.GetUint();
-    return 1;
+    return TRUE;
   }
 
   BOOL WriteBinVersion(const MDLDATA &data, CMsgBuffer &buffer, CMDLStatus *) {
     buffer.AddDword('SREV');
     buffer.AddUint(4);
     buffer.AddUint(data.version);
-    return 1;
+    return TRUE;
   }
 }  // namespace MDL

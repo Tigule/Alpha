@@ -218,7 +218,7 @@ long StackCrawl_GenerateCrawlEx(char *buffer, long bufferSize, const char *prefi
 }
 
 long StackCrawl_AllThreads(char *buffer, long bufferSize, const char *prefix, const char *suffix, long count) {
-  thread_act_array_t     threads = 0;
+  thread_act_array_t     threads = NULL;
   mach_msg_type_number_t threadCount = 0;
   mach_port_t            self = mach_thread_self();
   kern_return_t          err;
@@ -283,7 +283,7 @@ void SErrInitialize() {
 extern "C" BOOL APIENTRY SErrDestroy() {
   HANDLER *handler;
 
-  while ((handler = s_handlers.Head()) != 0) {
+  while ((handler = s_handlers.Head()) != NULL) {
     s_handlers.DeleteNode(handler);
   }
 
@@ -359,7 +359,7 @@ extern "C" BOOL APIENTRY SErrDisplayError(DWORD errorcode, LPCSTR filename, int 
   if (s_assertOptions & (SERR_OPTION_STDERR | SERR_OPTION_ERRORFILE)) {
     FILE         *destination[2];
     int           count = 0;
-    FILE         *errorFile = 0;
+    FILE         *errorFile = NULL;
     OSSYSTEMTIME  localTime;
     CFTimeZoneRef timeZone;
     CFStringRef   abbreviation;
@@ -544,7 +544,7 @@ extern "C" BOOL __cdecl SErrDisplayErrorFmt(DWORD errorcode, LPCSTR filename, in
 }
 
 extern "C" void __cdecl SErrDisplayAppFatal(LPCSTR format, ...) {
-  LPCSTR  filename = 0;
+  LPCSTR  filename = NULL;
   int     linenumber = 0;
   char    description[0x400];
   va_list args;
@@ -555,7 +555,7 @@ extern "C" void __cdecl SErrDisplayAppFatal(LPCSTR format, ...) {
     filename = s_fatalFileName;
     linenumber = s_fatalLineNumber;
 
-    s_fatalFileName = 0;
+    s_fatalFileName = NULL;
     s_fatalLineNumber = 0;
     s_fatalProcessId = 0;
   }

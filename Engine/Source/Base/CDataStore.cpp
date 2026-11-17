@@ -16,20 +16,20 @@ void CDataStore::InternalDestroy(BYTE *&data, UINT &base, UINT &alloc) {
     Free(data, 0, 0);
   }
 
-  data = 0;
+  data = NULL;
   base = 0;
   alloc = 0;
 }
 
 BOOL CDataStore::InternalFetchRead(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc) {
-  return 0;
+  return FALSE;
 }
 
 BOOL CDataStore::InternalFetchWrite(UINT pos, UINT bytes, BYTE *&data, UINT &base, UINT &alloc, LPCSTR fileName, int lineNumber) {
   alloc = (bytes + pos + 0xFF) & 0xFFFFFF00;
   data = Realloc(data, alloc, fileName, lineNumber);
 
-  return 1;
+  return TRUE;
 }
 
 #define DATASTORE_SET(type)                                 \
@@ -616,7 +616,7 @@ CDataStore &CDataStore::GetData(LPVOID pval, UINT bytes) {
 }
 
 CDataStore &CDataStore::GetDataInSitu(LPVOID &pval, UINT bytes) {
-  pval = 0;
+  pval = NULL;
 
   if (FetchRead(m_read, bytes)) {
     pval = m_data - m_base + m_read;
@@ -653,7 +653,7 @@ void CDataStore::DetachBuffer(LPVOID *data, UINT *size, UINT *alloc) {
     *alloc = m_alloc;
   }
 
-  m_data = 0;
+  m_data = NULL;
   m_alloc = 0;
   Reset();
 }

@@ -18,13 +18,13 @@ static BOOL AnimFinishedCallback(LPVOID param) {
   CSimpleModel *model = (CSimpleModel *)param;
 
   model->RunOnAnimFinishedScript();
-  return 1;
+  return TRUE;
 }
 
 CSimpleModel::CSimpleModel(CSimpleFrame *parent)
     : CSimpleFrame(parent),
-      m_model(0),
-      m_camera(0),
+      m_model(NULL),
+      m_camera(NULL),
       m_position(0.0f),
       m_facing(0.0f),
       m_scale(1.0f),
@@ -120,7 +120,7 @@ void CSimpleModel::LoadXML_Scripts(const XMLNode *node, CStatus *status) {
 }
 
 void CSimpleModel::SetModel(LPCSTR sourcefile, CModelCreate *data, CStatus *status) {
-  HMODEL model = 0;
+  HMODEL model = NULL;
 
   if (sourcefile && *sourcefile) {
     model = ModelCreate(sourcefile, data, status);
@@ -216,7 +216,7 @@ BOOL CSimpleModel::AdvanceTime() {
     return ModelAdvanceTime(m_model);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CSimpleModel::ReplaceTexture(UINT materialID, LPCSTR textureName) {

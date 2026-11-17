@@ -90,7 +90,7 @@ class NetClient : public WowConnectionResponse {
  private:
   friend class NetClientRedirect;
 
-  int  Connect(LPCSTR hostName, WORD port);
+  BOOL Connect(LPCSTR hostName, WORD port);
 
   static int s_clientCount;
 

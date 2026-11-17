@@ -81,10 +81,10 @@ BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   UINT chunks = s_chunkList.Count();
   if (!chunks) {
     ConsoleWrite("Error, no chunk info found!", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
-  FILE *outFile = 0;
+  FILE *outFile = NULL;
   char  buffer[128];
   for (UINT fileNumber = 0; fileNumber < 100; ++fileNumber) {
     SStrPrintf(buffer, sizeof(buffer), "SndEAXChunkInfo_OUTDOORS_%02d.txt", fileNumber);
@@ -95,7 +95,7 @@ BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
   }
   if (!outFile) {
     ConsoleWrite("Error, cannot create output file!", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   fprintf(outFile, "%d\n", chunks);
@@ -104,28 +104,28 @@ BOOL DumpChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
     s_chunkList[i]->PrintInfo(outFile);
   }
   fclose(outFile);
-  return 1;
+  return TRUE;
 }
 
 BOOL ShowCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (!s_chunkList.Count()) {
     ConsoleWrite("No chunks created, use \"SndDebugCreateChunk\" to create a chunk for your current position", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
   if (s_currentChunk >= s_chunkList.Count()) {
     ConsoleWrite("Error, the current chunk is greater than the number of chunks..something is wrong!", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
   OUTDOORSCHUNKHASHOBJ *obj = s_chunkList[s_currentChunk];
   ASSERT(obj);
   obj->DumpInfo(0, 0);
-  return 1;
+  return TRUE;
 }
 
 BOOL SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   if (s_currentChunk > s_chunkList.Count()) {
     ConsoleWrite("Error: the current chunk is invalid, contact Jeff", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   OUTDOORSCHUNKHASHOBJ *obj = s_chunkList[s_currentChunk];
@@ -207,7 +207,7 @@ BOOL SetChunkPropertyOUTDOORS(LPCSTR command, LPCSTR arguments) {
   }
 
   SndInterfaceSetProviderPrefs(*desc, *desc);
-  return 1;
+  return TRUE;
 }
 
 BOOL SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
@@ -222,24 +222,24 @@ BOOL SetCurrentChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   } else {
     ConsoleWrite("Error, this command needs a parameter, use \"ShowCurrentChunk\" to list chunks.", DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   CGObject_C *object = ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__);
   if (!object) {
     ConsoleWrite("Error, can't locate current player!", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   DWORD_PTR worldObject = object->GetWorldObject();
   if (!worldObject) {
     ConsoleWrite("Error, can't locate current player's worldobject!", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
   if (CWorld::QueryObjectInside(worldObject)) {
     ConsoleWrite("Error, you don't seem to be outdoors!", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   NTempest::C3Vector location = object->GetPosition();
@@ -249,7 +249,7 @@ BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   OUTDOORSCHUNKHASHOBJ *chunk = s_chunkHash.Ptr(areaID, key);
   if (chunk) {
     chunk->DumpInfo(1, 0);
-    return 1;
+    return TRUE;
   }
 
   chunk = s_chunkHash.New(areaID, key, 0, 0);
@@ -260,7 +260,7 @@ BOOL CreateChunkOUTDOORS(LPCSTR command, LPCSTR arguments) {
   chunk->continentID = s_currentContinent;
   chunk->areaID = areaID;
   chunk->DumpInfo(1, 1);
-  return 1;
+  return TRUE;
 }
 
 BOOL SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
@@ -271,7 +271,7 @@ BOOL SndDebugListChunksOUTDOORS(LPCSTR command, LPCSTR arguments) {
     obj->DumpInfo(1, 0);
   }
   ConsolePrintf("listed %d entries", i);
-  return 1;
+  return TRUE;
 }
 
 void OutdoorsShutdown() {

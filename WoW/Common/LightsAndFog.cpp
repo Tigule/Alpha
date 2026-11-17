@@ -19,7 +19,7 @@ static bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
   int               n;
 
   if (!SFile::Read(lightdata, &diskdataitem, sizeof(diskdataitem), 0, 0, 0)) {
-    return 0;
+    return false;
   }
 
   for (i = 0; i < 18; ++i) {
@@ -48,13 +48,13 @@ static bool ReadSingleLightGroup(SFile *lightdata, LightDataItem *dataitem) {
 
   dataitem->m_highlightSky = diskdataitem.m_highlightSky;
   dataitem->m_cloudMask = diskdataitem.m_cloudMask;
-  return 1;
+  return true;
 }
 
 bool LoadLightsAndFog(LPCSTR filename, LightGroup *lightgroup) {
   int    versionNumber;
   int    lightCount = 0;
-  SFile *lightdata = 0;
+  SFile *lightdata = NULL;
 
   if (!SFile::Open(filename, &lightdata)) {
     goto Error;
@@ -97,14 +97,14 @@ bool LoadLightsAndFog(LPCSTR filename, LightGroup *lightgroup) {
   }
 
   SFile::Close(lightdata);
-  return 1;
+  return true;
 
 Error:
   lightgroup->m_lightData.SetCount(0);
   if (lightdata) {
     SFile::Close(lightdata);
   }
-  return 0;
+  return false;
 }
 
 void CalcIndividualLightColor(int time, int oband, LightDataItem *lightdata, NTempest::CImVector *color, float *distance) {

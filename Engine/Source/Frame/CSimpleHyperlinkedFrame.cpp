@@ -9,7 +9,7 @@
 #include <new>
 
 CSimpleHyperlinkButton::CSimpleHyperlinkButton(CSimpleHyperlinkedFrame *parent) : CSimpleButton(parent) {
-  m_hyperlink = 0;
+  m_hyperlink = NULL;
 }
 
 CSimpleHyperlinkButton::~CSimpleHyperlinkButton() {

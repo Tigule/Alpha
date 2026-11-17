@@ -115,7 +115,7 @@ static void OsQueuePut(OSINPUT id, int param0, int param1, int param2, int param
 
 static BOOL OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3) {
   if (s_queueTail == s_queueHead) {
-    return 0;
+    return FALSE;
   }
 
   OSEVENT *event = &s_queue[s_queueTail];
@@ -131,7 +131,7 @@ static BOOL OsQueueGet(OSINPUT *id, int *param0, int *param1, int *param2, int *
     ++s_queueTail;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void OsQueueSetParam(int index, int param) {
@@ -392,7 +392,7 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
   OSStatus     result;
 
   if (OsQueueGet(id, param0, param1, param2, param3)) {
-    return 1;
+    return TRUE;
   }
 
   timeout = kEventDurationNoWait;
@@ -413,7 +413,7 @@ BOOL OsInputGet(OSINPUT *id, int *param0, int *param1, int *param2, int *param3)
   }
 
   if (s_queueTail == s_queueHead) {
-    return 0;
+    return FALSE;
   }
 
   OsQueueSetParam(3, OsGetAsyncTimeMsPrecise());
@@ -461,7 +461,7 @@ BOOL OsGetDefaultWindowRect(RECT *rect) {
     return s_getDefaultWindowRectCB(rect);
   }
 
-  return 0;
+  return FALSE;
 }
 
 UINT OsInputGetCodePage() {
@@ -490,7 +490,7 @@ void OsInputInstallGameWindowHandlers(void *window) {
   } else {
     appEvents = s_appFullscreenEvents;
     appEventCount = sizeof(s_appFullscreenEvents) / sizeof(s_appFullscreenEvents[0]);
-    windowEvents = 0;
+    windowEvents = NULL;
     windowEventCount = 0;
   }
 
@@ -526,12 +526,12 @@ void OsInputInstallGameWindowHandlers(void *window) {
 void OsInputRemoveGameWindowHandlers(void *window) {
   if (s_appHandler) {
     OsMacRemoveEventHandler(s_appHandler);
-    s_appHandler = 0;
+    s_appHandler = NULL;
   }
 
   if (s_windowHandler) {
     OsMacRemoveEventHandler(s_windowHandler);
-    s_windowHandler = 0;
+    s_windowHandler = NULL;
   }
 }
 

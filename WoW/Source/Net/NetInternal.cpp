@@ -79,7 +79,7 @@ void NETEVENTQUEUE::AddEvent(EVENTID eventId, LPVOID conn, NetClient *client, LP
     memcpy(event->m_data, data, bytes);
     event->m_dataSize = bytes;
   } else {
-    event->m_data = 0;
+    event->m_data = NULL;
     event->m_dataSize = 0;
   }
 

@@ -75,7 +75,7 @@ void CSimpleCheckbox::UnregisterScriptMethods() {
 
 BOOL CSimpleCheckbox::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
-    return 1;
+    return TRUE;
   }
 
   return CSimpleButton::LookupScriptMethod(L, name);

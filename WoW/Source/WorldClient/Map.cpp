@@ -108,7 +108,7 @@ void CMap::Initialize() {
   memset(freeCounts, 0, 11 * sizeof(freeCounts[0]));
 
   for (int i = 0; i < 4096; ++i) {
-    areaTable[i] = 0;
+    areaTable[i] = NULL;
     areaInfo[i].offset = 0;
     areaInfo[i].size = 0;
     areaInfo[i].flags = 0;
@@ -120,8 +120,8 @@ void CMap::Initialize() {
   uniqueId = -2;
   bDungeon = 0;
   bActive = 0;
-  wdtFile = 0;
-  oldSelectLightParm = 0;
+  wdtFile = NULL;
+  oldSelectLightParm = NULL;
 
   CMapLight::CreatePointAtten();
   WaterInitialize();
@@ -182,15 +182,15 @@ void CMap::Destroy() {
   mapObjGroupFreeList.Clear();
 
   GxPixelShaderDestroy(psSpecTerrain);
-  psSpecTerrain_LayerMask = 0;
+  psSpecTerrain_LayerMask = NULL;
   GxPixelShaderDestroy(psTerrain);
-  psTerrain_LayerMask = 0;
+  psTerrain_LayerMask = NULL;
   GxPixelShaderDestroy(psSpecUTerrain);
-  psSpecUTerrain_LayerMask = 0;
+  psSpecUTerrain_LayerMask = NULL;
   GxPixelShaderDestroy(psUTerrain);
-  psUTerrain_LayerMask = 0;
+  psUTerrain_LayerMask = NULL;
   GxBufDestroy(gxBufDynLowDetail);
-  gxBufDynLowDetail = 0;
+  gxBufDynLowDetail = NULL;
 }
 
 void CMap::GetCounts(int counts[]) {
@@ -242,7 +242,7 @@ void CMap::ClearDetailDoodads() {
   for (CMapChunk *chunk = chunkList.Head(); chunk; chunk = (CMapChunk *)chunk->lameAssLink.Next()) {
     if (chunk->detailDoodadInst) {
       CDetailDoodad::FreeInst(chunk->detailDoodadInst);
-      chunk->detailDoodadInst = 0;
+      chunk->detailDoodadInst = NULL;
     }
   }
 }
@@ -434,7 +434,7 @@ bool CMap::LocateViewerMapObjs(
     CMapObjDef              *&hitMapObjDef,
     UINT                      hitGroupIDs[]
 ) {
-  hitMapObjDef = 0;
+  hitMapObjDef = NULL;
   hitGroupIDs[1] = 0xFFFF;
   hitGroupIDs[0] = 0xFFFF;
 
@@ -476,7 +476,7 @@ bool CMap::LocateViewerMapObjs(
         }
 
         if (hitMapObjDef == mapObjDef && mapObj->GetGroupInfo(hitGroupIDs[0])->flags & 8) {
-          hitMapObjDef = 0;
+          hitMapObjDef = NULL;
         }
       }
     }
@@ -607,8 +607,8 @@ bool CMap::VectorIntersectSubchunks(const NTempest::C3Vector *p0, const NTempest
   UINT       scCnt = scCollideCnt;
   UINT       bMaskY = scPtr[0] & 0x2000;
   UINT       bMaskX = scPtr[1] & 0x2000;
-  CMapChunk *chunk = 0;
-  CMapChunk *hitChunk = 0;
+  CMapChunk *chunk = NULL;
+  CMapChunk *hitChunk = NULL;
   float      hitT = *t;
 
   while (scCnt) {
@@ -1007,7 +1007,7 @@ bool CMap::GetFacetSubchunks(const NTempest::C3Segment &seg, float &t, NTempest:
   UINT       scCnt = scCollideCnt;
   UINT       bMaskY = scPtr[0] & 0x2000;
   UINT       bMaskX = scPtr[1] & 0x2000;
-  CMapChunk *chunk = 0;
+  CMapChunk *chunk = NULL;
   bool       hit = false;
 
   if (!scCnt) {
@@ -1274,11 +1274,11 @@ static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollis
 bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   CMapArea *area = areaTable[((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F)];
   if (!area) {
-    return 0;
+    return false;
   }
   CMapChunk *chunk = area->chunkTable[(cy & 0xF) * 16 + (cx & 0xF)];
   if (!chunk) {
-    return 0;
+    return false;
   }
 
   NTempest::CAaBox lBox = aaBox;
@@ -1292,8 +1292,8 @@ bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest:
   UINT                culled[19];
   NTempest::C3Vector *v = &chunk->vertexList[scRect.l + 17 * scRect.t];
   int                 width = scRect.Width() + 1;
-  CWTriData::Batch   *triBatch = 0;
-  WORD               *batchIndices = 0;
+  CWTriData::Batch   *triBatch = NULL;
+  WORD               *batchIndices = NULL;
 
   for (int y = scRect.t; y <= scRect.b; ++y) {
     for (int x = scRect.l; x <= scRect.r; ++x, ++v) {
@@ -1325,7 +1325,7 @@ bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest:
           continue;
         }
 
-        got = 1;
+        got = true;
         if (!triBatch) {
           triBatch = triData.AllocBatch();
           triBatch->sourceID = (DWORD)chunk;
@@ -1361,13 +1361,13 @@ bool CMap::GetChunkFacets(int cx, int cy, NTempest::CiRect &sRect, const NTempes
   UINT      areaIndex = ((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F);
   CMapArea *area = areaTable[areaIndex];
   if (!area) {
-    return 0;
+    return false;
   }
 
   UINT       chunkIndex = (cy & 0xF) * 16 + (cx & 0xF);
   CMapChunk *chunk = area->chunkTable[chunkIndex];
   if (!chunk) {
-    return 0;
+    return false;
   }
 
   NTempest::CiRect scRect(sRect.t - 8 * cy, sRect.l - 8 * cx, sRect.b - 8 * cy, sRect.r - 8 * cx);

@@ -16,7 +16,7 @@
 
 CMapObjDefGroup::CMapObjDefGroup() {
   type |= Type_MapObjDefGroup;
-  subzoneName = 0;
+  subzoneName = NULL;
   level = 0;
 }
 
@@ -80,9 +80,9 @@ void CMapObjDefGroup::Update(const NTempest::C44Matrix &newMat) {
 
 CMapObjDef::CMapObjDef() {
   nameId = 0;
-  mapObj = 0;
+  mapObj = NULL;
   type |= Type_MapObjDef;
-  zoneName = 0;
+  zoneName = NULL;
   param64 = 0;
 }
 

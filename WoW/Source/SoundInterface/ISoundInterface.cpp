@@ -64,7 +64,7 @@ LPCSTR SOUNDDEFINITION::GetRandomFileName(int index) {
   UINT targetFreq;
 
   if (!m_fileNames.Count() || !m_totalFrequency) {
-    return 0;
+    return NULL;
   }
 
   if (index != -1) {
@@ -376,7 +376,7 @@ static bool InitializePrefTable(int index) {
   _FSOUND_REVERB_CHANNELPROPERTIES *prefs;
 
   if (!rec) {
-    return 0;
+    return false;
   }
 
   prefs = &s_reverbTable[index].prefs;
@@ -400,19 +400,19 @@ static bool InitializePrefTable(int index) {
   prefs->Flags = 0;
 
   s_reverbTable[index].inUse = 1;
-  return 1;
+  return true;
 }
 
 _FSOUND_REVERB_CHANNELPROPERTIES *GetReverbType(int index) {
   int maxID = g_soundSamplePreferencesDB.GetMaxID();
 
   if (index < 0 || index > maxID) {
-    return 0;
+    return NULL;
   }
 
   s_reverbTable.SetCount(maxID + 1);
   if (!s_reverbTable[index].inUse && !InitializePrefTable(index)) {
-    return 0;
+    return NULL;
   }
 
   return &s_reverbTable[index].prefs;

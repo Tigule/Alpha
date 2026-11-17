@@ -526,7 +526,7 @@ float CMovement::RelDistanceFallen(UINT fallTimeMS) {
 
 BOOL CMovement::IsJumpingUp(DWORD eventTime) {
   if (m_jumpVelocity == 0.0f) {
-    return 0;
+    return FALSE;
   }
   float velocity = s_gravityRate * ((int)(eventTime - m_fallStartTime) * 0.001f) + m_jumpVelocity;
   if (velocity > s_terminalVelocity) {
@@ -538,7 +538,7 @@ BOOL CMovement::IsJumpingUp(DWORD eventTime) {
 
 BOOL CMovement::FallFromTransport() {
   if (!transportLink.IsLinked()) {
-    return 0;
+    return FALSE;
   }
   FATALASSERT(m_transportGUID);
   C3Vector moveVector = MovementGetTransportVector(m_transportGUID);
@@ -687,15 +687,15 @@ void CMovement::SetOrientation() {
 
 static inline BOOL AddNormal(const C3Vector &normal, UINT maxNormals, C3Vector *normalList, UINT *numNormals) {
   if (*numNormals == maxNormals) {
-    return 0;
+    return FALSE;
   }
   for (UINT i = 0; i < *numNormals; ++i) {
     if (C3Vector::Dot(normal, normalList[i]) > 0.99984771f) {
-      return 1;
+      return TRUE;
     }
   }
   normalList[(*numNormals)++] = normal;
-  return 1;
+  return TRUE;
 }
 
 static inline void UpdateFallHit(DWORDLONG guid, const CRedirect &hitInfo, float distanceFallen, float *shortestDist, C3Vector *surfNormals, UINT *numHits, int *foundWalkable) {
@@ -709,7 +709,7 @@ static inline void UpdateFallHit(DWORDLONG guid, const CRedirect &hitInfo, float
     if (*shortestDist > distanceFallen) {
       *shortestDist = distanceFallen;
     }
-    *foundWalkable |= (hitInfo.surfaceNorm[0].z <= 0.64278764f) == 0;
+    *foundWalkable |= (hitInfo.surfaceNorm[0].z <= 0.64278764f) == false;
   } else if (*shortestDist > distanceFallen) {
     surfNormals[0] = hitInfo.surfaceNorm[0];
     *numHits = 1;
@@ -717,7 +717,7 @@ static inline void UpdateFallHit(DWORDLONG guid, const CRedirect &hitInfo, float
       AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, numHits);
     }
     *shortestDist = distanceFallen;
-    *foundWalkable = (hitInfo.surfaceNorm[0].z <= 0.64278764f) == 0;
+    *foundWalkable = (hitInfo.surfaceNorm[0].z <= 0.64278764f) == false;
   }
 }
 
@@ -740,7 +740,7 @@ float CMovement::FindGroundDistanceBelow(float distanceToFall, DWORDLONG *gameOb
     if (hitInfo.flags & 0x80) {
       AddNormal(hitInfo.surfaceNorm[1], 4, surfNormals, &numHits);
     }
-    foundWalkable = (hitInfo.surfaceNorm[0].z <= 0.64278764f) == 0;
+    foundWalkable = (hitInfo.surfaceNorm[0].z <= 0.64278764f) == false;
     *gameObjHit = hitInfo.gameObjHit;
   }
   FallLogWrite("0x%016" FMT_I64 "X: Hit info flags neg X: ", GetGUID());
@@ -1458,7 +1458,7 @@ BOOL CMovement::CollideRequestMove(DWORD lastUpdateTime, UINT timeElapsed, const
   FallLogWrite("0x%016" FMT_I64 "X: ====| Starting new move: elapsed (%u), requested vector (%g,%g)\n", GetGUID(), timeElapsed, moveVector.x, moveVector.y);
   float distance = moveVector.Mag();
   if (!timeElapsed) {
-    return 0;
+    return FALSE;
   }
 
   float currSpeed = distance / (timeElapsed * 0.001f);
@@ -1715,11 +1715,11 @@ BOOL CMovement::IsTooLow(
       "0x%016" FMT_I64 "X: Checking if face is below: LPOC(%g), minElevation(%g), unit(%g)\n", GetGUID(), surface->lastPtOfContact.z, minElevation, position.z
   );
   if (minElevation - 0.0013888889f <= surface->lastPtOfContact.z) {
-    return 0;
+    return FALSE;
   }
 
   if (IsJumpingUp(moveStartTime + CMath::fint_n((surface->farDist - distanceMoved) * currSpeedInv * 1000.0f))) {
-    return 1;
+    return TRUE;
   }
 
   if (surface->closeDist - 0.00000095367432f <= distanceMoved) {
@@ -1954,24 +1954,24 @@ CWalkableSurface *CMovement::GetNextSurface(
   LogSurface(GetGUID(), *surface);
   if (s_facetData.facets[surface->facetId].plane.n.z <= 0.0f) {
     FallLogWrite("0x%016" FMT_I64 "X: facet faces downward (z: %g), skipping\n", GetGUID(), s_facetData.facets[surface->facetId].plane.n.z);
-    return 0;
+    return NULL;
   }
   if (distanceMoved + 0.0013888889f > surface->farDist) {
     FallLogWrite("0x%016" FMT_I64 "X: facet already passed\n", GetGUID());
     CollisionInfoColorFace(surface->facetId, FACET_TESTED_UNTOUCHED);
-    return 0;
+    return NULL;
   }
   if (IsTooLow(position, eventTime, surface, distanceMoved, currSpeedInv)) {
     FallLogWrite("0x%016" FMT_I64 "X: facet too low\n", GetGUID());
     CollisionInfoColorFace(surface->facetId, FACET_TESTED_UNTOUCHED);
-    return 0;
+    return NULL;
   }
   float startDistFromTop = currentCeiling.DistSigned(surface->firstPtOfContact);
   float endDistFromTop = currentCeiling.DistSigned(surface->lastPtOfContact);
   if (startDistFromTop < 0.0013888889f && endDistFromTop < 0.0013888889f) {
     FallLogWrite("0x%016" FMT_I64 "X: facet too high, start(%g) end(%g)\n", GetGUID(), startDistFromTop, endDistFromTop);
     CollisionInfoColorFace(surface->facetId, FACET_TESTED_UNTOUCHED);
-    return 0;
+    return NULL;
   }
   return surface;
 }
@@ -2541,7 +2541,7 @@ static BOOL PolygonIntersectsPlane(const C4Plane &plane, const CClippedTriangle 
   for (UINT i = 0; i < poly.Count(); ++i) {
     float distance = plane.DistSigned(poly[i]);
     if (CMath::fabs_(distance) < 0.0013888889f) {
-      return 1;
+      return TRUE;
     }
     allPositive &= distance > 0.0013888889f;
     allNegative &= distance < -0.0013888889f;
@@ -2554,13 +2554,13 @@ static BOOL ClipPolygonToPolyhedron(const C4Plane *boxSides, UINT numSides, CCli
   for (UINT side = 0; side < numSides; ++side) {
     float depth = ClipPolygonToPlane(boxSides[side], poly);
     if (!poly->Count()) {
-      return 0;
+      return FALSE;
     }
     if (side >= 2 && depth < *penetrationDepth) {
       *penetrationDepth = depth;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::DetermineBoxHitType(const C3Vector &unitMove, float distance, UINT facetId, float baseHeight, CRedirect *hitInfo) {
@@ -2583,7 +2583,7 @@ BOOL CMovement::DetermineBoxHitType(const C3Vector &unitMove, float distance, UI
   clippedPoly.Init(facet.vertices);
   float unused;
   if (!ClipPolygonToPolyhedron(topBottom, 2, &clippedPoly, &unused)) {
-    return 0;
+    return FALSE;
   }
 
   CClippedTriangle testPoly = clippedPoly;
@@ -2609,7 +2609,7 @@ BOOL CMovement::DetermineBoxHitType(const C3Vector &unitMove, float distance, UI
   } else {
     DetermineBoxParallelHitType(boxSides, clippedPoly, hitInfo);
   }
-  return 1;
+  return TRUE;
 }
 
 static void DetermineBoxParallelHitType(const C4Plane *boxSides, const CClippedTriangle &clippedPoly, CRedirect *hitInfo) {
@@ -3005,7 +3005,7 @@ float CMovement::ExtrudeCollisionShape(
 BOOL CMovement::TestStepUp(const C3Vector &destination) {
   float stepHeight = destination.z - m_position.z;
   if (CMath::fnotequal4_(stepHeight, FindCeilingDistanceAbove(stepHeight))) {
-    return 0;
+    return FALSE;
   }
 
   C3Vector moveVector(destination.x - m_position.x, destination.y - m_position.y, 0.0f);
@@ -3184,7 +3184,7 @@ void CMovement::ExtrudeBoxSideX(const C3Vector &moveVector, float bottom, C4Plan
 
 BOOL CMovement::ExtrudePyramidSideX(const C3Vector &unitMove, float distance, C4Plane boxSides[]) {
   if (CMath::fabs_(unitMove.x) < 0.00000023841858f && CMath::fabs_(unitMove.z) < 0.00000023841858f) {
-    return 0;
+    return FALSE;
   }
   int      posX = unitMove.x >= 0.0f;
   C3Vector moveVector = unitMove * distance;
@@ -3216,12 +3216,12 @@ BOOL CMovement::ExtrudePyramidSideX(const C3Vector &unitMove, float distance, C4
 
   boxSides[4].Set(posZNorm, posPyramidEdge + m_position);
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::ExtrudePyramidSideY(const C3Vector &unitMove, float distance, C4Plane boxSides[]) {
   if (CMath::fabs_(unitMove.y) < 0.00000023841858f && CMath::fabs_(unitMove.z) < 0.00000023841858f) {
-    return 0;
+    return FALSE;
   }
   int      posY = unitMove.y >= 0.0f;
   C3Vector moveVector = unitMove * distance;
@@ -3253,5 +3253,5 @@ BOOL CMovement::ExtrudePyramidSideY(const C3Vector &unitMove, float distance, C4
 
   boxSides[4].Set(posZNorm, posPyramidEdge + m_position);
 
-  return 1;
+  return TRUE;
 }

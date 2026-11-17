@@ -812,13 +812,13 @@ static BOOL PlayerAttackBreakHandler(LPCVOID data, DWORDLONG guid, LPVOID param)
 
     if (!playerPtr->OnAttackBreakHandler()) {
       playerPtr->StopAttack();
-      return 1;
+      return TRUE;
     }
 
     s_attackBreakTimer = ClientSetTimer(500, PlayerAttackBreakHandler, guid, param);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL PlayerCombatModeHandler(LPCVOID data, DWORDLONG guid, LPVOID param) {
@@ -827,14 +827,14 @@ static BOOL PlayerCombatModeHandler(LPCVOID data, DWORDLONG guid, LPVOID param) 
   if (unit) {
     unit->OnCombatModeTimer();
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg) {
   static int ticks;
 
   if (++ticks < 10) {
-    return 1;
+    return TRUE;
   }
 
   ticks -= 10;
@@ -844,7 +844,7 @@ BOOL Player_C_ZoneUpdateHandler(LPCVOID eventData, LPVOID arg) {
     AreaListRegisterLocation(player->GetPosition(), ClntObjMgrGetMapID(), player->GetWorldObject());
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL RepopPlayerHandler(LPCSTR command, LPCSTR arguments) {
@@ -852,12 +852,12 @@ static BOOL RepopPlayerHandler(LPCSTR command, LPCSTR arguments) {
   if (player) {
     player->HandleRepopRequest();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL WhoCommandHandler(LPCSTR command, LPCSTR arguments) {
   g_friendList->SendWho(arguments);
-  return 1;
+  return TRUE;
 }
 
 
@@ -890,7 +890,7 @@ static BOOL BankInvHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prev
     }
     FrameScript_SignalEvent(326);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -905,14 +905,14 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       } else {
         s_loginCinematicID = cinematicID;
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_GODMODE: {
       BYTE enabled = 0;
       msg->Get(enabled);
       ConsoleWrite(enabled ? "Godmode enabled" : "Godmode disabled", DEFAULT_COLOR);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_FORCEACTIONSHOW: {
@@ -920,7 +920,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(flags[0]);
       msg->Get(flags[1]);
       ShowForceActionFlags(flags);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_INVENTORY_CHANGE_FAILURE: {
@@ -928,7 +928,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(bagResult);
       BAG_RESULT result = (BAG_RESULT)bagResult;
       if (result == BAG_OK) {
-        return 1;
+        return TRUE;
       }
 
       GAME_ERROR_TYPE error = CGBag_C::GetGameError(result);
@@ -965,14 +965,14 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (item2) {
         CGGameUI::UnlockItem(item2);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_HEALSPELL_ON_PLAYER: {
       int amount;
       msg->Get(amount);
       CGGameUI::ShowHealingFeedback(ClntObjMgrGetActivePlayer(), amount);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_UPDATE_AURA_DURATION: {
@@ -981,14 +981,14 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(slot);
       msg->Get(duration);
       CGBuffBar::UpdateDuration(slot, duration);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_OPEN_CONTAINER: {
       DWORDLONG container;
       msg->Get(container);
       CGContainerInfo::OpenContainer(container);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_HEALSPELL_ON_PLAYERS_PET: {
@@ -997,17 +997,17 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(petGUID);
       msg->Get(amount);
       CGGameUI::ShowHealingFeedback(petGUID, amount);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_NEW_TAXI_PATH:
       CGGameUI::DisplayError(GERR_NEWTAXIPATH);
       CGPlayer_C::UpdateTaxiStatusAll();
-      return 1;
+      return TRUE;
 
     case SMSG_BINDPOINTUPDATE:
       CGPlayer_C::SaveBindPoint(msg);
-      return 1;
+      return TRUE;
 
     case SMSG_BINDZONEREPLY: {
       int  mapID;
@@ -1020,7 +1020,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         SStrPrintf(string, sizeof(string), FrameScript_GetText("BIND_ZONE_DISPLAY", -1, GENDER_NOT_APPLICABLE), buf);
         CGChat::AddChatMessage(string, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_TAXINODE_STATUS: {
@@ -1028,7 +1028,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (player) {
         player->OnTaxiNodeStatus(msg);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_SHOWTAXINODES: {
@@ -1036,7 +1036,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (player) {
         player->ShowTaxiNodes(msg);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ACTIVATETAXIREPLY: {
@@ -1046,7 +1046,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         msg->Get(error);
         player->HandleActivateTaxiReply(error);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_ITEM_PUSH_RESULT: {
@@ -1061,7 +1061,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(slot);
       msg->Get(itemID);
       CGGameUI::OnItemPush(player, slot, itemID, pushed, displayText);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_MOUNTRESULT: {
@@ -1071,7 +1071,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         msg->Get(error);
         player->HandleMountResult(error);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_DISMOUNTRESULT: {
@@ -1081,7 +1081,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         msg->Get(error);
         player->HandleDismountResult(error);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_DEATH_NOTIFY: {
@@ -1091,12 +1091,12 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (player) {
         player->SaveDeathMessage(unit);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_PLAYERBINDERROR:
       CGGameUI::DisplayError(GERR_DEATHBINDALREADYBOUND);
-      return 1;
+      return TRUE;
 
     case SMSG_PLAYERBOUND: {
       static const UINT DEATHBINDSOUNDID = 1141;
@@ -1105,18 +1105,18 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       s_lastBinderID = binderID;
       SndInterfacePlaySound(DEATHBINDSOUNDID, -1);
       CGChat::AddChatMessage(FrameScript_GetText("DEATHBIND_SUCCESSFUL", -1, GENDER_NOT_APPLICABLE), SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_PET_NAME_INVALID:
       CGGameUI::DisplayError(GERR_INVALID_PETNAME);
-      return 1;
+      return TRUE;
 
     case SMSG_SHOW_BANK: {
       DWORDLONG guid;
       msg->Get(guid);
       CGBankInfo::OpenBank(guid);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_BUY_BANK_SLOT_RESULT: {
@@ -1130,7 +1130,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (error < 3) {
         CGGameUI::DisplayError(s_playerBankErrors[error]);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_LEVELUP_INFO: {
@@ -1144,7 +1144,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
 
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (!player) {
-        return 1;
+        return TRUE;
       }
 
       BYTE race = player->GetRace();
@@ -1163,7 +1163,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         CGTutorial::TriggerTutorial(TUTORIAL_SKILLS);
       }
       FrameScript_SignalEvent(195, "%d%d%d%d%d", level, healthDelta, manaDelta, points[0], points[1]);
-      return 1;
+      return TRUE;
     }
 
     case MSG_MINIMAP_PING: {
@@ -1173,7 +1173,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(pos.x);
       msg->Get(pos.y);
       CGMinimapFrame::SetPingPosition(sender, pos);
-      return 1;
+      return TRUE;
     }
 
     case SMSG_PLAYER_MACRO: {
@@ -1185,7 +1185,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (playerPtr) {
         playerPtr->PlayVocalMacro(category);
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_EXPLORATION_EXPERIENCE: {
@@ -1200,7 +1200,7 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
           CGGameUI::DisplayError(GERR_ZONE_EXPLORED_XP, area->m_AreaName_lang[CURRENT_LANGUAGE], experience);
         }
       }
-      return 1;
+      return TRUE;
     }
 
     case MSG_RANDOM_ROLL: {
@@ -1221,19 +1221,19 @@ static BOOL OnPlayerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         CGChat::AddChatMessage(buf, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
         delete info;
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_FISH_NOT_HOOKED:
       CGGameUI::DisplayError(GERR_FISH_NOT_HOOKED);
-      return 1;
+      return TRUE;
 
     case SMSG_FISH_ESCAPED:
       CGGameUI::DisplayError(GERR_FISH_ESCAPED);
-      return 1;
+      return TRUE;
 
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1268,7 +1268,7 @@ static BOOL OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
         FATALASSERT((slot >= 0) && (slot < (sizeof(itemNode->enchantmentTimeLeft) / sizeof(itemNode->enchantmentTimeLeft[0]))));
         itemNode->enchantmentTimeLeft[slot] = timeLeft;
       }
-      return 1;
+      return TRUE;
     }
     case SMSG_ITEM_TIME_UPDATE: {
       int timeLeft;
@@ -1280,22 +1280,22 @@ static BOOL OnItemEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
         FATALASSERT(itemNode);
         itemNode->timeLeft = timeLeft;
       }
-      return 1;
+      return TRUE;
     }
     default:
-      return 0;
+      return FALSE;
   }
 }
 
 static BOOL OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (!activePlayer) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   switch (msgId) {
@@ -1308,7 +1308,7 @@ static BOOL OnNpcPetitionEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataS
     case SMSG_TURN_IN_PETITION_RESULTS:
       return player->OnTurnInPetitionResults(msg);
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1341,18 +1341,18 @@ static BOOL HandlePartyMemberStats(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
       FrameScript_SignalEvent(209);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (!activePlayer) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   switch (msgId) {
@@ -1365,7 +1365,7 @@ static BOOL OnVendorEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
     case SMSG_SELL_ITEM:
       return player->OnSellResponse(msg);
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1388,18 +1388,18 @@ static BOOL OnFactionUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStor
       break;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (!activePlayer) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   switch (msgId) {
@@ -1421,9 +1421,9 @@ static BOOL OnQuestGiverEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
       return player->OnQuestGiverStatus(msg);
     case SMSG_QUESTLOG_FULL:
       CGGameUI::DisplayError(GERR_QUEST_LOG_FULL);
-      return 1;
+      return TRUE;
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1439,7 +1439,7 @@ static BOOL OnQuestItemLoot(const QuestCache *quest, int itemID, int quantity) {
           if (player) {
             int killed = player->CGPlayer_C::GetBag()->GetItemTypeCount(itemID, 8);
             if (killed >= quest->m_itemToGetQuantity[index]) {
-              return 1;
+              return TRUE;
             }
 
             UINT pluralIndex = FrameScript_GetPluralIndex(quest->m_itemToGetQuantity[index]);
@@ -1451,11 +1451,11 @@ static BOOL OnQuestItemLoot(const QuestCache *quest, int itemID, int quantity) {
             );
           }
         }
-        return 1;
+        return TRUE;
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static void QuestLootQuestQueryCallback(int id, const DWORDLONG &, LPVOID arg, bool granted) {
@@ -1483,7 +1483,7 @@ static BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       if (quest) {
         CGGameUI::DisplayError(GERR_QUEST_FAILED_S, quest->m_logTitle);
       }
-      return 1;
+      return TRUE;
 
     case SMSG_QUESTUPDATE_COMPLETE:
       if (quest) {
@@ -1493,7 +1493,7 @@ static BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
           CGGameUI::DisplayError(GERR_QUEST_UNKNOWN_COMPLETE);
         }
       }
-      return 1;
+      return TRUE;
 
     case SMSG_QUESTUPDATE_ADD_KILL: {
       int       numNeeded;
@@ -1509,7 +1509,7 @@ static BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
         for (UINT index = 0; index < 4; ++index) {
           if (quest->m_monsterToKill[index] == monsterID) {
             CGGameUI::DisplayError(GERR_QUEST_ADD_FOUND_SII, quest->m_getDescription[index], numKilled, numNeeded);
-            return 1;
+            return TRUE;
           }
         }
 
@@ -1531,7 +1531,7 @@ static BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
           }
         }
       }
-      return 1;
+      return TRUE;
     }
 
     case SMSG_QUESTUPDATE_ADD_ITEM: {
@@ -1541,7 +1541,7 @@ static BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
       msg->Get(quantity);
       CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
       if (!player) {
-        return 1;
+        return TRUE;
       }
 
       for (UINT index = 0; index < 16; ++index) {
@@ -1559,11 +1559,11 @@ static BOOL OnQuestUpdate(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
           }
         }
       }
-      return 1;
+      return TRUE;
     }
 
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1578,18 +1578,18 @@ static BOOL OnQuestConfirm(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore
     msg->Get(initiatedBy);
     CGQuestInfo::ConfirmAcceptQuest(questID, questTitle, initiatedBy);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   DWORDLONG activePlayer = ClntObjMgrGetActivePlayer();
   if (!activePlayer) {
-    return 0;
+    return FALSE;
   }
 
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(activePlayer, __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   switch (msgId) {
@@ -1608,12 +1608,12 @@ static BOOL OnTrainerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore
       } else if (reason == 2) {
         ConsoleWriteA("Not enough skill points for trainer service %d", DEFAULT_COLOR, spellID);
       }
-      return 1;
+      return TRUE;
     }
     case SMSG_TRAINER_LIST:
       return player->OnTrainerList(msg);
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1637,7 +1637,7 @@ static BOOL OnLootEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
     case SMSG_LOOT_CLEAR_MONEY:
       return playerPtr->OnLootClearMoney(msg);
     default:
-      return 0;
+      return FALSE;
   }
 }
 
@@ -1646,7 +1646,7 @@ static BOOL BootMeHandler(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_BOOTME);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1665,7 +1665,7 @@ static BOOL OnLearnedSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore
     initialSpell->slot = slot;
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1698,7 +1698,7 @@ static BOOL OnSupercededSpell(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1733,7 +1733,7 @@ static BOOL OnInitialSpells(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStor
     Spell_C_SetCooldownLeft(spellID, itemID, category, recoveryTime, categoryRecoveryTime, onHold, 0, 0);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -1741,7 +1741,7 @@ static BOOL OnActionButtons(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     msg->Get(s_initialButtons[index]);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -1799,7 +1799,7 @@ static BOOL OnPetSpells(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   CGSpellBook::UpdateSpells();
   CGPetInfo::SetPet(petGUID, timelimit);
   CGClassTrainer::RefreshList();
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -1814,7 +1814,7 @@ static BOOL OnPlayEmote(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     unit->PlayEmoteAnimation(emoteID, 0);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1822,7 +1822,7 @@ static BOOL OnGroupInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
   msg->GetString(name, sizeof(name));
   CGGameUI::OpenPartyInvite(name);
   CGGameUI::DisplayError(GERR_INVITED_TO_GROUP_S, name);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1832,14 +1832,14 @@ static BOOL OnGroupCancel(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
   SStrPrintf(string, sizeof(string), "%s cancels the group invitation.", name);
   ConsoleWrite(string, DEFAULT_COLOR);
   CGGameUI::CancelPartyInvite();
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::DisplayError(GERR_DECLINE_GROUP_S, name);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1853,21 +1853,21 @@ static BOOL OnGroupNewLeader(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSto
     CGGameUI::DisplayError(GERR_NEW_LEADER_YOU);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupUninvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGGameUI::RemoveAllPartyMembers();
   CGGameUI::SetPartyLeader(0);
   CGGameUI::DisplayError(GERR_UNINVITE_YOU);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupDestroy(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   CGGameUI::RemoveAllPartyMembers();
   CGGameUI::SetPartyLeader(0);
   CGGameUI::DisplayError(GERR_GROUP_DISBANDED);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1919,7 +1919,7 @@ static BOOL OnGroupCommandResult(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDat
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -1931,15 +1931,15 @@ static BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
   BOOL      wasInGroup;
 
   msg->Get(count);
-  wasInGroup = 0;
-  isLeader = 0;
+  wasInGroup = FALSE;
+  isLeader = FALSE;
   memset(oldMembers, 0, sizeof(oldMembers));
   memset(newMembers, 0, sizeof(newMembers));
 
   for (i = 0; i < 5; ++i) {
     oldMembers[i] = CGGameUI::GetPartyMember(i);
     if (oldMembers[i]) {
-      wasInGroup = 1;
+      wasInGroup = TRUE;
     }
   }
 
@@ -1957,7 +1957,7 @@ static BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
     if (guid == ClntObjMgrGetActivePlayer()) {
       if (!i) {
         CGGameUI::SetPartyLeader(guid);
-        isLeader = 1;
+        isLeader = TRUE;
       }
       continue;
     }
@@ -2011,7 +2011,7 @@ static BOOL OnGroupList(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
     CGGameUI::SetLootMethod((LOOT_METHOD)lootMethod, lootMaster);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -2021,14 +2021,14 @@ static BOOL OnGuildInvite(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
   msg->GetString(guildName, sizeof(guildName));
   CGGameUI::OpenGuildInvite(name, guildName);
   CGGameUI::DisplayError(GERR_INVITED_TO_GUILD_SS, name, guildName);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildDecline(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   char name[48];
   msg->GetString(name, sizeof(name));
   CGGameUI::DisplayError(GERR_GUILD_DECLINE_S, name);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -2058,7 +2058,7 @@ static BOOL OnGuildInfo(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *m
   SStrPrintf(buf, sizeof(buf), temp, month, day, year, numChars, numAccounts);
   CGChat::AddChatMessage(buf, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -2100,14 +2100,14 @@ static BOOL OnGuildRoster(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore 
   SStrCopy(temp, text, sizeof(temp));
   SStrPrintf(buf, sizeof(buf), temp, numChars, numAccounts);
   CGChat::AddChatMessage(buf, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildEmblemActivate(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   DWORDLONG vendor;
   msg->Get(vendor);
   CGTabardCreationFrame::Open(vendor);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2116,7 +2116,7 @@ static BOOL OnGuildEmblemError(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (error >= 0 && error < 7) {
     CGGameUI::DisplayError(s_tabardErrors[error]);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2159,7 +2159,7 @@ static BOOL OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
       break;
     case GUILD_EVENT_MOTD:
       if (!string[0][0]) {
-        return 1;
+        return TRUE;
       }
       errorType = GERR_GUILD_MOTD_S;
       break;
@@ -2179,7 +2179,7 @@ static BOOL OnGuildEvent(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
       CGGameUI::DisplayError(errorType, string[0]);
       break;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnGuildCommandResult(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -2251,7 +2251,7 @@ static BOOL OnGuildCommandResult(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static void Player_C_RegisterGuildUpdate(UINT guildID) {
@@ -2324,7 +2324,7 @@ static BOOL OnMirrorTimerEvent(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataS
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnVendorInventory(CDataStore *msg) {
@@ -2374,7 +2374,7 @@ BOOL CGPlayer_C::OnVendorInventory(CDataStore *msg) {
   if (count > 0 || !reason) {
     CGMerchantInfo::SetMerchant(vendorGuid, s_lastVendorList, count);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
@@ -2418,7 +2418,7 @@ BOOL CGPlayer_C::OnQuestGiverListQuests(CDataStore *msg) {
     }
     CGQuestInfo::EndQuestList();
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnQuestGiverInvalidQuest(CDataStore *msg) {
@@ -2438,7 +2438,7 @@ BOOL CGPlayer_C::OnQuestGiverInvalidQuest(CDataStore *msg) {
   }
 
   CGQuestInfo::QuestGiverFinished();
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
@@ -2506,7 +2506,7 @@ BOOL CGPlayer_C::OnQuestGiverSendQuest(CDataStore *msg) {
         rewardItemCount, rewardMoney, autoLaunched
     );
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
@@ -2551,7 +2551,7 @@ BOOL CGPlayer_C::OnQuestGiverRequestItems(CDataStore *msg) {
   if (object && object->IsA(TYPE_UNIT)) {
     ((CGUnit_C *)object)->SetEmoteQueue(&node, 1);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
@@ -2617,7 +2617,7 @@ BOOL CGPlayer_C::OnQuestGiverChooseReward(CDataStore *msg) {
         rewardItemCount, rewardMoney, autoLaunched
     );
   }
-  return 1;
+  return TRUE;
 }
 
 static void QuestCompleteCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
@@ -2725,7 +2725,7 @@ BOOL CGPlayer_C::OnQuestGiverQuestComplete(CDataStore *msg) {
   if (quest && !quest->m_questType) {
     UpdateQuestStatusAll();
   }
-  return 1;
+  return TRUE;
 }
 
 static void QuestFailedCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
@@ -2776,7 +2776,7 @@ BOOL CGPlayer_C::OnQuestGiverQuestFailed(CDataStore *msg) {
   }
 
   CGQuestInfo::QuestGiverFinished();
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnQuestGiverStatus(CDataStore *msg) {
@@ -2790,7 +2790,7 @@ BOOL CGPlayer_C::OnQuestGiverStatus(CDataStore *msg) {
     FATALASSERT(unit->IsA(TYPE_UNIT));
     unit->UpdateInteractIcon((QUEST_GIVER_STATUS)hasquest);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnTrainerList(CDataStore *msg) {
@@ -2847,7 +2847,7 @@ BOOL CGPlayer_C::OnTrainerList(CDataStore *msg) {
         usable.Ptr(), greeting
     );
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
@@ -2913,7 +2913,7 @@ BOOL CGPlayer_C::OnBuyFailed(CDataStore *msg) {
 
   SStrPrintf(buf, sizeof(buf), "Buy %d of %d failed: %s", quantity, muid, error);
   ConsoleWrite(buf, DEFAULT_COLOR);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
@@ -2932,7 +2932,7 @@ BOOL CGPlayer_C::OnBuySucceeded(CDataStore *msg) {
     }
     CGMerchantInfo::UpdateItemQuantity(vendorGUID, muid, newQuantity);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnSellResponse(CDataStore *msg) {
@@ -2966,7 +2966,7 @@ BOOL CGPlayer_C::OnSellResponse(CDataStore *msg) {
       CGGameUI::UnlockItem(itemGUID);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL GuildIDUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -2974,7 +2974,7 @@ static BOOL GuildIDUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOI
   if (player) {
     player->OnGuildChanged();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL DuelTeamUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -2983,7 +2983,7 @@ static BOOL DuelTeamUpdateHandler(DWORDLONG guid, UINT offset, UINT bytes, LPCVO
     player->UpdatePlayerName();
   }
   Script_SendUnitSignal(guid, 27);
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::KillExitCombatModeSheatheTimer() {
@@ -2992,7 +2992,7 @@ void CGPlayer_C::KillExitCombatModeSheatheTimer() {
 static BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(guid, __FILE__, __LINE__));
   if (!player) {
-    return 1;
+    return TRUE;
   }
 
   UINT      slot = offset >> 3;
@@ -3000,7 +3000,7 @@ static BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, 
   ConsolePrintf("Removed item, added item: %016I64X", currGuid);
 
   if (*(const DWORDLONG *)prevValue == currGuid) {
-    return 1;
+    return TRUE;
   }
 
   CGTradeSkillInfo::RefreshList(0);
@@ -3052,14 +3052,14 @@ static BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, 
         defer = true;
       }
 
-      player->RemoveComponent(slot, newItem == 0, defer, false);
+      player->RemoveComponent(slot, newItem == NULL, defer, false);
       if (newItem) {
         player->AttachObjComponent(currGuid, slot, defer, false, SheatheTypeToSheathePoint(newItem->GetSheatheType(), slot));
         player->AddComponent(newItem->GetDisplayID(), newItem->GetInventoryType(), slot, 1);
       }
     } else {
       if (*(const DWORDLONG *)prevValue) {
-        player->RemoveComponent(slot, newItem == 0, false, true);
+        player->RemoveComponent(slot, newItem == NULL, false, true);
       }
 
       if (newItem) {
@@ -3098,7 +3098,7 @@ static BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, 
 
   if (slot == INVSLOT_RANGED) {
     if (player->m_unit->weaponMode != WEAPONMODE_RANGEDMODE) {
-      return 1;
+      return TRUE;
     }
     if (!newItem) {
       player->SetWeaponMode(WEAPONMODE_NORMALMODE);
@@ -3128,7 +3128,7 @@ static BOOL OnUpdateInventoryComponent(DWORDLONG guid, UINT offset, UINT bytes, 
     player->CheckWeaponDefenseRankChange(COMBAT_OFFHAND);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnUpdateMoney(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -3141,7 +3141,7 @@ static BOOL OnUpdateMoney(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
       Trade_C_RemoveMoney(tradeGold - player->GetMoney());
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static void QuestAcceptedCallback(int id, const DWORDLONG &, LPVOID, bool granted) {
@@ -3173,14 +3173,14 @@ static BOOL OnUpdateQuest(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
       CGQuestLog::ClearQuest(prev->m_questID);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnUpdateShapeshiftForm(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
   CGSpellBook::UpdateSelection();
   CGActionBar::UpdateSelection();
   CGActionBar::UpdateBonusBar();
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnUpdatePlayerFlags(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevValue, LPVOID param) {
@@ -3188,7 +3188,7 @@ static BOOL OnUpdatePlayerFlags(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID
   if (player) {
     player->PlayerFlagsChanged(*(const BYTE *)prevValue);
   }
-  return 1;
+  return TRUE;
 }
 
 static void GuildTimestampChanged(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
@@ -3206,14 +3206,14 @@ static BOOL OnUpdateGuild(DWORDLONG guid, UINT offset, UINT bytes, LPCVOID prevV
     g_guildInfoCache.Invalidate(player->GetGuildID());
     g_guildInfoCache.GetRecord(player->GetGuildID(), guid, GuildTimestampChanged, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CharmChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID, LPVOID) {
   CGPlayer_C *playerPtr = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(unit, __FILE__, __LINE__));
   CGGameUI::OnClientControlChanged(playerPtr->IsClientControlled());
   CGInputControl::GetActive()->UpdatePlayer(OsGetAsyncTimeMs());
-  return 1;
+  return TRUE;
 }
 
 static BOOL PetChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
@@ -3233,7 +3233,7 @@ static BOOL PetChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOI
     }
   }
   FrameScript_SignalEvent(192);
-  return 1;
+  return TRUE;
 }
 
 static BOOL FarsightChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, LPVOID) {
@@ -3247,7 +3247,7 @@ static BOOL FarsightChangeHandler(DWORDLONG unit, UINT, UINT, LPCVOID oldValue, 
       player->ClearFarSight();
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL SkillRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID oldValue, LPVOID) {
@@ -3270,13 +3270,13 @@ static BOOL SkillRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID 
   }
   CGClassTrainer::RefreshList();
   CGTradeSkillInfo::RefreshList(0);
-  return 1;
+  return TRUE;
 }
 
 static BOOL SkillMaxRankChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID, LPVOID) {
   CGClassTrainer::RefreshList();
   CGTradeSkillInfo::RefreshList(0);
-  return 1;
+  return TRUE;
 }
 
 static BOOL SkillModifierChangeHandler(DWORDLONG player, UINT offset, UINT, LPCVOID, LPVOID) {
@@ -3285,7 +3285,7 @@ static BOOL SkillModifierChangeHandler(DWORDLONG player, UINT offset, UINT, LPCV
     playerPtr->CheckWeaponDefenseRankChange();
   }
   CGCharacterInfo::UpdateAllSkillLines();
-  return 1;
+  return TRUE;
 }
 
 static void AnimEventCallback(LPCSTR eventName, const NTempest::C3Vector &position, LPVOID param) {
@@ -3338,7 +3338,7 @@ static BOOL SetLocalPlayerInGame(LPCVOID eventData, LPVOID param) {
     DisableLoadingScreen();
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::SetInventoryMirrorHandler(UINT slot, int (*handler)(DWORDLONG, UINT, UINT, LPCVOID, LPVOID)) {
@@ -3383,27 +3383,27 @@ BOOL CGPlayer_C::ShouldRender(DWORD worldStatus) {
   ModelProcessEvents(GetObjectModel(), GetPosition(), GetFacing(), NTempest::C3Vector(0.0f, 0.0f, 1.0f), 1.0f);
   UpdatePlayerNameWorldText();
   ObjectSetNotRendering();
-  return 0;
+  return FALSE;
 }
 
 BOOL CGPlayer_C::ShouldRenderUnitName(UINT mode) const {
   if ((IsStealthed() || IsInvisible()) && CGGameUI::GetLockedTarget() != GetGUID()) {
-    return 0;
+    return FALSE;
   }
   if (GetGUID() == ClntObjMgrGetActivePlayer() && !s_namePlateRenderOwn->GetInt()) {
-    return 0;
+    return FALSE;
   }
   switch (mode) {
     case 0:
-      return 0;
+      return FALSE;
     case 1:
       return CGGameUI::GetLockedTarget() == GetGUID();
     case 2:
       return IsA(ID_PLAYER) || CGGameUI::GetLockedTarget() == GetGUID();
     case 3:
-      return 1;
+      return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 void CGPlayer_C::CommitTexture(int force) {
@@ -3495,7 +3495,7 @@ void CGPlayer_C::PostInit(const CClientObjCreate &init) {
     itemptr = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(item, __FILE__, __LINE__));
     FATALASSERT(itemptr);
 
-    sheathe = 0;
+    sheathe = false;
     linkPoint = -1;
     if ((1 << slot) & 0x18000) {
       sheathe = m_unit->weaponMode == WEAPONMODE_SHEATHEDMODE;
@@ -3769,7 +3769,7 @@ void CGPlayer_C::TalkToTrainer(const DWORDLONG &trainerUnit) {
   ClientServices_Send(&hello);
 }
 
-int CGPlayer_C::LootUnit(CGUnit_C *unit) {
+BOOL CGPlayer_C::LootUnit(CGUnit_C *unit) {
   if (CanLoot(unit) && unit->CanBeLooted(OsGetAsyncTimeMs()) && !(m_move.GetMoveFlags() & (MOVEFLAG_MOTION_MASK | MOVEFLAG_FALLING))) {
     CGGameUI::CloseLoot(1, 0);
 
@@ -3782,7 +3782,7 @@ int CGPlayer_C::LootUnit(CGUnit_C *unit) {
     m_lootingUnitSent = unit->GetGUID();
     UpdateBaseAnimation(ANIM_STATE_LOOTBEGIN, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::ShopFromMerchant(const DWORDLONG &merchant) {
@@ -3802,15 +3802,15 @@ void CGPlayer_C::ShopFromMerchant(const DWORDLONG &merchant) {
 
 BOOL CGPlayer_C::IsQuestUnit(CGUnit_C *unit) {
   if (unit->m_unit->npcFlags & 2) {
-    return 1;
+    return TRUE;
   }
 
   for (UINT index = 0; index < 16; ++index) {
     if (GetQuestLogData(index)->m_questRewarderID == unit->GetEntryID()) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 void CGPlayer_C::TalkToQuestUnit(const DWORDLONG &unit) {
@@ -3821,13 +3821,13 @@ void CGPlayer_C::TalkToQuestUnit(const DWORDLONG &unit) {
   ClientServices_Send(&hello);
 }
 
-int CGPlayer_C::QueryTaxiNodes(const DWORDLONG &unit) {
+BOOL CGPlayer_C::QueryTaxiNodes(const DWORDLONG &unit) {
   CDataStore msg;
   msg.Put(CMSG_TAXIQUERYAVAILABLENODES);
   msg.Put(unit);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::TalkToBinder(const DWORDLONG &binder) {
@@ -3873,7 +3873,7 @@ void CGPlayer_C::TalkToTabardVendor(const DWORDLONG &tabardUnit) {
 BOOL CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &) {
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   DWORDLONG cursorItem;
@@ -3893,7 +3893,7 @@ BOOL CGPlayer_C::OnTerrainClick(const CTerrainClickEvent &) {
     msg.Finalize();
     ClientServices_Send(&msg);
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::OnObjectDestruct(DWORDLONG guid) {
@@ -3945,7 +3945,7 @@ bool CGPlayer_C::OnGuildChanged() {
   FrameScript_SignalEvent(359);
 
   if (!GetTexComponent()) {
-    return 0;
+    return false;
   }
 
   CGBag_C *inventory = GetBag();
@@ -3953,17 +3953,17 @@ bool CGPlayer_C::OnGuildChanged() {
 
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(inventory->GetItem(INVSLOT_TABARD), __FILE__, __LINE__));
   if (!item || item->GetInventoryType() != INDEX_TABARD_TYPE) {
-    return 0;
+    return false;
   }
 
   int displayID = item->GetDisplayID();
   if (!displayID) {
-    return 0;
+    return false;
   }
 
   const ItemDisplayInfoRec *displayInfo = g_itemDisplayInfoDB.GetRecord(displayID);
   if (!displayInfo || !(displayInfo->m_flags & 1)) {
-    return 0;
+    return false;
   }
 
   Script_SendUnitSignal(GetGUID(), 324);
@@ -3976,22 +3976,22 @@ bool CGPlayer_C::OnGuildChanged() {
   if (GuildGetGuildTabard(GetGuildID(), GuildCallback, eStyle, eColor, bStyle, bColor, background) &&
       ComponentApplyTabardTexture(m_texComponent, eStyle, eColor, bStyle, bColor, background))
   {
-    return 1;
+    return true;
   }
 
   ComponentRemoveTabardTexture(
       GetSex(), m_texComponent, g_itemDisplayInfoDB.GetRecord(item->GetDisplayID()), item->GetInventoryType()
   );
-  return 1;
+  return true;
 }
 
 BOOL CGPlayer_C::CanEngageTarget(const CGUnit_C *unitPtr) {
   FATALASSERT(unitPtr);
   if ((GetPosition() - unitPtr->GetPosition()).SquaredMag() >= 10.45f * 10.45f) {
     CGGameUI::DisplayError(GERR_OUT_OF_RANGE);
-    return 0;
+    return FALSE;
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::HandleRepopRequest() {
@@ -4003,9 +4003,9 @@ void CGPlayer_C::HandleRepopRequest() {
   }
 }
 
-int CGPlayer_C::SwapInventorySlots(int slotA, int slotB) {
+BOOL CGPlayer_C::SwapInventorySlots(int slotA, int slotB) {
   if (slotA == slotB) {
-    return 1;
+    return TRUE;
   }
   FATALASSERT(slotA <= 0xff);
   FATALASSERT(slotB <= 0xff);
@@ -4016,7 +4016,7 @@ int CGPlayer_C::SwapInventorySlots(int slotA, int slotB) {
   msg.Put((BYTE)slotA);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static void SwapItemsStatsCallback(int id, const DWORDLONG &guid, LPVOID arg, bool granted) {
@@ -4195,10 +4195,10 @@ BOOL CGPlayer_C::HasEquipped(int classID, int subclassID) {
   for (UINT slot = 0; slot < NUM_INVENTORY_SLOTS; ++slot) {
     CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(slot), __FILE__, __LINE__));
     if (item && item->GetClassID() == classID && item->GetSubtypeID() == subclassID) {
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BYTE CGPlayer_C::FindItemSlot(DWORDLONG containerGUID, CGItem_C *item) {
@@ -4366,7 +4366,7 @@ void CGPlayer_C::SetActive(const CGPlayer_C *playerPtr) {
 
 BOOL CGPlayer_C::SetBlock(UINT i, DWORD data) {
   FATALASSERT(0);
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::SetData(LPCVOID data, UINT bytes) {
@@ -4410,16 +4410,16 @@ static BOOL BuyCommandHandler(LPCSTR command, LPCSTR arguments) {
   UINT itemID = SStrToInt(arguments);
   if (!itemID) {
     ConsoleWrite("Usage: buy <muid>, where <muid> is the item id", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   if (!s_lastVendorListReceived) {
     ConsoleWrite("Must click a vendor first", DEFAULT_COLOR);
-    return 1;
+    return TRUE;
   }
 
   CGPlayer_C::XBuyItem(s_lastVendorListReceived, itemID, 1, 1);
-  return 1;
+  return TRUE;
 }
 
 static BOOL UndressMeHandler(LPCSTR command, LPCSTR arguments) {
@@ -4427,7 +4427,7 @@ static BOOL UndressMeHandler(LPCSTR command, LPCSTR arguments) {
   if (player) {
     player->DeleteWornItems();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments) {
@@ -4436,7 +4436,7 @@ static BOOL GodmodeHandler(LPCSTR command, LPCSTR arguments) {
   msg << (BYTE)(SStrToInt(arguments) != 0);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_LevelUp(LPCSTR command, LPCSTR arguments) {
@@ -4444,7 +4444,7 @@ static BOOL CCommand_LevelUp(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_LEVELUP_CHEAT);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
@@ -4475,12 +4475,12 @@ static BOOL CCommand_SetFaction(LPCSTR command, LPCSTR arguments) {
       msg.Put(level);
       msg.Finalize();
       ClientServices_Send(&msg);
-      return 1;
+      return TRUE;
     }
   }
 
   ConsolePrintf("Unknown faction (usage: setfaction <level> <faction name>)");
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Invite(LPCSTR command, LPCSTR arguments) {
@@ -4489,7 +4489,7 @@ static BOOL CCommand_Invite(LPCSTR command, LPCSTR arguments) {
   msg.PutString(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Accept(LPCSTR command, LPCSTR arguments) {
@@ -4497,7 +4497,7 @@ static BOOL CCommand_Accept(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_GROUP_ACCEPT);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Decline(LPCSTR command, LPCSTR arguments) {
@@ -4505,7 +4505,7 @@ static BOOL CCommand_Decline(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_GROUP_DECLINE);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Disband(LPCSTR command, LPCSTR arguments) {
@@ -4513,7 +4513,7 @@ static BOOL CCommand_Disband(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_GROUP_DISBAND);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
@@ -4522,7 +4522,7 @@ static BOOL CCommand_NewLeader(LPCSTR command, LPCSTR arguments) {
   msg.PutString(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
@@ -4531,7 +4531,7 @@ static BOOL CCommand_Uninvite(LPCSTR command, LPCSTR arguments) {
   msg.PutString(arguments);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_AcceptRes(LPCSTR, LPCSTR) {
@@ -4544,7 +4544,7 @@ static BOOL CCommand_AcceptRes(LPCSTR, LPCSTR) {
     ClientServices_Send(&msg);
     s_resurrectOffer = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_DeclineRes(LPCSTR, LPCSTR) {
@@ -4557,7 +4557,7 @@ static BOOL CCommand_DeclineRes(LPCSTR, LPCSTR) {
     ClientServices_Send(&msg);
     s_resurrectOffer = 0;
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments) {
@@ -4568,7 +4568,7 @@ static BOOL CCommand_ForceMonsterAnim(LPCSTR, LPCSTR arguments) {
   } else {
     ConsoleWrite("Error, unable to get locked target", DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ResetMonsterAnim(LPCSTR, LPCSTR) {
@@ -4577,7 +4577,7 @@ static BOOL CCommand_ResetMonsterAnim(LPCSTR, LPCSTR) {
   if (unit) {
     unit->ResetForcedAnimation();
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL DumpDeathLogEnumHandler(DWORDLONG object, LPVOID param) {
@@ -4586,7 +4586,7 @@ static BOOL DumpDeathLogEnumHandler(DWORDLONG object, LPVOID param) {
   if (objectPtr && objectPtr->IsA(ID_UNIT)) {
     ((CGUnit_C *)objectPtr)->DumpGeneralDeathHoldLog((HSLOG)param, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR) {
@@ -4599,7 +4599,7 @@ static BOOL CCommand_DumpDeathHoldLogs(LPCSTR, LPCSTR) {
       SLogClose(log);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ShowPet(LPCSTR, LPCSTR) {
@@ -4609,7 +4609,7 @@ static BOOL CCommand_ShowPet(LPCSTR, LPCSTR) {
     SStrPrintf(buffer, sizeof(buffer), "Current pet: 0x%016I64X\n", player->GetControlledGUID());
     ConsoleWrite(buffer, DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
@@ -4617,7 +4617,7 @@ static BOOL CCommand_TaxiShowNodes(LPCSTR, LPCSTR) {
   msg.Put(CMSG_TAXISHOWNODES);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_GuildCreate(LPCSTR command, LPCSTR arguments) {
@@ -4630,7 +4630,7 @@ static BOOL CCommand_GuildCreate(LPCSTR command, LPCSTR arguments) {
   } else {
     ConsoleWriteA("You must specify a guild name!", ERROR_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 static void PrintForceActionUsage(LPCSTR command) {
@@ -4665,7 +4665,7 @@ static BOOL CCommand_ForceActionSet(LPCSTR command, LPCSTR arguments) {
   } else {
     PrintForceActionUsage(command);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments) {
@@ -4679,7 +4679,7 @@ static BOOL CCommand_ForceActionUnset(LPCSTR command, LPCSTR arguments) {
   } else {
     PrintForceActionUsage(command);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments) {
@@ -4693,7 +4693,7 @@ static BOOL CCommand_ForceActionOnOtherSet(LPCSTR command, LPCSTR arguments) {
   } else {
     PrintForceActionUsage(command);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments) {
@@ -4707,7 +4707,7 @@ static BOOL CCommand_ForceActionOnOtherUnset(LPCSTR command, LPCSTR arguments) {
   } else {
     PrintForceActionUsage(command);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
@@ -4715,7 +4715,7 @@ static BOOL CCommand_ForceActionShowFlags(LPCSTR command, LPCSTR arguments) {
   msg.Put(CMSG_FORCEACTIONSHOW);
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
@@ -4729,7 +4729,7 @@ static BOOL CCommand_TogglePVP(LPCSTR command, LPCSTR arguments) {
     ClientServices_Send(&msg);
     ConsoleWrite(enable ? "PVP Enabled" : "PVP Disabled", DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL CCommand_Cinematic(LPCSTR command, LPCSTR arguments) {
@@ -4738,7 +4738,7 @@ static BOOL CCommand_Cinematic(LPCSTR command, LPCSTR arguments) {
   msg.Put(SStrToInt(arguments));
   msg.Finalize();
   ClientServices_Send(&msg);
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnProficiency(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -4749,7 +4749,7 @@ static BOOL OnProficiency(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   s_playerProficiencies[proficiencyClass] = proficiencyMask;
   ConsolePrintf("Proficiency in item class %d set to %08x", proficiencyClass, proficiencyMask);
   CGCharacterInfo::UpdateAllSkillLines();
-  return 1;
+  return TRUE;
 }
 
 static void ResurrectNameQueryCallback(int id, const DWORDLONG &guid, LPVOID, bool) {
@@ -4777,7 +4777,7 @@ static BOOL OnResurrectRequest(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
@@ -4787,7 +4787,7 @@ static BOOL OnInspectNotify(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
   if (unit) {
     CGGameUI::DisplayError(GERR_INSPECT_S, unit->GetUnitName());
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::UpdateQuestStatus(const DWORDLONG &guid) {
@@ -4807,7 +4807,7 @@ static BOOL OnReadItemResult(LPVOID, NETMESSAGE msgID, DWORD, CDataStore *msg) {
   if (player) {
     player->ReadItemResult(msgID, msg);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *) {
@@ -4815,7 +4815,7 @@ static BOOL OnCancelCombat(LPVOID, NETMESSAGE, DWORD, CDataStore *) {
   if (player) {
     player->SetCombatMode(0);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
@@ -4857,7 +4857,7 @@ static BOOL AreaTriggerCheck(LPCVOID eventData, LPVOID arg) {
   }
 
   ClientSetTimer(100, AreaTriggerCheck, 0);
-  return 1;
+  return TRUE;
 }
 
 static void AreaTriggersInitialize() {
@@ -5171,9 +5171,9 @@ void PlayerClientShutdown() {
   s_guildIDs.Clear();
 }
 
-int Player_C_AppFocusMovementHandler(int focus) {
+BOOL Player_C_AppFocusMovementHandler(int focus) {
   if (focus) {
-    return 1;
+    return TRUE;
   }
 
   DWORD       eventTime = OsGetAsyncTimeMs();
@@ -5186,7 +5186,7 @@ int Player_C_AppFocusMovementHandler(int focus) {
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL CountWeaponItemSubclasses(int *number) {
@@ -5277,12 +5277,12 @@ void CGPlayer_C::Initialize() {
 
 bool CGPlayer_C::CanTrack(const CGUnit_C *unit) {
   if (unit->IsBeingStalked()) {
-    return 1;
+    return true;
   }
 
   int creatureType = unit->GetCreatureType();
   if (!creatureType) {
-    return 0;
+    return false;
   }
 
   if (GetCreatureTracking() & (1 << (creatureType - 1))) {
@@ -5295,15 +5295,15 @@ bool CGPlayer_C::CanTrack(const CGGameObject_C *object) {
   UINT           trackMask = GetResourceTracking();
   const LockRec *lock = object->GetLockRec();
   if (!lock) {
-    return 0;
+    return false;
   }
 
   for (UINT index = 0; index < 4; ++index) {
     if (lock->m_Type[index] == 2 && (trackMask & (1 << (lock->m_Index[index] - 1)))) {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 void CGPlayer_C::Shutdown() {
@@ -5503,7 +5503,7 @@ const TSGrowableArray<int> *CGPlayer_C::GetTradeSkills(int skillLine) const {
 
 const TSGrowableArray<int> *CGPlayer_C::GetCraftSkills(SPELL_CAST_UI_TYPE type) const {
   if (type == SPELL_CAST_UI_NONE || type >= NUM_SPELL_CAST_UI_TYPES) {
-    return 0;
+    return NULL;
   }
   return &m_craftSpells[type];
 }
@@ -5640,12 +5640,12 @@ void CGPlayer_C::MoveItem(DWORDLONG item, DWORDLONG itemContainer, UINT slot, DW
 BOOL CGPlayer_C::OnAttackBreakHandler() {
   DWORDLONG target = m_combat.IsAttacking();
   if (!target) {
-    return 0;
+    return FALSE;
   }
 
   CGUnit_C *unitPtr = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (!unitPtr) {
-    return 0;
+    return FALSE;
   }
 
   FATALASSERT(m_flags & 0x00000010);
@@ -5653,11 +5653,11 @@ BOOL CGPlayer_C::OnAttackBreakHandler() {
     NTempest::C3Vector here = GetPosition();
     NTempest::C3Vector there = unitPtr->GetPosition();
     if ((here - there).SquaredMag() >= s_attackBreakDistanceSquared) {
-      return 0;
+      return FALSE;
     }
   }
 
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::LootMoney() {
@@ -5673,28 +5673,28 @@ BOOL CGPlayer_C::CanUseItem(const ItemStats *stats, GAME_ERROR_TYPE &reason) {
   reason = GERR_NUM_TYPES;
   if (!stats) {
     reason = GERR_ITEM_NOT_FOUND;
-    return 0;
+    return FALSE;
   }
 
   if (stats->m_requiredLevel > m_unit->level) {
     reason = GERR_CANT_EQUIP_LEVEL_I;
-    return 0;
+    return FALSE;
   }
   if (!(stats->m_allowableClass & (1 << (m_unit->classId - 1))) || !(stats->m_allowableRace & (1 << (m_unit->race - 1)))) {
     reason = GERR_CANT_EQUIP_EVER;
-    return 0;
+    return FALSE;
   }
 
   UINT proficiency = GetProficiency((BYTE)stats->m_class);
   if (proficiency && !(proficiency & (1 << stats->m_subclass))) {
     reason = GERR_PROFICIENCY_NEEDED;
-    return 0;
+    return FALSE;
   }
   if (stats->m_requiredSkill && GetSkillRank(stats->m_requiredSkill) < stats->m_requiredSkillRank) {
     reason = GERR_CANT_EQUIP_SKILL;
-    return 0;
+    return FALSE;
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::QueryQuest(const DWORDLONG &questGiver, int questID) {
@@ -5790,7 +5790,7 @@ static BOOL QuestUpdateProc(DWORDLONG guid, LPVOID) {
       player->UpdateQuestStatus(guid);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::UpdateQuestStatusAll() {
@@ -5815,7 +5815,7 @@ static BOOL TaxiUpdateProc(DWORDLONG guid, LPVOID param) {
       player->UpdateTaxiStatus(unit);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::UpdateTaxiStatusAll() {
@@ -5840,7 +5840,7 @@ static BOOL BindUpdateProc(DWORDLONG guid, LPVOID param) {
       player->UpdateBindStatus(unit);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::UpdateBindStatusAll() {
@@ -5909,7 +5909,7 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
       ClientServices_Send(&lootRelease);
     }
     m_lootingUnitSent = 0;
-    return 1;
+    return TRUE;
   }
 
   if (!accquired) {
@@ -5939,7 +5939,7 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
     if (m_currentBaseAnimState == ANIM_STATE_LOOTBEGIN) {
       UpdateBaseAnimation(ANIM_STATE_NONE, 0);
     }
-    return 1;
+    return TRUE;
   }
 
   msg->Get(coins);
@@ -5951,7 +5951,7 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
   lootobject = ClntObjMgrObjectPtr(objectGUID, __FILE__, __LINE__);
   if (!lootobject) {
     CGGameUI::DisplayError(GERR_LOOT_DIDNT_KILL);
-    return 1;
+    return TRUE;
   }
 
   m_lootingUnit = objectGUID;
@@ -5964,7 +5964,7 @@ BOOL CGPlayer_C::OnLootResponse(UINT eventTime, CDataStore *msg) {
     msg->Get(s_lootItems[slot].m_displayID);
   }
   CGGameUI::OpenLoot(lootobject, coins, (LOOT_ACQUIRE)accquired);
-  return 1;
+  return TRUE;
 }
 
 UINT CGPlayer_C::GetLootItem(UINT slot) {
@@ -5989,7 +5989,7 @@ BOOL CGPlayer_C::OnLootRemoved(CDataStore *msg) {
     memset(&s_lootItems[slot], 0, sizeof(s_lootItems[slot]));
     CGGameUI::ClearLootSlot(slot);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
@@ -6024,12 +6024,12 @@ BOOL CGPlayer_C::OnLootMoneyNotify(CDataStore *msg) {
     SStrPrintf(string, sizeof(string), buf, moneyBuf);
     CGChat::AddChatMessage(string, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnLootClearMoney(CDataStore *msg) {
   CGLootInfo::CoinsCleared();
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
@@ -6043,7 +6043,7 @@ BOOL CGPlayer_C::OnLootItemNotify(CDataStore *msg) {
   msg->Get(slot);
   msg->Get(displayID);
   msg->GetString(itemName, 64);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
@@ -6059,7 +6059,7 @@ BOOL CGPlayer_C::OnLootReleaseResponse(CDataStore *msg) {
     m_flags &= ~0x200;
     CGGameUI::CloseLoot(false, false);
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::LootAnimEndHandler() {
@@ -6163,7 +6163,7 @@ const VirtualItemInfo *CGPlayer_C::GetVirtualItem(UINT slot, bool ignoreDisarmFl
     case VIRTUAL_MONSTER_SLOT_MAINHAND:
       item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(m_inventory.GetItem(INVSLOT_MAINHAND), __FILE__, __LINE__));
       if (!item || (item->m_itemInfo.m_classID == 2 && !ignoreDisarmFlag && (m_unit->flags & 0x200000))) {
-        return 0;
+        return NULL;
       }
       break;
 
@@ -6176,11 +6176,11 @@ const VirtualItemInfo *CGPlayer_C::GetVirtualItem(UINT slot, bool ignoreDisarmFl
       break;
 
     default:
-      return 0;
+      return NULL;
   }
 
   if (!item) {
-    return 0;
+    return NULL;
   }
 
   return &item->m_itemInfo;
@@ -6394,29 +6394,29 @@ UINT CGPlayer_C::GetDefaultLanguage() {
 BOOL CGPlayer_C::GetLanguageSkill(UINT language, UINT &skill) {
   skill = 0;
   if (GetGUID() != ClntObjMgrGetActivePlayer()) {
-    return 0;
+    return FALSE;
   }
 
   int spellID = CGSpellBook::GetLanguageSpell(language);
   if (!spellID) {
-    return 0;
+    return FALSE;
   }
 
   const SkillLineAbilityRec *ability = SpellTableLookupAbility(m_unit->race, m_unit->classId, spellID);
   if (!ability) {
-    return 0;
+    return FALSE;
   }
 
   for (UINT index = 0; index < MAX_UNIT_SKILL_LINES; ++index) {
     if (GetMirrorSkillID(index) == ability->m_skillLine) {
       if (!g_skillLineDB.GetRecord(ability->m_skillLine)) {
-        return 0;
+        return FALSE;
       }
       skill = GetMirrorSkillRank(index) + GetMirrorSkillModifier(index);
-      return 1;
+      return TRUE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL Player_C_TogglePlayerRender() {
@@ -6515,23 +6515,23 @@ inline bool CGUnit_C::CanAttackNow(const CGUnit_C *unit) const {
 BOOL CGPlayer_C::OnAttackIconPressed() {
   FATALASSERT(GetGUID() == GetActive());
   if (!CGGameUI::m_hasControl) {
-    return 0;
+    return FALSE;
   }
 
   DWORDLONG target = CGGameUI::GetLockedTarget();
   if (m_flags & 0x400) {
     SetCombatMode(0);
-    return 0;
+    return FALSE;
   }
 
   if (m_unit->health <= 0) {
     CGGameUI::DisplayError(GERR_ATTACK_DEAD);
-    return 0;
+    return FALSE;
   }
 
   if (m_unit->flags & 0x20000) {
     CGGameUI::DisplayError(GERR_ATTACK_PACIFIED);
-    return 0;
+    return FALSE;
   }
 
   if (target) {
@@ -6546,14 +6546,14 @@ BOOL CGPlayer_C::OnAttackIconPressed() {
     target = CGGameUI::GetLockedTarget();
     if (!target) {
       CGGameUI::DisplayError(GERR_NO_ATTACK_TARGET);
-      return 0;
+      return FALSE;
     }
   }
 
   FATALASSERT(g_combatModeMaxDistance);
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (!unit) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C3Vector diff = GetPosition() - unit->GetPosition();
@@ -6561,16 +6561,16 @@ BOOL CGPlayer_C::OnAttackIconPressed() {
 
   if (diff.SquaredMag() > maxRange * maxRange) {
     CGGameUI::DisplayError(GERR_OUT_OF_RANGE);
-    return 0;
+    return FALSE;
   }
 
   if (!CanAttackNow(unit)) {
     CGGameUI::DisplayError(GERR_INVALID_ATTACK_TARGET);
-    return 0;
+    return FALSE;
   }
 
   SetCombatMode(1);
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::KillCombatModeTimer() {
@@ -6739,7 +6739,7 @@ void CGPlayer_C::PlayVocalMacro(int category) {
 static BOOL SoulStoneCompare(const CGItem_C *item, LPVOID) {
   const ItemStats_C *stats = g_itemDBCache.GetRecord(item->GetEntryID(), 0, 0, 0);
   if (!stats) {
-    return 0;
+    return FALSE;
   }
 
   for (UINT spellIndex = 0; spellIndex < 5; ++spellIndex) {
@@ -6747,12 +6747,12 @@ static BOOL SoulStoneCompare(const CGItem_C *item, LPVOID) {
     if (spell && !stats->m_spellTrigger[spellIndex]) {
       for (UINT effectIndex = 0; effectIndex < 3; ++effectIndex) {
         if (spell->m_effect[effectIndex] == 18 && (spell->m_implicitTargetA[effectIndex] == 1 || spell->m_implicitTargetB[effectIndex] == 1)) {
-          return 1;
+          return TRUE;
         }
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 CGItem_C *CGPlayer_C::GetSoulstone() const {
@@ -6838,10 +6838,10 @@ void CGPlayer_C::OpenWrappedItem(CGItem_C *item) {
 BOOL CGPlayer_C::InviteToGroup(DWORDLONG target) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (!unit) {
-    return 0;
+    return FALSE;
   }
   InviteToGroup(unit->GetUnitName());
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::InviteToGroup(LPCSTR target) {
@@ -6852,7 +6852,7 @@ void CGPlayer_C::InviteToGroup(LPCSTR target) {
   ClientServices_Send(&msg);
 }
 
-int CGPlayer_C::Uninvite(DWORDLONG target) {
+BOOL CGPlayer_C::Uninvite(DWORDLONG target) {
   CGUnit_C *unit = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(target, __FILE__, __LINE__));
   if (!unit) {
     CDataStore msg;
@@ -6863,7 +6863,7 @@ int CGPlayer_C::Uninvite(DWORDLONG target) {
   } else {
     Uninvite(unit->GetUnitName());
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::Uninvite(LPCSTR target) {
@@ -6882,12 +6882,12 @@ BOOL CGPlayer_C::SetNewLeader(DWORDLONG target) {
   } else {
     const NameCache *nameEntry = g_nameDBCache.GetRecord(target, 0, 0, 0);
     if (!nameEntry) {
-      return 0;
+      return FALSE;
     }
     name = nameEntry->m_name;
   }
   SetNewLeader(name);
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::SetNewLeader(LPCSTR target) {
@@ -6900,22 +6900,22 @@ void CGPlayer_C::SetNewLeader(LPCSTR target) {
 
 BOOL CGPlayer_C::ReportBagItemSubtypeMismatch(BYTE bagSlot) const {
   if (bagSlot == 0xFF) {
-    return 0;
+    return FALSE;
   }
 
   DWORDLONG itemGUID = m_inventory.GetItem(bagSlot);
   CGItem_C *item = static_cast<CGItem_C *>(ClntObjMgrObjectPtr(itemGUID, __FILE__, __LINE__));
   if (!item || item->GetClassID() != 11) {
-    return 0;
+    return FALSE;
   }
 
   const ItemSubClassRec *subclass = SDBItemSubclassGetSubClassRec(6, item->GetSubtypeID());
   if (!subclass) {
-    return 0;
+    return FALSE;
   }
 
   CGGameUI::DisplayError(GERR_WRONG_BAG_TYPE_SUBCLASS, subclass->m_displayName_lang[CURRENT_LANGUAGE]);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
@@ -6986,7 +6986,7 @@ BOOL CGPlayer_C::OnSplitMoneyNotify(CDataStore *msg) {
       CGChat::AddChatMessage(string, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::StartGiftWrap(CGItem_C *wrapper) {
@@ -7121,7 +7121,7 @@ CGUnit_C *CGPlayer_C::GetPossessedUnit() {
       return (CGUnit_C *)focus;
     }
   }
-  return 0;
+  return NULL;
 }
 
 BOOL CGPlayer_C::OnPetitionShowList(CDataStore *msg) {
@@ -7143,7 +7143,7 @@ BOOL CGPlayer_C::OnPetitionShowList(CDataStore *msg) {
   if (unit && (unit->m_unit->npcFlags & 0x80) && (unit->m_unit->npcFlags & 0x40) && (petitionList[0].m_flags & 1)) {
     CGGuildRegistrar::SetRegistrar(petitionNpcGUID, petitionList);
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::BuyPetition(const DWORDLONG &petitionUnit, CGPetition *petition) {
@@ -7178,7 +7178,7 @@ BOOL CGPlayer_C::OnPetitionShowSignatures(CDataStore *msg) {
     CGPetitionInfo::SetPetition(itemGUID, petitionID);
     CGPetitionInfo::SetSignatures(count, signers.Ptr(), choices.Ptr());
   }
-  return 1;
+  return TRUE;
 }
 
 void CGPlayer_C::RequestPetitionSignatures(DWORDLONG item) {
@@ -7207,7 +7207,7 @@ BOOL CGPlayer_C::OnSignedResults(CDataStore *msg) {
   } else {
     ConsoleWrite("Petition error", DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGPlayer_C::OnTurnInPetitionResults(CDataStore *msg) {
@@ -7222,7 +7222,7 @@ BOOL CGPlayer_C::OnTurnInPetitionResults(CDataStore *msg) {
   } else {
     ConsoleWrite("Petition error", DEFAULT_COLOR);
   }
-  return 1;
+  return TRUE;
 }
 
 static void GuildCharterTurnInCallback(int, const DWORDLONG &, LPVOID, bool granted) {
@@ -7235,7 +7235,7 @@ static void GuildCharterTurnInCallback(int, const DWORDLONG &, LPVOID, bool gran
 }
 
 void CGPlayer_C::TurnInGuildCharter() {
-  CGItem_C *item = 0;
+  CGItem_C *item = NULL;
   int       found = 0;
   UINT      j;
 
@@ -7665,7 +7665,7 @@ void CGPlayer_C::ClearItemVisuals(ACTIVEATTACHMENTINFO *info) {
     return;
   }
 
-  info->enchantmentVisual = 0;
+  info->enchantmentVisual = NULL;
   for (int i = 0; i < 2; ++i) {
     if (info->modelInfo[i].model) {
       ModelClearAllLinks(info->modelInfo[i].model);
@@ -7697,7 +7697,7 @@ void CGPlayer_C::SetItemVisuals(ACTIVEATTACHMENTINFO *info, const ItemVisualsRec
 
   for (int modelIndex = 0; modelIndex < 2; ++modelIndex) {
     int    currentLink = info->modelInfo[modelIndex].currentLink;
-    HMODEL child = 0;
+    HMODEL child = NULL;
     if (currentLink >= 0) {
       child = ComponentUtilGetChildModel(m_paperDollModel, currentLink);
     }

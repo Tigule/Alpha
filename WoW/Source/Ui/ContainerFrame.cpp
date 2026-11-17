@@ -61,14 +61,14 @@ static BOOL UpdateContainerContents(DWORDLONG guid, UINT offset, UINT, LPCVOID p
       CGGameUI::UnlockItem(item);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL UpdateInvContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevValue, LPVOID) {
   CGContainerInfo::UpdateContents(guid);
   CGObject_C *object = ClntObjMgrObjectPtr(guid, __FILE__, __LINE__);
   if (!object) {
-    return 1;
+    return TRUE;
   }
 
   offset /= sizeof(DWORDLONG);
@@ -76,12 +76,12 @@ static BOOL UpdateInvContents(DWORDLONG guid, UINT offset, UINT, LPCVOID prevVal
   if (*(const DWORDLONG *)prevValue != item) {
     CGGameUI::UnlockItem(item);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL InvUpdateHandler(DWORDLONG, UINT, UINT, LPCVOID, LPVOID) {
   CGContainerInfo::UpdateContainers();
-  return 1;
+  return TRUE;
 }
 
 void CGContainerInfo::EnterWorld() {
@@ -237,7 +237,7 @@ static int Script_GetContainerItemInfo(lua_State *L) {
   if (!player) {
     return 0;
   }
-  CGBag_C *bag = 0;
+  CGBag_C *bag = NULL;
   int      index = (int)lua_tonumber(L, 1) - 1;
   if (index == -1) {
     bag = player->CGPlayer_C::GetBag();
@@ -286,7 +286,7 @@ static int Script_GetContainerItemLink(lua_State *L) {
   if (!player) {
     return 0;
   }
-  CGBag_C *bag = 0;
+  CGBag_C *bag = NULL;
   int      index = (int)lua_tonumber(L, 1) - 1;
   if (index == -1) {
     bag = player->CGPlayer_C::GetBag();
@@ -323,7 +323,7 @@ static int Script_GetContainerItemCooldown(lua_State *L) {
   }
   CGPlayer_C *player = static_cast<CGPlayer_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (player) {
-    CGBag_C *bag = 0;
+    CGBag_C *bag = NULL;
     int      index = (int)lua_tonumber(L, 1) - 1;
     if (index == -1) {
       bag = player->CGPlayer_C::GetBag();

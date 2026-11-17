@@ -577,7 +577,7 @@ template <class T>
 static BYTE *LoadAllGeosets(BYTE *data, UINT fileBytes, T *modelptr, CModelShared *shared, UINT flags) {
   data = MDLFileBinarySeek(data, fileBytes, 'SOEG');
   if (!data) {
-    return 0;
+    return NULL;
   }
 
   UINT sectionBytes = *(UINT *)data;
@@ -605,7 +605,7 @@ template <class T>
 static BYTE *LoadAllGeosetAnims(BYTE *data, UINT fileBytes, T *modelptr) {
   data = MDLFileBinarySeek(data, fileBytes, 'AOEG');
   if (!data) {
-    return 0;
+    return NULL;
   }
 
   UINT sectionBytes = *(UINT *)data;
@@ -728,7 +728,7 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelComplex *modelptr, CModelShared
   ASSERT(numLayers <= 0xff);
   shared->numGeosets = numGeosets;
   shared->numLayers = numLayers;
-  return 1;
+  return TRUE;
 }
 
 BOOL MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared *shared, UINT flags, CStatus *status) {
@@ -754,7 +754,7 @@ BOOL MdlReadLoadModel(const MDLDATA &data, CModelSimple *modelptr, CModelShared 
   ASSERT(numLayers <= 0xff);
   shared->numGeosets = numGeosets;
   shared->numLayers = numLayers;
-  return 1;
+  return TRUE;
 }
 
 void MdxLoadGlobalProperties(BYTE *data, UINT fileBytes, UINT *loadFlags, CModelShared *modelShared) {

@@ -75,7 +75,7 @@ void CMap::GxuLightUnlock(DWORD_PTR lightId) {
 void CMap::GxuLightSelect(NTempest::C3Vector worldPos, const NTempest::C3Vector &cameraWorldPos, UINT maxLightsToUse) {
   UINT whichLight = 0;
 
-  oldSelectLightParm = 0;
+  oldSelectLightParm = NULL;
   if (bActive) {
     GxLightSet(0, sunLight->gxLight, cameraWorldPos);
     whichLight = 1;
@@ -146,7 +146,7 @@ void CMapLight::CreatePointAtten() {
 
 void CMapLight::DestroyPointAtten() {
   HandleClose(s_hPointAttenTex);
-  s_hPointAttenTex = 0;
+  s_hPointAttenTex = NULL;
 }
 
 CGxTex *CMapLight::GetPointAttenTex() {
@@ -192,7 +192,7 @@ void CMap::UpdateLight(CMapLight *light) {
 
   if (!light->parentLinkList.Head() && !light->gxLight.m_isOmni) {
     CMapBaseObjLink *link = AllocBaseObjLink(light);
-    link->ref = 0;
+    link->ref = NULL;
     CMapLight::dirLightLinkList.LinkNode(link, LIST_TAIL, 0);
   }
 
@@ -265,7 +265,7 @@ void CMap::SelectLight(LPVOID parm, NTempest::C3Vector worldPos, const NTempest:
 
 void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
   const CWTriData::Batch *batch = (const CWTriData::Batch *)buf->UserArg();
-  CGxVertexPN            *vertices = 0;
+  CGxVertexPN            *vertices = NULL;
 
   switch (cmd.vertex.op) {
     case GxBufOp_Assign:
@@ -289,7 +289,7 @@ void CMapLight::ProjectLightRenderPN(CGxBufCommand &cmd, CGxBuf *buf) {
     vertices->n = batch->GetNormal(vidx);
   }
 
-  WORD *indices = 0;
+  WORD *indices = NULL;
   switch (cmd.index.op) {
     case GxBufOp_Assign:
       indices = (WORD *)GxAllocIndexMem(buf->IndexCount() * sizeof(*indices));

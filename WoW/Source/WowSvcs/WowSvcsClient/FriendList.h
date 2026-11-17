@@ -30,7 +30,7 @@ class FriendList {
   class Friend {
    public:
     Friend() {
-      m_name = 0;
+      m_name = NULL;
       m_connected = 0;
       guid = 0;
     }

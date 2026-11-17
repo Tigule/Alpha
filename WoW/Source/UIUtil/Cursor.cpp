@@ -51,37 +51,37 @@ void CursorInitialize() {
 void CursorDestroy() {
   if (g_cursor) {
     DEL(g_cursor);
-    g_cursor = 0;
+    g_cursor = NULL;
   }
 
   if (s_cursorModel) {
     HandleClose(s_cursorModel);
-    s_cursorModel = 0;
+    s_cursorModel = NULL;
   }
 }
 
 BOOL CursorGrabMoney(HMODEL model) {
   if (!g_cursor) {
-    return 0;
+    return FALSE;
   }
   if (g_cursor->GetItemType() != CURSOR_EMPTY) {
-    return 0;
+    return FALSE;
   }
   g_cursor->SetItemType(CURSOR_MONEY);
   g_cursor->Grab(model);
-  return 1;
+  return TRUE;
 }
 
 BOOL CursorGrabSpell(HMODEL model) {
   if (!g_cursor) {
-    return 0;
+    return FALSE;
   }
   if (g_cursor->GetItemType() != CURSOR_EMPTY) {
-    return 0;
+    return FALSE;
   }
   g_cursor->SetItemType(CURSOR_SPELL);
   g_cursor->Grab(model);
-  return 1;
+  return TRUE;
 }
 
 static void CreateCursorIconModel(HTEXTURE texture) {
@@ -129,7 +129,7 @@ BOOL CursorGrabMoney(UINT amount) {
   HTEXTURE texture = TextureCreate(buffer, CGxTexFlags(GxTex_Nearest, 0, 0, 0, 0, 0, 1), &status, 0);
   SysMsgAdd(status, 4);
   if (!texture) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_cursorModel) {
@@ -143,13 +143,13 @@ BOOL CursorGrabMoney(UINT amount) {
 
 BOOL CursorGrabSpell(LPCSTR filename) {
   if (!filename) {
-    return 0;
+    return FALSE;
   }
 
   CStatus  status;
   HTEXTURE texture = TextureCreate(filename, CGxTexFlags(GxTex_Nearest, 0, 0, 0, 0, 0, 1), &status, 0);
   if (!texture) {
-    return 0;
+    return FALSE;
   }
 
   if (!s_cursorModel) {
@@ -179,7 +179,7 @@ BOOL CursorHasSpell() {
   if (g_cursor) {
     return g_cursor->GetItemType() == CURSOR_SPELL;
   }
-  return 0;
+  return FALSE;
 }
 
 void CursorModelSetSequence(CURSORANIMATIONS sequence) {

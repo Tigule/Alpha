@@ -195,7 +195,7 @@ int WINAPI SoundFileCache::Read(LPVOID buffer, int size, UINT handle) {
     }
 
     SoundFileDataCacheBlock *cacheBlock = s_soundFileDataCache.Ptr(hashKey, HASHKEY_LONGLONG(hashKey));
-    needToRead = cacheBlock == 0;
+    needToRead = cacheBlock == NULL;
     if (!cacheBlock) {
       cacheBlock = AllocCacheBlock(hashKey);
     }
@@ -301,7 +301,7 @@ void WINAPI SoundFileCache::Close(UINT handle) {
   if (!--object->openInstances) {
     if (object->file) {
       SFile::Close(object->file);
-      object->file = 0;
+      object->file = NULL;
       ++s_closePhysicalFile;
     }
     s_freeSoundFileObjects.LinkNode(object, LIST_TAIL, 0);

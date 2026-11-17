@@ -243,7 +243,7 @@ inline void Blit_Dxt(const C2iVector &size, const Block *in, UINT inStride, Pixe
 }
 
 static void Blit_Dxt1_Rgb565(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != false) {
     Blit_DxtUnaligned(size, (const Dxt1Block *)in, inStride, (CRgb565 *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt1Block *)in, inStride, (CRgb565 *)out, outStride);
@@ -251,7 +251,7 @@ static void Blit_Dxt1_Rgb565(const C2iVector &size, LPCVOID in, UINT inStride, L
 }
 
 static void Blit_Dxt1_Argb1555(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != false) {
     Blit_DxtUnaligned(size, (const Dxt1Block *)in, inStride, (CArgb1555 *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt1Block *)in, inStride, (CArgb1555 *)out, outStride);
@@ -259,7 +259,7 @@ static void Blit_Dxt1_Argb1555(const C2iVector &size, LPCVOID in, UINT inStride,
 }
 
 static void Blit_Dxt1_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != false) {
     Blit_DxtUnaligned(size, (const Dxt1Block *)in, inStride, (CImVector *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt1Block *)in, inStride, (CImVector *)out, outStride);
@@ -267,7 +267,7 @@ static void Blit_Dxt1_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride,
 }
 
 static void Blit_Dxt3_Argb4444(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != false) {
     Blit_DxtUnaligned(size, (const Dxt3Block *)in, inStride, (CArgb4444 *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt3Block *)in, inStride, (CArgb4444 *)out, outStride);
@@ -275,7 +275,7 @@ static void Blit_Dxt3_Argb4444(const C2iVector &size, LPCVOID in, UINT inStride,
 }
 
 static void Blit_Dxt3_Argb8888(const C2iVector &size, LPCVOID in, UINT inStride, LPVOID out, UINT outStride) {
-  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != 0) {
+  if ((size.x < 4 || size.y < 4 || (size.x & 3) || (size.y & 3)) != false) {
     Blit_DxtUnaligned(size, (const Dxt3Block *)in, inStride, (CImVector *)out, outStride);
   } else {
     Blit_Dxt(size, (const Dxt3Block *)in, inStride, (CImVector *)out, outStride);

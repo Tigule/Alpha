@@ -134,7 +134,7 @@ static void DetermineWeaponTypeAndMaterial(const VirtualItemInfo *item, UINT *we
   } else {
     FATALASSERT(item->m_classID == ITEM_WEAPON);
     *weaponType = item->m_subclassID;
-    *material = (PARRYMATERIALS)(CGItem_C::IsMetal(item->m_material) != 0);
+    *material = (PARRYMATERIALS)(CGItem_C::IsMetal(item->m_material) != FALSE);
   }
 }
 
@@ -332,7 +332,7 @@ static void SoundInterfaceRegisterWorldCVars() {
 static BOOL WorldIdle(LPCVOID dataPtr, LPVOID ptr) {
   s_elapsed += (int)(*(const float *)dataPtr * 1000.0f);
   if (s_elapsed < 1000) {
-    return 1;
+    return TRUE;
   }
 
   s_elapsed -= 1000;
@@ -347,7 +347,7 @@ static BOOL WorldIdle(LPCVOID dataPtr, LPVOID ptr) {
     SndInterfaceMIDIAmbienceChanged();
   }
 
-  return 1;
+  return TRUE;
 }
 
 void SndInterfaceWorldInitialize() {
@@ -580,7 +580,7 @@ static bool InternalPlaySound(SOUNDCATEGORIES category, UINT soundID, int forceI
     }
   }
 
-  return sound != 0;
+  return sound != NULL;
 }
 
 void SndInterfacePlayFootstepSound(UINT footstepID, const NTempest::C3Vector &position, UINT terrainID, int splashing) {
@@ -687,10 +687,10 @@ void SndInterfaceSetUnderwater(bool underWater) {
 bool SoundInterfaceIsSoundLooping(UINT soundID, bool &looping) {
   SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
   if (!definition) {
-    return 0;
+    return false;
   }
   looping = (definition->m_flags & 0x200) != 0;
-  return 1;
+  return true;
 }
 
 bool SndInterfacePlaySound(UINT soundID, int forceIndex) {
@@ -760,12 +760,12 @@ static bool InternalPlaySound(SOUNDCATEGORIES category, UINT soundID, const NTem
 Sound *SndInterfacePlayLoopedSound(UINT soundID, UINT loopCount) {
   SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
   if (!definition) {
-    return 0;
+    return NULL;
   }
 
   LPCSTR filename = definition->GetRandomFileName(-1);
   if (!filename || !*filename) {
-    return 0;
+    return NULL;
   }
 
   Sound *sound = Sound::Play2DLooped(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags() | 4, loopCount, true);
@@ -773,7 +773,7 @@ Sound *SndInterfacePlayLoopedSound(UINT soundID, UINT loopCount) {
     definition->SetFrequencyAndVolume(sound, 1.0f, false);
     if (!sound->SetPaused(false)) {
       Sound::KillSound(sound);
-      return 0;
+      return NULL;
     }
   }
   return sound;
@@ -782,11 +782,11 @@ Sound *SndInterfacePlayLoopedSound(UINT soundID, UINT loopCount) {
 Sound *SndInterfacePlayLoopedSound(UINT soundID, const NTempest::C3Vector &position, UINT loopCount) {
   SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
   if (!definition) {
-    return 0;
+    return NULL;
   }
   LPCSTR filename = definition->GetRandomFileName(-1);
   if (!filename || !*filename) {
-    return 0;
+    return NULL;
   }
   Sound *sound = Sound::Play3DLooped(SOUNDCATEGORY_NONE, filename, definition->GetOsFlags() | 4, loopCount, true);
   if (sound) {
@@ -830,12 +830,12 @@ Sound *SndInterfaceCreateSound(UINT soundID, float fadeInRate, int forceIndex, b
 
   SOUNDDEFINITION *definition = ISndInterfaceGetSndEntry(soundID);
   if (!definition) {
-    return 0;
+    return NULL;
   }
 
   LPCSTR filename = definition->GetRandomFileName(forceIndex);
   if (!filename || !*filename) {
-    return 0;
+    return NULL;
   }
 
   int flags = definition->GetOsFlags();
@@ -866,7 +866,7 @@ static bool SoundPositionCallback(LONGLONG handle, NTempest::C3Vector &pos) {
   if (object) {
     pos = object->GetPosition();
   }
-  return object != 0;
+  return object != NULL;
 }
 
 void SndInterfaceSetPositionCallback() {

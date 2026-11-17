@@ -220,10 +220,10 @@ BOOL SRWLock::IWaitAndCheckForDeadlock(LPVOID hevent) {
     SInterlockedIncrement(&s_dupcount);
     CDebugSCritSect::DumpAllEntries();
     CDebugSRWLock::DumpAllEntries();
-    return 0;
+    return FALSE;
   }
 
-  return 1;
+  return TRUE;
 }
 
 long SRWLock::IAllocEvent(DWORD evtype) {
@@ -331,13 +331,13 @@ BOOL SRWLock::IDecRefCountAndFreeEvent(DWORD evtype, long volatile *eventptr, lo
   previous = SInterlockedCompareExchange((long *)eventptr, 0, finalevent);
   while (previous != finalevent) {
     if (previous == SInterlockedCompareExchange((long *)eventptr, previous - decrement, previous)) {
-      return 0;
+      return FALSE;
     }
     previous = SInterlockedCompareExchange((long *)eventptr, 0, finalevent);
   }
 
   IFreeEvent(evtype, finalevent, 1);
-  return 1;
+  return TRUE;
 }
 
 void SRWLock::SUNNLockInitialize(SUNNLOCK volatile *sunnlock) {
@@ -763,13 +763,13 @@ BOOL CDebugSCritSect::TryEnter(LPCSTR fileName, DWORD line) {
   CDebugLock<CDebugSCritSect>::ILeave();
   if (SCritSect::TryEnter()) {
     CDebugLock<CDebugSCritSect>::IEnterEntry(e);
-    return 1;
+    return TRUE;
   }
 
   CDebugLock<CDebugSCritSect>::IEnter();
   CDebugLock<CDebugSCritSect>::IDeleteEntry((CDebugLockData *)m_debugData, threadId, 1);
   CDebugLock<CDebugSCritSect>::ILeave();
-  return 0;
+  return FALSE;
 }
 
 void CDebugSCritSect::Leave(LPCSTR fileName, DWORD line) {
@@ -887,13 +887,13 @@ BOOL CDebugSRWLock::TryEnter(int forwriting, LPCSTR fileName, DWORD line) {
 
   if (CSRWLock::TryEnter(forwriting)) {
     CDebugLock<CDebugSRWLock>::IEnterEntry(e);
-    return 1;
+    return TRUE;
   }
 
   CDebugLock<CDebugSRWLock>::IEnter();
   CDebugLock<CDebugSRWLock>::IDeleteEntry((CDebugLockData *)m_debugData, threadId, forwriting);
   CDebugLock<CDebugSRWLock>::ILeave();
-  return 0;
+  return FALSE;
 }
 
 void CDebugSRWLock::Leave(int fromwriting, LPCSTR fileName, DWORD line) {

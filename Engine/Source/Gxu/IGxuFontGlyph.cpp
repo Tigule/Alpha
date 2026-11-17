@@ -9,7 +9,7 @@ static BOOL FREETYPE_RenderGlyph(FT_Face face, UINT charCode, int noHinting, int
 
   FT_UInt glyphIndex = FT_Get_Char_Index(face, charCode);
   if (!glyphIndex) {
-    return 0;
+    return FALSE;
   }
 
   int loadFlags = FT_LOAD_NO_BITMAP | FT_LOAD_PEDANTIC | FT_LOAD_LINEAR_DESIGN;
@@ -18,7 +18,7 @@ static BOOL FREETYPE_RenderGlyph(FT_Face face, UINT charCode, int noHinting, int
   }
 
   if (FT_Load_Glyph(face, glyphIndex, loadFlags)) {
-    return 0;
+    return FALSE;
   }
 
   FT_Error error;
@@ -66,14 +66,14 @@ BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT ba
   VALIDATEEND;
 
   FREEIFUSED(dataPtr->data);
-  dataPtr->data = 0;
+  dataPtr->data = NULL;
 
   if (!FT_Get_Char_Index(face, code)) {
-    return 0;
+    return FALSE;
   }
 
   if (!FREETYPE_RenderGlyph(face, code, noHinting, monochrome)) {
-    return 0;
+    return FALSE;
   }
 
   UINT width = face->glyph->bitmap.width;
@@ -124,5 +124,5 @@ BOOL IGxuFontGlyphRenderGlyph(FT_Face face, UINT pixelHeight, UINT code, UINT ba
 
   dataPtr->yOffset = yOffset;
   dataPtr->yStart = YStart;
-  return 1;
+  return TRUE;
 }

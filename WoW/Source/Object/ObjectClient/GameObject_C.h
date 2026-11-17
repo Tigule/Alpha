@@ -133,7 +133,7 @@ class CGGameObject_C_TypeBase {
     return NTempest::C3Vector();
   }
   virtual BOOL IsPointInside(const NTempest::C3Vector &point) const {
-    return 0;
+    return FALSE;
   }
   virtual void PostInit();
   virtual void Reenable() {
@@ -157,15 +157,15 @@ class CGGameObject_C_TypeBase {
 
 class CGGameObject_C_Type_Null : public CGGameObject_C_TypeBase {
  public:
-  virtual bool   CanUse() const { return 0; }
-  virtual bool   CanUseNow(GAME_ERROR_TYPE *) const { return 0; }
+  virtual bool   CanUse() const { return false; }
+  virtual bool   CanUseNow(GAME_ERROR_TYPE *) const { return false; }
   virtual LPCSTR DebugStatus() { return "Unknown Object Type"; }
 };
 
 class CGGameObject_C_TypeAnimated : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_TypeAnimated(CGGameObject_C *owner)
-      : CGGameObject_C_TypeBase(owner), m_loopingSound(0), m_animPresent(0) {
+      : CGGameObject_C_TypeBase(owner), m_loopingSound(NULL), m_animPresent(0) {
   }
   virtual ~CGGameObject_C_TypeAnimated();
   virtual void   UpdateState(int oldState, int newState);
@@ -236,7 +236,7 @@ class CGGameObject_C_Type_Generic : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_Generic(CGGameObject_C *owner);
   virtual bool CanHighlight() const;
-  virtual bool CanUse() const { return 0; }
+  virtual bool CanUse() const { return false; }
 };
 
 class CGGameObject_C_Type_MapObj : public CGGameObject_C_TypeBase {
@@ -244,8 +244,8 @@ class CGGameObject_C_Type_MapObj : public CGGameObject_C_TypeBase {
   CGGameObject_C_Type_MapObj(CGGameObject_C *owner);
   virtual void PostInit();
   virtual      ~CGGameObject_C_Type_MapObj();
-  virtual bool CanHighlight() const { return 0; }
-  virtual bool CanUse() const { return 0; }
+  virtual bool CanHighlight() const { return false; }
+  virtual bool CanUse() const { return false; }
 
  protected:
   UINT_PTR m_objectId;
@@ -287,8 +287,8 @@ class CGGameObject_C_Type_Chair : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_SpellFocus : public CGGameObject_C_TypeAnimated {
  public:
   CGGameObject_C_Type_SpellFocus(CGGameObject_C *owner);
-  virtual bool CanHighlight() const { return 1; }
-  virtual bool CanUse() const { return 0; }
+  virtual bool CanHighlight() const { return true; }
+  virtual bool CanUse() const { return false; }
 };
 
 class CGGameObject_C_Type_Text : public CGGameObject_C_TypeAnimated {
@@ -314,7 +314,7 @@ class CGGameObject_C_Type_Transport : public CGGameObject_C_TypeAnimated {
   virtual NTempest::C3Vector GetPosition() const { return m_position; }
   virtual void               AddPassenger(CMovementData *passenger);
   virtual NTempest::C3Vector GetCurrentMoveVector() const { return m_currDirection * m_currSpeed; }
-  virtual bool               CanUse() const { return 0; }
+  virtual bool               CanUse() const { return false; }
   virtual BOOL               IsPointInside(const NTempest::C3Vector &point) const;
   virtual void               ModelJustLoaded();
 
@@ -341,8 +341,8 @@ class CGGameObject_C_Type_Camera : public CGGameObject_C_TypeBase {
 class CGGameObject_C_Type_DuelArbiter : public CGGameObject_C_TypeBase {
  public:
   CGGameObject_C_Type_DuelArbiter(CGGameObject_C *owner);
-  virtual bool CanHighlight() const { return 1; }
-  virtual bool CanUse() const { return 0; }
+  virtual bool CanHighlight() const { return true; }
+  virtual bool CanUse() const { return false; }
 };
 
 class CGGameObject_C_Type_FishingNode : public CGGameObject_C_TypeAnimated {

@@ -457,7 +457,7 @@ BOOL OsNetInitialize(DWORD hints, DWORD parts) {
     s_ioThreads[i].m_thread = SCreateThread(IOThreadProc, &s_ioThreads[i], &s_ioThreads[i].m_threadId, 0, name);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void OsNetDestroy(DWORD parts) {
@@ -551,7 +551,7 @@ BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC ho
 
   if (!host || host->h_addrtype != AF_INET || host->h_length != 4) {
     hostAddrProc(0, 0, user);
-    return 1;
+    return TRUE;
   }
 
   for (char **hostAddr = host->h_addr_list; *hostAddr; ++hostAddr) {
@@ -562,5 +562,5 @@ BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC ho
   }
 
   hostAddrProc(addrs.Ptr(), addrs.Count(), user);
-  return 1;
+  return TRUE;
 }

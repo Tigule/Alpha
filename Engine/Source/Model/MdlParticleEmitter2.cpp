@@ -38,19 +38,19 @@ static void SetMaterialBlendMode(UINT blendMode, CParticleMat *mat) {
   switch (blendMode) {
     case 1:
       mat->alpha = GxBlend_Add;
-      mat->enableDepthWrites = 0;
+      mat->enableDepthWrites = FALSE;
       break;
     case 0:
       mat->alpha = GxBlend_Alpha;
-      mat->enableDepthWrites = 0;
+      mat->enableDepthWrites = FALSE;
       break;
     case 2:
       mat->alpha = GxBlend_Mod;
-      mat->enableDepthWrites = 0;
+      mat->enableDepthWrites = FALSE;
       break;
     case 3:
       mat->alpha = GxBlend_Mod2x;
-      mat->enableDepthWrites = 0;
+      mat->enableDepthWrites = FALSE;
       break;
     case 4:
       mat->alpha = GxBlend_AlphaKey;
@@ -312,10 +312,10 @@ static BYTE *CreateParticleMaterial(
   emitterData += 4;
 
   if (emitterFlags & 0x00008000) {
-    newMat.enableLighting = 0;
+    newMat.enableLighting = FALSE;
   }
   if (emitterFlags & 0x00040000) {
-    newMat.enableFog = 0;
+    newMat.enableFog = FALSE;
   }
   if (emitterFlags & 0x00010000) {
     emitter->SetSortZ(1);
@@ -338,10 +338,10 @@ static void CreateParticleMaterial(
   const MDLTEXTURESECTION &texture = textures[emitterData.textureId];
   HTEXTURE                 hTexture = LoadModelTexture(texture.image, flags, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), status);
   if (emitterData.flags & 0x00008000) {
-    newMat.enableLighting = 0;
+    newMat.enableLighting = FALSE;
   }
   if (emitterData.flags & 0x00040000) {
-    newMat.enableFog = 0;
+    newMat.enableFog = FALSE;
   }
   if (emitterData.flags & 0x00010000) {
     emitter->SetSortZ(1);
@@ -590,7 +590,7 @@ BOOL MdlReadLoadEmitters2(const MDLDATA &data, CModelComplex *modelptr, CModelSh
     shared->emitter2Order[i] = data.particleEmitters2[i].objectId;
     modelptr->m_emitters2[i] = CreateEmitter(data.particleEmitters2[i], data.textures, flags, status);
   }
-  return 1;
+  return TRUE;
 }
 
 void MdxReadEmitters2(BYTE *data, UINT fileBytes, UINT flags, CModelComplex *modelptr, CModelShared *shared, CStatus *status) {

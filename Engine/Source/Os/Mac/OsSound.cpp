@@ -53,7 +53,7 @@ static BOOL SoundIdle(LPCVOID, LPVOID) {
     s_lastHeartbeat = now;
     Sound::Update();
   }
-  return 1;
+  return TRUE;
 }
 
 UINT SndGetCPUPerformance() {
@@ -235,7 +235,7 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
   ASSERT(filename);
 
   if (!s_initialized) {
-    return 0;
+    return NULL;
   }
 
   StreamPlayer *player;
@@ -249,12 +249,12 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
     if (!((MP3Player *)player)->SetMP3Source(filename)) {
       Recycler::s_singleton.Delete(player);
       Console("[Sound::Play] The file \"%s\" could not be opened.", filename);
-      return 0;
+      return NULL;
     }
     player->SetLoopCount(loopCount + 1);
   } else {
     Console("[Sound::Play] The file \"%s\" could not be opened.", filename);
-    return 0;
+    return NULL;
   }
 
   Sound *sound = Alloc(filename);
@@ -282,21 +282,21 @@ Sound *Sound::PlayLooped(SOUNDCATEGORIES category, LPCSTR filename, int loopCoun
 
 Sound *Sound::Play2D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
   return Play(category, filename, 0x2000, startPaused, flags);
 }
 
 Sound *Sound::Play3D(SOUNDCATEGORIES category, LPCSTR filename, int flags, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
   return Play(category, filename, 0x1000, startPaused, flags);
 }
 
 Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
   if (loopCount == 1) {
     return Play2D(category, filename, flags, startPaused);
@@ -306,7 +306,7 @@ Sound *Sound::Play2DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags,
 
 Sound *Sound::Play3DLooped(SOUNDCATEGORIES category, LPCSTR filename, int flags, UINT loopCount, bool startPaused) {
   if (DupeCheckFailed(category, filename, flags)) {
-    return 0;
+    return NULL;
   }
   if (loopCount == 1) {
     return Play3D(category, filename, flags, startPaused);
@@ -732,8 +732,8 @@ int Sound::GetMixRate() {
   return 44100;
 }
 
-int Sound::MIDI_Initialize() {
-  return 0;
+BOOL Sound::MIDI_Initialize() {
+  return FALSE;
 }
 
 void Sound::MIDI_Shutdown() {

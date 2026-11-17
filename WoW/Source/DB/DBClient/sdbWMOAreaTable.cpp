@@ -36,5 +36,5 @@ bool SDBWMOAreaTableLookup(int wmoID, int nameSetID, int wmoGroupID, const WMOAr
 
   rec = (const WMOAreaTableRec *)bsearch(&key, g_wMOAreaTableDB.GetRecordByIndex(0), g_wMOAreaTableDB.GetNumRecords(), sizeof(WMOAreaTableRec), bscompare);
 
-  return rec != 0;
+  return rec != NULL;
 }

@@ -30,7 +30,7 @@ union ArgumentType {
   double   asDouble;
 };
 
-static int ParseFormatSpecifier(LPCSTR *specifierPtr, ArgumentSize *size, int *orderingPtr) {
+static BOOL ParseFormatSpecifier(LPCSTR *specifierPtr, ArgumentSize *size, int *orderingPtr) {
   LPCSTR specifier = *specifierPtr;
   int    currentNumber = 0;
   *size = e_intSized;

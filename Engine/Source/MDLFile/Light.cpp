@@ -36,9 +36,9 @@ static BOOL IllegalStaticToken(UINT token) {
     case MDLTOK_ATTENUATIONEND:
     case MDLTOK_COLOR:
     case MDLTOK_INTENSITY:
-      return 0;
+      return FALSE;
     default:
-      return 1;
+      return TRUE;
   }
 }
 
@@ -126,10 +126,10 @@ static BOOL IReadLightProperties(Parser &parse, UINT savedToken, MDLLIGHTSECTION
       light->type = LIGHTTYPE_OMNI;
       break;
     default:
-      return 0;
+      return FALSE;
   }
   parse.Expect(',');
-  return 1;
+  return TRUE;
 }
 
 static void IReadLight(Parser &parse, TSet &errors, NTempest::C3Vector *pivot, MDLLIGHTSECTION *light, CMDLStatus *status, UINT version) {
@@ -200,7 +200,7 @@ static void IWriteLightSection(const MDLDATA &data, const MDLLIGHTSECTION &secti
 
 BOOL MDL::WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
   if (data.model.animationFile[0]) {
-    return 1;
+    return TRUE;
   }
   UINT numLights = data.lights.Count();
   int needObjIds = numLights != data.objects.Count();
@@ -208,7 +208,7 @@ BOOL MDL::WriteLights(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLSt
   for (UINT i = numLights; i; --i, ++pLight) {
     IWriteLightSection(data, *pLight, needObjIds, buffer);
   }
-  return 1;
+  return TRUE;
 }
 
 static UINT GetBinLightSize(const MDLLIGHTSECTION &section) {
@@ -250,10 +250,10 @@ static void IWriteBinLightSection(const MDLLIGHTSECTION &section, CMsgBuffer &bu
 
 BOOL MDL::WriteBinLights(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
   if (data.model.animationFile[0]) {
-    return 1;
+    return TRUE;
   }
   if (!data.lights.Count()) {
-    return 1;
+    return TRUE;
   }
   buf.AddDword('ETIL');
   UINT numLights = data.lights.Count();
@@ -267,7 +267,7 @@ BOOL MDL::WriteBinLights(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *statu
   for (i = 0; i < numLights; ++i) {
     IWriteBinLightSection(data.lights[i], buf, status);
   }
-  return 1;
+  return TRUE;
 }
 
 static BOOL ReadBinLight(CMsgBuffer &buf, MDLLIGHTSECTION *pLight, CMDLStatus *status, UINT &totalRead, UINT version) {
@@ -275,7 +275,7 @@ static BOOL ReadBinLight(CMsgBuffer &buf, MDLLIGHTSECTION *pLight, CMDLStatus *s
   UINT localBytesRead = 4;
   if (!ReadBinGenObject(*pLight, buf, status, localBytesRead)) {
     status->Add(STATUS_ERROR, "Error reading gen object portion of light.\n");
-    return 0;
+    return FALSE;
   }
   pLight->type = (LIGHT_TYPE)buf.GetDword();
   localBytesRead += 4;
@@ -304,43 +304,43 @@ static BOOL ReadBinLight(CMsgBuffer &buf, MDLLIGHTSECTION *pLight, CMDLStatus *s
       case 'SALK':
         if (!ReadBinFloatKeyFrames(pLight->attenstartkeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light attenstart keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'EALK':
         if (!ReadBinFloatKeyFrames(pLight->attenendkeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light attenend keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'CALK':
         if (!ReadBinFloatKeyFrames(pLight->colorkeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light color keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'IALK':
         if (!ReadBinFloatKeyFrames(pLight->intensitykeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'SIVK':
         if (!ReadBinFloatKeyFrames(pLight->visibilityKeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'CBLK':
         if (!ReadBinFloatKeyFrames(pLight->ambcolorkeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light color keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'IBLK':
         if (!ReadBinFloatKeyFrames(pLight->ambintensitykeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Error reading light intensity keys.\n");
-          return 0;
+          return FALSE;
         }
         break;
       default:
@@ -349,11 +349,11 @@ static BOOL ReadBinLight(CMsgBuffer &buf, MDLLIGHTSECTION *pLight, CMDLStatus *s
     }
     if (localBytesRead > sectionLength) {
       status->FatalOverran("Lights", -1);
-      return 0;
+      return FALSE;
     }
   }
   totalRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 BOOL MDL::ReadBinLights(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -365,17 +365,17 @@ BOOL MDL::ReadBinLights(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus 
     MDLLIGHTSECTION *light = data.lights.New();
     if (!light) {
       status->FatalFlunked("Light", -1);
-      return 0;
+      return FALSE;
     }
     if (!ReadBinLight(buf, light, status, totalRead, data.version)) {
       status->Add(STATUS_ERROR, "Error reading light section.\n");
-      return 0;
+      return FALSE;
     }
     if (totalRead > length) {
       status->FatalOverran("Light", -1);
-      return 0;
+      return FALSE;
     }
     ReadBinObjectEnd(data, light, data.lights.Count() - 1, 0x20000000);
   }
-  return 1;
+  return TRUE;
 }

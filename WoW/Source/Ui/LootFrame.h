@@ -35,7 +35,7 @@ class CGLootInfo {
   static LPCSTR       GetLootSlotText(UINT slot);
   static LPCSTR       GetLootSlotLink(UINT slot, char *link, UINT size);
   static LOOT_ACQUIRE GetLootType();
-  static int          LootSlot(UINT slot, int force);
+  static BOOL         LootSlot(UINT slot, int force);
   static void         CoinsCleared();
 
  protected:

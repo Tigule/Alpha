@@ -47,7 +47,7 @@ static BOOL PingSound(LPCSTR command, LPCSTR arguments) {
 
     if (!s_pingSound) {
       ConsolePrintf("Disabling ping sound");
-      return 1;
+      return TRUE;
     }
 
     if (s_pingFrequency <= 100) {
@@ -65,7 +65,7 @@ static BOOL PingSound(LPCSTR command, LPCSTR arguments) {
     ConsolePrintf("Ping sound %d set for interval of %d milliseconds", s_pingSound, s_pingFrequency);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL RoomType(LPCSTR command, LPCSTR arguments) {
@@ -76,7 +76,7 @@ static BOOL RoomType(LPCSTR command, LPCSTR arguments) {
   }
 
   SndSetRoomType((SNDROOMTYPE)roomType);
-  return 1;
+  return TRUE;
 }
 
 static void SndDebugTick() {
@@ -95,7 +95,7 @@ static void SndDebugTick() {
 
 static BOOL DebugTickHandler(LPCVOID dataPtr, LPVOID param) {
   SndDebugTick();
-  return 1;
+  return TRUE;
 }
 
 void SndDebugInitialize() {

@@ -257,7 +257,7 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
             }
             quads[i].m_texture = quads[n].m_texture;
             quads[i].m_areaNum = currentArea;
-            quads[n].m_texture = 0;
+            quads[n].m_texture = NULL;
           }
           quads[i].m_flags |= 2;
         }
@@ -275,7 +275,7 @@ static void SetupTextureHandles(const NTempest::C2iVector &upperLeftArea, int co
       } else {
         if (quads[i].m_texture) {
           HandleClose(quads[i].m_texture);
-          quads[i].m_texture = 0;
+          quads[i].m_texture = NULL;
         }
         CStatus status;
         quads[i].m_texture = TextureCreate(fileName, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
@@ -306,7 +306,7 @@ static void SetupQuad(const UINT groupNum, QUADDATA &quadData, const CWorld::Min
     CStatus status;
     quadData.m_texture = TextureCreate(fileName, CGxTexFlags(GxTex_Linear, 0, 0, 0, 0, 0, 1), &status, 0);
   } else {
-    quadData.m_texture = 0;
+    quadData.m_texture = NULL;
     quadData.m_flags &= ~2u;
   }
 
@@ -382,7 +382,7 @@ static void LoadMD5Names() {
   SFile::Unload(buffer);
 }
 
-int MinimapInitialize(int continentID) {
+BOOL MinimapInitialize(int continentID) {
   UINT i;
 
   s_numPoints = 0;
@@ -425,7 +425,7 @@ int MinimapInitialize(int continentID) {
 
   FrameScript_SignalEvent(198);
   LoadMD5Names();
-  return 1;
+  return TRUE;
 }
 
 void MinimapShutdown() {
@@ -509,7 +509,7 @@ BOOL MinimapUpdate(
   }
 
   if (!mmtp.inside) {
-    needsWork = MinimapUpdatePosition(continent, pos, &centerPoint, &radius, quads) != 0;
+    needsWork = MinimapUpdatePosition(continent, pos, &centerPoint, &radius, quads) != FALSE;
     return needsWork;
   }
 
@@ -548,7 +548,7 @@ BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempe
   if (continent == s_currentContinent && pos.x == s_currentPosition.x && pos.y == s_currentPosition.y && pos.z == s_currentPosition.z &&
       !(s_flags & 1))
   {
-    return 0;
+    return FALSE;
   }
 
   int continentChanged = continent != s_currentContinent;
@@ -599,7 +599,7 @@ BOOL MinimapUpdatePosition(UINT continent, const NTempest::C3Vector &pos, NTempe
   FATALASSERT(s_currentZoom < (sizeof(s_chunksPerSizeAtZoom) / sizeof(s_chunksPerSizeAtZoom[0])));
   *radius = (33.333332f * (s_chunksPerSizeAtZoom[s_currentZoom] >> 1)) / boxHeight;
   *centerPoint = center;
-  return 1;
+  return TRUE;
 }
 
 void MinimapSetZoom(UINT zoomFactor) {
@@ -653,7 +653,7 @@ BOOL MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
       directionData[i].rotation = s_POIRotation[i];
     }
 
-    return 0;
+    return FALSE;
   }
 
   directionData.SetCount(s_numDistantPOI);
@@ -665,7 +665,7 @@ BOOL MinimapGetDistantPOI(TSGrowableArray<POIDIRECTIONDATA> &directionData) {
     data.rotation = s_POIRotation[i];
   }
 
-  return 1;
+  return TRUE;
 }
 
 float MinimapGetWorldRadius() {

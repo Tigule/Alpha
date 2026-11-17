@@ -197,7 +197,7 @@ void CGItemText::NextPage() {
 }
 
 static int Script_ItemTextGetItem(lua_State *L) {
-  LPCSTR      name = 0;
+  LPCSTR      name = NULL;
   CGObject_C *object = ClntObjMgrObjectPtr(CGItemText::GetItem(), __FILE__, __LINE__);
   if (object) {
     name = object->GetObjectName();

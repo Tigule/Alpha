@@ -22,7 +22,7 @@ NODEDECL(CModelRecord) {
   float     scale;
   DWORDLONG guid;
 
-  CModelRecord() : model(0), distance(INFINITY), scale(1.0f), guid(0) {
+  CModelRecord() : model(NULL), distance(INFINITY), scale(1.0f), guid(0) {
   }
   CModelRecord(const CModelRecord &source);
   ~CModelRecord();

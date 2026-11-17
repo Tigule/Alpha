@@ -166,12 +166,12 @@ namespace NTempest {
 
       size = 0;
       size_ = 0;
-      mem = 0;
-      mem_ = 0;
+      mem = NULL;
+      mem_ = NULL;
     }
   }
 
-  CMemBlock::CMemBlock(DWORD bsize, DWORD prologue, LPCSTR filen, LONG linen) : mem_(0) {
+  CMemBlock::CMemBlock(DWORD bsize, DWORD prologue, LPCSTR filen, LONG linen) : mem_(NULL) {
     Constructor_(bsize, prologue, filen, linen);
   }
 
@@ -281,7 +281,7 @@ namespace NTempest {
   void CMemBlock::Detach(char *&mem, DWORD &size) {
     ASSERT(this->size_ == this->size);
     mem = this->mem_;
-    this->mem_ = this->mem = 0;
+    this->mem_ = this->mem = NULL;
     size = this->size_;
     this->size_ = this->size = 0;
   }
@@ -295,9 +295,9 @@ namespace NTempest {
 
   void CMemBlock::Detach_(char *&mem, DWORD &size, char *&mem_, DWORD &size_) {
     mem_ = this->mem_;
-    this->mem_ = 0;
+    this->mem_ = NULL;
     mem = this->mem;
-    this->mem = 0;
+    this->mem = NULL;
     size_ = this->size_;
     this->size_ = 0;
     size = this->size;

@@ -51,7 +51,7 @@ static BOOL ReceiveZoneMap(LPVOID, NETMESSAGE, DWORD, CDataStore *msg) {
 
   ASSERT(next == &s_zoneIDMap[256 - 1][256 - 1] + 1);
 
-  return 1;
+  return TRUE;
 }
 
 void ZoneDebugInitialize() {

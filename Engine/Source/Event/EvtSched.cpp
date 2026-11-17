@@ -63,12 +63,12 @@ static UINT APIENTRY ShutdownThreadProc(LPVOID pEvent);
 
 static BOOL SynthesizeInitialize(EvtContext *context) {
   if (context->SchedGetFlags(0x1)) {
-    return 0;
+    return FALSE;
   }
   context->SchedSetFlags(0x1);
   context->SchedSetLastIdle(context->GetCurrTime());
   IEvtQueueDispatch(context, EVENT_ID_INITIALIZE, 0);
-  return 1;
+  return TRUE;
 }
 
 static void SynthesizeDestroy(EvtContext *context) {
@@ -177,13 +177,13 @@ static void DestroySchedulerThread(UINT hThread) {
   thread = s_threadSlots[hThread];
   if (thread && !--thread->m_threadCount) {
     s_threadSlotCritsects[hThread].Enter();
-    s_threadSlots[hThread] = 0;
+    s_threadSlots[hThread] = NULL;
     s_threadSlotCritsects[hThread].Leave();
 
     EvtContext *context;
 
     contextArray.ReserveSpace(thread->m_contextQueue.Count());
-    while ((context = thread->m_contextQueue.Dequeue()) != 0) {
+    while ((context = thread->m_contextQueue.Dequeue()) != NULL) {
       contextArray.Add(&context);
     }
     s_threadList.DeleteNode(thread);
@@ -207,7 +207,7 @@ static HEVENTCONTEXT AttachContextToThread(EvtContext *context) {
 
   SInterlockedIncrement(&s_threadListContention);
   s_threadListCritsect.Enter();
-  thread = 0;
+  thread = NULL;
   ITERATELIST(EvtThread, s_threadList, candidate) {
     if (!thread || candidate->m_weightTotal < thread->m_weightTotal) {
       thread = candidate;
@@ -569,10 +569,10 @@ void IEvtSchedulerDestroy() {
   s_schedulerThreads.Clear();
 
   delete[] s_threadSlots;
-  s_threadSlots = 0;
+  s_threadSlots = NULL;
 
   delete[] s_threadSlotCritsects;
-  s_threadSlotCritsects = 0;
+  s_threadSlotCritsects = NULL;
   s_threadSlotCount = 0;
 }
 
@@ -601,7 +601,7 @@ IEvtSchedulerCreateContext(int interactive, EVENTHANDLER initializeHandler, EVEN
   EvtContext *context;
 
   idleTime = max(1, idleTime);
-  callContext = 0;
+  callContext = NULL;
   if (debugFlags & 0x1) {
     SStrPrintf(contextName, sizeof(contextName), "Context: interactive = %u, idleTime = %u", interactive, idleTime);
     callContext = OsCallInitializeContext(contextName);
@@ -634,7 +634,7 @@ void EventProcessStart() {
   s_hThread = s_mainThread;
   SStrPrintf(callName, sizeof(callName), "Engine %x", SGetCurrentThreadId());
   OsCallInitialize(callName);
-  s_watchdogActive = 0;
+  s_watchdogActive = FALSE;
 }
 
 void EventProcessOnce() {
@@ -685,7 +685,7 @@ void EventProcessOnce() {
   if (wait == WAIT_TIMEOUT) {
     if (SynthesizeInitialize(context) && context->StartWatchdog()) {
       SErrStartWatchdog(20, TRUE);
-      s_watchdogActive = 1;
+      s_watchdogActive = TRUE;
     }
     IEvtTimerDispatch(context);
     int shutdown = 0;

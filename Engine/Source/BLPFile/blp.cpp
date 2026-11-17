@@ -107,21 +107,21 @@ static TSGrowableArray_<BYTE, 'BLPB', __LINE__> s_blpFileLoadBuffer;
 static BOOL IsLegalDimension(UINT dimension);
 
 void CBLPFile::Close() {
-  m_inMemoryImage = 0;
+  m_inMemoryImage = NULL;
 
   FREEIFUSED(m_images);
 
-  m_images = 0;
+  m_images = NULL;
 }
 
 BOOL CBLPFile::CreateMipLevels(UINT width, UINT height) {
   m_images = MippedImgAllocA(PIXEL_ARGB8888, width, height, __FILE__, __LINE__);
   if (!m_images) {
-    return 0;
+    return FALSE;
   }
 
   m_numLevels = HasMips() ? CalcLevelCount(width, height) : 1;
-  return 1;
+  return TRUE;
 }
 
 int CBLPFile::Open(LPCSTR filename) {
@@ -152,7 +152,7 @@ BOOL CBLPFile::SetImage(CBLPFile &source, UINT mipLevel, CStatus *status) {
     if (status) {
       status->Add(STATUS_FATAL, "Tried to copy MIP %u from source image, but no such MIP exists.\n", mipLevel);
     }
-    return 0;
+    return FALSE;
   }
 
   return SetImage(source.Image(mipLevel), source.Width(), source.Height(), source.AlphaBits(), mipLevel, status);
@@ -166,7 +166,7 @@ BOOL CBLPFile::SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, U
 
   if (!IsLegalDimension(width) || !IsLegalDimension(height)) {
     status->Add(STATUS_FATAL, "Illegal source dimensions (%u,%u)\n", width, height);
-    return 0;
+    return FALSE;
   }
 
   if (!mipLevel) {
@@ -178,26 +178,26 @@ BOOL CBLPFile::SetImage(LPCVOID pImg, UINT width, UINT height, UINT alphaBits, U
   if (!m_images) {
     if (!CreateMipLevels(width, height)) {
       status->Add(STATUS_FATAL, "Failed to allocate MIP buffers\n");
-      return 0;
+      return FALSE;
     }
     VALIDATE2(m_images);
   }
 
   if (mipLevel >= m_numLevels) {
     status->Add(STATUS_FATAL, "Illegal MIP level %u specified\n", mipLevel);
-    return 0;
+    return FALSE;
   }
 
   UINT expectedWidth = Width(mipLevel);
   UINT expectedHeight = Height(mipLevel);
   if (width != expectedWidth || height != expectedHeight) {
     status->Add(STATUS_FATAL, "Expected (%u,%u) size for MIP %u, but got (%u,%u)\n", expectedWidth, expectedHeight, mipLevel, width, height);
-    return 0;
+    return FALSE;
   }
 
   VALIDATE2(m_images->mip[mipLevel]);
   memcpy(m_images->mip[mipLevel], pImg, 4 * width * height);
-  return 1;
+  return TRUE;
 }
 
 static BOOL IsLegalDimension(UINT dimension) {
@@ -212,19 +212,19 @@ static BOOL IsLegalDimension(UINT dimension) {
     case 128:
     case 256:
     case 512:
-      return 1;
+      return TRUE;
     default:
-      return 0;
+      return FALSE;
   }
 }
 
 BOOL CBLPFile::SetAlphaBits(UINT alpha) {
   if (alpha > 8) {
-    return 0;
+    return FALSE;
   }
 
   m_header.alphaSize = alpha;
-  return 1;
+  return TRUE;
 }
 
 BOOL CBLPFile::IsValidMip(UINT level) const {
@@ -239,7 +239,7 @@ static BlitFormat GetBlitFormat(PIXEL_FORMAT pixelFormat) {
 int CBLPFile::Lock(PIXEL_FORMAT format, UINT mipLevel, BYTE *&data, UINT &stride) {
   VALIDATE2(m_inMemoryImage);
 
-  m_lockDecompMem = 0;
+  m_lockDecompMem = NULL;
 
   if (!IsValidMip(mipLevel)) {
     return 0;
@@ -313,20 +313,20 @@ BOOL CBLPFile::GetFormatSize(PIXEL_FORMAT format, UINT mipLevel, UINT *size, UIN
     case PIXEL_ARGB8888:
       *size = 4 * pixels;
       *stride = 4 * width;
-      return 1;
+      return TRUE;
 
     case PIXEL_ARGB1555:
     case PIXEL_ARGB4444:
     case PIXEL_RGB565:
       *size = 2 * pixels;
       *stride = 2 * width;
-      return 1;
+      return TRUE;
 
     default:
       ASSERT(0);
       *size = 0;
       *stride = 0;
-      return 0;
+      return FALSE;
   }
 }
 
@@ -340,13 +340,13 @@ void CBLPFile::SetHasMips(MIPS_TYPE hasMips) {
 
 BOOL CBLPFile::LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel) {
   if (!IsValidMip(mipLevel)) {
-    return 0;
+    return FALSE;
   }
 
   if (!images) {
     images = MippedImgAllocA(pixelFormat, Width(mipLevel), Height(mipLevel), __FILE__, __LINE__);
     if (!images) {
-      return 0;
+      return FALSE;
     }
   } else {
     MippedImgSet(pixelFormat, Width(mipLevel), Height(mipLevel), images);
@@ -363,7 +363,7 @@ BOOL CBLPFile::LockChain(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLev
     Unlock(i);
   }
 
-  return 1;
+  return TRUE;
 }
 
 BOOL CBLPFile::Source(LPVOID fileBits) {
@@ -375,22 +375,22 @@ BOOL CBLPFile::Source(LPVOID fileBits) {
   memcpy(&m_header, fileBits, sizeof(m_header));
 
   if (m_header.magic != m_versionMagic || m_header.formatVersion != 1) {
-    return 0;
+    return FALSE;
   }
 
   m_numLevels = HasMips() ? CalcLevelCount(m_header.width, m_header.height) : 1;
-  return 1;
+  return TRUE;
 }
 
 BOOL CBLPFile::LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLevel) {
   if (!IsValidMip(mipLevel)) {
-    return 0;
+    return FALSE;
   }
 
   if (!images) {
     images = MippedImgAllocA(pixelFormat, Width(mipLevel), Height(mipLevel), __FILE__, __LINE__);
     if (!images) {
-      return 0;
+      return FALSE;
     }
   } else {
     MippedImgSet(pixelFormat, Width(mipLevel), Height(mipLevel), images);
@@ -405,8 +405,8 @@ BOOL CBLPFile::LockChain2(PIXEL_FORMAT pixelFormat, MipBits *&images, UINT mipLe
     Unlock2(i);
   }
 
-  m_inMemoryImage = 0;
-  return 1;
+  m_inMemoryImage = NULL;
+  return TRUE;
 }
 
 void CBLPFile::DecompPalFastPath(BYTE *data, LPCVOID tempbuffer, UINT colorSize) {
@@ -614,22 +614,22 @@ BOOL CBLPFile::DecompPal(PIXEL_FORMAT format, UINT mipLevel, BYTE *data, LPCVOID
       } else {
         DecompPalARGB8888(data, tempBuffer, colorSize);
       }
-      return 1;
+      return TRUE;
 
     case PIXEL_ARGB4444:
       DecompPalARGB4444(data, tempBuffer, colorSize);
-      return 1;
+      return TRUE;
 
     case PIXEL_ARGB1555:
       DecompPalARGB1555(data, tempBuffer, colorSize);
-      return 1;
+      return TRUE;
 
     case PIXEL_RGB565:
       DecompPalARGB565(data, tempBuffer, colorSize);
-      return 1;
+      return TRUE;
 
     default:
-      return 0;
+      return FALSE;
   }
 }
 

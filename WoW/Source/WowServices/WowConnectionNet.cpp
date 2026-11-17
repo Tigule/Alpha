@@ -51,7 +51,7 @@ void WowConnectionNet::Start() {
   for (id = 0; id < m_numWorkers; ++id) {
     Worker *worker = &m_workers[id];
     worker->id = id;
-    worker->serviceConn = 0;
+    worker->serviceConn = NULL;
     worker->quit = 0;
     worker->owner = this;
     SStrPrintf(name, sizeof(name), "Net Thread %d", id);
@@ -61,7 +61,7 @@ void WowConnectionNet::Start() {
   for (; id < sizeof(m_workers) / sizeof(m_workers[0]); ++id) {
     Worker *worker = &m_workers[id];
     worker->id = 0;
-    worker->serviceConn = 0;
+    worker->serviceConn = NULL;
     worker->quit = 1;
     worker->owner = this;
   }
@@ -128,7 +128,7 @@ void WowConnectionNet::RunWorker(int id) {
     m_workers[id].lock.Enter();
     SInterlockedDecrement(&m_workers[id].serviceConn->m_serviceCount);
     m_workers[id].serviceConn->Release();
-    m_workers[id].serviceConn = 0;
+    m_workers[id].serviceConn = NULL;
     m_workers[id].lock.Leave();
 
     m_workerSem.Signal(1);

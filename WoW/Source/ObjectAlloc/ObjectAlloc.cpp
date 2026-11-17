@@ -15,7 +15,7 @@ static BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments);
 
 class CObjectHeap {
  public:
-  CObjectHeap() : m_obj(0), m_indexStack(0), m_allocated(0), m_bytes(0) {
+  CObjectHeap() : m_obj(NULL), m_indexStack(NULL), m_allocated(0), m_bytes(0) {
   }
 
   CObjectHeap(const CObjectHeap &heap);
@@ -129,7 +129,7 @@ BOOL CObjectHeapList::New(UINT *index) {
     fullestHeap = m_heaps.Count();
     heap = m_heaps.New();
     if (!heap->Allocate(m_objSize, m_objsPerBlock)) {
-      return 0;
+      return FALSE;
     }
   } else {
     UINT currentHeap = m_heaps.Count();
@@ -147,14 +147,14 @@ BOOL CObjectHeapList::New(UINT *index) {
   }
 
   if (!heap->New(m_objSize, m_objsPerBlock, index)) {
-    return 0;
+    return FALSE;
   }
 
   *index += fullestHeap * m_objsPerBlock;
   if (heap->IsFull(m_objsPerBlock)) {
     ++m_numFullHeaps;
   }
-  return 1;
+  return TRUE;
 }
 
 LPVOID CObjectHeapList::Ptr(UINT index) {
@@ -190,8 +190,8 @@ CObjectHeap::CObjectHeap(const CObjectHeap &heap) {
   heap.m_bytes = 0;
   m_obj = heap.m_obj;
   m_indexStack = heap.m_indexStack;
-  heap.m_obj = 0;
-  heap.m_indexStack = 0;
+  heap.m_obj = NULL;
+  heap.m_indexStack = NULL;
   m_allocated = heap.m_allocated;
 }
 
@@ -213,7 +213,7 @@ BOOL CObjectHeap::Allocate(UINT objSize, UINT heapObjects) {
   }
 
   m_allocated = 0;
-  return m_obj != 0;
+  return m_obj != NULL;
 }
 
 BOOL CObjectHeap::New(UINT objSize, UINT heapObjects, UINT *index) {
@@ -221,12 +221,12 @@ BOOL CObjectHeap::New(UINT objSize, UINT heapObjects, UINT *index) {
   ASSERT(m_obj != 0);
 
   if (m_allocated >= heapObjects) {
-    return 0;
+    return FALSE;
   }
 
   *index = m_indexStack[m_allocated];
   ++m_allocated;
-  return 1;
+  return TRUE;
 }
 
 void CObjectHeap::Delete(UINT index, UINT objSize, UINT heapObjects) {
@@ -293,7 +293,7 @@ static BOOL CCommand_HeapUsage(LPCSTR command, LPCSTR arguments) {
   ConsoleWriteA("%u total object bytes used, %u bytes allocated for heaps", HIGHLIGHT_COLOR, totalBytes, totalHeapBytes);
 
   s_globalsLock.Leave();
-  return 1;
+  return TRUE;
 }
 
 UINT ObjectAllocAddHeap(UINT objectSize, UINT objsPerBlock, LPCSTR name) {
@@ -344,12 +344,12 @@ BOOL ObjectAlloc(UINT heapId, UINT *memHandle) {
 
   if (!globals->objects[heapId].New(&index)) {
     s_globalsLock.Leave();
-    return 0;
+    return FALSE;
   }
 
   s_globalsLock.Leave();
   *memHandle = index | (heapId << 27);
-  return 1;
+  return TRUE;
 }
 
 void ObjectFree(UINT memHandle) {

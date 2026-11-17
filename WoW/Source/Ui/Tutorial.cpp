@@ -69,7 +69,7 @@ BOOL CGTutorial::OnTutorialFlags(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDat
 
   msg->GetDataInSitu(data, byteCount);
   m_tutorialFlags.Load(data, byteCount);
-  return 1;
+  return TRUE;
 }
 
 static int Script_TriggerTutorial(lua_State *L) {

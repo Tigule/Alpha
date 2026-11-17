@@ -605,7 +605,7 @@ void CMapObj::RenderGroupLightTex(const CMapObjGroup *group, UINT frustumCount) 
     }
 
     GxBufUnlock();
-    CMapObjGroup::sLockGxBatch = 0;
+    CMapObjGroup::sLockGxBatch = NULL;
   }
 
   GxRsPop();

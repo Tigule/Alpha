@@ -56,14 +56,14 @@ static BOOL Bind_CommandHandler(LPCSTR command, LPCSTR arguments) {
   char keyName[32];
 
   if (!*arguments) {
-    return 0;
+    return FALSE;
   }
 
   CGUIBindings *keybinding = CGUIBindings::GetActive();
   FATALASSERT(keybinding);
   SStrTokenize(&arguments, keyName, sizeof(keyName), " ,;\"\t\n\r\x1a", 0);
   keybinding->Bind(keyName, arguments);
-  return 1;
+  return TRUE;
 }
 
 CGUIBindings *CGUIBindings::s_bindings;
@@ -85,7 +85,7 @@ void CGUIBindings::Shutdown() {
   ConsoleCommandUnregister("bind");
   if (s_bindings) {
     DEL(s_bindings);
-    s_bindings = 0;
+    s_bindings = NULL;
   }
 }
 
@@ -156,14 +156,14 @@ BOOL CGUIBindings::AddMetaPrefix(UINT metaKeyState, char *&string, int &maxLen) 
     if (metaKeyState & (1 << metaList[index].metaKey)) {
       int length = SStrLen(metaList[index].metaStr);
       if (length >= maxLen) {
-        return 0;
+        return FALSE;
       }
       SStrCopy(string, metaList[index].metaStr, 0x7FFFFFFF);
       string += length;
       maxLen -= length;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int maxLen) {
@@ -173,19 +173,19 @@ LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int ma
   KEY    key = evt.key;
 
   if (evt.repeat > 1) {
-    return 0;
+    return NULL;
   }
   if (key <= KEY_LASTMETAKEY) {
     metaKeyState &= ~(1 << key);
   }
   if (!AddMetaPrefix(metaKeyState, string, maxLen)) {
-    return 0;
+    return NULL;
   }
 
   keyString = KeyToString(key);
 
   if (!*keyString || (int)SStrLen(keyString) >= maxLen) {
-    return 0;
+    return NULL;
   }
   SStrCopy(string, keyString, 0x7FFFFFFF);
   return result;
@@ -194,7 +194,7 @@ LPCSTR CGUIBindings::KeyEventToString(const CKeyEvent &evt, char *string, int ma
 LPCSTR CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, int maxLen) {
   LPCSTR result = string;
   if (!AddMetaPrefix(evt.metaKeyState, string, maxLen)) {
-    return 0;
+    return NULL;
   }
 
   switch (evt.Id()) {
@@ -238,7 +238,7 @@ LPCSTR CGUIBindings::MouseEventToString(const CMouseEvent &evt, char *string, in
       }
       break;
     default:
-      return 0;
+      return NULL;
   }
   return result;
 }
@@ -270,14 +270,14 @@ BOOL CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
 
   if (!SFile::LoadFile(commandsFile, &buffer, &bytesRead, 0, 0)) {
     status->Add(STATUS_ERROR, "Couldn't open %s", commandsFile);
-    return 0;
+    return FALSE;
   }
 
   tree = XMLTree_Load((LPCSTR)buffer, bytesRead);
   FREE(buffer);
   if (!tree) {
     status->Add(STATUS_ERROR, "Couldn't parse XML in %s", commandsFile);
-    return 0;
+    return FALSE;
   }
 
   for (node = XMLTree_GetRoot(tree)->GetChild(); node; node = node->GetSibling()) {
@@ -334,18 +334,18 @@ BOOL CGUIBindings::Load(LPCSTR commandsFile, CStatus *status) {
   }
 
   XMLTree_Free(tree);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
   if (!keystring) {
-    return 0;
+    return FALSE;
   }
 
   KEYBINDING *binding = m_bindings.Ptr(keystring);
   if (!binding) {
     if (!command || !*command) {
-      return 1;
+      return TRUE;
     }
     binding = m_bindings.New(keystring, 0, 0);
   }
@@ -353,7 +353,7 @@ BOOL CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
   if (command && *command) {
     const KEYCOMMAND *keyCommand = m_commands.Ptr(command);
     if (keyCommand && keyCommand->runOnUp && !SStrCmpI(keystring, "MOUSEWHEEL", SStrLen("MOUSEWHEEL"))) {
-      return 0;
+      return FALSE;
     }
     if (binding->command) {
       AdjustCommandKeyIndices(binding->command, binding->index);
@@ -366,7 +366,7 @@ BOOL CGUIBindings::Bind(LPCSTR keystring, LPCSTR command) {
     AdjustCommandKeyIndices(binding->command, binding->index);
     m_bindings.Delete(binding);
   }
-  return 1;
+  return TRUE;
 }
 
 int CGUIBindings::ExecKey(LPCSTR keystring, DWORD timestamp, int down) const {
@@ -387,11 +387,11 @@ int CGUIBindings::ExecKey(LPCSTR keystring, DWORD timestamp, int down) const {
 
 BOOL CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const {
   if (!command || !*command) {
-    return 0;
+    return FALSE;
   }
   const KEYCOMMAND *keyCommand = m_commands.Ptr(command);
   if (!keyCommand || (!down && !keyCommand->runOnUp)) {
-    return 0;
+    return FALSE;
   }
 
   lua_State *state = FrameScript_GetContext();
@@ -404,7 +404,7 @@ BOOL CGUIBindings::ExecCommand(LPCSTR command, DWORD timestamp, int down) const 
   lua_pushstring(state, "keystate");
   lua_insert(state, -2);
   lua_settable(state, LUA_GLOBALSINDEX);
-  return 1;
+  return TRUE;
 }
 
 void CGUIBindings::GetCommand(int index, LPCSTR &command) const {
@@ -429,7 +429,7 @@ void CGUIBindings::GetHiddenCommand(int index, LPCSTR &command) const {
 }
 
 LPCSTR CGUIBindings::GetCommandKey(LPCSTR command, int keyindex) const {
-  LPCSTR key = 0;
+  LPCSTR key = NULL;
   CONSTITERATELIST(KEYBINDING, m_bindings, binding) {
     if (binding->command && !SStrCmpI(binding->command, command, 0x7FFFFFFF) && binding->index == keyindex) {
       key = binding->GetString();
@@ -459,12 +459,12 @@ void CGUIBindings::AdjustCommandKeyIndices(LPCSTR command, int index) const {
 
 LPCSTR CGUIBindings::GetCommandAction(LPCSTR keystring) const {
   if (!keystring || !*keystring) {
-    return 0;
+    return NULL;
   }
 
   const KEYBINDING *binding = m_bindings.Ptr(keystring);
   if (!binding) {
-    return 0;
+    return NULL;
   }
 
   return binding->command;

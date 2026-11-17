@@ -8,7 +8,7 @@
 
 #include "ComponentCore/ComponentCore.cpp"
 
-BOOL GetObjComponentInfo(
+int GetObjComponentInfo(
     int     race,
     int     sex,
     int     displayID,

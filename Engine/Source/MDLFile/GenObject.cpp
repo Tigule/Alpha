@@ -62,10 +62,10 @@ BOOL ReadObjectPtrs(MDLDATA *data, CMDLStatus *status) {
         break;
       default:
         status->Add(STATUS_FATAL, "Found gaps in sequence of object ID's. Unable to fix up object pointers.\n");
-        return 0;
+        return FALSE;
     }
   }
-  return 1;
+  return TRUE;
 }
 
 const float *WriteKeyData(TSGrowableArray<char> &buffer, const float *entry, UINT elements) {
@@ -191,25 +191,25 @@ BOOL ReadObjectBody(Parser &parse, UINT savedtoken, NTempest::C3Vector *pivot, M
       break;
     case MDLTOK_TRANSLATION:
       ReadObjectFloatKeyframes(parse, &obj->transkeys);
-      return 1;
+      return TRUE;
     case MDLTOK_ROTATION:
       ReadObjectFloatKeyframes(parse, &obj->rotkeys);
       INormalizeQuats(&obj->rotkeys.keys);
-      return 1;
+      return TRUE;
     case MDLTOK_SCALING:
       ReadObjectFloatKeyframes(parse, &obj->scalekeys);
-      return 1;
+      return TRUE;
     case MDLTOK_POSITION:
       if (!pivot) {
-        return 0;
+        return FALSE;
       }
       ReadFloatKeyData(parse, &pivot->x, 3);
       break;
     default:
-      return 0;
+      return FALSE;
   }
   parse.Expect(',');
-  return 1;
+  return TRUE;
 }
 
 void ReadObjectEnd(TSet &errors, MDLDATA &data, MDLGENOBJECT *obj, DWORD listIndex, DWORD listMask) {
@@ -229,9 +229,9 @@ void ReadBinObjectEnd(MDLDATA &data, MDLGENOBJECT *obj, DWORD listIndex, DWORD l
 }
 
 BOOL IExpectAnimation(Parser &parse, UINT *savedtoken, LPCSTR *tokenText) {
-  BOOL result = 1;
+  BOOL result = TRUE;
   if (*savedtoken == MDLTOK_STATIC) {
-    result = 0;
+    result = FALSE;
     *savedtoken = parse.Token(tokenText, 0);
   }
   return result;
@@ -338,12 +338,12 @@ BOOL WriteBinGenObject(const MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *sta
   WriteBinFloatKeyFrames(obj.transkeys, 'RTGK', buf);
   WriteBinQuatKeyFrames(obj.rotkeys, 'TRGK', buf);
   WriteBinFloatKeyFrames(obj.scalekeys, 'CSGK', buf);
-  return 1;
+  return TRUE;
 }
 
 BOOL ReadBinGenObject(MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *status, UINT &totalRead) {
   if (!status) {
-    return 0;
+    return FALSE;
   }
   UINT totalSize = buf.GetUint();
   UINT localBytesRead = 4;
@@ -360,19 +360,19 @@ BOOL ReadBinGenObject(MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *status, UI
       case 'RTGK':
         if (!ReadBinFloatKeyFrames(obj.transkeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Could not read trans keys in gen object.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'TRGK':
         if (!ReadBinQuatKeyFrames(obj.rotkeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Could not read rot keys in gen object.\n");
-          return 0;
+          return FALSE;
         }
         break;
       case 'CSGK':
         if (!ReadBinFloatKeyFrames(obj.scalekeys, buf, localBytesRead)) {
           status->Add(STATUS_ERROR, "Could not read scale keys in gen object.\n");
-          return 0;
+          return FALSE;
         }
         break;
       default:
@@ -381,11 +381,11 @@ BOOL ReadBinGenObject(MDLGENOBJECT &obj, CMsgBuffer &buf, CMDLStatus *status, UI
     }
     if (localBytesRead > totalSize) {
       status->FatalOverran("Genobject keys", -1);
-      return 0;
+      return FALSE;
     }
   }
   totalRead += localBytesRead;
-  return 1;
+  return TRUE;
 }
 
 void MDLBASE::RebuildObjectPtrs() {
@@ -453,12 +453,12 @@ void WriteBinQuatKeyFrames(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes,
 
 BOOL ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBuffer &buf, UINT &totalRead) {
   if (buf.Bytes() < 3 * sizeof(UINT)) {
-    return 0;
+    return FALSE;
   }
   UINT numKeys = buf.GetUint();
   totalRead += sizeof(UINT);
   if (!numKeys) {
-    return 0;
+    return FALSE;
   }
   keyframes.type = (MDLTRACKTYPE)buf.GetUint();
   totalRead += sizeof(UINT);
@@ -472,7 +472,7 @@ BOOL ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBu
     keySize = sizeof(int) + 3 * sizeof(LONGLONG);
   }
   if ((int)(keySize * numKeys) > buf.Bytes()) {
-    return 0;
+    return FALSE;
   }
 
   for (UINT i = numKeys; i; --i, ++key) {
@@ -486,7 +486,7 @@ BOOL ReadBinQuatKeyFrames(MDLKEYTRACK<NTempest::C4Quaternion> &keyframes, CMsgBu
       totalRead += 2 * sizeof(LONGLONG);
     }
   }
-  return 1;
+  return TRUE;
 }
 
 UINT GetBinQuatKeyFramesSize(const MDLKEYTRACK<NTempest::C4Quaternion> &keyframes) {

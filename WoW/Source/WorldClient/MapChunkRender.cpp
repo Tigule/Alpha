@@ -149,7 +149,7 @@ void CMapChunk::Render() {
   if (neighborLOD || holes) {
     if (gxBuf) {
       FreeGxBuf(gxBuf);
-      gxBuf = 0;
+      gxBuf = NULL;
     }
 
     primPtr = primList;
@@ -179,8 +179,8 @@ void CMapChunk::Render() {
 }
 
 void CMapChunk::FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPN *vtx = 0;
-  CGxVertexPN *vtxBase = 0;
+  CGxVertexPN *vtx = NULL;
+  CGxVertexPN *vtxBase = NULL;
 
   switch (cmd.vertex.op) {
     case GxBufOp_Nop:
@@ -210,7 +210,7 @@ void CMapChunk::FillGxBufVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  WORD *idx = 0;
+  WORD *idx = NULL;
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:
@@ -233,7 +233,7 @@ void CMapChunk::FillGxBufIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  CGxVertexPN *vtx = 0;
+  CGxVertexPN *vtx = NULL;
 
   switch (cmd.vertex.op) {
     case GxBufOp_Nop:
@@ -258,7 +258,7 @@ void CMapChunk::FillGxBufDynVertex(const CGxBufCommand &cmd, CGxBuf *buf) {
 }
 
 void CMapChunk::FillGxBufDynIndex(const CGxBufCommand &cmd, CGxBuf *buf) {
-  WORD *idx = 0;
+  WORD *idx = NULL;
 
   switch (cmd.index.op) {
     case GxBufOp_Nop:

@@ -50,7 +50,7 @@ void CMapObjGroup::FreeExtGxBuf(CGxBuf *&gxBuf) {
   ASSERT(gxBuf);
   extGxBufFreeList.SetCount(extGxBufFreeList.Count() + 1);
   extGxBufFreeList[extGxBufFreeList.Count() - 1] = gxBuf;
-  gxBuf = 0;
+  gxBuf = NULL;
 }
 
 void CMapObjGroup::ExtGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
@@ -76,7 +76,7 @@ void CMapObjGroup::FreeIntGxBuf(CGxBuf *&gxBuf) {
   ASSERT(gxBuf);
   intGxBufFreeList.SetCount(intGxBufFreeList.Count() + 1);
   intGxBufFreeList[intGxBufFreeList.Count() - 1] = gxBuf;
-  gxBuf = 0;
+  gxBuf = NULL;
 }
 
 void CMapObjGroup::IntGxBufFill(CGxBufCommand &cmd, CGxBuf *buf) {
@@ -198,11 +198,11 @@ bool QueryCull(const NTempest::CAaBox &aaBox, const NTempest::C3Vector *verts) {
     }
 
     if (signMax || signMin) {
-      return 1;
+      return true;
     }
   }
 
-  return 0;
+  return false;
 }
 
 bool QueryCull(const CWFrustum &frustum, const NTempest::C3Vector *verts) {
@@ -334,12 +334,12 @@ void CMapObjGroup::Init() {
   frameCount = 0;
   rLevel = 0;
   minimapTag = 0;
-  data = 0;
-  parent = 0;
+  data = NULL;
+  parent = NULL;
   flushTime = 0.0f;
   lightmapTexFlushTime = 0.0f;
-  bLoaded = 0;
-  asyncObject = 0;
+  bLoaded = false;
+  asyncObject = NULL;
   aaBox.b = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
   aaBox.t = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
   portalStart = 0;
@@ -352,8 +352,8 @@ void CMapObjGroup::Init() {
   }
 
   for (i = 0; i < 4; ++i) {
-    intGxBuf[i] = 0;
-    extGxBuf[i] = 0;
+    intGxBuf[i] = NULL;
+    extGxBuf[i] = NULL;
   }
 
   liquidVerts = NTempest::C2iVector(0, 0);
@@ -364,22 +364,22 @@ void CMapObjGroup::Init() {
 }
 
 void CMapObjGroup::InitPtrs() {
-  dbgName = 0;
-  planeList = 0;
-  polyList = 0;
-  vertexList = 0;
-  normalList = 0;
-  textureVertexList = 0;
-  indexList = 0;
-  batchList = 0;
-  lightRefList = 0;
-  doodadRefList = 0;
-  colorVertexList = 0;
-  lightmapVertexList = 0;
-  lightmapList = 0;
-  lightmapTexList = 0;
-  liquidVertexList = 0;
-  liquidTileList = 0;
+  dbgName = NULL;
+  planeList = NULL;
+  polyList = NULL;
+  vertexList = NULL;
+  normalList = NULL;
+  textureVertexList = NULL;
+  indexList = NULL;
+  batchList = NULL;
+  lightRefList = NULL;
+  doodadRefList = NULL;
+  colorVertexList = NULL;
+  lightmapVertexList = NULL;
+  lightmapList = NULL;
+  lightmapTexList = NULL;
+  liquidVertexList = NULL;
+  liquidTileList = NULL;
   portalStart = 0;
   portalCount = 0;
   planeCount = 0;
@@ -405,14 +405,14 @@ void CMapObjGroup::Clear() {
   if (lightmapTexList) {
     SMemFree(lightmapTexList, __FILE__, __LINE__, 0);
   }
-  lightmapTexList = 0;
+  lightmapTexList = NULL;
   lightmapTexCount = 0;
 #endif
 
   if (asyncObject) {
     AsyncFileReadDestroyObject(asyncObject);
   }
-  asyncObject = 0;
+  asyncObject = NULL;
 
   aaBsp.Clear();
   InitPtrs();
@@ -420,21 +420,21 @@ void CMapObjGroup::Clear() {
   if (data) {
     SMemFree(data, __FILE__, __LINE__, 0);
   }
-  data = 0;
+  data = NULL;
 
   for (UINT i = 0; i < 4; ++i) {
     if (intGxBuf[i]) {
       FreeIntGxBuf(intGxBuf[i]);
     }
-    intGxBuf[i] = 0;
+    intGxBuf[i] = NULL;
 
     if (extGxBuf[i]) {
       FreeExtGxBuf(extGxBuf[i]);
     }
-    extGxBuf[i] = 0;
+    extGxBuf[i] = NULL;
   }
 
-  bLoaded = 0;
+  bLoaded = false;
 }
 
 UINT CMapObjGroup::SphereIntersectPoly(const NTempest::CAaSphere &sphere, const UINT numVerts, const WORD *indicies) {
@@ -588,10 +588,10 @@ bool CMapObjGroup::QueryLightmap(const NTempest::C3Vector &point, WORD polyIdx, 
       color.b = minval;
     }
 
-    return 1;
+    return true;
   }
 
-  return 0;
+  return false;
 }
 
 bool CMapObjGroup::QueryLightmap(const NTempest::C3Segment &seg, NTempest::CImVector &color) {
@@ -629,11 +629,11 @@ bool CMapObjGroup::QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid
     liquid = groupLiquid;
     surface = FLT_MAX;
     dir = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
-    return 1;
+    return true;
   }
 
   if (!(flags & 0x1000)) {
-    return 0;
+    return false;
   }
 
   NTempest::C2Vector  subf = OOSMOLTILE_SIZE * NTempest::C2Vector(pos.y - liquidCorner.y, -(pos.x - liquidCorner.x));
@@ -641,12 +641,12 @@ bool CMapObjGroup::QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid
   subi.x = floor(subf.x);
   subi.y = floor(subf.y);
   if (subi.x < 0 || subi.y < 0 || subi.x >= liquidTiles.x || subi.y >= liquidTiles.y) {
-    return 0;
+    return false;
   }
 
   UINT tile = liquidTileList[subi.y * liquidTiles.x + subi.x].GetLiquid();
   if (tile == LIQUID_NONE) {
-    return 0;
+    return false;
   }
 
   NTempest::C2Vector frac(subf.x - subi.x, subf.y - subi.y);
@@ -663,12 +663,12 @@ bool CMapObjGroup::QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid
                  (liquidVertexList[next + 1].waterVert.height - liquidVertexList[next].waterVert.height) * frac.x;
       float height = h0 + (h1 - h0) * frac.y;
       if (height <= pos.z) {
-        return 0;
+        return false;
       }
       surface = height;
       dir = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
       liquid = tile;
-      return 1;
+      return true;
     }
     case 2:
     case 3:
@@ -680,14 +680,14 @@ bool CMapObjGroup::QueryLiquidStatus(const NTempest::C3Vector &pos, UINT &liquid
                  (liquidVertexList[next + 1].magmaVert.height - liquidVertexList[next].magmaVert.height) * frac.x;
       float height = h0 + (h1 - h0) * frac.y;
       if (height <= pos.z) {
-        return 0;
+        return false;
       }
       surface = height;
       dir = NTempest::C3Vector(0.0f, 0.0f, 0.0f);
       liquid = tile;
-      return 1;
+      return true;
     }
   }
 
-  return 0;
+  return false;
 }

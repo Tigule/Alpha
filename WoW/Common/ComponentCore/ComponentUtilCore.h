@@ -47,11 +47,11 @@ struct SUBCOMPONENTDESC {
   void Cleanup() {
     FREEIFUSED(pathName);
     FREEIFUSED(textureName);
-    pathName = 0;
-    textureName = 0;
+    pathName = NULL;
+    textureName = NULL;
   }
 
-  SUBCOMPONENTDESC() : pathName(0), textureName(0), connectionPointIndex(0) {
+  SUBCOMPONENTDESC() : pathName(NULL), textureName(NULL), connectionPointIndex(0) {
   }
 
   void SetPathName(LPCSTR pathName) {

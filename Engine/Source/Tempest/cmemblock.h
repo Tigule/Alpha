@@ -36,7 +36,7 @@ namespace NTempest {
     virtual ~CMemBlock();
     CMemBlock &operator=(const CMemBlock &m);
     bool IsValid() const {
-      return mem_ != 0;
+      return mem_ != NULL;
     }
 
     char *Get() const {

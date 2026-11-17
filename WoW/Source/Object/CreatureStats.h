@@ -7,11 +7,11 @@ class CDataStore;
 
 class CreatureStats {
  public:
-  CreatureStats() : m_title(0) {
+  CreatureStats() : m_title(NULL) {
     int i;
 
     for (i = 0; i < 4; ++i) {
-      m_name[i] = 0;
+      m_name[i] = NULL;
     }
   }
 

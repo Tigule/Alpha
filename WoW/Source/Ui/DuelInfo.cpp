@@ -110,17 +110,17 @@ BOOL CGDuelInfo::OnDuelRequested(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDat
       FrameScript_SignalEvent(363, "%s", unit->GetUnitName());
     }
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGDuelInfo::OnDuelOutOfBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FrameScript_SignalEvent(364);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGDuelInfo::OnDuelInBounds(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
   FrameScript_SignalEvent(365);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -133,7 +133,7 @@ BOOL CGDuelInfo::OnDuelComplete(LPVOID, NETMESSAGE msgId, DWORD eventTime, CData
     m_arbiter = 0;
     FrameScript_SignalEvent(366);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataStore *msg) {
@@ -146,7 +146,7 @@ BOOL CGDuelInfo::OnDuelWinner(LPVOID, NETMESSAGE msgId, DWORD eventTime, CDataSt
   msg->GetString(beaten, sizeof(beaten));
   SStrPrintf(message, sizeof(message), FrameScript_GetText(fled ? "DUEL_WINNER_RETREAT" : "DUEL_WINNER_KNOCKOUT", -1, GENDER_NOT_APPLICABLE), winner, beaten);
   CGChat::AddChatMessage(message, SLASH_CMD_SYSTEM, 0, 0, 0, 0, 0);
-  return 1;
+  return TRUE;
 }
 
 static int Script_StartDuel(lua_State *L) {

@@ -45,7 +45,7 @@ struct CONSOLECOMMAND : public TSHashObject<CONSOLECOMMAND, HASHKEY_CONSTSTRI> {
   LPCSTR                m_helpText;
   CATEGORY              m_category;
 
-  CONSOLECOMMAND() : m_helpText(0) {
+  CONSOLECOMMAND() : m_helpText(NULL) {
   }
 };
 

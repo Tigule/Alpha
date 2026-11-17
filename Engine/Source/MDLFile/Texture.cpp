@@ -136,14 +136,14 @@ namespace MDL {
       }
       WriteLine(buffer, "}\n");
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL ReadBinTextures(CMsgBuffer &buf, UINT length, MDLDATA &data, CMDLStatus *status) {
     VALIDATE2(status != 0);
     if (length % 268) {
       status->Add(STATUS_ERROR, "Invalid TXTX section detected in model -- nonintegral number of textures.\n");
-      return 0;
+      return FALSE;
     }
 
     length /= 268;
@@ -154,7 +154,7 @@ namespace MDL {
       buf.GetTcharArray(texture->image, 260);
       texture->flags = buf.GetUint();
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL WriteBinTextures(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *) {
@@ -170,7 +170,7 @@ namespace MDL {
         buf.AddUint(texture->flags);
       }
     }
-    return 1;
+    return TRUE;
   }
 
 }  // namespace MDL

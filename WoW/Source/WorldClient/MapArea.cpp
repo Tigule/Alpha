@@ -40,7 +40,7 @@ BYTE *CMapArea::AllocAsyncLoadBuffer() {
   }
 
   if (!s_freeAsyncBuffer) {
-    return 0;
+    return NULL;
   }
 
   BYTE *buffer = s_freeAsyncBuffer;
@@ -75,9 +75,9 @@ void CMapArea::AsyncPollHandler() {
 
 CMapArea::CMapArea() {
   texCount = 0;
-  asyncObject = 0;
+  asyncObject = NULL;
   for (UINT i = 0; i < 256; ++i) {
-    chunkTable[i] = 0;
+    chunkTable[i] = NULL;
     chunkInfo[i].offset = 0;
     chunkInfo[i].size = 0;
     chunkInfo[i].flags = 0;
@@ -225,7 +225,7 @@ void CMapArea::AsyncCallback(LPVOID userArg) {
 
   area->Create((BYTE *)area->asyncObject->buffer);
   FreeAsyncLoadBuffer((BYTE *)area->asyncObject->buffer);
-  area->asyncObject->buffer = 0;
+  area->asyncObject->buffer = NULL;
   AsyncFileReadDestroyObject(area->asyncObject);
-  area->asyncObject = 0;
+  area->asyncObject = NULL;
 }

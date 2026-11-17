@@ -65,7 +65,7 @@ bool IsAngleWithinRange(float a, float b, float fieldofView) {
   b = fmod(b, TWO_PI);
 
   if (fabsf(a - b) < fieldofView) {
-    return 1;
+    return true;
   }
 
   if (a < b) {

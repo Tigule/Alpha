@@ -7,11 +7,11 @@ class CDataStore;
 
 class ItemStats {
  public:
-  ItemStats() : m_description(0) {
+  ItemStats() : m_description(NULL) {
     int i;
 
     for (i = 0; i < 4; ++i) {
-      m_displayName[i] = 0;
+      m_displayName[i] = NULL;
     }
   }
 

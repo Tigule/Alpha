@@ -4,7 +4,7 @@
 
 class NODEBASE {
  public:
-  NODEBASE() : model(0), flags(0), deathHoldTimer(0) {
+  NODEBASE() : model(NULL), flags(0), deathHoldTimer(0) {
   }
   ~NODEBASE();
   virtual void ReleaseDeathHolds() = 0;
@@ -21,7 +21,7 @@ class NODEBASE {
 
 class ONESHOTEFFECTNODE : public NODEBASE {
  public:
-  ONESHOTEFFECTNODE() : objectModel(0) {
+  ONESHOTEFFECTNODE() : objectModel(NULL) {
   }
   ~ONESHOTEFFECTNODE();
   virtual void ReleaseDeathHolds();
@@ -54,7 +54,7 @@ NODEDECL(MISSILENODE) {
   static const float HEIGHT_SCAN_RANGE;
   static const float MIN_HEIGHT;
 
-  MISSILENODE() : model(0), caster(0), target(0), flags(0), sound(0) {
+  MISSILENODE() : model(NULL), caster(0), target(0), flags(0), sound(NULL) {
   }
   ~MISSILENODE() {
     if (model) {

@@ -7,7 +7,7 @@ void OsCallDestroy() {
 }
 
 LPVOID OsCallInitializeContext(LPCSTR contextName) {
-  return 0;
+  return NULL;
 }
 
 void OsCallDestroyContext(LPVOID contextDataPtr) {

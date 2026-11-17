@@ -268,7 +268,7 @@ class TSBaseArray {
   void Constructor() {
     m_alloc = 0;
     m_count = 0;
-    m_data = 0;
+    m_data = NULL;
   }
 
   virtual LPCSTR MemFileName() const {
@@ -410,7 +410,7 @@ class TSFixedArray : public TSBaseArray<T> {
     *data = this->m_data;
     *count = this->m_count;
     *alloc = this->m_alloc;
-    this->m_data = 0;
+    this->m_data = NULL;
     this->m_count = 0;
     this->m_alloc = 0;
   }
@@ -667,7 +667,7 @@ class CSBasePriority {
   UINT                 m_index;
 
   void Construct() {
-    m_queue = 0;
+    m_queue = NULL;
     m_index = 0;
   }
 
@@ -683,7 +683,7 @@ class CSBasePriority {
   virtual int Compare(CSBasePriority *priority) const = 0;
 
   BOOL IsLinked() const {
-    return m_queue != 0;
+    return m_queue != NULL;
   }
 
   void Relink();
@@ -775,7 +775,7 @@ class CSBasePriorityQueue : public TSGrowableArray<LPVOID> {
     LPVOID val;
 
     if (!Count()) {
-      return 0;
+      return NULL;
     }
 
     val = (*this)[ROOT_INDEX];
@@ -917,8 +917,8 @@ class TSLink {
   T         *m_next;
 
   void Constructor() {
-    m_prevlink = 0;
-    m_next = 0;
+    m_prevlink = NULL;
+    m_next = NULL;
   }
 
   void CopyConstructor(const TSLink<T> &) {
@@ -953,7 +953,7 @@ class TSLink {
   }
 
   int IsLinked() const {
-    return m_next != 0;
+    return m_next != NULL;
   }
 
   T *Next() {
@@ -984,8 +984,8 @@ class TSLink {
     if (m_prevlink) {
       NextLink(-1)->m_prevlink = m_prevlink;
       m_prevlink->m_next = m_next;
-      m_prevlink = 0;
-      m_next = 0;
+      m_prevlink = NULL;
+      m_next = NULL;
     }
   }
 };
@@ -1112,7 +1112,7 @@ class TSList {
   void Clear() {
     T *ptr;
 
-    while ((ptr = Head()) != 0) {
+    while ((ptr = Head()) != NULL) {
       ptr->~T();
       SMemFree(ptr, typeid(T).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
     }
@@ -1180,7 +1180,7 @@ class TSList {
   }
 
   BOOL IsEmpty() const {
-    return m_terminator.Next() == 0;
+    return m_terminator.Next() == NULL;
   }
 
   BOOL IsLinked(const T *instance) const {
@@ -1266,7 +1266,7 @@ class TSList {
 
   void UnlinkAll() {
     T *instance;
-    while ((instance = Head()) != 0)
+    while ((instance = Head()) != NULL)
       UnlinkNode(instance);
   }
 
@@ -1433,7 +1433,7 @@ class HASHKEY_STR {
   char *m_str;
 
  public:
-  HASHKEY_STR() : m_str(0) {
+  HASHKEY_STR() : m_str(NULL) {
   }
 
   HASHKEY_STR(const HASHKEY_STR &key) : m_str(SStrDupA(key.m_str, __FILE__, __LINE__)) {
@@ -1505,7 +1505,7 @@ class HASHKEY_CONSTSTR {
   LPCSTR m_str;
 
  public:
-  HASHKEY_CONSTSTR() : m_str(0) {
+  HASHKEY_CONSTSTR() : m_str(NULL) {
   }
 
   HASHKEY_CONSTSTR(LPCSTR str) : m_str(str) {
@@ -1546,7 +1546,7 @@ class HASHKEY_PTR {
   LPVOID m_key;
 
  public:
-  HASHKEY_PTR() : m_key(0) {
+  HASHKEY_PTR() : m_key(NULL) {
   }
 
   HASHKEY_PTR(LPVOID key) : m_key(key) {
@@ -1631,7 +1631,7 @@ class TSHashTable {
 
     templist.ChangeLinkOffset(linkoffset);
     for (loop = 0; loop < oldarraysize; ++loop) {
-      while ((ptr = m_slotlistarray[loop].Head()) != 0)
+      while ((ptr = m_slotlistarray[loop].Head()) != NULL)
         templist.LinkNode(ptr, LIST_TAIL, 0);
     }
 
@@ -1641,7 +1641,7 @@ class TSHashTable {
     }
 
     m_slotmask = newarraysize - 1;
-    while ((ptr = templist.Head()) != 0) {
+    while ((ptr = templist.Head()) != NULL) {
       UINT slot = ComputeSlot(ptr->m_hashval);
 
       m_slotlistarray[slot].LinkNode(ptr, LIST_TAIL, 0);
@@ -1669,7 +1669,7 @@ class TSHashTable {
     m_fullnessIndicator = 0;
     m_fulllist.UnlinkAll();
     for (loop = 0; loop < m_slotlistarray.Count(); ++loop) {
-      while ((ptr = m_slotlistarray[loop].Head()) != 0) {
+      while ((ptr = m_slotlistarray[loop].Head()) != NULL) {
         if (warn)
           m_slotlistarray[loop].UnlinkNode(ptr);
         else
@@ -1684,9 +1684,9 @@ class TSHashTable {
   virtual T *InternalNew(LISTEXDYN(T) * listptr, DWORD extrabytes, DWORD flags) {
     return listptr->NewNode(LIST_HEAD, extrabytes, flags);
   }
-  int MonitorFullness(UINT slot) {
+  BOOL MonitorFullness(UINT slot) {
     if (m_slotmask >= 0x1FFF) {
-      return 0;
+      return FALSE;
     }
 
     if (m_fullnessIndicator > 3) {
@@ -1699,11 +1699,11 @@ class TSHashTable {
       if (++m_fullnessIndicator > 13) {
         m_fullnessIndicator = 0;
         GrowListArray((m_slotmask + 1) * 2);
-        return 1;
+        return TRUE;
       }
     }
 
-    return 0;
+    return FALSE;
   }
   void InternalLinkNode(T *ptr, UINT hashval) {
     if (!Initialized())
@@ -1865,12 +1865,12 @@ class TSHashTable {
 
   T *Ptr(UINT hashval, const KEY &key) {
     if (!Initialized())
-      return 0;
+      return NULL;
 
     ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr)
       if (ptr->m_hashval == hashval && ptr->m_key == key)
         return ptr;
-    return 0;
+    return NULL;
   }
 
   const T *Ptr(UINT hashval, const KEY &key) const {
@@ -1879,24 +1879,24 @@ class TSHashTable {
 
   T *Ptr(UINT hashval, LPCSTR str) {
     if (!Initialized())
-      return 0;
+      return NULL;
 
     ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr)
       if (ptr->m_hashval == hashval && ptr->m_key == str)
         return ptr;
-    return 0;
+    return NULL;
   }
   const T *Ptr(UINT hashval, LPCSTR key) const;
   T *Ptr(LPCSTR str) {
     if (!Initialized())
-      return 0;
+      return NULL;
 
     UINT hashval = SStrHashHT(str);
 
     ITERATELIST(T, m_slotlistarray[ComputeSlot(hashval)], ptr)
       if (ptr->m_hashval == hashval && ptr->m_key == str)
         return ptr;
-    return 0;
+    return NULL;
   }
 
   const T *Ptr(LPCSTR key) const {
@@ -2049,7 +2049,7 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
     for (;;) {
       ++m_sequence;
       if (!m_sequence) {
-        m_wrapped = 1;
+        m_wrapped = TRUE;
         continue;
       }
       if (!m_wrapped || !Ptr((HANDLE)m_sequence)) {
@@ -2060,7 +2060,7 @@ class TSExportTableSimple : public TSHashTableReuse<T, HASHKEY_NONE, REUSE> {
 
  public:
   TSExportTableSimple() : m_sequence(~(UINT)this & 0x0FFFFFFF) {
-    m_wrapped = 0;
+    m_wrapped = FALSE;
   }
 
   void Delete(T *ptr) {

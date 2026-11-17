@@ -17,8 +17,8 @@ static UINT                     s_buttonState = 0;
 static UINT                     s_metaKeyState = 0;
 static UINT                     s_mouseHoldButton = 0;
 static MOUSEMODE                s_mouseMode = MOUSE_MODE_NORMAL;
-static EVENTCONFIRMCLOSEHANDLER s_confirmCloseCallback = 0;
-static LPVOID                   s_confirmCloseParam = 0;
+static EVENTCONFIRMCLOSEHANDLER s_confirmCloseCallback = NULL;
+static LPVOID                   s_confirmCloseParam = NULL;
 static NTempest::CRect          s_boundingRect(0.0f);
 
 inline bool NTempest::CRect::Encloses(const NTempest::C2Vector &value) const {

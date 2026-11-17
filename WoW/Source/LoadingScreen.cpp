@@ -126,7 +126,7 @@ static void CleanupProgressBar() {
 }
 
 static BOOL EatEvent(LPCVOID data, LPVOID param) {
-  return 0;
+  return FALSE;
 }
 
 static void RegisterHandlers() {
@@ -268,7 +268,7 @@ void DisableLoadingScreen() {
     if (s_textureHandles[index]) {
       GxTexDestroy(s_textureHandles[index]);
     }
-    s_textureHandles[index] = 0;
+    s_textureHandles[index] = NULL;
   }
 
   UnregisterHandlers();

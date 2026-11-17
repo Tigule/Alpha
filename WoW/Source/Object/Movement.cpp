@@ -38,9 +38,9 @@ BOOL CMovementData::IsLocalPlayer() {
 BOOL CMovement::MoversOnList() {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->movers.Head()) {
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 void CMovement::MoveUnit(DWORD timeNow, DWORD lastUpdate, LPVOID obj) {
@@ -322,7 +322,7 @@ BOOL MovementIdleMoveUnits(LPCVOID packetData, LPVOID param) {
   if (!((CMovementGlobals *)MovementGetGlobals())->m_localMover && !CMovement::MoversOnList()) {
     MovementUnlockMoversList(1);
     ((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime = timeNow;
-    return 1;
+    return TRUE;
   }
 
   FATALASSERT(timeDiff >= 0);
@@ -348,7 +348,7 @@ BOOL MovementIdleMoveUnits(LPCVOID packetData, LPVOID param) {
   }
 
   MovementUnlockMoversList(1);
-  return 1;
+  return TRUE;
 }
 
 void MovementInitialize(LPCSTR logFileName, bool needLocalHeap) {
@@ -867,7 +867,7 @@ BOOL CMovement::PlotUnitMovement(UINT moveTime, NTempest::C3Vector *move) {
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "move", FALSE, 1);
   }
   if (!moveTime) {
-    return 0;
+    return FALSE;
   }
 
   enum {
@@ -977,7 +977,7 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
   }
 
   if (!IsMoving()) {
-    return 0;
+    return FALSE;
   }
 
   if (!(m_spline->flags & 0x80000000)) {
@@ -1035,7 +1035,7 @@ BOOL CMovement::PlotUnitSplineMovement(DWORD eventTime, NTempest::C3Vector *move
 
     *move = *matrix.Row3AsVec3() - m_anchorPosition;
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT moveTime) {
@@ -1052,7 +1052,7 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
 
     if (!moveTime) {
       if (distanceSq < 0.00000095367432f) {
-        return 1;
+        return TRUE;
       }
       BothLogWrite(
           "0x%016" FMT_I64 "X: Tried moving bogus distance (%g) in zero time, from (%g,%g,%g), teleporting\n", GetGUID(), CMath::sqrt_(distanceSq),
@@ -1066,7 +1066,7 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
             m_position.x, m_position.y, m_position.z
         );
       } else {
-        return 1;
+        return TRUE;
       }
     }
   } else {
@@ -1074,7 +1074,7 @@ BOOL CMovement::CheckInvalidPositionOrMove(const NTempest::C3Vector &move, UINT 
   }
 
   MovementFixOutOfBoundsUnit(GetGUID());
-  return 0;
+  return FALSE;
 }
 
 void CMovement::ApplyAdjustedMove(DWORD timeStemp, const NTempest::C3Vector &moveWanted, BOOL wasAdjusted, UINT oldMoveFlags) {
@@ -1124,7 +1124,7 @@ void CMovement::ApplyMovement(DWORD eventTime, UINT fallTime, UINT moveTime, UIN
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   FATALASSERT(globals);
   UINT oldMoveFlags = m_moveFlags;
-  BOOL moveAdjusted = 0;
+  BOOL moveAdjusted = FALSE;
   BOOL wasJumping = m_jumpVelocity != 0.0f;
 
   if (globals->ignoreObstacles) {
@@ -1181,13 +1181,13 @@ CMovementData::CMovementData(const NTempest::C3Vector &position, float facing, c
       m_collisionBoxHeight(2.0277777f),
       m_stepUpHeight(1.0f),
       m_jumpVelocity(0.0f),
-      m_spline(0) {
+      m_spline(NULL) {
   CalcDirection();
 }
 
 CMovementData::~CMovementData() {
   if (MovementGetGlobals() && ((CMovementGlobals *)MovementGetGlobals())->m_localMover == this) {
-    ((CMovementGlobals *)MovementGetGlobals())->m_localMover = 0;
+    ((CMovementGlobals *)MovementGetGlobals())->m_localMover = NULL;
     FATALASSERT(!m_spline);
     FATALASSERT(!IsSplineMover());
   } else {
@@ -1222,7 +1222,7 @@ float CMovementData::GetFacing(float facing) const {
 
 BOOL CMovementData::ForceSetTransport(DWORDLONG guid) {
   if (guid == m_transportGUID || (guid && !MovementGameObjIsTransport(guid))) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C34Matrix transportMtx;
@@ -1278,7 +1278,7 @@ BOOL CMovementData::ForceSetTransport(DWORDLONG guid) {
     MovementUpdateCameraYaw(guid);
     ProcessLocalMoveEvent(MSG_MOVE_HEARTBEAT);
   }
-  return 1;
+  return TRUE;
 }
 
 int CMovementData::SetTransport(DWORDLONG guid) {
@@ -1294,7 +1294,7 @@ BOOL CMovement::SetCollisionBox(const NTempest::CAaBox &box, float scale) {
   if (NTempest::CMath::fabs_(scale) < 0.00000095367432f || NTempest::CMath::fabs_(boxDepth) < 0.00000095367432f ||
       NTempest::CMath::fabs_(boxHeight) < 0.00000095367432f)
   {
-    return 0;
+    return FALSE;
   }
 
   m_stepUpHeight = scale;
@@ -1303,7 +1303,7 @@ BOOL CMovement::SetCollisionBox(const NTempest::CAaBox &box, float scale) {
   if (1.849399f * m_collisionBoxHalfDepth > scale) {
     m_collisionBoxHalfDepth = scale * 0.54071623f;
   }
-  return 1;
+  return TRUE;
 }
 
 void CMovement::UpdateAnchors(DWORD eventTime) {
@@ -1336,7 +1336,7 @@ BOOL CMovement::StartMove(DWORD eventTime, int forward) {
         }
       }
       LogWrite("0x%016" FMT_I64 "X: Move start %s is pending\n", GetGUID(), forward ? "forward" : "backward");
-      return 0;
+      return FALSE;
     }
     m_moveFlags |= MOVEFLAG_NUDGE;
   }
@@ -1352,7 +1352,7 @@ BOOL CMovement::StartMove(DWORD eventTime, int forward) {
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_FORWARD) | 2;
   }
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
-  return 1;
+  return TRUE;
 }
 
 void CMovement::OnMoveStart(DWORD eventTime, int forward) {
@@ -1403,7 +1403,7 @@ BOOL CMovement::StartStrafe(DWORD eventTime, int left) {
         }
       }
       LogWrite("0x%016" FMT_I64 "X: Strafe start %s is pending\n", GetGUID(), left ? "left" : "right");
-      return 0;
+      return FALSE;
     }
     m_moveFlags |= MOVEFLAG_NUDGE;
   }
@@ -1419,7 +1419,7 @@ BOOL CMovement::StartStrafe(DWORD eventTime, int left) {
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_STRAFE_LEFT) | 8;
   }
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
-  return 1;
+  return TRUE;
 }
 
 void CMovement::OnStrafeStartLocal(DWORD eventTime, int left) {
@@ -1434,7 +1434,7 @@ void CMovement::OnStrafeStart(DWORD eventTime, int left) {
 
 BOOL CMovement::ForceJump(DWORD eventTime) {
   if (IsSwimming()) {
-    return 0;
+    return FALSE;
   }
 
   if (!((CMovementGlobals *)MovementGetGlobals())->ignoreObstacles) {
@@ -1446,12 +1446,12 @@ BOOL CMovement::ForceJump(DWORD eventTime) {
     m_fallStartTime = eventTime;
     BothLogWrite("0x%016" FMT_I64 "X: Executed jump at (0x%08X) from Z(%g)\n", GetGUID(), eventTime, m_fallStartElevation);
   }
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::Jump(DWORD eventTime) {
   if (IsFalling()) {
-    return 0;
+    return FALSE;
   }
   return ForceJump(eventTime);
 }
@@ -1533,19 +1533,19 @@ BOOL CMovement::StopMove(DWORD eventTime) {
   if (!IsMoving()) {
     if (m_moveFlags & MOVEFLAG_PEND_MOVE_MASK) {
       m_moveFlags &= ~MOVEFLAG_PEND_MOVE_MASK;
-      return 1;
+      return TRUE;
     }
-    return 0;
+    return FALSE;
   }
 
   if (IsFalling()) {
     BothLogWrite("0x%016" FMT_I64 "X: Move stop is pending\n", GetGUID());
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_PEND_MOVE_MASK) | 0x00010000;
-    return 0;
+    return FALSE;
   }
 
   ForceStopMove(eventTime);
-  return 1;
+  return TRUE;
 }
 
 void CMovement::ForceStopMove(DWORD eventTime) {
@@ -1564,12 +1564,12 @@ void CMovement::OnMoveStopLocal(DWORD eventTime) {
 BOOL CMovement::OnMoveStop(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!StopMove(globals->m_lastUpdateTime) || IsStrafing()) {
-    return 0;
+    return FALSE;
   }
   if (!IsInMotion()) {
     RemoveFromMoversList();
   }
-  return 1;
+  return TRUE;
 }
 
 void CMovement::ForceStopStrafe(DWORD eventTime) {
@@ -1585,19 +1585,19 @@ BOOL CMovement::StopStrafe(DWORD eventTime) {
   if (!IsStrafing()) {
     if (m_moveFlags & MOVEFLAG_PEND_STRAFE_MASK) {
       m_moveFlags &= ~MOVEFLAG_PEND_STRAFE_MASK;
-      return 1;
+      return TRUE;
     }
-    return 0;
+    return FALSE;
   }
 
   if (IsFalling()) {
     BothLogWrite("0x%016" FMT_I64 "X: Strafe stop is pending\n", GetGUID());
     m_moveFlags = (m_moveFlags & ~MOVEFLAG_PEND_STRAFE_MASK) | 0x00020000;
-    return 0;
+    return FALSE;
   }
 
   ForceStopStrafe(eventTime);
-  return 1;
+  return TRUE;
 }
 
 void CMovement::OnStrafeStopLocal(DWORD eventTime) {
@@ -1607,12 +1607,12 @@ void CMovement::OnStrafeStopLocal(DWORD eventTime) {
 BOOL CMovement::OnStrafeStop(DWORD eventTime) {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (!StopStrafe(globals->m_lastUpdateTime) || IsMoving()) {
-    return 0;
+    return FALSE;
   }
   if (!IsInMotion()) {
     RemoveFromMoversList();
   }
-  return 1;
+  return TRUE;
 }
 
 void CMovement::StartTurn(DWORD eventTime, int left) {
@@ -2071,7 +2071,7 @@ void CMovementData::RemoveSpline() {
   m_moveFlags &= ~MOVEFLAG_SPLINE_MOVER;
   if (m_spline) {
     delete m_spline;
-    m_spline = 0;
+    m_spline = NULL;
   }
   RemoveFromMoversList();
 }
@@ -2202,7 +2202,7 @@ void CMovement::StopFallLogging() {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->fallingLog) {
     fclose(globals->fallingLog);
-    globals->fallingLog = 0;
+    globals->fallingLog = NULL;
   }
 }
 
@@ -2231,7 +2231,7 @@ int CMovement::ToggleLogging() {
 BOOL CMovement::IsLoggingOn() {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   ASSERT(globals);
-  return globals->movementLog != 0;
+  return globals->movementLog != NULL;
 }
 
 void __cdecl CMovement::LogWrite(LPCSTR format, ...) {
@@ -2255,7 +2255,7 @@ void CMovement::StopLogging() {
   CMovementGlobals *globals = (CMovementGlobals *)MovementGetGlobals();
   if (globals && globals->movementLog) {
     fclose(globals->movementLog);
-    globals->movementLog = 0;
+    globals->movementLog = NULL;
   }
 }
 
@@ -2272,13 +2272,13 @@ BOOL CMovement::OnRunSpeedChange(DWORD eventTime, float speed) {
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(speed,0)", FALSE, 1);
   }
   if (CMath::fequal_(speed, m_runSpeed)) {
-    return 0;
+    return FALSE;
   }
   LogWrite("0x%016" FMT_I64 "X: Changing run speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_runSpeed, speed, m_moveStartTime);
   m_runSpeed = speed;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::OnWalkSpeedChange(DWORD eventTime, float speed) {
@@ -2294,13 +2294,13 @@ BOOL CMovement::OnWalkSpeedChange(DWORD eventTime, float speed) {
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(speed,0)", FALSE, 1);
   }
   if (CMath::fequal_(speed, m_walkSpeed)) {
-    return 0;
+    return FALSE;
   }
   LogWrite("0x%016" FMT_I64 "X: Changing walk speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_walkSpeed, speed, m_moveStartTime);
   m_walkSpeed = speed;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::OnSwimSpeedChange(DWORD eventTime, float speed) {
@@ -2316,13 +2316,13 @@ BOOL CMovement::OnSwimSpeedChange(DWORD eventTime, float speed) {
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(speed,0)", FALSE, 1);
   }
   if (CMath::fequal_(speed, m_swimSpeed)) {
-    return 0;
+    return FALSE;
   }
   LogWrite("0x%016" FMT_I64 "X: Changing swim speed from (%g) to (%g) (0x%X)\n", GetGUID(), m_swimSpeed, speed, m_moveStartTime);
   m_swimSpeed = speed;
   m_moveFlags |= MOVEFLAG_SPEED_DIRTY;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
-  return 1;
+  return TRUE;
 }
 
 BOOL CMovement::OnTurnRateChange(DWORD eventTime, float rate) {
@@ -2338,12 +2338,12 @@ BOOL CMovement::OnTurnRateChange(DWORD eventTime, float rate) {
          : SErrDisplayError(STORM_ERROR_ASSERTION, __FILE__, __LINE__, "CMath::fnotequal_(rate,0)", FALSE, 1);
   }
   if (CMath::fequal_(rate, m_turnRate)) {
-    return 0;
+    return FALSE;
   }
   LogWrite("0x%016" FMT_I64 "X: Changing turn rate from (%g) to (%g) (0x%X)\n", GetGUID(), m_turnRate, rate, m_moveStartTime);
   m_turnRate = rate;
   UpdateAnchors(((CMovementGlobals *)MovementGetGlobals())->m_lastUpdateTime);
-  return 1;
+  return TRUE;
 }
 
 void CMovement::OnSetRawFacingLocal(DWORD eventTime, float facing) {
@@ -2698,7 +2698,7 @@ void CMovement::OnSwimStop(DWORD eventTime) {
 void CMovement::StartSwimLocal(DWORD eventTime) {
   StartSwim(eventTime);
   if (!IsMovingOrStrafing()) {
-    ((CMovementGlobals *)MovementGetGlobals())->m_localMover = 0;
+    ((CMovementGlobals *)MovementGetGlobals())->m_localMover = NULL;
   }
 }
 

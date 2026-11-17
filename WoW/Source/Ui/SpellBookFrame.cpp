@@ -268,11 +268,11 @@ void CGSpellBook::AddKnownSpell(int spellID, int slot, int learned) {
   UINT i;
   for (i = 0; i < 3; ++i) {
     if (info->m_effectAura[i] == 36) {
-      BOOL found = 0;
+      BOOL found = FALSE;
       UINT count = m_shapeshiftForms.Count();
       for (i = 0; i < count; ++i) {
         if (m_shapeshiftForms[i] == spellID) {
-          found = 1;
+          found = TRUE;
           break;
         }
       }
@@ -638,12 +638,12 @@ BOOL CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
   ASSERT(slot < MAXIMUM_LEARNED_SPELLS);
 
   if (m_selectedSlot == slot && m_selectedType == type) {
-    return 1;
+    return TRUE;
   }
 
   const SpellRec *spell = g_spellDB.GetRecord(GetSpell(slot, type));
   if (!spell) {
-    return 0;
+    return FALSE;
   }
 
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
@@ -651,10 +651,10 @@ BOOL CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
     if (!spell->m_effectMiscValue[0]) {
       const SkillLineAbilityRec *ability = player->LookupAbility(spell->m_ID);
       if (ability && CGTradeSkillInfo::GetSkillLine() == ability->m_skillLine) {
-        return 1;
+        return TRUE;
       }
     } else if (CGCraftInfo::GetCraftType() == spell->m_effectMiscValue[0]) {
-      return 1;
+      return TRUE;
     }
   }
 
@@ -662,12 +662,12 @@ BOOL CGSpellBook::IsSelectedSlot(int slot, UI_SPELL_TYPE type) {
     if (spell->m_effectAura[i] == 36) {
       int form = spell->m_effectMiscValue[i];
       if (form && player && player->GetShapeshiftForm() == form) {
-        return 1;
+        return TRUE;
       }
-      return 0;
+      return FALSE;
     }
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
@@ -676,7 +676,7 @@ BOOL CGSpellBook::IsToggledSpell(int slot, UI_SPELL_TYPE type) {
 
   CGUnit_C *player = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
   if (!player) {
-    return 0;
+    return FALSE;
   }
 
   int             active = 0;
@@ -700,19 +700,19 @@ static BOOL GetSlotFromLua(lua_State *L, int &slot, UI_SPELL_TYPE &type) {
       LPCSTR string = lua_tostring(L, 2);
       if (!SStrCmpI("spell", string, 0x7FFFFFFF)) {
         type = PLAYER_SPELL;
-        return 1;
+        return TRUE;
       }
       if (!SStrCmpI("ability", string, 0x7FFFFFFF)) {
         type = PLAYER_ABILITY;
-        return 1;
+        return TRUE;
       }
       if (!SStrCmpI("pet", string, 0x7FFFFFFF)) {
         type = PET_SPELL;
-        return 1;
+        return TRUE;
       }
     }
   }
-  return 0;
+  return FALSE;
 }
 
 static LPCSTR GetSpellbookTexture(int slot, UI_SPELL_TYPE type) {
@@ -726,7 +726,7 @@ static LPCSTR GetSpellbookTexture(int slot, UI_SPELL_TYPE type) {
       return icon->m_textureFilename;
     }
   }
-  return 0;
+  return NULL;
 }
 
 static int Script_GetSpellTexture(lua_State *L) {

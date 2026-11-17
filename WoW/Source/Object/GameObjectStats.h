@@ -11,7 +11,7 @@ class GameObjectStats {
     int i;
 
     for (i = 0; i < 4; ++i) {
-      m_name[i] = 0;
+      m_name[i] = NULL;
     }
   }
 

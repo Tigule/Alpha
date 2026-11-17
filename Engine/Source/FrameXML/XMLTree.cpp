@@ -93,12 +93,12 @@ XMLTree *XMLTree_Load(LPCSTR buffer, UINT bytes) {
   XMLTree   *tree;
 
   if (!parser) {
-    return 0;
+    return NULL;
   }
 
   tree = (XMLTree *)ALLOC(sizeof(XMLTree));
-  tree->root = 0;
-  tree->current = 0;
+  tree->root = NULL;
+  tree->current = NULL;
 
   XML_SetElementHandler(parser, begin_element, end_element);
   XML_SetCharacterDataHandler(parser, handle_body);
@@ -106,7 +106,7 @@ XMLTree *XMLTree_Load(LPCSTR buffer, UINT bytes) {
 
   if (!XML_Parse(parser, buffer, bytes, 1)) {
     XMLTree_Free(tree);
-    return 0;
+    return NULL;
   }
 
   return tree;
@@ -126,13 +126,13 @@ const XMLNode *XMLTree_GetRoot(XMLTree *tree) {
 
 XMLNode::XMLNode(XMLNode *parent, LPCSTR name) {
   m_parent = parent;
-  m_child = 0;
+  m_child = NULL;
   m_name = SStrDupA(name, __FILE__, __LINE__);
-  m_body = 0;
+  m_body = NULL;
   m_num_attributes = 0;
-  m_attributes = 0;
+  m_attributes = NULL;
   m_offset = 0;
-  m_next = 0;
+  m_next = NULL;
 
   if (m_parent && m_parent->m_body) {
     m_offset = SStrLen(m_parent->m_body);
@@ -173,12 +173,12 @@ const XMLNode *XMLNode::GetChildByName(LPCSTR name) const {
     node = node->GetSibling();
   }
 
-  return 0;
+  return NULL;
 }
 
 LPCSTR XMLNode::GetAttributeNameByIndex(int index) const {
   if (index < 0 || index >= m_num_attributes) {
-    return 0;
+    return NULL;
   }
 
   return m_attributes[index].name;
@@ -186,7 +186,7 @@ LPCSTR XMLNode::GetAttributeNameByIndex(int index) const {
 
 LPCSTR XMLNode::GetAttributeValueByIndex(int index) const {
   if (index < 0 || index >= m_num_attributes) {
-    return 0;
+    return NULL;
   }
 
   return m_attributes[index].value;
@@ -201,5 +201,5 @@ LPCSTR XMLNode::GetAttributeByName(LPCSTR name) const {
     }
   }
 
-  return 0;
+  return NULL;
 }

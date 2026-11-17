@@ -36,7 +36,7 @@ namespace MDL {
 
   BOOL WriteHelpers(const MDLDATA &data, TSGrowableArray<char> &buffer, CMDLStatus *) {
     if (((LPCSTR)data.model.animationFile)[0]) {
-      return 1;
+      return TRUE;
     }
     int                 needObjIds = data.helpers.Count() != data.objects.Count();
     const MDLGENOBJECT *helper = data.helpers.Ptr();
@@ -44,13 +44,13 @@ namespace MDL {
       WriteObjectHeader(data, *helper, MDLTOK_HELPER, needObjIds, buffer);
       WriteObjectTrailer(*helper, buffer);
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL WriteBinHelpers(const MDLDATA &data, CMsgBuffer &buf, CMDLStatus *status) {
     UINT numHelpers = data.helpers.Count();
     if (((LPCSTR)data.model.animationFile)[0] || !numHelpers) {
-      return 1;
+      return TRUE;
     }
     buf.AddDword('PLEH');
     UINT totalSize = 4;
@@ -63,7 +63,7 @@ namespace MDL {
     for (i = 0; i < numHelpers; ++i) {
       WriteBinGenObject(data.helpers[i], buf, status);
     }
-    return 1;
+    return TRUE;
   }
 
   BOOL ReadBinHelpers(CMsgBuffer &buffer, UINT length, MDLDATA &data, CMDLStatus *status) {
@@ -76,19 +76,19 @@ namespace MDL {
       MDLGENOBJECT *helper = data.helpers.New();
       if (!helper) {
         status->FatalFlunked("Helper", -1);
-        return 0;
+        return FALSE;
       }
       if (!ReadBinGenObject(*helper, buffer, status, totalRead)) {
         status->Add(STATUS_ERROR, "Error reading gen object portion of helper.\n");
-        return 0;
+        return FALSE;
       }
       if (totalRead > length) {
         status->FatalOverran("Helper section overran read buffer.\n", -1);
-        return 0;
+        return FALSE;
       }
       ReadBinObjectEnd(data, helper, data.helpers.Count() - 1, 0x10000000);
     }
-    return 1;
+    return TRUE;
   }
 
 }  // namespace MDL

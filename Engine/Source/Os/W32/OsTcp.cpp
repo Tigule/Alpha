@@ -136,7 +136,7 @@ namespace OsNet {
 
     OUTPUT() {
       m_overlap.Init(OVERLAPTYPE_WRITE);
-      m_completionEvent = 0;
+      m_completionEvent = NULL;
     }
     OUTPUT(const OUTPUT &);
     ~OUTPUT() {
@@ -272,7 +272,7 @@ namespace OsNet {
     virtual void    SetNagle(int enable) {
     }
     virtual BOOL SetWindow(DWORD size) {
-      return 0;
+      return FALSE;
     }
     virtual void SetRecvTimeout(DWORD timeoutMs) {
     }
@@ -427,7 +427,7 @@ namespace OsNet {
     NETEVENTPROC m_eventProcDst;
 
     virtual BOOL IsClosed() const {
-      return 0;
+      return FALSE;
     }
     virtual void AddToSelectSets(NETSELECTSETS *);
     virtual void Fail();
@@ -988,7 +988,7 @@ namespace OsNet {
     );
     if (result == SOCKET_ERROR) {
       TCPNET::LogWrite(OSNETERR_SELECTFAILED);
-      return 0;
+      return FALSE;
     }
 
     if (result) {
@@ -1001,7 +1001,7 @@ namespace OsNet {
       }
     }
 
-    return 1;
+    return TRUE;
   }
 
   TCPACCEPT::TCPACCEPT(TCPLISTEN *listen) : m_listen(listen), m_sock(INVALID_SOCKET) {
@@ -1107,11 +1107,11 @@ namespace OsNet {
         ITERATELIST(TCPACCEPT, m_acceptList, accept) {
           accept->Init();
         }
-        return 1;
+        return TRUE;
       }
     }
 
-    return 0;
+    return FALSE;
   }
 
   void TCPLISTEN::Close() {
@@ -1295,7 +1295,7 @@ namespace OsNet {
     LPVOID      port = CreateIoCompletionPort(INVALID_HANDLE_VALUE, 0, 0, 0);
 
     if (!port) {
-      return 0;
+      return NULL;
     }
 
     memset(&si, 0, sizeof(si));
@@ -1328,7 +1328,7 @@ namespace OsNet {
       initializedParts = result;
       if (s_initCount[0]++ == 0) {
         if (!SLogCreate(OSNET_LOGFILE, 0, &s_log)) {
-          s_log = 0;
+          s_log = NULL;
         }
 
         LARGE_INTEGER freq;
@@ -1421,11 +1421,11 @@ namespace OsNet {
       if ((selectedParts & 1) && --s_initCount[0] == 0) {
         s_pnet->BaseDestroy();
         s_pnet->DecRef();
-        s_pnet = 0;
+        s_pnet = NULL;
 
         if (s_log) {
           SLogClose(s_log);
-          s_log = 0;
+          s_log = NULL;
         }
       }
     }
@@ -1663,14 +1663,14 @@ namespace OsNet {
   TCPNET::TCPNET()
       : m_refCount(1),
         m_pumpThreadCount(0),
-        m_udpPumpThread(0),
-        m_udpPumpEvent(0),
-        m_listenThread(0),
-        m_baseThread(0),
-        m_baseEvent(0),
+        m_udpPumpThread(NULL),
+        m_udpPumpEvent(NULL),
+        m_listenThread(NULL),
+        m_baseThread(NULL),
+        m_baseEvent(NULL),
         m_baseTcpShutdown(0),
-        m_baseTcpShutdownEvent(0),
-        m_port(0),
+        m_baseTcpShutdownEvent(NULL),
+        m_port(NULL),
         m_hostAddrInfoCount(0),
         m_hostAddrInfoId(0) {
   }
@@ -1680,12 +1680,12 @@ namespace OsNet {
 
     m_baseEvent = CreateEventA(0, FALSE, FALSE, 0);
     if (!m_baseEvent) {
-      return 0;
+      return FALSE;
     }
 
     m_baseTcpShutdownEvent = CreateEventA(0, FALSE, FALSE, 0);
     if (!m_baseTcpShutdownEvent) {
-      return 0;
+      return FALSE;
     }
 
     IncRef();
@@ -1693,22 +1693,22 @@ namespace OsNet {
     if (!thread) {
       DecRef();
       LogWrite("%s 1", OSNETERR_THREADFAILED);
-      return 0;
+      return FALSE;
     }
 
     m_baseThread = thread;
-    return 1;
+    return TRUE;
   }
 
   BOOL TCPNET::WinsockInitialize(DWORD hints) {
     if (WSAStartup(MAKEWORD(2, 2), &s_wsaData)) {
       LogWrite(OSNETERR_WINSOCKSTARTUP);
-      return 0;
+      return FALSE;
     }
 
     if (LOBYTE(s_wsaData.wVersion) < 1 || (LOBYTE(s_wsaData.wVersion) == 1 && HIBYTE(s_wsaData.wVersion) < 1)) {
       LogWrite(OSNETERR_WINSOCKVERSION);
-      return 0;
+      return FALSE;
     }
 
     s_mswsockModule = LoadLibraryA("mswsock.dll");
@@ -1725,7 +1725,7 @@ namespace OsNet {
       }
     }
 
-    return 1;
+    return TRUE;
   }
 
   BOOL TCPNET::IoInitialize(DWORD hints) {
@@ -1736,7 +1736,7 @@ namespace OsNet {
     }
 
     if ((hints & 0x80000000) && !m_port) {
-      return 0;
+      return FALSE;
     }
 
     if (m_port && (hints & 1)) {
@@ -1745,17 +1745,17 @@ namespace OsNet {
     m_pumpThreadCount = pumpThreadCount;
 
     if (m_port && !PumpThreadsInitialize()) {
-      return 0;
+      return FALSE;
     }
 
-    return 1;
+    return TRUE;
   }
 
   BOOL TCPNET::TcpInitialize(DWORD hints) {
     UINT id;
 
     if (!m_port && !PumpThreadsInitialize()) {
-      return 0;
+      return FALSE;
     }
 
     if (hints & 2) {
@@ -1764,7 +1764,7 @@ namespace OsNet {
       if (!thread) {
         DecRef();
         LogWrite("%s 2", OSNETERR_THREADFAILED);
-        return 0;
+        return FALSE;
       }
       m_listenThread = thread;
       SetThreadPriority(thread, THREAD_PRIORITY_BELOW_NORMAL);
@@ -1772,7 +1772,7 @@ namespace OsNet {
 
     m_udpPumpEvent = CreateEventA(0, FALSE, FALSE, 0);
     if (!m_udpPumpEvent) {
-      return 0;
+      return FALSE;
     }
 
     IncRef();
@@ -1780,11 +1780,11 @@ namespace OsNet {
     if (!thread) {
       DecRef();
       LogWrite("%s 3", OSNETERR_THREADFAILED);
-      return 0;
+      return FALSE;
     }
 
     m_udpPumpThread = thread;
-    return 1;
+    return TRUE;
   }
 
   TCPNET::~TCPNET() {
@@ -1819,31 +1819,31 @@ namespace OsNet {
     BaseWakeThread();
     WaitForSingleObject(m_baseThread, INFINITE);
     CloseHandle(m_baseThread);
-    m_baseThread = 0;
+    m_baseThread = NULL;
 
     m_connList[CONNLIST_LOOP_CONNECTED].Clear();
     m_loopInputRecycleList.Clear();
 
     CloseHandle(m_baseTcpShutdownEvent);
-    m_baseTcpShutdownEvent = 0;
+    m_baseTcpShutdownEvent = NULL;
     CloseHandle(m_baseEvent);
-    m_baseEvent = 0;
+    m_baseEvent = NULL;
     s_baseShutdown = 0;
   }
 
   void TCPNET::WinsockDestroy() {
     if (s_ws2Module) {
-      s_WSASend = 0;
-      s_WSARecv = 0;
+      s_WSASend = NULL;
+      s_WSARecv = NULL;
       FreeLibrary(s_ws2Module);
-      s_ws2Module = 0;
+      s_ws2Module = NULL;
     }
 
     if (s_mswsockModule) {
-      s_AcceptEx = 0;
-      s_GetAcceptExSockaddrs = 0;
+      s_AcceptEx = NULL;
+      s_GetAcceptExSockaddrs = NULL;
       FreeLibrary(s_mswsockModule);
-      s_mswsockModule = 0;
+      s_mswsockModule = NULL;
     }
 
     WSACleanup();
@@ -1879,13 +1879,13 @@ namespace OsNet {
       if (!thread) {
         DecRef();
         LogWrite("%s 4", OSNETERR_THREADFAILED);
-        return 0;
+        return FALSE;
       }
 
       *m_pumpThreads.New() = thread;
     }
 
-    return 1;
+    return TRUE;
   }
 
   void TCPNET::PumpThreadsDestroy() {
@@ -1909,7 +1909,7 @@ namespace OsNet {
     if (m_port) {
       PumpThreadsDestroy();
       CloseHandle(m_port);
-      m_port = 0;
+      m_port = NULL;
     }
 
     m_listenList.Clear();
@@ -1928,12 +1928,12 @@ namespace OsNet {
     if (m_listenThread) {
       SetThreadPriority(m_listenThread, THREAD_PRIORITY_NORMAL);
       WaitForSingleObject(m_listenThread, INFINITE);
-      m_listenThread = 0;
+      m_listenThread = NULL;
     }
 
     if (m_udpPumpThread) {
       WaitForSingleObject(m_udpPumpThread, INFINITE);
-      m_udpPumpThread = 0;
+      m_udpPumpThread = NULL;
     }
 
     if (!m_port) {
@@ -1941,7 +1941,7 @@ namespace OsNet {
     }
 
     CloseHandle(m_udpPumpEvent);
-    m_udpPumpEvent = 0;
+    m_udpPumpEvent = NULL;
 
     TCPLISTENLIST::Iterator listenIt(m_listenList);
     TCPLISTEN                                 *listen = listenIt.CycleInit();
@@ -2038,7 +2038,7 @@ namespace OsNet {
 
   BOOL TCPNET::TcpListen(WORD port, NETEVENTPROC eventProc, LPVOID user) {
     if (!eventProc) {
-      return 0;
+      return FALSE;
     }
 
     TCPLISTENLIST::Iterator listenIt(m_listenList);
@@ -2051,7 +2051,7 @@ namespace OsNet {
         listen->m_user = user;
         listen->Enable(1);
         listenIt.CycleDone();
-        return 1;
+        return TRUE;
       }
       listen = listenIt.CycleNext();
     }
@@ -2059,21 +2059,21 @@ namespace OsNet {
 
     SOCKET sock = CreateListenSocket(port);
     if (sock == INVALID_SOCKET) {
-      return 0;
+      return FALSE;
     }
 
     if (!m_listenThread && m_port) {
       if (!CreateIoCompletionPort((HANDLE)sock, m_port, 0, 0)) {
         LogWrite("%s 1", OSNETERR_PORTFAILED);
         closesocket(sock);
-        return 0;
+        return FALSE;
       }
       acceptCount = 16;
     }
 
     listen = new (ALLOC(sizeof(TCPLISTEN))) TCPLISTEN(sock, port, eventProc, user, acceptCount);
     m_listenList.Link(listen);
-    return 1;
+    return TRUE;
   }
 
   void TCPNET::TcpListenEnable(WORD port, int enable) {
@@ -2222,7 +2222,7 @@ namespace OsNet {
           TCPHOSTADDRINFO *info;
 
           net->m_hostAddrInfoLock.Enter();
-          while ((info = net->m_hostAddrInfoList.Head()) != 0) {
+          while ((info = net->m_hostAddrInfoList.Head()) != NULL) {
             if (s_preTerminateHostAddr) {
               TerminateThread(info->m_thread, 0);
             }
@@ -2332,7 +2332,7 @@ namespace OsNet {
         TCPHOSTADDRINFO *info;
 
         net->m_hostAddrInfoLock.Enter();
-        while ((info = net->m_hostAddrInfoList.Head()) != 0) {
+        while ((info = net->m_hostAddrInfoList.Head()) != NULL) {
           if (info->m_ready) {
             hostAddrInfoReadyList.LinkNode(info, LIST_TAIL, 0);
             net->m_hostAddrInfoCount.Dec();
@@ -2340,7 +2340,7 @@ namespace OsNet {
         }
         net->m_hostAddrInfoLock.Leave();
 
-        while ((info = hostAddrInfoReadyList.Head()) != 0) {
+        while ((info = hostAddrInfoReadyList.Head()) != NULL) {
           info->Complete();
           DEL(info);
           net->DecRef();
@@ -2366,7 +2366,7 @@ namespace OsNet {
     while (1) {
       char hostName[1024];
       hostName[0] = 0;
-      hostAddrInfoFound = 0;
+      hostAddrInfoFound = FALSE;
 
       TCPHOSTADDRINFO *info;
       if (!pnet->m_hostAddrInfoLock.Enter()) {
@@ -2380,7 +2380,7 @@ namespace OsNet {
             SStrCopy(hostName, info->m_hostNameCurr, sizeof(hostName));
             info->m_hostNameCurr = nextHostName;
           }
-          hostAddrInfoFound = 1;
+          hostAddrInfoFound = TRUE;
         }
       }
       pnet->m_hostAddrInfoLock.Leave();
@@ -2395,12 +2395,12 @@ namespace OsNet {
 
       if (hostName[0] >= '0' && hostName[0] <= '9') {
         OsNetAddrMakeFromStr(hostName, defaultPort, &netAddr);
-        hostAddrInfoFound = 0;
+        hostAddrInfoFound = FALSE;
         if (!pnet->m_hostAddrInfoLock.Enter()) {
           info = pnet->LockedFindHostAddrInfo(infoId);
           if (info) {
             *info->m_addrs.New() = netAddr;
-            hostAddrInfoFound = 1;
+            hostAddrInfoFound = TRUE;
           }
         }
         pnet->m_hostAddrInfoLock.Leave();
@@ -2410,7 +2410,7 @@ namespace OsNet {
       } else {
         hostent *host = gethostbyname(hostName);
         if (host && host->h_addrtype == AF_INET && host->h_length == 4) {
-          hostAddrInfoFound = 0;
+          hostAddrInfoFound = FALSE;
           if (pnet->m_hostAddrInfoLock.Enter()) {
             goto finallylabel;
           }
@@ -2419,7 +2419,7 @@ namespace OsNet {
             for (hostAddr = host->h_addr_list; *hostAddr; ++hostAddr) {
               OsNetAddrMake(*(DWORD *)*hostAddr, defaultPort, &netAddr);
               *info->m_addrs.New() = netAddr;
-              hostAddrInfoFound = 1;
+              hostAddrInfoFound = TRUE;
             }
           }
           pnet->m_hostAddrInfoLock.Leave();
@@ -2430,14 +2430,14 @@ namespace OsNet {
       }
     }
 
-    hostAddrInfoFound = 0;
+    hostAddrInfoFound = FALSE;
     if (pnet->m_hostAddrInfoLock.Enter()) {
       goto finallylabel;
     }
     {
       TCPHOSTADDRINFO *info = pnet->LockedFindHostAddrInfo(infoId);
       if (info) {
-        hostAddrInfoFound = 1;
+        hostAddrInfoFound = TRUE;
         info->m_ready = 1;
       }
     }
@@ -2462,7 +2462,7 @@ namespace OsNet {
       connect->m_bytes = bytes;
       LoopConnectInit(connect);
     } else {
-      connect->m_data = 0;
+      connect->m_data = NULL;
       connect->m_bytes = 0;
       LoopConnectInit(connect);
     }
@@ -2470,7 +2470,7 @@ namespace OsNet {
 
   void TCPNET::TcpConnect(DWORD nodeNumber, WORD port, NETEVENTPROC eventProc, LPVOID user, LPCVOID data, DWORD bytes) {
     if (!nodeNumber) {
-      NETEVENTPROC                               eventProcDst = 0;
+      NETEVENTPROC                               eventProcDst = NULL;
       TCPLISTENLIST::Iterator listenIt(m_listenList);
       TCPLISTEN                                 *listen = listenIt.CycleInit();
 
@@ -2497,7 +2497,7 @@ namespace OsNet {
       memcpy(connect->m_data, data, bytes);
       connect->m_bytes = bytes;
     } else {
-      connect->m_data = 0;
+      connect->m_data = NULL;
       connect->m_bytes = 0;
     }
     connect->m_sock = INVALID_SOCKET;
@@ -2621,7 +2621,7 @@ namespace OsNet {
 
     connect->m_eventProc = eventProc;
     connect->m_user = user;
-    connect->m_data = 0;
+    connect->m_data = NULL;
     connect->m_bytes = 0;
     connect->m_file = file;
     FileConnectInit(connect);
@@ -2633,7 +2633,7 @@ namespace OsNet {
         return info;
       }
     }
-    return 0;
+    return NULL;
   }
 
   BOOL TCPNET::GetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC hostAddrProc, LPVOID user) {
@@ -2657,10 +2657,10 @@ namespace OsNet {
     BOOL  found;
     do {
       infoId = ++m_hostAddrInfoId;
-      found = 0;
+      found = FALSE;
       ITERATELIST(TCPHOSTADDRINFO, m_hostAddrInfoList, curr) {
         if (curr->m_infoId == infoId) {
-          found = 1;
+          found = TRUE;
           break;
         }
       }
@@ -2677,7 +2677,7 @@ namespace OsNet {
       DEL(info);
       LogWrite("%s 5", OSNETERR_THREADFAILED);
       m_hostAddrInfoLock.Leave();
-      return 0;
+      return FALSE;
     }
 
     info->m_thread = thread;
@@ -2685,7 +2685,7 @@ namespace OsNet {
     m_hostAddrInfoLock.Leave();
     m_hostAddrInfoCount.Inc();
     WaitForSingleObject(hostAddrThreadParam.m_event, INFINITE);
-    return 1;
+    return TRUE;
   }
 
   void TCPNET::LinkConn(NETCONN *pconn, CONNLIST tolist) {
@@ -2703,7 +2703,7 @@ namespace OsNet {
   }
 
   LOOPCONN::INPUT *TCPNET::LoopAllocInput(DWORD bytes) {
-    LOOPCONN::INPUT *pinput = 0;
+    LOOPCONN::INPUT *pinput = NULL;
 
     if (bytes <= sizeof(((LOOPCONN *)0)->m_data)) {
       pinput = m_loopInputRecycleList.Head();
@@ -2893,7 +2893,7 @@ namespace OsNet {
   }
 
   LOOPCONN::LOOPCONN(TCPNET *net, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
-      : NETCONNFULL(net, INVALID_SOCKET, eventProc, user, pconnAddr), m_loopConn(0), m_bytes(0) {
+      : NETCONNFULL(net, INVALID_SOCKET, eventProc, user, pconnAddr), m_loopConn(NULL), m_bytes(0) {
   }
 
   LOOPCONN::~LOOPCONN() {
@@ -3056,14 +3056,14 @@ namespace OsNet {
 
     if (loopConn) {
       ASSERT(loopConn->m_loopConn == this);
-      loopConn->m_loopConn = 0;
+      loopConn->m_loopConn = NULL;
 
       loopConn->m_inputList.Clear();
       if (loopConn->ConnList() == CONNLIST_LOOP_CONNECTED) {
         loopConn->m_net->LoopLinkDisconnectConn(loopConn);
       }
 
-      m_loopConn = 0;
+      m_loopConn = NULL;
       m_inputList.Clear();
       if (ConnList() == CONNLIST_LOOP_CONNECTED) {
         m_net->LoopLinkDisconnectConn(this);
@@ -3174,7 +3174,7 @@ namespace OsNet {
     poutput = CONTAINING_RECORD(poverlap, OUTPUT, m_overlap);
     poutput->m_state = OUTPUTSTATE_COMPLETED;
 
-    while ((poutput = m_outputList.Head()) != 0) {
+    while ((poutput = m_outputList.Head()) != NULL) {
       if (poutput->m_state != OUTPUTSTATE_COMPLETED) {
         StartWriteAndLeaveLock(poutput);
         return;
@@ -3222,7 +3222,7 @@ namespace OsNet {
 
     if (poutput && time - m_time > 600000 && time - poutput->m_sock.m_time > 120000) {
       Close();
-      return 0;
+      return NULL;
     }
 
     poutput = m_outputList.Tail();
@@ -3264,7 +3264,7 @@ namespace OsNet {
       return;
     }
 
-    int oldOutput = m_outputList.Head() != 0;
+    int oldOutput = m_outputList.Head() != NULL;
     if (!oldOutput) {
       sent = send(m_sock, (LPCSTR)data, bytes, 0);
 
@@ -3322,7 +3322,7 @@ namespace OsNet {
         ASSERT(output == 0 || output == poutput);
         if (output) {
           ASSERT(output->m_completionEvent == &event);
-          output->m_completionEvent = 0;
+          output->m_completionEvent = NULL;
         }
         m_lock.Leave();
         return OS_SEND_TIMEOUT;
@@ -3402,7 +3402,7 @@ namespace OsNet {
     int isize = size;
 
     if (setsockopt(m_sock, SOL_SOCKET, SO_SNDBUF, (LPCSTR)&isize, sizeof(isize))) {
-      return 0;
+      return FALSE;
     }
 
     isize = size;
@@ -3658,7 +3658,7 @@ namespace OsNet {
     poutput->m_state = OUTPUTSTATE_COMPLETED;
     poutput->m_bytes = bytes;
 
-    while ((poutput = m_outputList.Head()) != 0) {
+    while ((poutput = m_outputList.Head()) != NULL) {
       if (poutput->m_state == OUTPUTSTATE_COMPLETED) {
         poutput->Unlink();
         int connected = m_file != INVALID_HANDLE_VALUE;
@@ -3723,12 +3723,12 @@ namespace OsNet {
     m_lock.Enter();
     if (m_file == INVALID_HANDLE_VALUE) {
       m_lock.Leave();
-      return 0;
+      return FALSE;
     }
 
     OUTPUT *poutput = LockedEnqueue(pos, data, bytes, operationId);
     StartWriteAndLeaveLock(poutput);
-    return 1;
+    return TRUE;
   }
 
   BOOL FILECONN::Read(DWORDLONG pos, LPVOID buffer, DWORD bytes, LPVOID operationId) {
@@ -3744,14 +3744,14 @@ namespace OsNet {
     if (m_file == INVALID_HANDLE_VALUE) {
       m_lock.Leave();
       DEL(pinput);
-      return 0;
+      return FALSE;
     }
 
     m_inputList.LinkNode(pinput, LIST_TAIL, 0);
     IncIo();
     m_lock.Leave();
     StartRead(pinput);
-    return 1;
+    return TRUE;
   }
 
   IOFILECONN::IOFILECONN(TCPNET *net, LPVOID port, LPVOID file, NETEVENTPROC eventProc, LPVOID user, const NETCONNADDR *pconnAddr)
@@ -3883,11 +3883,11 @@ namespace OsNet {
   SLFILECONN::~SLFILECONN() {
     if (m_thread) {
       CloseHandle(m_thread);
-      m_thread = 0;
+      m_thread = NULL;
     }
     if (m_event) {
       CloseHandle(m_event);
-      m_event = 0;
+      m_event = NULL;
     }
   }
 
@@ -4173,7 +4173,7 @@ BOOL OsNetGetHostAddrs(LPCSTR hostNameList, WORD defaultPort, NETHOSTADDRPROC ho
   if (net) {
     return net->GetHostAddrs(hostNameList, defaultPort, hostAddrProc, user);
   }
-  return 0;
+  return FALSE;
 }
 
 void OsFileConnCreate(LPCSTR fileName, NETEVENTPROC eventProc, LPVOID user, int readOnly) {

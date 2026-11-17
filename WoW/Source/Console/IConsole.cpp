@@ -13,24 +13,24 @@ BOOL AddLineToExecFile(LPCSTR currentLine) {
     if (*currentLine == 'n') {
       ConsoleWrite("Canceled File Creation", ECHO_COLOR);
       g_ExecCreateMode = EM_NOTACTIVE;
-      return 0;
+      return FALSE;
     }
     if (*currentLine != 'y') {
       ConsoleWrite("You must type 'y' to confirm overwrite. Process aborted!", ERROR_COLOR);
       g_ExecCreateMode = EM_NOTACTIVE;
-      return 0;
+      return FALSE;
     }
 
     ConsoleWrite("Begin Typing the commands", ECHO_COLOR);
     g_ExecCreateMode = EM_RECORDING;
-    return 0;
+    return FALSE;
   }
 
   if (!SStrCmpI(currentLine, "end", 0x7FFFFFFF)) {
     if (g_ExecCreateMode != EM_APPEND) {
       g_ExecCreateMode = EM_WRITEFILE;
     }
-    return 1;
+    return TRUE;
   }
 
   SStrPrintf(stringToWrite, sizeof(stringToWrite), "%s\n", currentLine);
@@ -38,7 +38,7 @@ BOOL AddLineToExecFile(LPCSTR currentLine) {
   if (spaceRemaining) {
     SStrPack(g_ExecBuffer, stringToWrite, sizeof(g_ExecBuffer));
   }
-  return 0;
+  return FALSE;
 }
 
 void AddToHistory(LPCSTR command) {

@@ -221,10 +221,10 @@ void CGxTex::Init(
   m_flags = flags;
   m_userArg = userArg;
   m_userFunc = userFunc;
-  m_apiSpecificData = 0;
+  m_apiSpecificData = NULL;
 }
 
-CGxMemBuffer::CGxMemBuffer(UINT count) : m_count(count), m_base(0), m_next(0), m_discard(0) {
+CGxMemBuffer::CGxMemBuffer(UINT count) : m_count(count), m_base(0), m_next(0), m_discard(FALSE) {
 }
 
 void CGxMemBuffer::InvalidateBufs(CGxBuf::Status vertexStatus, CGxBuf::Status indexStatus) {
@@ -238,7 +238,7 @@ void CGxMemBuffer::AddBuf(CGxBuf *buf) {
 }
 
 void CGxMemBuffer::Discard() {
-  m_discard = 1;
+  m_discard = TRUE;
 }
 
 void CGxMemBuffer::RemoveBuf(CGxBuf *buf) {
@@ -268,7 +268,7 @@ CGxDevice::CGxDevice() {
   m_primIndexCount = 0;
 
   m_api = GxApis_Last;
-  m_windowProc = 0;
+  m_windowProc = NULL;
   m_cpuFeatures = OsGetProcessorFeatures();
   memset(&m_caps, 0, sizeof(m_caps));
   m_caps.m_maxTexAnisotropy = 1;
@@ -278,7 +278,7 @@ CGxDevice::CGxDevice() {
   m_viewport.x.Set(0.0f, 1.0f);
   m_viewport.y.Set(0.0f, 1.0f);
   m_viewport.z.Set(0.0f, 1.0f);
-  m_bones = 0;
+  m_bones = NULL;
   m_boneCount = 0;
   m_vertexShader = GxVS_PassThru;
   m_vertexBufferFormat = GxVertexBufferFormats_Last;
@@ -294,10 +294,10 @@ CGxDevice::CGxDevice() {
   m_scrShotClick = 0;
   m_scrShotWidth = 0;
   m_scrShotHeight = 0;
-  m_indexLocked = 0;
-  m_vertexLocked = 0;
+  m_indexLocked = FALSE;
+  m_vertexLocked = FALSE;
   m_inBeginEnd = 0;
-  m_bufLocked = 0;
+  m_bufLocked = NULL;
 
   memset(m_VBReserve, 0, sizeof(m_VBReserve));
   memset(m_IBReserve, 0, sizeof(m_IBReserve));
@@ -310,7 +310,7 @@ CGxDevice::CGxDevice() {
   m_gammaRamp.Set(1.0f);
   m_systemGammaRamp.Set(1.0f);
   memset(m_textureTarget, 0, sizeof(m_textureTarget));
-  m_context = 0;
+  m_context = FALSE;
 }
 
 CGxDevice::~CGxDevice() {
@@ -350,17 +350,17 @@ BOOL CGxDevice::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &format) {
 BOOL CGxDevice::DeviceCreate(UINT_PTR hwnd, const CGxFormat &format) {
   CreateDynamicBufs();
   m_format = format;
-  return 1;
+  return TRUE;
 }
 
 void CGxDevice::DeviceDestroy() {
-  m_windowProc = 0;
+  m_windowProc = NULL;
   DestroyDynamicBufs();
 }
 
 BOOL CGxDevice::DeviceSetFormat(const CGxFormat &format) {
   m_format = format;
-  return 1;
+  return TRUE;
 }
 
 void CGxDevice::DeviceSetBaseMipLevel(UINT baseMipLevel) {
@@ -427,7 +427,7 @@ void CGxDevice::DeviceReadScreenShot(UINT &w, UINT &h, const NTempest::CImVector
   if (m_scrShotPixels.Count()) {
     pixels = m_scrShotPixels.Ptr();
   } else {
-    pixels = 0;
+    pixels = NULL;
   }
 }
 
@@ -605,17 +605,17 @@ BOOL CGxDevice::IVbHasColor(EGxVertexBufferFormat format) {
     case GxVBF_PNCT0T1:
     case GxVBF_PCT0:
     case GxVBF_PC:
-      return 1;
+      return TRUE;
 
     case GxVBF_PN:
     case GxVBF_PNT0:
     case GxVBF_PNT0T1:
     case GxVBF_PT0T1:
-      return 0;
+      return FALSE;
 
     default:
       ASSERT(0);
-      return 0;
+      return FALSE;
   }
 }
 
@@ -652,7 +652,7 @@ void CGxDevice::PrimLockAndProcessVertexPtrs(
     UINT                       tex1Stride
 ) {
   if (!m_vertexLocked) {
-    m_vertexLocked = 1;
+    m_vertexLocked = TRUE;
   } else {
     ASSERT(!"CGxDevice::PrimLockAndProcessVertexPtrs(): lock mismatch!");
   }
@@ -686,7 +686,7 @@ void CGxDevice::PrimLockAndProcessVertexPtrs(
 
 void CGxDevice::PrimLockIndexPtr(EGxPrim primType, UINT indexCount, const WORD *indices) {
   if (!m_indexLocked) {
-    m_indexLocked = 1;
+    m_indexLocked = TRUE;
   } else {
     ASSERT(!"CGxDevice::PrimLockIndexPtr(): lock mismatch");
   }
@@ -703,7 +703,7 @@ void CGxDevice::PrimDrawElements() {
 
 void CGxDevice::PrimUnlockIndexPtr() {
   if (m_indexLocked) {
-    m_indexLocked = 0;
+    m_indexLocked = FALSE;
   } else {
     DbgPrintf("CGxDevice::PrimUnlockIndexPtr(): lock mismatch!\n");
   }
@@ -711,7 +711,7 @@ void CGxDevice::PrimUnlockIndexPtr() {
 
 void CGxDevice::PrimUnlockVertexPtrs() {
   if (m_vertexLocked) {
-    m_vertexLocked = 0;
+    m_vertexLocked = FALSE;
   } else {
     DbgPrintf("CGxDevice::PrimUnlockVertexPtrs(): lock mismatch!\n");
   }
@@ -781,11 +781,11 @@ void CGxDevice::PrimEnd() {
   m_inBeginEnd = 0;
 
   if (m_primVertexArray.Count()) {
-    const NTempest::C3Vector  *vertexPtr = 0;
-    const NTempest::C3Vector  *normalPtr = 0;
-    const NTempest::CImVector *color = 0;
-    const NTempest::C2Vector  *tex0 = 0;
-    const NTempest::C2Vector  *tex1 = 0;
+    const NTempest::C3Vector  *vertexPtr = NULL;
+    const NTempest::C3Vector  *normalPtr = NULL;
+    const NTempest::CImVector *color = NULL;
+    const NTempest::C2Vector  *tex0 = NULL;
+    const NTempest::C2Vector  *tex1 = NULL;
 
     if (m_primMask & 1) {
       vertexPtr = m_primVertexArray.Ptr();
@@ -860,7 +860,7 @@ BOOL CGxDevice::EnableState(DWORD app, DWORD appDisables, UINT flagPos) {
 
 BOOL CGxDevice::NeedsUpdate(DWORD app, DWORD hw, DWORD appDisables, DWORD hwDisables, UINT flagPos, int &enable) {
   BOOL appEnable = EnableState(app, appDisables, flagPos);
-  enable = appEnable != 0;
+  enable = appEnable != FALSE;
   return appEnable != EnableState(hw, hwDisables, flagPos);
 }
 
@@ -1186,7 +1186,7 @@ CGxBuf *CGxDevice::BufCreate(
     LPVOID userArg
 ) {
   ASSERT(numVertices <= 0xFFFF);
-  return 0;
+  return NULL;
 }
 
 void CGxDevice::BufDestroy(CGxBuf *&buf) {
@@ -1201,7 +1201,7 @@ void CGxDevice::BufLock(CGxBuf *buf) {
 
 void CGxDevice::BufUnlock() {
   ASSERT(m_bufLocked);
-  m_bufLocked = 0;
+  m_bufLocked = NULL;
 }
 
 void CGxDevice::BufRender(const CGxBatch *batches, UINT count) {
@@ -1241,7 +1241,7 @@ BOOL CGxDevice::TexCreate(
   texId = tex;
   ++m_perfCountersAcc[GxPerf_Textures];
   m_perfCountersAcc[GxPerf_TextureBytes] += ITexComputeByteSize(texId, UINT_MAX, UINT_MAX);
-  return 1;
+  return TRUE;
 }
 
 BOOL CGxDevice::TexCreate(
@@ -1261,7 +1261,7 @@ BOOL CGxDevice::TexCreate(
   texId = tex;
   ++m_perfCountersAcc[GxPerf_Textures];
   m_perfCountersAcc[GxPerf_TextureBytes] += ITexComputeByteSize(texId, UINT_MAX, UINT_MAX);
-  return 1;
+  return TRUE;
 }
 
 void CGxDevice::TexMarkForUpdate(CGxTex *texId, const NTempest::CiRect &updateRect, int immediate) {
@@ -1427,7 +1427,7 @@ void CGxDevice::VertexShaderCreate(CGxVertexShader *&vs, LPCSTR filename) {
     vs = m_vertexShaderList.New(filename, 0, 0);
 
     if (m_caps.m_vertexShaderTarget != CGxVertexShader::Target_gx) {
-      SFile *file = 0;
+      SFile *file = NULL;
       SFile::Open(filename, &file);
       if (file) {
         UINT magic;
@@ -1459,7 +1459,7 @@ void CGxDevice::VertexShaderDestroy(CGxVertexShader *&vs) {
     m_vertexShaderList.Delete(vs);
   }
 
-  vs = 0;
+  vs = NULL;
 }
 
 void CGxDevice::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
@@ -1468,7 +1468,7 @@ void CGxDevice::PixelShaderCreate(CGxPixelShader *&ps, LPCSTR filename) {
     ps = m_pixelShaderList.New(filename, 0, 0);
 
     if (m_caps.m_pixelShaderTarget != CGxPixelShader::Target_gx) {
-      SFile *file = 0;
+      SFile *file = NULL;
       SFile::Open(filename, &file);
       if (file) {
         UINT magic;
@@ -1500,7 +1500,7 @@ void CGxDevice::PixelShaderDestroy(CGxPixelShader *&ps) {
     m_pixelShaderList.Delete(ps);
   }
 
-  ps = 0;
+  ps = NULL;
 }
 
 void CGxDevice::ISetShaderParameters(CGxShader *sh, int forceForBind) {
@@ -1589,7 +1589,7 @@ void CGxDevice::LogOpen() {
 void CGxDevice::LogClose() {
   if (m_log) {
     SLogClose(m_log);
-    m_log = 0;
+    m_log = NULL;
   }
 }
 

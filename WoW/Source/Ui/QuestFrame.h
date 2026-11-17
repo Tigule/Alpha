@@ -118,7 +118,7 @@ class CGQuestInfo {
   static UINT GetNumQuestRewards();
   static UINT GetNumQuestChoices();
   static UINT GetNumQuestItems();
-  static int
+  static BOOL
   GetQuestItemInfo(LPCSTR type, UINT index, char name[], UINT nameSize, char texture[], UINT textureSize, UINT &amount, int &quality, int &usable);
   static int  GetQuestItemID(LPCSTR type, UINT index);
   static int GetNumQuests() {

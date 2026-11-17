@@ -10,11 +10,11 @@ class CSimpleModel;
 class CGlueMgr;
 
 struct CHARINFO {
-  CHARINFO() : m_eStyle(-1), m_eColor(-1), m_bStyle(-1), m_bColor(-1), m_background(-1), m_characterModel(0), m_characterComponent(0), m_petModel(0) {
+  CHARINFO() : m_eStyle(-1), m_eColor(-1), m_bStyle(-1), m_bColor(-1), m_background(-1), m_characterModel(NULL), m_characterComponent(NULL), m_petModel(NULL) {
   }
 
   CHARINFO(const CHARINFO &rhs)
-      : m_eStyle(-1), m_eColor(-1), m_bStyle(-1), m_bColor(-1), m_background(-1), m_characterModel(0), m_characterComponent(0), m_petModel(0) {
+      : m_eStyle(-1), m_eColor(-1), m_bStyle(-1), m_bColor(-1), m_background(-1), m_characterModel(NULL), m_characterComponent(NULL), m_petModel(NULL) {
     m_characterInfo = rhs.m_characterInfo;
   }
   ~CHARINFO();

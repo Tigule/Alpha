@@ -39,8 +39,8 @@ class mdl_scan {
     return *mdlin++;
   }
 
-  virtual int mdlwrap() {
-    return 1;
+  virtual BOOL mdlwrap() {
+    return TRUE;
   }
   virtual void __cdecl mdlerror(char *fmt, ...);
   virtual void         output(int c) {

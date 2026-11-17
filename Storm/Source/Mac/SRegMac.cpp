@@ -33,7 +33,7 @@ struct RegistryEntry : TSHashObject<RegistryEntry, HASHKEY_STRI> {
     }
 
     type = 0;
-    string = 0;
+    string = NULL;
     size = 0;
   }
 };
@@ -399,7 +399,7 @@ extern "C" BOOL APIENTRY SRegDestroy() {
   RegistryEntry                                *entry;
   WriteRegistryEntry                           *writeEntry;
 
-  while ((entry = s_entryTable.Head()) != 0) {
+  while ((entry = s_entryTable.Head()) != NULL) {
     LPCSTR fullKey = entry->GetString();
     LPCSTR keyEnd;
     LPCSTR valueStart;
@@ -462,7 +462,7 @@ extern "C" BOOL APIENTRY SRegDestroy() {
     s_entryTable.Delete(entry);
   }
 
-  while ((writeEntry = writeTable.Head()) != 0) {
+  while ((writeEntry = writeTable.Head()) != NULL) {
     if (writeEntry->file) {
       fclose(writeEntry->file);
     }

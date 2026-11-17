@@ -326,20 +326,20 @@ BOOL GxuTestRayAndSphere(
   VALIDATE2(IsUnitVector(rayDirection));
   float centerDistance = NTempest::C3Vector::Dot(sphereCenter - rayStart, rayDirection);
   if (centerDistance < -sphereRadius) {
-    return 0;
+    return FALSE;
   }
   if ((rayStart + rayDirection * centerDistance - sphereCenter).SquaredMag() <= sphereRadius * sphereRadius) {
     distance = centerDistance;
-    return 1;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 BOOL GxuTestSphereAndFrustumPlanes(const NTempest::C3Vector &sphereCenterInWorld, float sphereRadius, const NTempest::C4Vector planes[]) {
-  BOOL result = 1;
+  BOOL result = TRUE;
   for (UINT i = 0; i != 6; ++i) {
     if (NTempest::C4Vector::Dot(planes[i], sphereCenterInWorld) - sphereRadius > 0.0f) {
-      result = 0;
+      result = FALSE;
       break;
     }
   }
@@ -366,24 +366,24 @@ BOOL GxuTestRayAndTriangle(
   float              f = NTempest::C3Vector::Dot(e1, p);
 
   if (NTempest::CMath::fabs_(f) < 2.38418579e-7f) {
-    return 0;
+    return FALSE;
   }
 
   f = 1.0f / f;
   NTempest::C3Vector s = rayStart - v0;
   float              u = NTempest::C3Vector::Dot(s, p) * f;
   if (u < 0.0f || u > 1.0f) {
-    return 0;
+    return FALSE;
   }
 
   NTempest::C3Vector q = NTempest::C3Vector::Cross(s, e1);
   float              v = NTempest::C3Vector::Dot(rayDirection, q) * f;
   if (v < 0.0f || u + v > 1.0f) {
-    return 0;
+    return FALSE;
   }
 
   distance = NTempest::C3Vector::Dot(e2, q) * f;
-  return 1;
+  return TRUE;
 }
 BOOL GxuTestRayAndMesh(
     const NTempest::C3Vector  &rayStart,

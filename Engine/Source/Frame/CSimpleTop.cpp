@@ -137,7 +137,7 @@ class CFrameStrata {
       CFrameStrataNode *node = levels[i];
 
       DELIFUSED(node);
-      levels[i] = 0;
+      levels[i] = NULL;
     }
   }
 
@@ -147,12 +147,12 @@ class CFrameStrata {
     for (i = 0; i < topLevel; ++i) {
       ITERATELIST(CSimpleFrame, levels[i]->frames, frame) {
         if (!callback(frame, param)) {
-          return 0;
+          return FALSE;
         }
       }
     }
 
-    return 1;
+    return TRUE;
   }
 
   void AddFrame(CSimpleFrame *frame) {
@@ -195,7 +195,7 @@ class CFrameStrata {
       }
     }
 
-    return 0;
+    return NULL;
   }
 
   void RaiseFrame(CSimpleFrame *frame) {
@@ -271,7 +271,7 @@ class CFrameStrata {
           thisFrame->GetRect(&thisRect);
           otherFrame->GetRect(&otherRect);
           if (thisRect.Intersect(otherRect).NotEmpty()) {
-            return 1;
+            return TRUE;
           }
         }
       }
@@ -279,7 +279,7 @@ class CFrameStrata {
       ++level;
     }
 
-    return 0;
+    return FALSE;
   }
 
   void CheckOcclusion() {
@@ -361,7 +361,7 @@ static void PaintScreen(LPVOID, const RECTF *, const RECTF *, float elapsedSec) 
 }
 
 CSimpleTop::CSimpleTop()
-    : m_cursor(0), m_cursorVisible(1), m_mouseFocus(0), m_mouseCapture(0), m_checkFocus(1), m_mouseButtonCallback(0), m_displaySizeCallback(0) {
+    : m_cursor(NULL), m_cursorVisible(1), m_mouseFocus(NULL), m_mouseCapture(NULL), m_checkFocus(TRUE), m_mouseButtonCallback(NULL), m_displaySizeCallback(NULL) {
   float x;
   float y;
   UINT  i;
@@ -404,7 +404,7 @@ CSimpleTop::~CSimpleTop() {
 
   for (i = 0; i < NUM_FRAME_STRATA; ++i) {
     DELIFUSED(m_strata[i]);
-    m_strata[i] = 0;
+    m_strata[i] = NULL;
   }
 
   UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
@@ -417,7 +417,7 @@ CSimpleTop::~CSimpleTop() {
   DisableEvents();
   HandleClose((HOBJECT)m_screenLayer);
   HandleClose((HOBJECT)m_cursorLayer);
-  s_instance = 0;
+  s_instance = NULL;
 }
 
 void CSimpleTop::EnumerateFrames(BOOL (*callback)(CSimpleFrame *, LPVOID), LPVOID param) {
@@ -445,11 +445,11 @@ void CSimpleTop::NotifyFrameMovedOrResized(CSimpleFrame *frame) {
   m_strata[frame->GetFrameStrata()]->OnFrameMovedOrResized(frame);
 
   if (m_layout.frame) {
-    m_strata[frame->GetFrameStrata()]->BuildBatches(m_mouseCapture == 0);
+    m_strata[frame->GetFrameStrata()]->BuildBatches(m_mouseCapture == NULL);
     RaiseFrame(m_layout.frame, 0);
   }
 
-  m_checkFocus = 1;
+  m_checkFocus = TRUE;
 }
 
 void CSimpleTop::NotifyFrameLayerChanged(CSimpleFrame *frame, UINT layer) {
@@ -475,7 +475,7 @@ void CSimpleTop::RegisterForEvent(CSimpleFrame *frame, CSimpleEventType event, U
   queue->Insert(entry);
 
   if (event == SIMPLE_EVENT_MOUSE) {
-    m_checkFocus = 1;
+    m_checkFocus = TRUE;
   }
 }
 
@@ -497,16 +497,16 @@ void CSimpleTop::UnregisterForEvent(CSimpleFrame *frame, CSimpleEventType event)
       if (event == SIMPLE_EVENT_KEY) {
         for (i = 0; i < KEY_LAST; ++i) {
           if (frame == m_keydownCapture[i]) {
-            m_keydownCapture[i] = 0;
+            m_keydownCapture[i] = NULL;
           }
         }
       } else if (event == SIMPLE_EVENT_MOUSE) {
         if (frame == m_mouseCapture) {
-          m_mouseCapture = 0;
+          m_mouseCapture = NULL;
         }
         if (frame == m_mouseFocus) {
-          m_mouseFocus = 0;
-          m_checkFocus = 1;
+          m_mouseFocus = NULL;
+          m_checkFocus = TRUE;
           frame->OnLayerCursorExit();
         }
       }
@@ -529,7 +529,7 @@ void CSimpleTop::SetCursor(HMODEL cursor) {
   if (cursor) {
     m_cursor = (HMODEL)HandleDuplicate(cursor);
   } else {
-    m_cursor = 0;
+    m_cursor = NULL;
   }
 }
 
@@ -541,11 +541,11 @@ BOOL CSimpleTop::RaiseFrame(const NTempest::C2Vector &pt) {
 
     if (frame) {
       RaiseFrame(frame, 0);
-      return 1;
+      return TRUE;
     }
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
@@ -562,19 +562,19 @@ BOOL CSimpleTop::RaiseFrame(CSimpleFrame *frame, int checkOcclusion) {
 
     m_strata[topframe->GetFrameStrata()]->RaiseFrame(topframe);
 
-    return 1;
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CSimpleTop::LowerFrame(CSimpleFrame *frame) {
-  return 0;
+  return FALSE;
 }
 
 BOOL CSimpleTop::StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &start, int resize) {
   if (!frame->FlattenFrame(this, 0.0f, 0.0f, 0.0f, 0.0f, &m_layout.final)) {
-    return 0;
+    return FALSE;
   }
 
   frame->SetUserPlaced(1);
@@ -616,11 +616,11 @@ BOOL CSimpleTop::StartMoveOrResizeFrame(CSimpleFrame *frame, const CMouseEvent &
   }
 
   m_layout.frame = frame;
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleTop::StartMoveOrResizeFrame(const CMouseEvent &start, int resize) {
-  CSimpleFrame *frame = 0;
+  CSimpleFrame *frame = NULL;
   UINT          i = NUM_SIMPLEFRAME_DRAWLAYERS;
 
   while (i-- && !frame) {
@@ -628,15 +628,15 @@ BOOL CSimpleTop::StartMoveOrResizeFrame(const CMouseEvent &start, int resize) {
   }
 
   if (!frame) {
-    return 0;
+    return FALSE;
   }
 
   if (!resize && !frame->IsMovable()) {
-    return 0;
+    return FALSE;
   }
 
   if (resize && !frame->IsResizable()) {
-    return 0;
+    return FALSE;
   }
 
   return StartMoveOrResizeFrame(frame, start, resize);
@@ -653,7 +653,7 @@ void CSimpleTop::MoveOrResizeFrame(const CMouseEvent &evt) {
 }
 
 void CSimpleTop::StopMoveOrResizeFrame() {
-  m_layout.frame = 0;
+  m_layout.frame = NULL;
 }
 
 void CSimpleTop::OnLayerUpdate(float elapsedSec) {
@@ -678,7 +678,7 @@ void CSimpleTop::OnLayerUpdate(float elapsedSec) {
   }
 
   if (m_checkFocus) {
-    m_checkFocus = 0;
+    m_checkFocus = FALSE;
     OnMouseMove(&m_mousePosition, this);
   }
 }
@@ -687,7 +687,7 @@ void CSimpleTop::OnLayerRender() {
   CameraSetupScreenProjection(m_rect, NTempest::C2Vector(0.0f), 0.0f);
 
   for (UINT strataIndex = 0; strataIndex < NUM_FRAME_STRATA; ++strataIndex) {
-    m_strata[strataIndex]->BuildBatches(m_mouseCapture == 0);
+    m_strata[strataIndex]->BuildBatches(m_mouseCapture == NULL);
     m_strata[strataIndex]->RenderBatches();
   }
 }
@@ -822,7 +822,7 @@ BOOL CSimpleTop::OnKeyUp(const EVENT_DATA_KEY *pKeyData, LPVOID param) {
       eaten = !OnKeyDown(pKeyData, param);
     }
 
-    top->m_keydownCapture[pKeyData->key] = 0;
+    top->m_keydownCapture[pKeyData->key] = NULL;
   }
 
   return !eaten;
@@ -852,7 +852,7 @@ BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   mouseEvent.SetId(0x400500CA);
 
   CSimpleFrame *last_focus = top->m_mouseFocus;
-  CSimpleFrame *next_focus = 0;
+  CSimpleFrame *next_focus = NULL;
 
   top->m_eventTime = pMouseData->time;
   top->m_mousePosition = *pMouseData;
@@ -861,7 +861,7 @@ BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
     CMouseEvent mouseEvent(*pMouseData);
 
     top->MoveOrResizeFrame(mouseEvent);
-    return 0;
+    return FALSE;
   }
 
   UINT strata = NUM_SIMPLEFRAME_DRAWLAYERS;
@@ -871,7 +871,7 @@ BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 
     queue = &top->m_eventqueue[SIMPLE_EVENT_MOUSE][strata];
     queue->IterateBegin();
-    while ((entry = queue->IterateNext()) != 0) {
+    while ((entry = queue->IterateNext()) != NULL) {
       CSimpleFrame *frame = (*entry)->frame;
 
       if (frame->OnLayerTrackUpdate(mouseEvent)) {
@@ -891,7 +891,7 @@ BOOL CSimpleTop::OnMouseMove(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
     }
   }
 
-  return next_focus == 0;
+  return next_focus == NULL;
 }
 
 BOOL CSimpleTop::OnMouseMoveRelative(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
@@ -922,11 +922,11 @@ BOOL CSimpleTop::OnMouseDown(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
 
   if (top->m_layout.enabled && (EventIsKeyDown(KEY_CONTROL) || EventIsKeyDown(KEY_ALT))) {
     top->StartMoveOrResizeFrame(mouseEvent, EventIsKeyDown(KEY_CONTROL));
-    return 0;
+    return FALSE;
   }
 
   if (callback && callback(mouseEvent)) {
-    return 0;
+    return FALSE;
   }
 
   CSimpleFrame *frame = top->m_mouseCapture;
@@ -957,7 +957,7 @@ BOOL CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
   top->m_eventTime = pMouseData->time;
   if (top->m_layout.frame) {
     top->StopMoveOrResizeFrame();
-    return 0;
+    return FALSE;
   }
 
   if (frame) {
@@ -967,7 +967,7 @@ BOOL CSimpleTop::OnMouseUp(const EVENT_DATA_MOUSE *pMouseData, LPVOID param) {
     frame->OnLayerMouseUp(mouseEvent);
     eaten = 1;
     if (!mouseEvent.buttonState) {
-      top->m_mouseCapture = 0;
+      top->m_mouseCapture = NULL;
     }
   }
 
@@ -1027,5 +1027,5 @@ BOOL CSimpleTop::OnDisplaySizeChanged(const EVENT_DATA_SIZE *pSizeData, LPVOID p
     callback(sizeEvent);
   }
 
-  return 1;
+  return TRUE;
 }

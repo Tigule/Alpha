@@ -85,7 +85,7 @@ void SndInterfaceFadeProviderPrefs(const EVENT_DATA_IDLE *data) {
 
 static BOOL WorldIdleHandler(LPCVOID dataPtr, LPVOID param) {
   SndInterfaceFadeProviderPrefs((const EVENT_DATA_IDLE *)dataPtr);
-  return 1;
+  return TRUE;
 }
 
 static void StartWorldIdleHandler() {
@@ -226,7 +226,7 @@ static BOOL EnvironmentHandler(LPCSTR command, LPCSTR arguments) {
     SndInterfaceSetProviderPrefs(index, index, 0);
   }
 
-  return 1;
+  return TRUE;
 }
 
 static BOOL EnvironmentListHandler(LPCSTR command, LPCSTR arguments) {
@@ -240,7 +240,7 @@ static BOOL EnvironmentListHandler(LPCSTR command, LPCSTR arguments) {
     ConsolePrintf("[%d]  %s", rec->m_ID, rec->m_Description);
   }
 
-  return 1;
+  return TRUE;
 }
 
 void ProviderPrefShutdown() {
@@ -255,7 +255,7 @@ void ProviderPrefInitialize() {
 }
 
 void SndInterfaceProviderPrefsUnderwaterChanged() {
-  const _FSOUND_REVERB_PROPERTIES *selected = 0;
+  const _FSOUND_REVERB_PROPERTIES *selected = NULL;
 
   if (g_underWater) {
     if (s_flags & 2) {

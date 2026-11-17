@@ -396,10 +396,10 @@ static const struct {
 static bool IsSpellTeach(const SpellRec *rec) {
   for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 36) {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 static bool IsSpellAbility(const SpellRec *rec) {
@@ -411,19 +411,19 @@ static bool IsSpellHarmful(const SpellRec *rec) {
     if (rec->m_effect[effect] == 2 || rec->m_effect[effect] == 58 || rec->m_effect[effect] == 17 || rec->m_effect[effect] == 31 ||
         rec->m_effect[effect] == 62)
     {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 static bool IsSpellOpenLock(const SpellRec *rec) {
   for (UINT effect = 0; effect < 3; ++effect) {
     if (rec->m_effect[effect] == 33 || rec->m_effect[effect] == 59) {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 
 static bool IsSpellQuiet(const SpellRec *rec) {
@@ -450,17 +450,17 @@ static bool ShouldLogAttacker(
     int              allowedAffiliationFlags
 ) {
   if (!s_activePlayer) {
-    return 0;
+    return false;
   }
 
   aAff = s_activePlayer->GetGUIDAffiliation(attacker);
   if (!((1 << aAff) & allowedAffiliationFlags)) {
-    return 0;
+    return false;
   }
 
   unitPtr = ClntObjMgrObjectPtr(attacker, __FILE__, __LINE__);
   if (!unitPtr) {
-    return 0;
+    return false;
   }
 
   CVar *cvar = CVar::Lookup("CombatDeathLogRange");
@@ -485,7 +485,7 @@ static BOOL ShouldLog(
     bool             suppressIfAllUnaffiliated
 ) {
   if (!s_activePlayer) {
-    return 0;
+    return FALSE;
   }
 
   aAff = s_activePlayer->GetGUIDAffiliation(object);
@@ -493,11 +493,11 @@ static BOOL ShouldLog(
   objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
   subjectPtr = ClntObjMgrObjectPtr(subject, __FILE__, __LINE__);
   if (!objectPtr || !subjectPtr) {
-    return 0;
+    return FALSE;
   }
 
-  attackerPtr = 0;
-  victimPtr = 0;
+  attackerPtr = NULL;
+  victimPtr = NULL;
   if (objectPtr && objectPtr->IsA(TYPE_UNIT)) {
     attackerPtr = (CGUnit_C *)objectPtr;
   }
@@ -515,10 +515,10 @@ static BOOL ShouldLog(
   float              subjectSquaredMag = diff.SquaredMag();
 
   if (aAff == AFFILIATION_PARTYMEMBER && objectSquaredMag > objRangeSquared) {
-    return 0;
+    return FALSE;
   }
   if (vAff == AFFILIATION_PARTYMEMBER && subjectSquaredMag > subRangeSquared) {
-    return 0;
+    return FALSE;
   }
   return objectSquaredMag < objRangeSquared || subjectSquaredMag < subRangeSquared;
 }
@@ -839,7 +839,7 @@ HandleGeneralCombatEvadeLogging(const ATTACKROUNDINFO info, CGUnit_C *attackerPt
 
   LPCSTR victimName = victimPtr->GetUnitName();
   LPCSTR attackerName = attackerPtr->GetUnitName();
-  LPCSTR tag = 0;
+  LPCSTR tag = NULL;
   switch (info.newVictimState) {
     case VS_EVADE:
       tag = s_victimStateStringEvade[aAff][vAff];
@@ -1171,7 +1171,7 @@ static void CloseDebugLogHandle() {
   if (s_logHandle) {
     SLogClose(s_logHandle);
   }
-  s_logHandle = 0;
+  s_logHandle = NULL;
 }
 
 static void WriteMessage(LPCSTR message) {
@@ -1690,7 +1690,7 @@ static FrameScript_Method s_ScriptFunctions[] = {
 
 static BOOL DebugCombatLogHandler(LPCSTR command, LPCSTR arguments) {
   UnitCombatDebugLogEnable(arguments && SStrToInt(arguments));
-  return 1;
+  return TRUE;
 }
 
 void UnitCombatLogInitialize() {
@@ -2250,7 +2250,7 @@ void UnitCombatLogEnableFileLog(int enable) {
     if (s_generalLogHandle) {
       SLogClose(s_generalLogHandle);
     }
-    s_generalLogHandle = 0;
+    s_generalLogHandle = NULL;
   }
 }
 

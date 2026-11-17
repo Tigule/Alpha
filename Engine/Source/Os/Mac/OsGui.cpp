@@ -9,17 +9,17 @@
 static LPVOID s_gxWindow;
 
 int OsGuiMessageBox(LPVOID inParentWindow, int inStyle, LPCSTR inMessage, LPCSTR inTitle) {
-  CFStringRef  message = 0;
-  CFStringRef  title = 0;
-  CFStringRef  defaultText = 0;
-  CFStringRef  cancelText = 0;
-  CFStringRef  otherText = 0;
+  CFStringRef  message = NULL;
+  CFStringRef  title = NULL;
+  CFStringRef  defaultText = NULL;
+  CFStringRef  cancelText = NULL;
+  CFStringRef  otherText = NULL;
   CFOptionFlags response = 0;
   int          itemHit;
 
   if (!inTitle || !inTitle[0]) {
     inTitle = inMessage;
-    inMessage = 0;
+    inMessage = NULL;
   }
 
   if (inMessage) {

@@ -17,9 +17,9 @@ namespace { NTempest::CRndSeed sRandSeed; }
 CLightning::CLightning() {
   mAvgSegLen = -2.0f;
   mWidth = 1.0f;
-  mRebuildPoints = 1;
+  mRebuildPoints = TRUE;
   mAccTime = 0.0f;
-  mTexture = 0;
+  mTexture = NULL;
 }
 
 void CLightning::BuildStroke(TSFixedArray<NTempest::C3Vector> &points) {
@@ -72,7 +72,7 @@ void CLightning::Update(float elapsed) {
       mTexCoords[0] = mTexCoords[1] = NTempest::C2Vector(0.0f, 0.5f);
       mTexCoords[numPos - 2] = mTexCoords[numPos - 1] = NTempest::C2Vector(1.0f, 0.5f);
     }
-    mRebuildPoints = 0;
+    mRebuildPoints = FALSE;
   }
 
   static TSFixedArray_<NTempest::C3Vector, 'Ligh', __LINE__> sPoints;
@@ -98,7 +98,7 @@ void CLightning::Render(UINT boltId, const NTempest::C3Vector &cameraPos) {
     mCoordUpdateData.callback(mCoordUpdateData.context, boltId, &sourcePos, &destPos);
     mSrcPos = sourcePos;
     mDstPos = destPos;
-    mRebuildPoints = 1;
+    mRebuildPoints = TRUE;
   }
 
   static NTempest::C44Matrix identity;

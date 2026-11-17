@@ -167,24 +167,24 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
   FATALASSERT(info);
 
   if (object == ClntObjMgrGetActivePlayer()) {
-    return 1;
+    return TRUE;
   }
 
   CGPlayer_C *player = info->player;
   CGObject_C *objectPtr = ClntObjMgrObjectPtr(object, __FILE__, __LINE__);
   if (!objectPtr) {
-    return 1;
+    return TRUE;
   }
 
   if ((objectPtr->GetPosition() - info->currentPos).SquaredMag() > info->radius * info->radius) {
-    return 1;
+    return TRUE;
   }
 
   MINIMAP_OBJECT_TYPES type;
   switch (objectPtr->GetType()) {
     case HIER_TYPE_PLAYER:
       if (CGGameUI::IsPartyMember(object)) {
-        return 1;
+        return TRUE;
       }
     case HIER_TYPE_UNIT: {
       CGUnit_C *unit = (CGUnit_C *)objectPtr;
@@ -192,11 +192,11 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
         type = MINIMAP_PET;
       } else {
         if (unit->GetHealth() <= 0) {
-          return 1;
+          return TRUE;
         }
         type = MINIMAP_MONSTER;
         if (!player->CanTrack(unit)) {
-          return 1;
+          return TRUE;
         }
       }
       break;
@@ -204,11 +204,11 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
     case HIER_TYPE_GAMEOBJECT:
       type = MINIMAP_OBJECT;
       if (!player->CanTrack((CGGameObject_C *)objectPtr)) {
-        return 1;
+        return TRUE;
       }
       break;
     default:
-      return 1;
+      return TRUE;
   }
 
   OBJINFO           *objectInfo = s_miniMapObjects[type].New();
@@ -216,10 +216,10 @@ BOOL CGMinimapFrame::ObjectEnumProc(DWORDLONG object, LPVOID param) {
   NTempest::C2Vector framePos = WorldPosToMinimapFrameCoords(info->currentPos, info->radius, pos.x, pos.y, info->layoutScale);
   objectInfo->object = object;
   objectInfo->position = framePos;
-  return 1;
+  return TRUE;
 }
 
-QUADDATA::QUADDATA() : m_texture(0) {
+QUADDATA::QUADDATA() : m_texture(NULL) {
 }
 
 NTempest::CRect QUADDATA::NormalizeToQuad(UINT quad, NTempest::CRect clippedRect) {
@@ -297,7 +297,7 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
 
   if (!CSimpleFrame::OnLayerTrackUpdate(evt)) {
     m_tooltip->Hide();
-    return 0;
+    return FALSE;
   }
 
   NTempest::CRect baseRect;
@@ -326,7 +326,7 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
       m_tooltip->SetPoint(FRAMEPOINT_BOTTOM, CGGameUI::m_UISimpleParent, FRAMEPOINT_BOTTOMLEFT, x / GetLayoutScale(), evt.y / GetLayoutScale(), 1);
       m_tooltip->Show();
       s_tooltipDisplay = 1;
-      return 1;
+      return TRUE;
     }
   }
 
@@ -337,7 +337,7 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
       if (framecoords.x - BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale <= evt.x && framecoords.x + BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale >= evt.x &&
           framecoords.y - BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale <= evt.y && framecoords.y + BLIP_HALF * s_miniMapTypeInfo[type].blipSizeScale >= evt.y)
       {
-        LPCSTR      string = 0;
+        LPCSTR      string = NULL;
         CGObject_C *object = ClntObjMgrObjectPtr(s_miniMapObjects[type][count].object, __FILE__, __LINE__);
         if (object) {
           string = object->GetObjectName();
@@ -363,7 +363,7 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
           );
           m_tooltip->Show();
           s_tooltipDisplay = 1;
-          return 1;
+          return TRUE;
         }
       }
     }
@@ -392,7 +392,7 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
         );
         m_tooltip->Show();
         s_tooltipDisplayDistant = count;
-        return 1;
+        return TRUE;
       }
     }
   }
@@ -420,13 +420,13 @@ BOOL CGMinimapFrame::OnLayerTrackUpdate(const CMouseEvent &evt) {
         );
         m_tooltip->Show();
         s_tooltipDisplayParty = count;
-        return 1;
+        return TRUE;
       }
     }
   }
 
   m_tooltip->Hide();
-  return 1;
+  return TRUE;
 }
 
 void CGMinimapFrame::OnLayerCursorExit() {
@@ -604,7 +604,7 @@ void CGMinimapFrame::RenderInsideTexture() {
   );
 
   s_minimapTexParams.asyncTexWait = 0;
-  QUADDATA *rHead = 0;
+  QUADDATA *rHead = NULL;
   RenderInsideSortQuads(rHead);
   for (QUADDATA *quad = rHead; quad; quad = quad->rLink) {
     RenderInsideQuad(quad);
@@ -969,7 +969,7 @@ void CGMinimapFrame::Shutdown() {
   for (UINT quad = 0; quad < MAX_QUADDATA; ++quad) {
     if (s_quadData[quad].m_texture) {
       HandleClose(s_quadData[quad].m_texture);
-      s_quadData[quad].m_texture = 0;
+      s_quadData[quad].m_texture = NULL;
     }
     s_quadData[quad].m_flags = 0;
     s_quadData[quad].m_areaNum = NTempest::C2iVector(-1, -1);
@@ -978,22 +978,22 @@ void CGMinimapFrame::Shutdown() {
   if (s_iconTexture) {
     HandleClose(s_iconTexture);
   }
-  s_iconTexture = 0;
+  s_iconTexture = NULL;
 
   if (s_blipTexture) {
     HandleClose(s_blipTexture);
   }
-  s_blipTexture = 0;
+  s_blipTexture = NULL;
 
   if (s_minimapMaskTexture) {
     HandleClose(s_minimapMaskTexture);
   }
-  s_minimapMaskTexture = 0;
+  s_minimapMaskTexture = NULL;
 
   if (s_minimapTexParams.texture) {
     GxTexDestroy(s_minimapTexParams.texture);
   }
-  s_minimapTexParams.texture = 0;
+  s_minimapTexParams.texture = NULL;
 
   s_POIInfo.Clear();
   for (UINT type = 0; type < 5; ++type) {
@@ -1163,7 +1163,7 @@ void CGMinimapFrame::UnregisterScriptMethods() {
 
 BOOL CGMinimapFrame::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
-    return 1;
+    return TRUE;
   }
   return CSimpleFrame::LookupScriptMethod(L, name);
 }

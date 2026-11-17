@@ -46,7 +46,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
     }
   }
 
-  CACHEENTRY() : m_texture(0), m_size(0), m_expireTime(0), m_uncached(0) {
+  CACHEENTRY() : m_texture(NULL), m_size(0), m_expireTime(0), m_uncached(0) {
   }
 
   virtual ~CACHEENTRY() {
@@ -54,7 +54,7 @@ struct CACHEENTRY : public TSHashObject<CACHEENTRY, HASHKEY_STRI>, public CHandl
       HandleClose(m_texture);
     }
 
-    m_texture = 0;
+    m_texture = NULL;
   }
 
   BOOL IsInUse() const {
@@ -181,7 +181,7 @@ HMIPPEDTEXTURE CACHEOBJECT::GetTexture(LPCSTR fileName, TEXTUREINFO *info) {
 
   if (!object->m_texture) {
     m_cacheTable.Delete(fileName);
-    return 0;
+    return NULL;
   }
 
   m_LRUList.LinkNode(object, LIST_HEAD, 0);
@@ -199,13 +199,13 @@ HTEXTURECACHE TextureCacheCreateSizeCache(UINT cacheSize) {
   CACHEOBJECT *cacheObject;
 
   if (!cacheSize) {
-    return 0;
+    return NULL;
   }
 
   storage = SMemAlloc(sizeof(CACHEOBJECT), "HTEXTURECACHE", SERR_LINECODE_OBJECT, 0);
   cacheObject = storage ? new (storage) CACHEOBJECT : 0;
   if (!cacheObject) {
-    return 0;
+    return NULL;
   }
 
   cacheObject->m_cacheSize = cacheSize;
@@ -218,13 +218,13 @@ HTEXTURECACHE TextureCacheCreateInstanceCache(UINT instances) {
   CACHEOBJECT *cacheObject;
 
   if (!instances) {
-    return 0;
+    return NULL;
   }
 
   storage = SMemAlloc(sizeof(CACHEOBJECT), "HTEXTURECACHE", SERR_LINECODE_OBJECT, 0);
   cacheObject = storage ? new (storage) CACHEOBJECT : 0;
   if (!cacheObject) {
-    return 0;
+    return NULL;
   }
 
   cacheObject->m_cacheEntries = instances;
@@ -237,13 +237,13 @@ HTEXTURECACHE TextureCacheCreatTimeCache(UINT milliSeconds) {
   CACHEOBJECT *cacheObject;
 
   if (!milliSeconds) {
-    return 0;
+    return NULL;
   }
 
   storage = SMemAlloc(sizeof(CACHEOBJECT), "HTEXTURECACHE", SERR_LINECODE_OBJECT, 0);
   cacheObject = storage ? new (storage) CACHEOBJECT : 0;
   if (!cacheObject) {
-    return 0;
+    return NULL;
   }
 
   cacheObject->m_cacheTime = milliSeconds;
@@ -268,7 +268,7 @@ const MipBits *TextureCacheGetImage(HMIPPEDTEXTURE texture) {
   CACHEENTRY *object = (CACHEENTRY *)texture;
 
   if (!object) {
-    return 0;
+    return NULL;
   }
 
   return TextureGetMips(object->m_texture, 1);
@@ -278,7 +278,7 @@ BOOL TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, BOOL bForce)
   CACHEENTRY *object = (CACHEENTRY *)texture;
 
   if (!object) {
-    return 0;
+    return FALSE;
   }
 
   if (!object->m_textureInfo.width) {
@@ -287,14 +287,14 @@ BOOL TextureCacheGetInfo(HMIPPEDTEXTURE texture, TEXTUREINFO &info, BOOL bForce)
             object->m_textureInfo.alphaBits, bForce
         ))
     {
-      return 0;
+      return FALSE;
     }
 
     object->m_textureInfo.levels = TextureCalcMipCount(object->m_textureInfo.width, object->m_textureInfo.height);
   }
 
   info = object->m_textureInfo;
-  return 1;
+  return TRUE;
 }
 
 HMIPPEDTEXTURE TextureCacheAllocUncachedImage(EGxTexFormat format, UINT width, UINT height, TEXTUREINFO *textureInfo) {

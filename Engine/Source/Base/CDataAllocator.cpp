@@ -10,8 +10,8 @@ CDataAllocator::CDataAllocator(DWORD bytesPerData, DWORD dataPerBlock) {
   m_bytesPerData = bytesPerData < 4 ? 4 : bytesPerData;
   m_dataPerBlock = dataPerBlock < 1 ? 1 : dataPerBlock;
   m_dataUsed = 0;
-  m_blockList = 0;
-  m_dataList = 0;
+  m_blockList = NULL;
+  m_dataList = NULL;
 }
 
 CDataAllocator::~CDataAllocator() {
@@ -32,12 +32,12 @@ void CDataAllocator::Clear(LPCSTR fileName, int lineNumber) {
   }
 
   m_dataUsed = 0;
-  m_dataList = 0;
+  m_dataList = NULL;
 }
 
 LPVOID CDataAllocator::GetData(int zero, LPCSTR fileName, int lineNumber) {
   if (m_dataPerBlock == 1) {
-    fileName = 0;
+    fileName = NULL;
     lineNumber = 0;
   }
 
@@ -56,7 +56,7 @@ LPVOID CDataAllocator::GetData(int zero, LPCSTR fileName, int lineNumber) {
       data = next;
     }
 
-    data->m_next = 0;
+    data->m_next = NULL;
     block->m_next = m_blockList;
     m_blockList = block;
   }

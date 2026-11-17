@@ -46,7 +46,7 @@ static HWND WindowCreate(CGxDeviceOpenGl *dev, const CGxFormat &format) {
 
 static void WindowDestroy(HWND &hwnd) {
   DestroyWindow(hwnd);
-  hwnd = 0;
+  hwnd = NULL;
 }
 
 void CGxDeviceOpenGl::DeviceCreatePbuffer() {
@@ -86,9 +86,9 @@ void CGxDeviceOpenGl::DeviceDestroyPbuffer() {
     wglDestroyPbufferARB(m_hPbuffer);
   }
 
-  m_hPbuffer = 0;
-  m_hPbufferDC = 0;
-  m_hPbufferRC = 0;
+  m_hPbuffer = NULL;
+  m_hPbufferDC = NULL;
+  m_hPbufferRC = NULL;
 }
 
 void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
@@ -118,7 +118,7 @@ void CGxDeviceOpenGl::IDevSetFocus(int focus, const CGxFormat &format) {
 BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
   if (format.window) {
     format.apiSpecificModeID = 0;
-    return 1;
+    return TRUE;
   }
 
   DISPLAY_DEVICEA dd;
@@ -134,35 +134,35 @@ BOOL CGxDeviceOpenGl::SetFormatMode(const CGxFormat &format) {
         dm.dmPelsHeight == (UINT)format.size.y)
     {
       format.apiSpecificModeID = mode;
-      return 1;
+      return TRUE;
     }
     ++mode;
   }
 
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDeviceOpenGl::IDevAttachGlContext(const CGxFormat &format) {
   FATALASSERT(m_hdc == 0 && m_hglrc == 0);
   m_hdc = GetDC(m_hwnd);
-  BOOL success = m_hdc && (m_hglrc = AttachGlContext(m_hwnd, m_hdc, format)) != 0;
+  BOOL success = m_hdc && (m_hglrc = AttachGlContext(m_hwnd, m_hdc, format)) != NULL;
   if (!success) {
     IDevRemoveGlContext();
-    return 0;
+    return FALSE;
   }
 
   wglMakeCurrent(m_hdc, m_hglrc);
   BindGlExtensions();
   if (wglEXTSwapControl) {
-    wglSwapIntervalEXT(format.vsync != 0);
+    wglSwapIntervalEXT(format.vsync != false);
   }
   ISetGlCaps();
   DeviceCreatePbuffer();
   IStateSetContextDefaults();
   IRsSync(1);
   ISceneBegin(3);
-  m_context = 1;
-  return 1;
+  m_context = TRUE;
+  return TRUE;
 }
 
 void CGxDeviceOpenGl::IDevRemoveGlContext() {
@@ -172,14 +172,14 @@ void CGxDeviceOpenGl::IDevRemoveGlContext() {
     IShaderForceRecreation();
     UnbindGlExtensions();
     RemoveGlContext(m_hglrc);
-    m_hglrc = 0;
+    m_hglrc = NULL;
   }
   if (m_hdc) {
     SetDeviceGammaRamp(m_hdc, &m_systemGammaRamp);
     ReleaseDC(m_hwnd, m_hdc);
-    m_hdc = 0;
+    m_hdc = NULL;
   }
-  m_context = 0;
+  m_context = FALSE;
 }
 
 LRESULT CALLBACK CGxDeviceOpenGl::WindowProcGl(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -272,11 +272,11 @@ BOOL CGxDeviceOpenGl::DeviceCreate(GXWINDOWPROC windowProc, const CGxFormat &for
     goto finallylabel;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   DeviceDestroy();
-  return 0;
+  return FALSE;
 }
 
 BOOL CGxDeviceOpenGl::DeviceCreate(UINT_PTR clienthwnd, const CGxFormat &format) {
@@ -299,12 +299,12 @@ BOOL CGxDeviceOpenGl::DeviceCreate(UINT_PTR clienthwnd, const CGxFormat &format)
     goto finallylabel;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   DeviceDestroy();
   s_inCreateOrDestroy = 0;
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceOpenGl::DeviceDestroy() {
@@ -351,11 +351,11 @@ BOOL CGxDeviceOpenGl::DeviceSetFormat(const CGxFormat &format) {
     goto finallylabel;
   }
 
-  return 1;
+  return TRUE;
 
 finallylabel:
   s_inCreateOrDestroy = 0;
-  return 0;
+  return FALSE;
 }
 
 void CGxDeviceOpenGl::DeviceSetBaseMipLevel(UINT baseMipLevel) {
@@ -395,7 +395,7 @@ void CGxDeviceOpenGl::DeviceSetRenderTarget(EGxBuffer buffer, CGxTex *gxTex, UIN
       glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, oldTex->m_width, oldTex->m_height);
     }
     oldTex->m_needsCreation = 0;
-    target.m_apiSpecific = 0;
+    target.m_apiSpecific = NULL;
   }
 
   target.m_apiSpecific = gxTex;
@@ -431,7 +431,7 @@ BOOL CGxDevice::OpenGlEnumFormats(TSGrowableArray<CGxFormat> &formats) {
   dd.cb = sizeof(dd);
   EnumDisplayDevicesA(0, 0, &dd, 0);
   if (!(dd.StateFlags & 1)) {
-    return 0;
+    return FALSE;
   }
 
   dm.dmSize = sizeof(dm);

@@ -107,7 +107,7 @@ void GxuFontShutdown() {
   if (s_FTLibrary) {
     FT_Done_Library(s_FTLibrary);
   }
-  s_FTLibrary = 0;
+  s_FTLibrary = NULL;
 }
 
 int GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags) {
@@ -137,7 +137,7 @@ int GxuFontCreateFont(LPCSTR name, float fontHeight, CGxFont *&face, UINT flags)
   if (!result) {
     newFace->~CGxFont();
     SMemFree(newFace, typeid(CGxFont).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
-    newFace = 0;
+    newFace = NULL;
   }
 
   face = newFace;
@@ -156,7 +156,7 @@ void GxuFontDestroyFont(CGxFont *&face) {
     oldFace->~CGxFont();
     SMemFree(oldFace, typeid(CGxFont).INTERNALRAWNAME(), SERR_LINECODE_OBJECT, 0);
   }
-  face = 0;
+  face = NULL;
 }
 int GxuFontCreateString(
     CGxFont                   *face,
@@ -207,7 +207,7 @@ void GxuFontDestroyString(CGxString *&string) {
   if (string) {
     string->Unlink();
     string->Recycle();
-    string = 0;
+    string = NULL;
   }
 }
 int GxuFontRenderString(
@@ -270,46 +270,46 @@ CGxStringBatch *GxuFontCreateBatch() {
 }
 BOOL GxuFontAddToBatch(CGxStringBatch *batch, CGxString *string) {
   if (!batch || !string) {
-    return 0;
+    return FALSE;
   }
   batch->AddString(string);
-  return 1;
+  return TRUE;
 }
 BOOL GxuFontRemoveFromBatch(CGxString *string) {
   if (!string) {
-    return 0;
+    return FALSE;
   }
   string->m_batchedStringLink.Unlink();
-  return 1;
+  return TRUE;
 }
 BOOL GxuFontRenderBatch(CGxStringBatch *batch) {
   if (!batch) {
-    return 0;
+    return FALSE;
   }
   batch->RenderBatch();
-  return 1;
+  return TRUE;
 }
 BOOL GxuFontClearBatch(CGxStringBatch *batch) {
   if (!batch) {
-    return 0;
+    return FALSE;
   }
   batch->Clear();
-  return 1;
+  return TRUE;
 }
 BOOL GxuFontDestroyBatch(CGxStringBatch *batch) {
   if (!batch) {
-    return 0;
+    return FALSE;
   }
   batch->Clear();
   s_unusedBatches.LinkNode(batch, LIST_TAIL, 0);
-  return 1;
+  return TRUE;
 }
 BOOL GxuFontAddToInternalBatch(CGxString *string) {
   if (!string) {
-    return 0;
+    return FALSE;
   }
   s_stringBatch.AddString(string);
-  return 1;
+  return TRUE;
 }
 void GxuFontRenderInternalBatch() {
   s_stringBatch.RenderBatch();
@@ -352,7 +352,7 @@ float GxuFontGetWrappedTextHeight(CGxFont *face, LPCSTR text, float fontHeight, 
     fontHeight = GxuFontGetOneToOneHeight(face);
   }
 
-  nextText = 0;
+  nextText = NULL;
   extent = 0.0f;
   lines = 0;
   do {
@@ -626,16 +626,16 @@ BOOL GxuFontGetLastColorCode(LPCSTR string, UINT numBytes, NTempest::CImVector *
 }
 BOOL GxuFontGenerateColorString(char *buf, UINT bufSize, const NTempest::CImVector &color) {
   if (!buf || bufSize < 11) {
-    return 0;
+    return FALSE;
   }
 
   SStrPrintf(buf, bufSize, "|C%2.2x%2.2x%2.2x%2.2x", color.a, color.r, color.g, color.b);
-  return 1;
+  return TRUE;
 }
-int GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor) {
+BOOL GxuFontSetStringColor(CGxString *string, NTempest::CImVector newColor) {
   VALIDATE2(string);
   string->SetColor(newColor);
-  return 1;
+  return TRUE;
 }
 void GxuFontSetStringPosition(CGxString *string, const NTempest::C3Vector &pos) {
   VALIDATE2VOID(string);
@@ -662,7 +662,7 @@ BOOL GxuFontGetStringWidth(CGxString *string, float *width) {
   if (string) {
     *width = string->GetSavedWidth();
   }
-  return string != 0;
+  return string != NULL;
 }
 BOOL GxuFontGetStringHeight(CGxString *string, float *height) {
   FATALASSERT(height);
@@ -670,7 +670,7 @@ BOOL GxuFontGetStringHeight(CGxString *string, float *height) {
   if (string) {
     *height = string->GetStringHeight();
   }
-  return string != 0;
+  return string != NULL;
 }
 UINT GxuFontStringHyperLinkInfo(const CGxString *string, const GXUFONTHYPERLINKINFO *&list) {
   if (!string) {

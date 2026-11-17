@@ -155,7 +155,7 @@ BOOL SEvent::Set() {
   pthread_mutex_unlock(&sync->mutex);
   pthread_cond_signal(&sync->cond);
 
-  return 1;
+  return TRUE;
 }
 
 BOOL SEvent::Reset() {
@@ -165,7 +165,7 @@ BOOL SEvent::Reset() {
   sync->count = 0;
   pthread_mutex_unlock(&sync->mutex);
 
-  return 1;
+  return TRUE;
 }
 
 SSemaphore::SSemaphore(UINT initialCount, UINT maximumCount) {
@@ -191,7 +191,7 @@ BOOL SSemaphore::Signal(UINT count) {
   newCount = sync->count + count;
   if (newCount > (UINT)sync->max) {
     pthread_mutex_unlock(&sync->mutex);
-    return 0;
+    return FALSE;
   }
 
   sync->count = newCount;
@@ -203,7 +203,7 @@ BOOL SSemaphore::Signal(UINT count) {
     pthread_cond_signal(&sync->cond);
   }
 
-  return 1;
+  return TRUE;
 }
 
 CSRWLock::CSRWLock() {
@@ -249,7 +249,7 @@ BOOL SThread::Create(STHREADPROC proc, LPVOID param, SThread &thread, char *name
   sync->max = 0;
   sync->type = SYNC_THREAD;
   pthread_cond_init(&sync->cond, 0);
-  return SCreateThread(proc, param, &threadId, &thread, NULL) != 0;
+  return SCreateThread(proc, param, &threadId, &thread, NULL) != NULL;
 }
 
 SThread &SThread::operator=(const SThread &rhs) {

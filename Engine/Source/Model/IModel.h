@@ -19,7 +19,7 @@ DECLARE_DERIVED_HANDLE(HMATERIAL, HOBJECT);
 DECLARE_DERIVED_HANDLE(HMATERIALSHARED, HOBJECT);
 
 struct CModelTexture {
-  CModelTexture() : handle(0), replaceableId(0) {
+  CModelTexture() : handle(NULL), replaceableId(0) {
   }
   CModelTexture(const CModelTexture &source) {
     replaceableId = source.replaceableId;
@@ -112,7 +112,7 @@ struct CMaterialShared : public CHandleObject {
 
 struct CMaterial : public CHandleObject {
  public:
-  CMaterial() : data(0), emissiveColor(0, 0, 0, 0) {
+  CMaterial() : data(NULL), emissiveColor(0, 0, 0, 0) {
   }
 
   CMaterial(const CMaterial &source)
@@ -297,7 +297,7 @@ class CModelBase {
 };
 
 inline CModelBase::CModelBase(UINT flags)
-    : m_PickLights(GxuLightSelectCallback), m_flags(flags), m_anim(0), m_boundsModel(0), m_aaBoxCustGeoId(-1), m_collideModel(0) {
+    : m_PickLights(GxuLightSelectCallback), m_flags(flags), m_anim(NULL), m_boundsModel(NULL), m_aaBoxCustGeoId(-1), m_collideModel(NULL) {
   m_texBones = GetInvalidMatrixId();
 }
 
@@ -325,7 +325,7 @@ class CModelSimple : public CModelBase {
 };
 
 struct CModelShared : public CHandleObject {
-  CModelShared() : numBones(0), numTexBones(0), groundTrack(TRACK_YAW_ONLY), collision(0), numGeosets(0), numLayers(0) {
+  CModelShared() : numBones(0), numTexBones(0), groundTrack(TRACK_YAW_ONLY), collision(NULL), numGeosets(0), numLayers(0) {
     name[0] = 0;
   }
 
@@ -395,7 +395,7 @@ HMODEL ModelCreateSimpleMesh(
 HMODEL CreateModelBoundingBox(const NTempest::CAaBox &bounds, HTEXTURE texture, EGxBlend blendMode);
 
 NODEDECL(LINKUNIQUE) {
-  LINKUNIQUE() : child(0), scale(1.0f) {
+  LINKUNIQUE() : child(NULL), scale(1.0f) {
   }
 
   ~LINKUNIQUE() {
@@ -455,7 +455,7 @@ inline BOOL AttachmentIsEnabled(CModelComplex *modelptr, UINT index) {
     modelptr->m_attachmentFlags[index] = (enabled ? 2 : 0) | 1;
     return enabled;
   }
-  return 1;
+  return TRUE;
 }
 
 struct CModelRenderData {

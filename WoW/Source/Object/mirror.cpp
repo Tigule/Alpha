@@ -257,6 +257,6 @@ const ObjDataDescriptor *MirrorGetObjDataDescriptor(OBJECT_TYPE type, UINT block
       return &s_corpseDescriptors[blockID];
     default:
       ASSERT(0);
-      return 0;
+      return NULL;
   }
 }

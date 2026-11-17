@@ -34,21 +34,21 @@ BOOL OsClipboardGetString(char *buf, UINT bufSize) {
 
   if (!OpenClipboard(hWnd)) {
     FailureMessage("OpenClipboard");
-    return 0;
+    return FALSE;
   }
 
   globalObjectHandle = GetClipboardData(CF_TEXT);
   if (!globalObjectHandle) {
     FailureMessage("GetClipboardData");
     CloseClipboard();
-    return 0;
+    return FALSE;
   }
 
   clipboardString = (char *)GlobalLock(globalObjectHandle);
   if (!clipboardString) {
     FailureMessage("GlobalLock");
     CloseClipboard();
-    return 0;
+    return FALSE;
   }
 
   wideChars = MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, 0, 0);
@@ -60,7 +60,7 @@ BOOL OsClipboardGetString(char *buf, UINT bufSize) {
 
   GlobalUnlock(globalObjectHandle);
   CloseClipboard();
-  return 1;
+  return TRUE;
 }
 
 char *OsClipboardGetString() {
@@ -76,21 +76,21 @@ char *OsClipboardGetString() {
 
   if (!OpenClipboard(hWnd)) {
     FailureMessage("OpenClipboard");
-    return 0;
+    return NULL;
   }
 
   globalObjectHandle = GetClipboardData(CF_TEXT);
   if (!globalObjectHandle) {
     FailureMessage("GetClipboardData");
     CloseClipboard();
-    return 0;
+    return NULL;
   }
 
   clipboardString = (char *)GlobalLock(globalObjectHandle);
   if (!clipboardString) {
     FailureMessage("GlobalLock");
     CloseClipboard();
-    return 0;
+    return NULL;
   }
 
   wideChars = MultiByteToWideChar(OsInputGetCodePage(), MB_PRECOMPOSED, clipboardString, -1, 0, 0);
@@ -123,14 +123,14 @@ BOOL OsClipboardPutString(LPCSTR string) {
   clipboardData = GlobalAlloc(0x2042, stringBytes);
   if (!clipboardData) {
     FailureMessage("GlobalAlloc");
-    return 0;
+    return FALSE;
   }
 
   globalString = (char *)GlobalLock(clipboardData);
   if (!globalString) {
     FailureMessage("GlobalLock");
     CloseClipboard();
-    return 0;
+    return FALSE;
   }
 
   wideString = (WORD *)_alloca(stringBytes * sizeof(WORD));
@@ -141,17 +141,17 @@ BOOL OsClipboardPutString(LPCSTR string) {
   if (!OpenClipboard(hWnd)) {
     FailureMessage("OpenClipboard");
     GlobalFree(clipboardData);
-    return 0;
+    return FALSE;
   }
 
   if (!EmptyClipboard()) {
     FailureMessage("EmptyClipboard");
     CloseClipboard();
     GlobalFree(clipboardData);
-    return 0;
+    return FALSE;
   }
 
   SetClipboardData(CF_TEXT, clipboardData);
   CloseClipboard();
-  return 1;
+  return TRUE;
 }

@@ -134,8 +134,8 @@ namespace MDL {
     TEXTHANDLER *handler = s_handlers;
     for (UINT i = 22; i--; ++handler)
       if (!(*handler)(data, buffer, status))
-        return 0;
-    return 1;
+        return FALSE;
+    return TRUE;
   }
 
 }  // namespace MDL

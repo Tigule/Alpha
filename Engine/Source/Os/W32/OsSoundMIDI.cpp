@@ -15,7 +15,7 @@ typedef DWORD DWORD_PTR;
 #include <dmusici.h>
 
 struct ASYNCLOADER {
-  ASYNCLOADER() : asyncLoader(0) {
+  ASYNCLOADER() : asyncLoader(NULL) {
   }
   ASYNCLOADER(const ASYNCLOADER &);
   ~ASYNCLOADER();
@@ -56,7 +56,7 @@ class CMyLoader : public IDirectMusicLoader {
 
 class CMyIStream : public IStream, public IDirectMusicGetLoader {
  public:
-  CMyIStream() : m_cRef(1), m_pLoader(0), m_cursor(0) {
+  CMyIStream() : m_cRef(1), m_pLoader(NULL), m_cursor(0) {
   }
   ~CMyIStream() {
     Detach();
@@ -175,12 +175,12 @@ static void MIDI_CleanupSegment() {
     if (s_dmusicCollection) {
       s_dmusicCollection->Release();
     }
-    s_dmusicCollection = 0;
+    s_dmusicCollection = NULL;
 
     if (s_dmusicSegment) {
       s_dmusicSegment->Release();
     }
-    s_dmusicSegment = 0;
+    s_dmusicSegment = NULL;
   }
 }
 
@@ -240,7 +240,7 @@ finallylabel:
 static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   loader.Clear();
 
-  SFile *file = 0;
+  SFile *file = NULL;
   if (!SFile::Open(fileName, &file)) {
     return;
   }
@@ -258,7 +258,7 @@ static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   asyncLoader->offset = 0;
   asyncLoader->size = SFile::GetFileSize(file, 0);
   asyncLoader->buffer = loader.buffer.Ptr();
-  asyncLoader->userArg = 0;
+  asyncLoader->userArg = NULL;
   loader.asyncLoader = asyncLoader;
   AsyncFileReadObject(asyncLoader);
 }
@@ -290,7 +290,7 @@ void Sound::MIDI_Shutdown() {
     if (s_dmusicPerformance) {
       s_dmusicPerformance->Release();
     }
-    s_dmusicPerformance = 0;
+    s_dmusicPerformance = NULL;
   }
   if (s_comInitialized) {
     CoUninitialize();
@@ -334,7 +334,7 @@ long CMyLoader::Init() {
 }
 
 long WINAPI CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPVOID *ppv) {
-  IDirectMusicObject *pObject = 0;
+  IDirectMusicObject *pObject = NULL;
   const GUID         *pGUID = &myDesc->guidClass;
 
   long status = CoCreateInstance(*pGUID, 0, CLSCTX_INPROC_SERVER, IID_IDirectMusicObject, (LPVOID *)&pObject);
@@ -358,7 +358,7 @@ long WINAPI CMyLoader::GetObjectA(DMUS_OBJECTDESC *myDesc, const GUID &riid, LPV
         status = stream->Attach(name, this);
       }
 
-      IPersistStream *pPersistStream = 0;
+      IPersistStream *pPersistStream = NULL;
       if (status >= 0) {
         status = pObject->QueryInterface(IID_IPersistStream, (LPVOID *)&pPersistStream);
         if (status >= 0) {
@@ -411,7 +411,7 @@ DWORD WINAPI CMyIStream::AddRef() {
 }
 
 long WINAPI CMyIStream::QueryInterface(const GUID &iid, LPVOID *ppv) {
-  *ppv = 0;
+  *ppv = NULL;
   if (!memcmp(&iid, &IID_IUnknown, sizeof(iid)) || !memcmp(&iid, &IID_ISequentialStream, sizeof(iid)) || !memcmp(&iid, &IID_IStream, sizeof(iid))) {
     *ppv = this;
   } else if (!memcmp(&iid, &IID_IDirectMusicGetLoader, sizeof(iid))) {
@@ -428,7 +428,7 @@ void CMyIStream::Detach() {
   if (m_pLoader) {
     m_pLoader->Release();
   }
-  m_pLoader = 0;
+  m_pLoader = NULL;
 }
 
 long WINAPI CMyIStream::Read(LPVOID pv, DWORD cb, DWORD *pcb) {
@@ -493,7 +493,7 @@ DWORD WINAPI CMyLoader::AddRef() {
 }
 
 long WINAPI CMyLoader::QueryInterface(const GUID &iid, LPVOID *ppv) {
-  *ppv = 0;
+  *ppv = NULL;
   if (memcmp(&iid, &IID_IUnknown, sizeof(iid)) && memcmp(&iid, &IID_IDirectMusicLoader, sizeof(iid))) {
     return E_NOINTERFACE;
   }
@@ -513,7 +513,7 @@ void ASYNCLOADER::Clear() {
   if (asyncLoader) {
     SFile *file = asyncLoader->file;
     AsyncFileReadDestroyObject(asyncLoader);
-    asyncLoader = 0;
+    asyncLoader = NULL;
     if (file) {
       SFile::Close(file);
     }
@@ -526,7 +526,7 @@ ASYNCLOADER::~ASYNCLOADER() {
 }
 #else
 BOOL Sound::MIDI_Initialize() {
-  return 0;
+  return FALSE;
 }
 
 void Sound::MIDI_Shutdown() {

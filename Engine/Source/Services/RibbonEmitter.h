@@ -5,7 +5,7 @@
 #include <stpl.h>
 
 struct CRibbonMat {
-  CRibbonMat() : enableLighting(1), enableFog(1), enableDepthTest(1), enableDepthWrite(1), enableCulling(1), alpha(GxBlend_Opaque) {
+  CRibbonMat() : enableLighting(TRUE), enableFog(TRUE), enableDepthTest(TRUE), enableDepthWrite(TRUE), enableCulling(TRUE), alpha(GxBlend_Opaque) {
   }
 
   BOOL     enableLighting : 1;

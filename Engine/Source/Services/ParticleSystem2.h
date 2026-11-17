@@ -98,7 +98,7 @@ class CParticleKey {
 };
 
 struct CParticleMat {
-  CParticleMat() : alpha(GxBlend_Opaque), enableLighting(1), enableFog(1), enableDepthWrites(1) {
+  CParticleMat() : alpha(GxBlend_Opaque), enableLighting(TRUE), enableFog(TRUE), enableDepthWrites(TRUE) {
   }
 
   EGxBlend alpha;

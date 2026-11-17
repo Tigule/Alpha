@@ -10,7 +10,7 @@ DECLARE_DERIVED_HANDLE(HCHARGEOSET, HOBJECT);
 struct HMODEL__;
 typedef HMODEL__ *HMODEL;
 
-BOOL GetObjComponentInfo(
+int GetObjComponentInfo(
     int     race,
     int     sex,
     int     displayID,
@@ -62,7 +62,7 @@ void HeadGeosetHideCharGeosets(
 void HeadGeosetUnhideCharGeosets(HCHARGEOSET geosetHandle, const UINT *preferredGeosets, UINT numPreferredGeosets);
 typedef void (*OBJCALLBACK)(LPVOID param, UINT inventorySlot, HMODEL model, UINT unk, int loaded);
 typedef HMODEL (*OBJREMOVECALLBACK)(LPVOID param, UINT inventorySlot, UINT componentLink);
-int ObjComponentAdd(
+BOOL ObjComponentAdd(
     int                       unitSex,
     int                       unitRace,
     int                       unitPlayer,

@@ -103,9 +103,9 @@ void CSimpleRender::DrawBatch(CRenderBatch *batch) {
 
 CSimpleTexture::CSimpleTexture(CSimpleFrame *frame, UINT drawlayer, int show)
     : CSimpleRegion(frame, drawlayer, show),
-      m_name(0),
+      m_name(NULL),
       m_registryContext(0),
-      m_texture(0),
+      m_texture(NULL),
       m_alphamode(GxBlend_Alpha),
       m_TexCoordModifiesPosition(0) {
   NTempest::CRect rect;
@@ -267,7 +267,7 @@ BOOL CSimpleTexture::AddToRegistry(LPCSTR name, UINT context) {
     UnregisterScriptObject(m_name);
     SimpleTextureRegistryRemoveEntry(m_name, m_registryContext);
     FREE(m_name);
-    m_name = 0;
+    m_name = NULL;
   }
 
   if (name && *name) {
@@ -285,7 +285,7 @@ BOOL CSimpleTexture::AddToRegistry(LPCSTR name, UINT context) {
 BOOL CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
   if (m_texture) {
     HandleClose(m_texture);
-    m_texture = 0;
+    m_texture = NULL;
   }
 
   if (file) {
@@ -299,7 +299,7 @@ BOOL CSimpleTexture::SetTexture(LPCSTR file, int uvWrapping) {
   }
 
   OnRegionChanged();
-  return 1;
+  return TRUE;
 }
 
 BOOL CSimpleTexture::SetTexture(HTEXTURE texHandle) {
@@ -307,7 +307,7 @@ BOOL CSimpleTexture::SetTexture(HTEXTURE texHandle) {
 
   if (m_texture) {
     HandleClose(m_texture);
-    m_texture = 0;
+    m_texture = NULL;
   }
 
   if (texHandle) {
@@ -328,7 +328,7 @@ BOOL CSimpleTexture::SetTexture(const NTempest::CImVector &color) {
 
   if (m_texture) {
     HandleClose(m_texture);
-    m_texture = 0;
+    m_texture = NULL;
   }
 
   m_texture = TextureCreateSolid(color, 0);
@@ -431,7 +431,7 @@ void CSimpleTexture::ClearFromSimpleRegistry() {
 }
 
 CGxTex *CSimpleTexture::GetTexture() {
-  CGxTex *texturedata = 0;
+  CGxTex *texturedata = NULL;
 
   if (m_texture) {
     texturedata = TextureGetGxTex(m_texture, 1, 0);
@@ -559,14 +559,14 @@ void CSimpleFontStringAttributes::CopyFlags(const CSimpleFontStringAttributes &r
 
 CSimpleFontString::CSimpleFontString(CSimpleFrame *frame, UINT drawlayer, int show)
     : CSimpleRegion(frame, drawlayer, show),
-      m_name(0),
+      m_name(NULL),
       m_registryContext(0),
-      m_font(0),
+      m_font(NULL),
       m_textMaxSize(0),
       m_textCurSize(0),
-      m_text(0),
+      m_text(NULL),
       m_spacing(0.0f),
-      m_string(0),
+      m_string(NULL),
       m_cachedWidth(0.0f),
       m_cachedHeight(0.0f),
       m_shadowColor(0xFF000000ul),
@@ -579,7 +579,7 @@ CSimpleFontString::CSimpleFontString(CSimpleFrame *frame, UINT drawlayer, int sh
 CSimpleFontString::~CSimpleFontString() {
   if (m_text) {
     FREE(m_text);
-    m_text = 0;
+    m_text = NULL;
   }
 
   SetFont(0, 0.0f, 0);
@@ -777,7 +777,7 @@ BOOL CSimpleFontString::AddToRegistry(LPCSTR name, UINT context) {
     UnregisterScriptObject(m_name);
     SimpleFontStringRegistryRemoveEntry(m_name, m_registryContext);
     FREE(m_name);
-    m_name = 0;
+    m_name = NULL;
   }
 
   if (name && *name) {
@@ -799,12 +799,12 @@ BOOL CSimpleFontString::SetFont(LPCSTR font, float fontHeight, UINT fontFlags) {
 
   if (m_string) {
     HandleClose(m_string);
-    m_string = 0;
+    m_string = NULL;
   }
 
   if (m_font) {
     HandleClose(m_font);
-    m_font = 0;
+    m_font = NULL;
   }
 
   m_cachedWidth = 0.0f;
@@ -839,7 +839,7 @@ void CSimpleFontString::SetTextHeight(float height) {
 
     if (m_string) {
       HandleClose(m_string);
-      m_string = 0;
+      m_string = NULL;
     }
 
     Resize(0);
@@ -897,7 +897,7 @@ void CSimpleFontString::SetText(LPCSTR text) {
 
   if (m_string) {
     HandleClose(m_string);
-    m_string = 0;
+    m_string = NULL;
   }
 
   Resize(0);
@@ -905,7 +905,7 @@ void CSimpleFontString::SetText(LPCSTR text) {
 
 static LPCSTR LanguageProcess(LPCSTR text) {
   for (;;) {
-    BOOL found = 0;
+    BOOL found = FALSE;
 
     LPCSTR rule;
     for (rule = text; *rule; ++rule) {
@@ -913,7 +913,7 @@ static LPCSTR LanguageProcess(LPCSTR text) {
         if (rule[1] == '|') {
           ++rule;
         } else if (isdigit(*++rule)) {
-          found = 1;
+          found = TRUE;
           break;
         }
       }
@@ -1073,7 +1073,7 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
 
   if (m_string) {
     HandleClose(m_string);
-    m_string = 0;
+    m_string = NULL;
   }
 
   if (m_text && *m_text) {
@@ -1082,13 +1082,13 @@ void CSimpleFontString::UpdateString(const NTempest::CRect *rect) {
     UINT               styleFlags = m_styleFlags;
 
     if (!(styleFlags & 0x400)) {
-      BOOL found = 0;
+      BOOL found = FALSE;
 
       for (int i = 0; text[i]; ++i) {
         if (text[i] == '|' && text[i + 1] == '|') {
           ++i;
         } else if (text[i] == '|' && (text[i + 1] == 'C' || text[i + 1] == 'c')) {
-          found = 1;
+          found = TRUE;
           break;
         }
       }
@@ -1238,7 +1238,7 @@ void CSimpleFontString::ClearFromSimpleRegistry() {
 
 CRenderBatch::CRenderBatch() {
   m_count = 0;
-  m_stringbatch = 0;
+  m_stringbatch = NULL;
 }
 
 CRenderBatch::~CRenderBatch() {
@@ -1302,7 +1302,7 @@ void CRenderBatch::Clear() {
 
   if (m_stringbatch) {
     GxuFontDestroyBatch(m_stringbatch);
-    m_stringbatch = 0;
+    m_stringbatch = NULL;
   }
 
   m_callbacks.Clear();

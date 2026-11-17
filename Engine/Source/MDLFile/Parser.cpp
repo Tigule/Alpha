@@ -130,7 +130,7 @@ LPCSTR Parser::ExpectString() {
     return value.sVal;
   }
   FatalExpected(MDL::TokenText(MDLTOK_STRING), tokentext);
-  return 0;
+  return NULL;
 }
 
 LPCSTR Parser::ExpectString(UINT cachedToken, LPCSTR tokenText, UTokenData *cachedValue) {
@@ -138,7 +138,7 @@ LPCSTR Parser::ExpectString(UINT cachedToken, LPCSTR tokenText, UTokenData *cach
     return cachedValue->sVal;
   }
   FatalExpected(MDL::TokenText(MDLTOK_STRING), tokenText);
-  return 0;
+  return NULL;
 }
 
 long Parser::GetOptionalInt(UINT *token, LPCSTR *tokenText, UTokenData *savedValue) {
@@ -164,17 +164,17 @@ long Parser::GetOptionalInt(UINT cachedToken, UTokenData *cachedValue, UINT *tok
 BOOL Parser::GetOptionalToken(UINT expected, UINT *token, LPCSTR *tokenText) {
   *token = Token(tokenText, 0);
   if (*token != expected) {
-    return 0;
+    return FALSE;
   }
   *token = Token(tokenText, 0);
-  return 1;
+  return TRUE;
 }
 
 BOOL Parser::GetOptionalToken(UINT expected, UINT cachedToken, UINT *token, LPCSTR *tokenText) {
   if (cachedToken != expected) {
     *token = cachedToken;
-    return 0;
+    return FALSE;
   }
   *token = Token(tokenText, 0);
-  return 1;
+  return TRUE;
 }

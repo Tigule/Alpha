@@ -268,7 +268,7 @@ void CGxDeviceOpenGl::ITexForceRecreation() {
     if (tex->m_apiSpecificData) {
       static NTempest::CiRect emptyRect;
       glDeleteTextures(1, (GLuint *)&tex->m_apiSpecificData);
-      tex->m_apiSpecificData = 0;
+      tex->m_apiSpecificData = NULL;
       tex->m_needsCreation = 1;
       tex->m_needsFlagUpdate = 1;
       TexMarkForUpdate(tex, emptyRect, 0);

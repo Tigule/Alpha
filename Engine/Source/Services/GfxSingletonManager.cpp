@@ -7,11 +7,11 @@
 #include "ParticleSystem2.h"
 #include <stdio.h>
 
-ParticleSystemManager *ParticleSystemManager::manager = 0;
+ParticleSystemManager *ParticleSystemManager::manager = NULL;
 float                  ParticleSystemManager::scaler = 1.0f;
 float                  ParticleSystemManager::sm_projectDistance;
 int (*ParticleSystemManager::sm_projectCallback)(const NTempest::C3Segment &, float &);
-RibbonManager *RibbonManager::manager = 0;
+RibbonManager *RibbonManager::manager = NULL;
 
 void ParticleSystemManager::SetScaler(float scaler) {
   ParticleSystemManager::scaler = scaler < 0.0f ? 0.0f : (scaler > 1.0f ? 1.0f : scaler);
@@ -41,7 +41,7 @@ ParticleSystemManager *ParticleSystemManager::GetInstance() {
 
 void ParticleSystemManager::Destroy() {
   DEL(manager);
-  manager = 0;
+  manager = NULL;
 }
 
 ParticleSystemManager::~ParticleSystemManager() {
@@ -201,7 +201,7 @@ RibbonManager *RibbonManager::GetInstance() {
 
 void RibbonManager::Destroy() {
   DEL(manager);
-  manager = 0;
+  manager = NULL;
 }
 
 RibbonManager::~RibbonManager() {

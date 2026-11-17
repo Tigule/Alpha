@@ -18,7 +18,7 @@ BOOL               StringToBOOL(LPCSTR string);
 BOOL               LoadXML_Dimensions(const XMLNode *node, float &width, float &height, CStatus *status);
 BOOL               LoadXML_Value(const XMLNode *node, float &value, CStatus *status);
 BOOL               LoadXML_Insets(const XMLNode *node, float &left, float &right, float &top, float &bottom, CStatus *status);
-int                LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status);
+BOOL               LoadXML_Color(const XMLNode *node, NTempest::CImVector &color, CStatus *status);
 CSimpleTexture    *LoadXML_Texture(const XMLNode *node, CSimpleFrame *frame, CStatus *status);
 CSimpleFontString *LoadXML_String(const XMLNode *node, CSimpleFrame *frame, CStatus *status);
 BOOL               StringToFramePoint(LPCSTR string, FRAMEPOINT &point);

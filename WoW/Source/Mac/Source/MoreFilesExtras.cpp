@@ -17,7 +17,7 @@ static OSErr DeleteLevel(const char *path) {
     return dirNFErr;
   }
 
-  while ((entry = readdir(dir)) != 0) {
+  while ((entry = readdir(dir)) != NULL) {
     char        child[PATH_MAX];
     struct stat info;
 

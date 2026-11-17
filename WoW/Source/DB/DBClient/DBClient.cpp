@@ -306,7 +306,7 @@ static void InitTerrainSoundTypeIDs() {
 
 static void LocateWeaponSubclass() {
   int i;
-  s_weaponClassRecPtr = 0;
+  s_weaponClassRecPtr = NULL;
   for (i = g_itemClassDB.GetNumRecords(); i;) {
     const ItemClassRec *rec = g_itemClassDB.GetRecordByIndex(--i);
     ASSERT(rec);
@@ -326,7 +326,7 @@ static void InitWeaponSubclasses() {
   int weaponClass;
   int i;
   s_weaponSubClasses.SetCount(0);
-  s_unarmedWeaponSubclass = 0;
+  s_unarmedWeaponSubclass = NULL;
   LocateWeaponSubclass();
   ASSERT(s_weaponClassRecPtr);
   weaponClass = s_weaponClassRecPtr->m_classID;
@@ -368,8 +368,8 @@ static void InitWeaponSubclasses() {
 static void InitSoundProviderPreferences() {
   int i;
 
-  s_defaultOutdoorProviderPrefs = 0;
-  s_defaultIndoorProviderPrefs = 0;
+  s_defaultOutdoorProviderPrefs = NULL;
+  s_defaultIndoorProviderPrefs = NULL;
 
   for (i = g_soundProviderPreferencesDB.GetNumRecords(); i;) {
     const SoundProviderPreferencesRec *rec = g_soundProviderPreferencesDB.GetRecordByIndex(--i);

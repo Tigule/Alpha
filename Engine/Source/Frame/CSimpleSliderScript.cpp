@@ -89,7 +89,7 @@ void CSimpleSlider::UnregisterScriptMethods() {
 
 BOOL CSimpleSlider::LookupScriptMethod(lua_State *L, LPCSTR name) {
   if (FrameScript_Object::LookupScriptMethod(L, name, s_scriptMethods)) {
-    return 1;
+    return TRUE;
   }
 
   return CSimpleFrame::LookupScriptMethod(L, name);

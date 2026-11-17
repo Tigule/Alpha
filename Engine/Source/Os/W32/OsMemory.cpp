@@ -8,8 +8,8 @@
 #include "OsMemory.h"
 #include <stdio.h>
 
-COsSharedMemory::COsSharedMemory() : m_data(0), m_size(0) {
-  *(HANDLE *)m_opaqueData = 0;
+COsSharedMemory::COsSharedMemory() : m_data(NULL), m_size(0) {
+  *(HANDLE *)m_opaqueData = NULL;
 }
 
 COsSharedMemory::~COsSharedMemory() {
@@ -42,14 +42,14 @@ bool COsSharedMemory::Initialize(LPCSTR name, UINT size, int mode) {
 
   if (GetLastError() == ERROR_ALREADY_EXISTS && mode == 0) {
     CloseHandle(*(HANDLE *)m_opaqueData);
-    *(HANDLE *)m_opaqueData = 0;
+    *(HANDLE *)m_opaqueData = NULL;
     return true;
   }
 
   m_data = MapViewOfFile(*(HANDLE *)m_opaqueData, access, 0, 0, 0);
   if (!m_data) {
     CloseHandle(*(HANDLE *)m_opaqueData);
-    *(HANDLE *)m_opaqueData = 0;
+    *(HANDLE *)m_opaqueData = NULL;
     return true;
   }
 
@@ -92,12 +92,12 @@ void COsSharedMemory::Destroy() {
 
   if (m_data) {
     UnmapViewOfFile(m_data);
-    m_data = 0;
+    m_data = NULL;
   }
 
   mapping = *(HANDLE *)m_opaqueData;
   if (mapping) {
     CloseHandle(mapping);
-    *(HANDLE *)m_opaqueData = 0;
+    *(HANDLE *)m_opaqueData = NULL;
   }
 }

@@ -45,8 +45,8 @@ LPVOID MovementTryLock(DWORDLONG) {
 void MovementUnlock(LPVOID obj) {
 }
 
-int MovementIsWorldServer() {
-  return 0;
+BOOL MovementIsWorldServer() {
+  return FALSE;
 }
 
 void MovementNotifyZoneMgr(DWORDLONG guid) {

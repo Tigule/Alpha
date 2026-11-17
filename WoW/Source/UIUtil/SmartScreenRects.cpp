@@ -98,7 +98,7 @@ static BOOL RectCollides(SCREENRECTGRIDS grid, NTempest::CRect &rect, TEST_DIREC
   GRIDRECTLIST &list = s_gridRectList[grid];
 
   if (!list.rectList.Count()) {
-    return 0;
+    return FALSE;
   }
 
   const NTempest::CRect *ptr = list.rectList.Ptr();
@@ -111,23 +111,23 @@ static BOOL RectCollides(SCREENRECTGRIDS grid, NTempest::CRect &rect, TEST_DIREC
       switch (direction) {
         case TEST_UP:
           *offset = ptr->t - rect.b;
-          return 1;
+          return TRUE;
         case TEST_LEFT:
           *offset = rect.r - ptr->l;
-          return 1;
+          return TRUE;
         case TEST_RIGHT:
           *offset = ptr->r - rect.l;
-          return 1;
+          return TRUE;
         case TEST_DOWN:
           *offset = rect.t - ptr->b;
-          return 1;
+          return TRUE;
         default:
           FATALERROR(("Error, unknown smartscreenrect test direction %d!", direction));
       }
     }
     ++ptr;
   }
-  return 0;
+  return FALSE;
 }
 
 static NTempest::CRect TestUp(SCREENRECTGRIDS grid, NTempest::CRect rect) {
@@ -308,7 +308,7 @@ static NTempest::CRect FindFreeRect(SCREENRECTGRIDS grid, const NTempest::CRect 
 
   UINT acc = 0;
 
-  BOOL found = 0;
+  BOOL found = FALSE;
   while (!found) {
     if (acc++ >= breakCount) {
       outputRect = rect;
@@ -340,7 +340,7 @@ static NTempest::CRect FindFreeRect(SCREENRECTGRIDS grid, const NTempest::CRect 
 
       if (newRect == firstNode->nodeRect) {
         outputRect = newRect;
-        found = 1;
+        found = TRUE;
         break;
       }
 

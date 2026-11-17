@@ -72,7 +72,7 @@ struct MidiSong {
 };
 
 struct ASYNCLOADER {
-  ASYNCLOADER() : asyncLoader(0) {
+  ASYNCLOADER() : asyncLoader(NULL) {
   }
   ~ASYNCLOADER();
   void Clear();
@@ -504,10 +504,10 @@ static void StopSong() {
 
   s_synth->UnloadAll();
   delete s_song;
-  s_song = 0;
+  s_song = NULL;
   if (s_bank) {
     s_bank->Release();
-    s_bank = 0;
+    s_bank = NULL;
   }
 }
 
@@ -616,7 +616,7 @@ static void PostLoadCallback(LPVOID userArg) {
 static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   loader.Clear();
 
-  SFile *file = 0;
+  SFile *file = NULL;
   if (!SFile::Open(fileName, &file)) {
     return;
   }
@@ -634,14 +634,14 @@ static void InitLoader(ASYNCLOADER &loader, LPCSTR fileName) {
   asyncLoader->offset = 0;
   asyncLoader->size = SFile::GetFileSize(file, 0);
   asyncLoader->buffer = loader.buffer.Ptr();
-  asyncLoader->userArg = 0;
+  asyncLoader->userArg = NULL;
   loader.asyncLoader = asyncLoader;
   AsyncFileReadObject(asyncLoader);
 }
 
 BOOL Sound::MIDI_Initialize() {
   if (s_initialized) {
-    return 1;
+    return TRUE;
   }
 
   s_synth = new CSynth;
@@ -662,15 +662,15 @@ BOOL Sound::MIDI_Initialize() {
   if (s_channel == -1) {
     if (s_stream) {
       FSOUND_Stream_Close(s_stream);
-      s_stream = 0;
+      s_stream = NULL;
     }
     delete s_synth;
-    s_synth = 0;
-    return 0;
+    s_synth = NULL;
+    return FALSE;
   }
 
   s_initialized = 1;
-  return 1;
+  return TRUE;
 }
 
 void Sound::MIDI_Shutdown() {
@@ -678,12 +678,12 @@ void Sound::MIDI_Shutdown() {
   if (s_stream) {
     FSOUND_Stream_Stop(s_stream);
     FSOUND_Stream_Close(s_stream);
-    s_stream = 0;
+    s_stream = NULL;
     s_channel = -1;
   }
   if (s_synth) {
     delete s_synth;
-    s_synth = 0;
+    s_synth = NULL;
   }
   s_initialized = 0;
   s_loading = 0;
@@ -737,14 +737,14 @@ void Sound::MIDI_SetVolume(float volume) {
 }
 
 bool Sound::MIDI_Playing() {
-  return s_song != 0;
+  return s_song != NULL;
 }
 
 void ASYNCLOADER::Clear() {
   if (asyncLoader) {
     SFile *file = asyncLoader->file;
     AsyncFileReadDestroyObject(asyncLoader);
-    asyncLoader = 0;
+    asyncLoader = NULL;
     if (file) {
       SFile::Close(file);
     }

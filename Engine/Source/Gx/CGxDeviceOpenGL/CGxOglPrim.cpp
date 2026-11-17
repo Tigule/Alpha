@@ -59,14 +59,14 @@ class CGxBufOgl : public CGxBuf {
   }
 };
 
-CGxBufOgl::CGxBufOgl() : m_vb(0), m_ib(0) {
+CGxBufOgl::CGxBufOgl() : m_vb(NULL), m_ib(NULL) {
 }
 
 BOOL CGxBufOgl::LockVB() {
-  BOOL success = 0;
+  BOOL success = FALSE;
 
   if (m_vb) {
-    LPVOID mem = 0;
+    LPVOID mem = NULL;
     switch (m_vertexStatus) {
       default:
         ASSERT(!("CGxBufOgl::LockVB(): invalid m_vertexStatus\n"));
@@ -87,10 +87,10 @@ BOOL CGxBufOgl::LockVB() {
       if (offset != -1) {
         vertexPtr[member] = (BYTE *)mem + offset;
       } else {
-        vertexPtr[member] = 0;
+        vertexPtr[member] = NULL;
       }
     }
-    success = 1;
+    success = TRUE;
   } else {
     memset(vertexPtr, 0, sizeof(vertexPtr));
   }
@@ -102,9 +102,9 @@ BOOL CGxBufOgl::LockIB() {
   if (m_ib) {
     FATALASSERT(0);
   } else {
-    indexPtr = 0;
+    indexPtr = NULL;
   }
-  return 0;
+  return FALSE;
 }
 
 void CGxBufOgl::UnlockVB() {
@@ -181,7 +181,7 @@ void CGxDeviceOpenGl::BufLock(CGxBuf *b) {
   IBufSetBuffers(buf);
 
   if (glNVVertexArrayRange) {
-    DsSet(Ds_NVVAR, m_nvvarMem != 0, 0);
+    DsSet(Ds_NVVAR, m_nvvarMem != NULL, 0);
   }
 
   CGxBufCommand cmd;
@@ -273,7 +273,7 @@ void CGxDeviceOpenGl::BufDestroy(CGxBuf *&b) {
   CGxDevice::BufDestroy(b);
   CGxBufOgl *buf = (CGxBufOgl *)b;
   DEL(buf);
-  b = 0;
+  b = NULL;
 }
 
 void CGxDeviceOpenGl::IPrimSetupNormal(UINT stride, LPCVOID normals) {

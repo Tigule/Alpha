@@ -75,7 +75,7 @@ CacheData *StreamingCache::Acquire(const char *name, UINT *headerSize, void **he
     HSFILE file;
     if (!SFileOpenFile(name, &file)) {
       pthread_mutex_unlock(&m_mutex);
-      return 0;
+      return NULL;
     }
 
     cacheItem = m_items.New(name, 0, 0);

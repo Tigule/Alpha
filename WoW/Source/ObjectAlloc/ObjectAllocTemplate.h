@@ -37,7 +37,7 @@ class TObjectAlloc {
     UINT memHandle;
 
     if (!ObjectAlloc(m_ID, &memHandle)) {
-      return 0;
+      return NULL;
     }
 
     T *obj = (T *)ObjectPtr(memHandle);

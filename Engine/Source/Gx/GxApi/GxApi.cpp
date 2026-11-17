@@ -122,7 +122,7 @@ CGxDevice *GxDevCreate(EGxApi api, GXWINDOWPROC windowProc, const CGxFormat &for
 
   DELIFUSED(g_theGxDevicePtr);
 
-  return 0;
+  return NULL;
 }
 
 CGxDevice *GxDevCreate(EGxApi api, UINT_PTR hwnd, const CGxFormat &format) {
@@ -158,7 +158,7 @@ CGxDevice *GxDevCreate(EGxApi api, UINT_PTR hwnd, const CGxFormat &format) {
 
   DELIFUSED(g_theGxDevicePtr);
 
-  return 0;
+  return NULL;
 }
 
 void GxDevWM(EGxWM wm, LONG_PTR param1, LONG_PTR param2) {
@@ -174,7 +174,7 @@ void GxDevDestroy(CGxDevice *devicePtr) {
 
   g_theGxDevicePtr->DeviceDestroy();
   DELIFUSED(g_theGxDevicePtr);
-  g_theGxDevicePtr = 0;
+  g_theGxDevicePtr = NULL;
 }
 
 int GxDevSetFormat(const CGxFormat &format) {
@@ -743,7 +743,7 @@ BOOL GxTexCreate(
     void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 ) {
-  texId = 0;
+  texId = NULL;
 
   VALIDATEBEGIN;
   VALIDATE(width <= Gx_MaxTexWidth);
@@ -780,7 +780,7 @@ BOOL GxTexCreate(
     void (*userFunc)(EGxTexCommand, UINT, UINT, UINT, UINT, LPVOID, UINT &, LPCVOID &),
     CGxTex *&texId
 ) {
-  texId = 0;
+  texId = NULL;
 
   VALIDATEBEGIN;
   VALIDATE(target <= GxTexTargets_Last);
@@ -1053,7 +1053,7 @@ CGxShaderParam *CGxShader::GetParam(LPCSTR name) {
     }
   }
 
-  return 0;
+  return NULL;
 }
 
 static TSGrowableArray<BYTE> s_vertexMem;
