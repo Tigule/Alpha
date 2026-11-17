@@ -1471,9 +1471,9 @@ void CommonMain() {
 #else
   SErrSetLogTitleString("World of WarCraft (build " STRINGIFY(BUILD_VERSION) ")");
 #endif
-#ifndef __linux__
   SErrSetLogCallback(WowLogHeader);
 
+#ifndef __linux__
   if (sendErrorLogs) {
     SErrRegisterHandler(SendErrorLog);
   }

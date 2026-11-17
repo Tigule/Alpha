@@ -31,6 +31,8 @@ static LPCSTR s_fatalFileName;
 static int    s_fatalLineNumber;
 static int    s_fatalProcessId;
 
+static SERRLOGCALLBACK s_logCallback;
+
 static FILE *s_logFile;
 static char  s_debugger[0x100];
 static char  s_crashMail[0x100];
@@ -125,6 +127,12 @@ extern "C" void APIENTRY SErrPrepareAppFatal(LPCSTR filename, int linenumber) {
   s_fatalLineNumber = linenumber;
   s_fatalProcessId = getpid();
 
+  SErrLeave();
+}
+
+extern "C" void APIENTRY SErrSetLogCallback(SERRLOGCALLBACK cb) {
+  SErrEnter();
+  s_logCallback = cb;
   SErrLeave();
 }
 
@@ -297,6 +305,18 @@ static void SignalHandler(int sig) {
   fprintf(s_logFile, "Command Line: %s\n", s_commandLine);
   fprintf(s_logFile, "Signal %d caught\n", sig);
   fprintf(s_logFile, "**********************************************************************\n");
+
+  if (s_logCallback) {
+    char header[0x1450];
+
+    header[0] = 0;
+    s_logCallback(header, sizeof(header));
+
+    if (strlen(header)) {
+      fprintf(s_logFile, "%s\n", header);
+      fprintf(s_logFile, "**********************************************************************\n");
+    }
+  }
 
   frame = (FRAMEDATA *)pthread_getspecific(s_frameKey);
   if (frame) {
