@@ -63,34 +63,31 @@ Install [Visual Studio Community](https://visualstudio.microsoft.com/downloads/)
 For MIDI ambience on 32-bit (not supported on 64-bit), set `DXSDK_DIR` to a DirectX SDK, such as [DXSDK2010.zip](https://tigule.org/files/ci/DXSDK2010.zip). This is optional.
 
 ```bat
-cd Build
-.\vs2026-setup.bat
-cmake --build vs2026 --config Release
+cmake --preset windows-x86
+cmake --build --preset windows-x86-release
 ```
 
-The executable will be `Build/vs2026/WoW/bin/Release/Wow.exe`.
+`cmake --preset windows-x86` generates `Build/windows-x86/BuildWoW.sln`, which you can open in Visual Studio instead of building from the command line. It has the Debug, Release and Release_Assertions_Enabled configurations. The executable will be `Build/windows-x86/WoW/bin/Release/Wow.exe`.
 
-For a 64-bit build, configure with `vs2026-x64-setup.bat` instead. The executable will be `Build/vs2026-x64/WoW/bin/Release/Wow64.exe`.
-
-```bat
-cd Build
-.\vs2026-x64-setup.bat
-cmake --build vs2026-x64 --config Release
-```
-
-`vs2022-setup.bat` does the same for Visual Studio 2022 (target not tested!)
+For a 64-bit build, use the `windows-x64` presets instead. The executable will be `Build/windows-x64/WoW/bin/Release/Wow64.exe`.
 
 ### macOS
 
-Install Xcode or its Command Line Tools. The port targets Apple Silicon (arm64).
+Install Xcode, or only its Command Line Tools for the Makefiles preset below. The port targets Apple Silicon (arm64).
 
 ```sh
-cd Build
-./mac-setup.sh
-./mac-build.sh
+cmake --preset macos
+cmake --build --preset macos-release
 ```
 
-The bundle will be `Build/WoW/bin/World of Warcraft.app`. `xcode-setup.sh` generates an Xcode project instead.
+The Xcode project in `Build/macos/` has the Debug, Release and Release_Assertions_Enabled configurations. The bundle will be `Build/macos/WoW/bin/Release/World of Warcraft.app`.
+
+With only the Command Line Tools, use the `macos-makefile` preset instead. The bundle will be `Build/macos-makefile/WoW/bin/World of Warcraft.app`.
+
+```sh
+cmake --preset macos-makefile
+cmake --build --preset macos-makefile
+```
 
 ### Linux
 
@@ -101,12 +98,11 @@ sudo apt install clang cmake pkg-config libsdl2-dev libopenal-dev libgl-dev libg
 ```
 
 ```sh
-cd Build
-./linux-setup.sh
-./linux-build.sh
+cmake --preset linux
+cmake --build --preset linux
 ```
 
-The executable will be `Build/WoW/bin/Wow64ae`.
+The executable will be `Build/linux/WoW/bin/Wow64ae`. Pass `-DCMAKE_BUILD_TYPE=Release` or `Debug` to `cmake --preset linux` for another configuration.
 
 ## Running
 
