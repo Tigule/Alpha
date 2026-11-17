@@ -1450,10 +1450,12 @@ static BOOL APIENTRY SendErrorLog(DWORD code, LPCSTR msg, LPCSTR file, int line,
 }
 #endif
 
-#ifdef _WIN32
-int APIENTRY WinMain(HINSTANCE, HINSTANCE, char *, int) {
+#if !BUILD_PORTABLE
+// if you're seeing this and working on 3494+... this branch is not applicable there
+// when mac was ported they moved to CommonMain and had WinMain call it
+int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #else
-void CommonMain() {
+int CommonMain() {
 #endif
   StormInitialize();
   SErrCatchUnhandledExceptions();
@@ -1482,6 +1484,7 @@ void CommonMain() {
 #ifdef __APPLE__
   MacClient::Initialize();
 #endif
+
   if (InitializeGlobal()) {
     EventDoMessageLoop();
     DestroyGlobal();
@@ -1490,19 +1493,20 @@ void CommonMain() {
 #ifdef __APPLE__
   MacClient::Destroy();
 #endif
-  StormDestroy();
 
-#ifdef _WIN32
+  StormDestroy();
   return 0;
-#endif
 }
 
-#ifdef __linux__
+#if defined(_WIN32) && BUILD_PORTABLE
+int APIENTRY WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
+  return CommonMain();
+}
+#elif defined(__linux__)
 int OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
 
 int main(int argc, char **argv) {
   OsSetArgs(argv, true, false);
-  CommonMain();
-  return 0;
+  return CommonMain();
 }
 #endif

@@ -19,7 +19,7 @@ namespace MoreCocoa {
 void Initialize();
 }
 
-void  CommonMain();
+int   CommonMain();
 int   OsSetArgs(char *const *argv, bool resolveRealPath, bool writeDataPath);
 void  OsLaunchURLSetCallback(void (*callback)());
 void  SErrMacSetAssertOptions(DWORD options);
