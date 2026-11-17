@@ -219,10 +219,11 @@ run_vc6_cmd() {
 }
 
 setup() {
-    run_vc6_cmd "\"$CMAKE_EXE\" -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G \"NMake Makefiles\" .."
+    run_vc6_cmd "\"$CMAKE_EXE\" -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G \"NMake Makefiles\" $* .."
 }
 
 build() {
+    cd "$SCRIPT_DIR"
     rm -f WoW/bin/*.pdb WoW/bin/*.map WoW/bin/*.exe
     find Engine Storm WoW -name '*.lib' -exec rm -f {} + 2>/dev/null || true
     run_vc6_cmd "nmake"
@@ -262,7 +263,8 @@ case "${1:-}" in
         install
         ;;
     setup)
-        setup
+        shift
+        setup "$@"
         ;;
     build)
         build

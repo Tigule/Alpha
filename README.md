@@ -21,6 +21,8 @@ It has 3 goals: to understand and document, reconstruct, and preserve legacy cod
 
 [CMake](https://cmake.org/download/) is the build system regardless of your target. Be sure to install it.
 
+If you want to hit the ground running, just run `build.bat` or `build.sh`.
+
 ### Visual C++ 6.0
 
 This is the original toolchain and target. It's the slowest but most correct option, and the only one that builds the original x86 bytecode (`BUILD_PORTABLE=OFF`).
@@ -35,31 +37,28 @@ Install these dependencies yourself, or skip below to grab everything pre-packag
 I've compiled them together here:
 [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [PSDK2001.zip](https://tigule.org/files/ci/PSDK2001.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip).
 
-Run `vc6-setup.bat` once to configure the project and then run `vc6-build.bat`. The executable will be `Build/WoW/bin/Wowae.exe` after.
+`build.bat vc6` expects VC6 in `C:\Program Files (x86)\Microsoft Visual Studio 6.0`. The built exe will be `Build/WoW/bin/Wowae.exe`.
 
 ```bat
-cd Build
-.\vc6-setup.bat
-.\vc6-build.bat
+build.bat vc6
 ```
 
 Pass `-DBUILD_FIXES=OFF` to CMake to leave out Tigule's fixes when you want output that matches the original client.
 
 #### Wine or CrossOver
 
-On macOS or Linux, `wine.sh` downloads the packages above into a Wine prefix and drives the same VC6 build. Use `wine-crossover.sh` instead to build in a CrossOver bottle (`Tigule` by default, or set `CROSSOVER_BOTTLE`).
+On macOS or Linux, `./build.sh vc6` downloads the packages above into a Wine prefix and drives the same VC6 build through `Build/wine.sh`. Set `CROSSOVER_BOTTLE` to build in a CrossOver bottle instead, or use `Build/wine-crossover.sh` (`Tigule` bottle by default).
 
 ```sh
-cd Build
-./wine.sh all
+./build.sh vc6
 ```
-
-`./wine.sh` with no command lists the steps (`install`, `setup`, `build`, `run`, `run-ref`).
 
 ### Visual Studio 2026
 
 Install [Visual Studio Community](https://visualstudio.microsoft.com/downloads/) and the "Desktop development with C++" workload.  
 The Windows SDK includes DirectX. If you're trying to use DirectMusic you will need the legacy DirectX SDK: [DXSDK2010.zip](https://tigule.org/files/ci/DXSDK2010.zip) with `dmusic.h`, and set `BUILD_PORTABLE_MIDI=OFF`.
+
+`build.bat` builds the Release configuration of `windows-x64` on 64-bit Windows and `windows-x86` on 32-bit Windows. Pass `x86` or `x64` to choose. To pick another, use the presets directly:
 
 ```bat
 cmake --preset windows-x86
@@ -90,8 +89,9 @@ cmake --build --preset macos-makefile
 
 ### Linux
 
-The port targets x86_64 and uses SDL2 for the window and input, and miniaudio for sound. On Ubuntu 22.04:
+The port targets x86_64 and uses SDL2 for the window and input, and miniaudio for sound.
 
+On Ubuntu 22.04:
 ```sh
 sudo apt install clang cmake pkg-config libsdl2-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
 ```
