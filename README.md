@@ -2,79 +2,127 @@
 <h1>Tigule Alpha</h1>
 
 <a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/implemented.svg"></a> <a href="https://tigule.github.io/Alpha"><img src="https://tigule.github.io/Alpha/badges/code-functions.svg"></a>
-
-This project has 3 goals: to understand and document, reconstruct, and preserve the earliest archived alpha version of  
-World of Warcraft (version 0.5.3, build 3368)
 </div>
 
 **Disclaimer**:
 *You cannot play retail World of Warcraft with this*. The code only communicates with an early protocol and assets. This is simply a time capsule for those after us.
 
+This project tries to preserve a client from World of Warcraft (version 0.5.3, build 3368), dated December 2003.
+
+It has 3 goals: to understand and document, reconstruct, and preserve legacy code.
+
 ## Contribution Guide
 
 1. C/C++ standards must be restricted to the features available in Visual C++ 6.0 (1998)
-2. Use [Windows datatypes](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types). Non-windows targets can use the same datatypes through `otherwin32.h`
-3. Validate your output to check if it's a measurable improvement
-
-We are aiming to achieve ~100% accuracy before supporting other OS and architecture targets.
+2. Use [Windows datatypes](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types). Non-windows targets still use the same datatypes through `otherwin32.h`
+3. Validate your output to confirm it's an improvement or has no regressions.
 
 ## Building
 
-Install these dependencies:
-- CMake: [cmake.org](https://cmake.org/download/).
+[CMake](https://cmake.org/download/) is the build system regardless of your target. Be sure to install it.
+
+### Visual C++ 6.0
+
+This is the original toolchain and target. It's the slowest but most correct option, and the only one that builds the original x86 bytecode (`BUILD_PORTABLE=OFF`).
+
+Install these dependencies yourself, or skip below to grab everything pre-packaged for ease of use.
 - Visual Studio 6.0 Professional Edition: [archive.org](https://archive.org/details/vsp600enu)
 - Service Pack 5 for Microsoft Visual Studio 6.0: [archive.org](https://archive.org/details/X08-02111)
 - Visual C++ 6.0 Processor Pack [archive.org](https://archive.org/download/en_vs6_ent/vcpp5.exe)
 - Microsoft Platform SDK November 2001: [archive.org](https://archive.org/download/msdn-full/Platform%20SDK%20and%20DDKs/)
 - DirectX 9.0b SDK: [archive.org](https://archive.org/details/dx90bsdk)
 
-You will save time by using my CI files directly: [VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [PSDK2001.zip](https://tigule.org/files/ci/PSDK2001.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip)
+I've compiled them together here:
+[VC6SP5.zip](https://tigule.org/files/ci/VC6SP5.zip), [PSDK2001.zip](https://tigule.org/files/ci/PSDK2001.zip), [DXSDK90.zip](https://tigule.org/files/ci/DXSDK90.zip).
 
-### Windows
+Run `vc6-setup.bat` once to configure the project and then run `vc6-build.bat`. The executable will be `Build/WoW/bin/Wowae.exe` after.
 
-- `vc6-setup.bat`: Produce NMake makefiles for Visual C++ 6.0. Visual C++ 6.0 must be installed to `C:\Program Files (x86)\Microsoft Visual Studio 6.0\VC98`, or you need to edit the vc6 script's paths.
+```bat
+cd Build
+.\vc6-setup.bat
+.\vc6-build.bat
+```
+
+Pass `-DBUILD_FIXES=OFF` to CMake to leave out Tigule's fixes when you want output that matches the original client.
+
+#### Wine or CrossOver
+
+On macOS or Linux, `wine.sh` downloads the packages above into a Wine prefix and drives the same VC6 build. Use `wine-crossover.sh` instead to build in a CrossOver bottle (`Tigule` by default, or set `CROSSOVER_BOTTLE`).
+
+```sh
+cd Build
+./wine.sh all
+```
+
+`./wine.sh` with no command lists the steps (`install`, `setup`, `build`, `run`, `run-ref`).
+
+### Visual Studio 2026
+
+Install [Visual Studio Community](https://visualstudio.microsoft.com/downloads/) and the "Desktop development with C++" workload.
+
+For MIDI ambience on 32-bit (not supported on 64-bit), set `DXSDK_DIR` to a DirectX SDK, such as [DXSDK2010.zip](https://tigule.org/files/ci/DXSDK2010.zip). This is optional.
+
+```bat
+cd Build
+.\vs2026-setup.bat
+cmake --build vs2026 --config Release
+```
+
+The executable will be `Build/vs2026/WoW/bin/Release/Wow.exe`.
+
+For a 64-bit build, configure with `vs2026-x64-setup.bat` instead. The executable will be `Build/vs2026-x64/WoW/bin/Release/Wow64.exe`.
+
+```bat
+cd Build
+.\vs2026-x64-setup.bat
+cmake --build vs2026-x64 --config Release
+```
+
+`vs2022-setup.bat` does the same for Visual Studio 2022 (target not tested!)
 
 ### macOS
 
-- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take up to 15 minutes the first time.**
-- `wine-crossover.sh`: Calls wine.sh using CrossOver's wine prefix.
+Install Xcode or its Command Line Tools. The port targets Apple Silicon (arm64).
+
+```sh
+cd Build
+./mac-setup.sh
+./mac-build.sh
+```
+
+The bundle will be `Build/WoW/bin/World of Warcraft.app`. `xcode-setup.sh` generates an Xcode project instead.
 
 ### Linux
 
-- `wine.sh`: Install, setup cmake, build, and run Visual C++ 6.0 makefiles via Wine. **This can take up to 15 minutes the first time.**
+The port targets x86_64 and uses SDL2 for the window and input, and OpenAL for sound. On Ubuntu 22.04:
 
-## Validation
+```sh
+sudo apt install clang cmake pkg-config libsdl2-dev libopenal-dev libgl-dev libglu1-mesa-dev libx11-dev libstdc++-12-dev
+```
 
-### Full
+```sh
+cd Build
+./linux-setup.sh
+./linux-build.sh
+```
 
-The full validation process may take a couple minutes to run. It's not meant for quick iterative development, rather double checking your work.
-
-1. Install validation dependencies once from Build/Validate/:
-`pip install -r requirements.txt`
-
-2. From Build/:
-`python validate_bytecode.py --json validation.json --text validation.txt --web explorer`
-
-3. Open Build/explorer/index.html in your web browser.
-
-### Targeted
-
-The targeted validation process produces a quick report on one compiland. This is what you should use when working on a file.
-
-1. Install validation dependencies once from Build/Validate/:
-`pip install -r requirements.txt`
-
-2. From Build/, select a source path:
-`python validate_bytecode.py --compiland WoW/Source/Client.cpp --text validation.txt`
+The executable will be `Build/WoW/bin/Wow64ae`.
 
 ## Running
 
 [You need a server to connect to, of course.](https://github.com/The-Alpha-Project/alpha-core)
 
-You can copy everything in your game client folder to `WoW/Client/` to keep track of things easily. The instructions here are written with this as an example path.
+Copy your game install to `WoW/Client/`.
 
-The original game client was meant to use a launcher so you have to pass `-uptodate` when you run it directly.  
-The Alpha Project stores credentials in wow.ses, bypassing the original launcher-authentication flow. Be sure to create a text file in the same folder called `wow.ses` containing your username/password on separate lines.
+The original game client was meant to use a launcher for authentication, most people bypass that, so you'll have to use `-uptodate` when you run it.  
+
+The client runs from the folder its executable is in, so copy the executable there first:
+* Windows: copy the `.exe` into `WoW/Client/`
+* macOS: copy `World of Warcraft.app` into `WoW/Client/`
+* Linux: copy `Wow64ae` into `WoW/Client/` (a symlink won't work), then run `./Wow64ae -uptodate`. Settings and crash logs go to `~/.blizzard/`.
+
+alpha-core can accept a "legacy wow.ses" auth, a custom interface MPQ with auth, or a proper launcher.  
+The quickest but least secure is legacy wow.ses, create a text file in the client folder called `wow.ses` with your username/password on separate lines.
 
 ## Notes
 
