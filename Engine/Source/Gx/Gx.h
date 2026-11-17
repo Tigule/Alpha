@@ -477,12 +477,6 @@ struct CGxGammaRamp {
   }
 };
 
-#if BUILD_PORTABLE
-#define GXTEXFLAGS_CLEAR() (*(DWORD *)this = 0)
-#else
-#define GXTEXFLAGS_CLEAR()
-#endif
-
 struct CGxTexFlags {
   DWORD m_filter : 3;
   DWORD m_wrapU : 1;

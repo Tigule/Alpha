@@ -178,6 +178,12 @@ const UINT  INFINITY_ENCODING = 0x7F800000;
 const float INFINITY = *(const float *)&INFINITY_ENCODING;
 #endif
 
+#ifdef _WIN32
+#define FMT_I64 "I64"
+#else
+#define FMT_I64 "ll"
+#endif
+
 #define DECLARE_STRICT_HANDLE(name) \
   typedef struct name##__ {         \
     int unused;                     \

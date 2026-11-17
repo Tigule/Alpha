@@ -3084,7 +3084,10 @@ extern "C" BOOL APIENTRY SFileOpenArchive(LPCSTR archivename, int priority, DWOR
 #ifdef _WIN32
   file = CreateFileA(localarchivename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 #else
-  file = (HANDLE)OsCreateFile(localarchivename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, 0, 0x3F3F3F3F); if (file == (HANDLE)HOSFILE_INVALID) { file = INVALID_HANDLE_VALUE; }
+  file = (HANDLE)OsCreateFile(localarchivename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, 0, 0x3F3F3F3F);
+  if (file == (HANDLE)HOSFILE_INVALID) {
+    file = INVALID_HANDLE_VALUE;
+  }
 #endif
   if (file == INVALID_HANDLE_VALUE) {
     return FALSE;
@@ -3348,7 +3351,10 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
     HANDLE osFile =
         CreateFileA(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 #else
-    HANDLE osFile = (HANDLE)OsCreateFile(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F); if (osFile == (HANDLE)HOSFILE_INVALID) { osFile = INVALID_HANDLE_VALUE; }
+    HANDLE osFile = (HANDLE)OsCreateFile(localfilename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F);
+    if (osFile == (HANDLE)HOSFILE_INVALID) {
+      osFile = INVALID_HANDLE_VALUE;
+    }
 #endif
     if (osFile != INVALID_HANDLE_VALUE) {
       if (flags & 4) {
@@ -3374,7 +3380,10 @@ extern "C" DWORD APIENTRY SFileOpenFileEx(HSARCHIVE archivehandle, LPCSTR filena
 #ifdef _WIN32
       HANDLE osFile = CreateFileA(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 #else
-      HANDLE osFile = (HANDLE)OsCreateFile(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F); if (osFile == (HANDLE)HOSFILE_INVALID) { osFile = INVALID_HANDLE_VALUE; }
+      HANDLE osFile = (HANDLE)OsCreateFile(archiveptr->archivename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F);
+      if (osFile == (HANDLE)HOSFILE_INVALID) {
+        osFile = INVALID_HANDLE_VALUE;
+      }
 #endif
       *handle = (HSFILE)osFile;
       result = osFile != INVALID_HANDLE_VALUE;

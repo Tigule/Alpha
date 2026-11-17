@@ -45,18 +45,14 @@ if(APPLE)
 elseif(NOT HAVE_WIN8_SDK)
     target_include_directories(Gx PRIVATE "$ENV{DXSDK_DIR}/Include")
 else()
-    # D3DAssemble is not exposed in Windows SDK headers
-    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        set(D3DASSEMBLE_EXPORT D3DAssemble@32)
-    else()
-        set(D3DASSEMBLE_EXPORT D3DAssemble)
-    endif()
-
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def "LIBRARY d3dcompiler_47.dll\nEXPORTS\n    ${D3DASSEMBLE_EXPORT}\n")
+    # D3DAssemble is not exposed in Windows SDK headers or import libs
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def "LIBRARY d3dcompiler_47.dll\nEXPORTS\n    D3DAssemble\n")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp "extern \"C\" long __stdcall D3DAssemble(const void *, unsigned long, const char *, const void *, void *, unsigned int, void **, void **) {\n  return 0;\n}\n")
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib
-        COMMAND ${CMAKE_AR} /nologo /def:${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def /out:${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib /machine:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}
-        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def)
+        COMMAND ${CMAKE_CXX_COMPILER} /nologo /Zl /c ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp /Fo${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.obj
+        COMMAND ${CMAKE_AR} /nologo /def:${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.obj /out:${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib /machine:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID}
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.def ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.cpp)
     add_custom_target(d3dcompiler_47 DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib)
     add_dependencies(Gx d3dcompiler_47)
     target_link_libraries(Gx PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/d3dcompiler_47.lib)

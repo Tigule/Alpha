@@ -794,10 +794,4 @@ void               MovementSetGravityRate(float metersPerSecSqd);
 void               MovementSetTerminalVelocity(float metersPerSec);
 float              MovementGetTerminalVelocity();
 
-#ifdef _WIN32
-#define FMT_I64 "I64"
-#else
-#define FMT_I64 "ll"
-#endif
-
 #endif

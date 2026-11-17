@@ -262,7 +262,10 @@ ProcessFile(LPCSTR filename, PROCESSING *processing, CMDDEF **nextarg, SCMDPROCE
 #ifdef _WIN32
   handle = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
 #else
-  handle = (HANDLE)OsCreateFile(filename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F); if (handle == (HANDLE)HOSFILE_INVALID) { handle = INVALID_HANDLE_VALUE; }
+  handle = (HANDLE)OsCreateFile(filename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0x3F3F3F3F);
+  if (handle == (HANDLE)HOSFILE_INVALID) {
+    handle = INVALID_HANDLE_VALUE;
+  }
 #endif
   if (handle == INVALID_HANDLE_VALUE) {
     if (errorcallback) {

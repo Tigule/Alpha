@@ -227,7 +227,7 @@ int __cdecl vsnoprintf(char *out, int outSize, LPCSTR format, char *argumentList
           break;
       }
 
-#if !defined(_WIN32) && BUILD_FIXES
+#ifndef _WIN32
       if (written > end - out) {
         written = end - out;
       }

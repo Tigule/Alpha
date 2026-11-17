@@ -715,7 +715,10 @@ void GxSceneClear(UINT mask) {
 }
 
 CGxTexFlags::CGxTexFlags(EGxTexFilter filter, DWORD wrapU, DWORD wrapV, DWORD force, DWORD generateMipMaps, DWORD renderTarget, DWORD maxAnisotropy) {
-  GXTEXFLAGS_CLEAR(); m_filter = filter;
+#if BUILD_PORTABLE
+  *(DWORD *)this = 0;
+#endif
+  m_filter = filter;
   m_wrapU = wrapU;
   m_wrapV = wrapV;
   m_forceMipTracking = force;
