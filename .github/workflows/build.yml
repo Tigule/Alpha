@@ -178,7 +178,7 @@ jobs:
       - name: Build bundle
         run: |
           cmake -S . -B Build/mac-arm64 -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -DCMAKE_OSX_ARCHITECTURES=arm64
-          cmake --build Build/mac-arm64 --parallel
+          cmake --build Build/mac-arm64 --parallel $(sysctl -n hw.ncpu)
 
       - name: Package bundle
         run: |
