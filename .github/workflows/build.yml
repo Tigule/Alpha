@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  windows-legacy:
+  windows-x86-vc6:
     runs-on: windows-latest
 
     steps:
@@ -98,23 +98,21 @@ jobs:
         run: |
           call "VC6\VC98\Bin\VCVARS32.BAT"
           cd Build
-          cmake -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -G "NMake Makefiles" ..
+          cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" ..
           nmake
 
       - name: Upload executables
         uses: actions/upload-artifact@v7
         with:
-          name: windows-legacy
+          name: windows-x86-vc6
           path: |
-            Build/WoW/bin/UpdateClientAE.exe
-            Build/WoW/bin/Wowae.exe
-            Build/WoW/bin/Wowae.pdb
-            Build/WoW/bin/Wowae.map
-            Build/WoW/bin/WowErrorAE.exe
-            Build/WoW/bin/WowUpdateHelperAE.exe
+            Build/WoW/bin/UpdateClient.exe
+            Build/WoW/bin/Wow.exe
+            Build/WoW/bin/WowError.exe
+            Build/WoW/bin/WowUpdateHelper.exe
           if-no-files-found: error
 
-  windows-modern:
+  windows-x86-vs2026:
     runs-on: windows-2025
 
     steps:
@@ -155,20 +153,74 @@ jobs:
           DXSDK_DIR: ${{ github.workspace }}\DXSDK2010
         run: |
           cmake -G "Visual Studio 18 2026" -A Win32 -S . -B Build/vs2026
-          cmake --build Build/vs2026 --config Release_Assertions_Enabled --parallel
+          cmake --build Build/vs2026 --config Release --parallel
 
       - name: Upload executables
         uses: actions/upload-artifact@v7
         with:
-          name: windows-vs2026
+          name: windows-x86-vs2026
           path: |
-            Build/vs2026/WoW/bin/Release_Assertions_Enabled/UpdateClientAE.exe
-            Build/vs2026/WoW/bin/Release_Assertions_Enabled/Wowae.exe
-            Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowErrorAE.exe
-            Build/vs2026/WoW/bin/Release_Assertions_Enabled/WowUpdateHelperAE.exe
+            Build/vs2026/WoW/bin/Release/UpdateClient.exe
+            Build/vs2026/WoW/bin/Release/Wow.exe
+            Build/vs2026/WoW/bin/Release/WowError.exe
+            Build/vs2026/WoW/bin/Release/WowUpdateHelper.exe
           if-no-files-found: error
 
-  mac-modern:
+  windows-x64-vs2026:
+    runs-on: windows-2025
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Check for Visual Studio 2026
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $version = & $vswhere -latest -version "[18.0,19.0)" -property installationVersion
+          if (-not $version) {
+            Write-Error "Visual Studio 2026 is not installed on this runner image"
+            exit 1
+          }
+          Write-Output "Visual Studio $version"
+
+      - name: Download DirectX SDK
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/DXSDK2010.zip" -OutFile "DXSDK2010.zip"
+
+      - name: Extract DirectX SDK
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: DXSDK2010.zip
+          extract_dir: DXSDK2010
+
+      - name: Download game client resources
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://tigule.org/files/ci/Resources.zip" -OutFile "Resources.zip"
+          Expand-Archive -Path "Resources.zip" -DestinationPath "." -Force
+
+      - name: Build solution
+        shell: cmd
+        env:
+          DXSDK_DIR: ${{ github.workspace }}\DXSDK2010
+        run: |
+          cmake -G "Visual Studio 18 2026" -A x64 -S . -B Build/vs2026-x64
+          cmake --build Build/vs2026-x64 --config Release --parallel
+
+      - name: Upload executables
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-x64-vs2026
+          path: |
+            Build/vs2026-x64/WoW/bin/Release/UpdateClient.exe
+            Build/vs2026-x64/WoW/bin/Release/Wow64.exe
+            Build/vs2026-x64/WoW/bin/Release/WowError.exe
+            Build/vs2026-x64/WoW/bin/Release/WowUpdateHelper.exe
+          if-no-files-found: error
+
+  macos-arm64:
     runs-on: macos-15
 
     steps:
@@ -177,7 +229,7 @@ jobs:
 
       - name: Build bundle
         run: |
-          cmake -S . -B Build/mac-arm64 -DCMAKE_BUILD_TYPE=Release_Assertions_Enabled -DCMAKE_OSX_ARCHITECTURES=arm64
+          cmake -S . -B Build/mac-arm64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
           cmake --build Build/mac-arm64 --parallel $(sysctl -n hw.ncpu)
 
       - name: Package bundle
@@ -187,6 +239,6 @@ jobs:
       - name: Upload bundle
         uses: actions/upload-artifact@v7
         with:
-          name: mac-modern
+          name: macos-arm64
           path: World of Warcraft.zip
           if-no-files-found: error
