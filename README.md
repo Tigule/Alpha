@@ -113,7 +113,7 @@ Copy your game install to `WoW/Client/`.
 The original game client was meant to use a launcher for authentication, most people bypass that, so you'll have to use `-uptodate` when you run it.  
 
 The client runs from the folder its executable is in, so copy the executable there first:
-* Windows: copy the `.exe` into `WoW/Client/`
+* Windows: copy the `.exe` into `WoW/Client/`. The 64-bit build also needs `fmod64.dll`, if needed copy it from `Engine/Source/FMOD/api/fmod64.dll` into `WoW/Client/`.
 * macOS: copy `World of Warcraft.app` into `WoW/Client/`
 * Linux: copy `Wow64ae` into `WoW/Client/` (a symlink won't work), then run `./Wow64ae -uptodate`. Settings and crash logs go to `~/.blizzard/`.
 
