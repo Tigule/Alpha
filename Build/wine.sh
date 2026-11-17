@@ -39,6 +39,7 @@ WOW_REF_EXE="$WOW_CLIENT_DIR/WowClient.exe"
 if [ "$(uname -s)" = Darwin ]; then
     WOW_REF_EXE="$WOW_CLIENT_DIR/WowMacClient.exe"
 fi
+WOW_REF_RUN_EXE="$WOW_CLIENT_DIR/RefClient.exe"
 
 die() {
     printf '%s\n' "error: $*" >&2
@@ -227,22 +228,33 @@ build() {
     run_vc6_cmd "nmake"
 }
 
+patch_fcomp_alias() {
+    [ "$(uname -s)" = Darwin ] || return 0
+    [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] || return 0
+    require_command perl
+
+    perl -0777 -pi -e '$n = s/\xDD\x47\x08\xDC\xD8\xDF\xE0/\xDD\x47\x08\xD8\xD8\xDF\xE0/g; END { die "expected 1 FCOMP alias in luaH_set, found $n\n" if $n != 1 }' "$1"
+}
+
 run() {
     require_wine_prefix
     [ -f "$WOW_EXE" ] || die "Wowae.exe was not found: $WOW_EXE"
 
     mkdir -p "$WOW_CLIENT_DIR"
     cp "$WOW_EXE" "$WOW_CLIENT_EXE"
+    patch_fcomp_alias "$WOW_CLIENT_EXE"
     cd "$WOW_CLIENT_DIR"
-    WINEDEBUG=-all run_wine "$WOW_CLIENT_EXE" -uptodate -windowed "$@"
+    WINEDEBUG=-all MVK_CONFIG_LOG_LEVEL=1 run_wine "$WOW_CLIENT_EXE" -uptodate -windowed "$@"
 }
 
 run_ref() {
     require_wine_prefix
     [ -f "$WOW_REF_EXE" ] || die "Reference client was not found: $WOW_REF_EXE"
 
+    cp "$WOW_REF_EXE" "$WOW_REF_RUN_EXE"
+    patch_fcomp_alias "$WOW_REF_RUN_EXE"
     cd "$WOW_CLIENT_DIR"
-    WINEDEBUG=-all run_wine "$WOW_REF_EXE" -uptodate -windowed "$@"
+    WINEDEBUG=-all MVK_CONFIG_LOG_LEVEL=1 run_wine "$WOW_REF_RUN_EXE" -uptodate -windowed -opengl "$@"
 }
 
 case "${1:-}" in
