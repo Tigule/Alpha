@@ -2800,9 +2800,8 @@ void TEXTLINETEXTURE::InternalRenderTexture(
   face->UpdateTextures();
 
   UINT numVerts = m_vert.Count();
-  if (!numVerts) {
+  if (!numVerts)
     return;
-  }
 
   static NTempest::C3Vector  normal(0.0f, 0.0f, -1.0f);
   const NTempest::CImVector *shadowPointer;

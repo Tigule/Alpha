@@ -617,9 +617,8 @@ void CGObject_C::Initialize() {
   s_objectSelectionCircle = CVar::Register("ObjectSelectionCircle", 0, 0, "1", 0, DEBUG, false, 0);
   s_debugTargetPath = CVar::Register("DebugTargetPath", 0, 0, "0", 0, DEBUG, false, 0);
 
-  if (s_fadeTex) {
+  if (s_fadeTex)
     GxTexDestroy(s_fadeTex);
-  }
 
   static const UINT FADETEX_WIDTH = Gx_MaxTexAspect * 8.0f;
   static const UINT FADETEX_HEIGHT = 8;

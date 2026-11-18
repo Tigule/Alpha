@@ -140,9 +140,9 @@ static float GetDist2d(const C3Vector &unitMove, float closestDist3D);
 
 static float ClipPolygonToPlane(const C4Plane &plane, CClippedTriangle *poly) {
   FATALASSERT(poly);
-  if (!poly->Count()) {
+
+  if (!poly->Count())
     return 0.0f;
-  }
 
   static CClippedTriangle old;
   static UINT             next[9];

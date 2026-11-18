@@ -1273,13 +1273,12 @@ static void AddGameObjFacets(const NTempest::CAaBox &aaBox, const WorldObjCollis
 
 bool CMap::GetTrisChunk(int cx, int cy, NTempest::CiRect &sRect, const NTempest::CAaBox &aaBox, CWTriData &triData, UINT queryFlags) {
   CMapArea *area = areaTable[((cy >> 4) & 0x3F) * 64 + ((cx >> 4) & 0x3F)];
-  if (!area) {
+  if (!area)
     return false;
-  }
+
   CMapChunk *chunk = area->chunkTable[(cy & 0xF) * 16 + (cx & 0xF)];
-  if (!chunk) {
+  if (!chunk)
     return false;
-  }
 
   NTempest::CAaBox lBox = aaBox;
   lBox.Offset(-chunk->corner);

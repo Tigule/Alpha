@@ -8300,9 +8300,8 @@ void CGUnit_C::CheckLevelUpAnimFlag(int oldState, int newState) {
 }
 
 void CGUnit_C_RenderBowStrings(const NTempest::C3Vector &c) {
-  if (!s_bowStringIndices.Count()) {
+  if (!s_bowStringIndices.Count())
     return;
-  }
 
   NTempest::C44Matrix m;
   m.d0 = -c.x;

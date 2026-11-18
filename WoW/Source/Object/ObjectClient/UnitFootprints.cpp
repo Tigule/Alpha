@@ -471,11 +471,12 @@ void UnitFootprintNewSplat(
 }
 
 void UnitFootprintNewBloodSplat(const UnitBloodRec *rec, UINT unitSize, const NTempest::C3Vector &position) {
-  if (!s_renderSplatsCVar->GetInt()) {
+  if (!s_renderSplatsCVar->GetInt())
     return;
-  }
+
   FATALASSERT(rec);
   FATALASSERT(unitSize < NUM_MONSTERSIZECLASSES);
+
   static NTempest::CRndSeed s_rndSeed;
   float                     facing = NTempest::CRandom::reals_(s_rndSeed) * TWO_PI;
   float                     sizeVariance = NTempest::CRandom::reals_(s_rndSeed) * 0.2f + 1.0f;

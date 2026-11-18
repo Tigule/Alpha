@@ -239,9 +239,8 @@ void CWorldScene::Render() {
 
   const CGxCaps &caps = GxCaps();
 
-  for (UINT i = 0; i < caps.m_numTmus; ++i) {
+  for (UINT i = 0; i < caps.m_numTmus; ++i)
     GxRsSet((EGxRenderState)(GxRs_TexLodBias0 + i), -CWorld::texLodBias);
-  }
 
   GxXformPush(GxXform_World);
   nPrimsRendered = 0;

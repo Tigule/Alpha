@@ -1279,17 +1279,17 @@ void CGUnit_C::OnDeathAnimate() {
 }
 
 void CGUnit_C::InitializeResEffectModel() {
-  if (IsA(ID_PLAYER)) {
-    CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
-    if (activePlayer->CanAssist(this)) {
-      ClearResEffectModel();
+  if (!IsA(ID_PLAYER))
+    return;
 
-      static UINT effectVisualID = UnitEffectGetSpecialVisual(SPECIALEFFECT_RES_EFFECT);
+  CGUnit_C *activePlayer = static_cast<CGUnit_C *>(ClntObjMgrObjectPtr(ClntObjMgrGetActivePlayer(), __FILE__, __LINE__));
+  if (!activePlayer->CanAssist(this))
+    return;
 
-      m_resEffectModel = UnitEffectCreateAuraModel(effectVisualID);
-      AttachResEffectModel();
-    }
-  }
+  ClearResEffectModel();
+  static UINT effectVisualID = UnitEffectGetSpecialVisual(SPECIALEFFECT_RES_EFFECT);
+  m_resEffectModel = UnitEffectCreateAuraModel(effectVisualID);
+  AttachResEffectModel();
 }
 
 void CGUnit_C::ClearResEffectModel() {

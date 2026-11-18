@@ -790,9 +790,8 @@ void CGxDeviceD3d::PrimLockAndProcessVertexPtrs(
 }
 
 void CGxDeviceD3d::IPrimProcessVertexPtrs() {
-  if (m_processedVertexPtrs) {
+  if (m_processedVertexPtrs)
     return;
-  }
 
   if (!s_normal) {
     s_normal = &s_genericNormal;
