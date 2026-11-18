@@ -57,6 +57,8 @@ Commands:
   run      Copy Wowae.exe into WoW/Client and start TiguleClient.exe
   run-ref  Start the original reference client (WowMacClient.exe on macOS)
   all      Run install, setup, then build
+  exec     Run a Windows command in the Wine prefix
+  prefix   Print the Wine prefix path
 
 Environment:
   WINEPREFIX  Wine prefix to use (default: $HOME/.wine)
@@ -276,6 +278,15 @@ case "${1:-}" in
     run-ref)
         shift
         run_ref "$@"
+        ;;
+    exec)
+        shift
+        require_wine_prefix
+        WINEDEBUG=-all run_wine "$@"
+        ;;
+    prefix)
+        require_wine_prefix
+        printf '%s\n' "$WINEPREFIX"
         ;;
     all)
         install

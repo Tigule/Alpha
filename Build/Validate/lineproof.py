@@ -6,11 +6,11 @@ import re
 import struct
 import subprocess
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Mapping, Sequence
 
 
-VCVARS = Path(r"C:\Program Files (x86)\Microsoft Visual Studio 6.0\VC98\Bin\VCVARS32.BAT")
+WINE_SH = Path(__file__).resolve().parent.parent / "wine.sh"
 _DIR32 = 0x06
 _REL32 = 0x14
 _SECREL = 0x0B
@@ -20,10 +20,10 @@ _PROC_KINDS = {0x0204, 0x0205, 0x100A, 0x100B, 0x110F, 0x1110}
 @dataclass
 class _Rule:
     compiler: str
-    cwd: Path
+    cwd: str
     text: str
     pch_text: str | None
-    pch_cwd: Path | None
+    pch_cwd: str | None
     pch_file: Path | None
     object_path: Path
 
@@ -115,12 +115,47 @@ class LineProof:
         self.build = build
         self.cache = cache
         self.rules: dict[tuple[str, str], _Rule] | None = None
-        self.environment: dict[str, str] | None = None
+        self.launcher: list[str] = []
+        self.drives: list[tuple[Path, str]] = []
+        self.vcvars = ""
         self.unavailable: str | None = None
-        if not VCVARS.exists():
-            self.unavailable = "unavailable: VC6 environment not found"
-        elif not build.is_dir() or next(build.rglob("build.make"), None) is None:
+        cmake_cache = build / "CMakeCache.txt"
+        compiler = re.search(r"^CMAKE_CXX_COMPILER:\w+=(.+)$", cmake_cache.read_text(errors="replace"), re.M) \
+            if cmake_cache.exists() else None
+        if compiler is None or next(build.rglob("build.make"), None) is None:
             self.unavailable = "unavailable: no build tree"
+            return
+        if os.name != "nt":
+            prefix = subprocess.run([str(WINE_SH), "prefix"], capture_output=True, text=True)
+            if prefix.returncode != 0:
+                self.unavailable = "unavailable: no Wine prefix"
+                return
+            self.launcher = [str(WINE_SH), "exec"]
+            devices = Path(prefix.stdout.strip()) / "dosdevices"
+            self.drives = sorted(((entry.resolve(), entry.name.upper()) for entry in devices.iterdir()
+                                  if len(entry.name) == 2 and entry.name.endswith(":")),
+                                 key=lambda drive: len(drive[0].parts), reverse=True)
+        self.vcvars = str(PureWindowsPath(compiler.group(1).strip()).parent / "VCVARS32.BAT")
+        if not self.host_path(self.vcvars).exists():
+            self.unavailable = "unavailable: VC6 environment not found"
+
+    def host_path(self, path: str) -> Path:
+        if not self.launcher:
+            return Path(path)
+        windows = PureWindowsPath(path)
+        for target, drive in self.drives:
+            if drive == windows.drive.upper():
+                return target.joinpath(*windows.parts[1:])
+        return Path(path)
+
+    def tool_path(self, path: Path) -> str:
+        if not self.launcher:
+            return str(path)
+        path = path.resolve()
+        for target, drive in self.drives:
+            if path.is_relative_to(target):
+                return str(PureWindowsPath(drive + "\\", *path.relative_to(target).parts))
+        return str(path)
 
     def _scan(self) -> None:
         self.rules = {}
@@ -140,7 +175,7 @@ class LineProof:
                     if compiler is None and text.endswith("@<<"):
                         compiler = text[:-3].strip()
                     if text.startswith("cd "):
-                        cwd = Path(text[3:].strip())
+                        cwd = text[3:].strip()
                         break
                 if cwd is None or compiler is None:
                     continue
@@ -160,27 +195,14 @@ class LineProof:
                 if " /Yu" in line and pch is not None:
                     pch_text, pch_cwd = self._expand(pch[0], table), pch[1]
                     match = re.search(r"/Fp(\S+)", line)
-                    pch_file = Path(match.group(1)) if match else None
-                self.rules[(str(cwd / output).lower().replace("/", "\\"), source.lower())] = _Rule(
-                    compiler, cwd, text, pch_text, pch_cwd, pch_file, cwd / output)
+                    pch_file = self.host_path(str(PureWindowsPath(cwd) / match.group(1))) if match else None
+                object_path = str(PureWindowsPath(cwd) / output)
+                self.rules[(object_path.lower(), source.lower())] = _Rule(
+                    compiler, cwd, text, pch_text, pch_cwd, pch_file, self.host_path(object_path))
 
     @staticmethod
     def _expand(line: str, table: Mapping[str, str]) -> str:
         return re.sub(r"\$\((C(?:XX)?_(?:DEFINES|INCLUDES|FLAGS))\)", lambda m: table.get(m.group(1), ""), line).strip()
-
-    def _environment(self) -> dict[str, str]:
-        if self.environment is None:
-            output = subprocess.run(f'cmd /c ""{VCVARS}" >nul && set"', capture_output=True, text=True).stdout
-            environment = dict(os.environ)
-            for line in output.splitlines():
-                key, separator, value = line.partition("=")
-                if separator:
-                    environment[key] = value
-            temp = self.cache / "tmp"
-            temp.mkdir(parents=True, exist_ok=True)
-            environment["TMP"] = environment["TEMP"] = str(temp)
-            self.environment = environment
-        return self.environment
 
     def rule(self, module_name: str, source: str) -> _Rule | None:
         if self.rules is None:
@@ -192,11 +214,21 @@ class LineProof:
                 return rule
         return None
 
-    def _run(self, compiler: str, cwd: Path, arguments: str, tag: str) -> subprocess.CompletedProcess[str]:
+    def _run(self, compiler: str, cwd: str, arguments: str, tag: str) -> subprocess.CompletedProcess[str]:
         response = self.cache / f"{tag}.rsp"
         response.write_text(arguments + "\n")
-        return subprocess.run([compiler, f"@{response}"], cwd=str(cwd), capture_output=True, text=True,
-                              env=self._environment())
+        temp = self.tool_path(self.cache / "tmp")
+        (self.cache / "tmp").mkdir(parents=True, exist_ok=True)
+        script = self.cache / f"{tag}.bat"
+        script.write_text("\n".join((
+            "@echo off",
+            f'call "{self.vcvars}" >nul',
+            f"set TMP={temp}",
+            f"set TEMP={temp}",
+            f'cd /d "{cwd}"',
+            f'"{compiler}" @"{self.tool_path(response)}"',
+        )) + "\n", newline="\r\n")
+        return subprocess.run([*self.launcher, "cmd", "/c", self.tool_path(script)], capture_output=True, text=True)
 
     @staticmethod
     def _strip(text: str, *prefixes: str) -> str:
@@ -214,11 +246,12 @@ class LineProof:
         if not pch.exists():
             folder.mkdir(parents=True, exist_ok=True)
             text = self._strip(rule.pch_text, "/Fp", "/Fd", "/Fo", "/YX")
-            text = text.replace(" -c ", f' /Fp"{pch}" /Fd"{pdb}" /Fo"{folder / "pch.obj"}" -c ', 1)
+            text = text.replace(" -c ", f' /Fp"{self.tool_path(pch)}" /Fd"{self.tool_path(pdb)}" '
+                                f'/Fo"{self.tool_path(folder / "pch.obj")}" -c ', 1)
             self._run(rule.compiler, rule.pch_cwd, text, f"pch_{key}")
             if not pch.exists():
                 return None
-        return f'/Fp"{pch}" /Fd"{pdb}"'
+        return f'/Fp"{self.tool_path(pch)}" /Fd"{self.tool_path(pdb)}"'
 
     def compile(self, rule: _Rule, source_text: bytes, name: str, tag: str) -> _Object | None:
         stamp = hashlib.sha256()
@@ -245,12 +278,13 @@ class LineProof:
                 return None
             text = self._strip(text, "/Fp") + " " + pch
         else:
-            text += f' /Fd"{folder / "p.pdb"}"'
-        include = f'/I"{Path(original_source).parent}"'
+            text += f' /Fd"{self.tool_path(folder / "p.pdb")}"'
+        include = f'/I"{PureWindowsPath(original_source).parent}"'
         text = text.replace("/nologo", "/nologo " + include, 1)
         (self.cache / "obj").mkdir(parents=True, exist_ok=True)
         output = folder / "out.obj"
-        result = self._run(rule.compiler, rule.cwd, f'{text} /Fo"{output}" -c "{scratch}"', tag)
+        result = self._run(rule.compiler, rule.cwd,
+                           f'{text} /Fo"{self.tool_path(output)}" -c "{self.tool_path(scratch)}"', tag)
         if not output.exists():
             (folder / "error.txt").write_text(result.stdout + result.stderr)
             return None
@@ -322,4 +356,4 @@ def function_code(obj: _Object, names: Sequence[str]) -> tuple[bytes, list[tuple
     return _function(obj, names)
 
 
-__all__ = ["LineProof", "function_code", "remap_source", "synthesize", "VCVARS"]
+__all__ = ["LineProof", "function_code", "remap_source", "synthesize"]

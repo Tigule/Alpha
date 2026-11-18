@@ -5,7 +5,7 @@ from bisect import bisect_right
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import math
 import os
 import posixpath
@@ -1438,8 +1438,8 @@ def _apply_line_proof(proof: LineProof, pending: Sequence[dict[str, Any]], origi
         if not accepted:
             continue
         remap = {line: value for item in accepted for line, value in item["remap"].items()}
-        text = Path(source).read_bytes()
-        name = Path(source).name
+        text = proof.host_path(source).read_bytes()
+        name = PureWindowsPath(source).name
         stem = re.sub(r"[^A-Za-z0-9]+", "_", Path(module).stem)
         base_obj = proof.compile(rule, remap_source(text, source, {}), name, f"base_{stem}")
         fixed_obj = proof.compile(rule, remap_source(text, source, remap), name, f"line_{stem}") if base_obj else None
